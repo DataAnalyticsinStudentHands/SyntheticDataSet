@@ -1,0 +1,8 @@
+*.csv
+_Rhistory*
+_RData.gz*
+.Rhistory*
+.XPT*
+*.gz
+*.XPT
+*.ASC
