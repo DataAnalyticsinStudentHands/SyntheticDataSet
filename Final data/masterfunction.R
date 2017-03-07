@@ -15,14 +15,14 @@ master<-function(county,tracts,number.of.households,seed){
   set.seed(seed)
   fullset=data.frame()
   for (tract in tracts){
-    
-    for(seed in 1:sample(1:100, number.of.households, replace=TRUE)){
+    seeds=sample(1:100000000, number.of.households, replace=FALSE)
+    for(seedy in seeds){
       #I found out some tracts don't actually have people in them :( hence the next 4 lines
       householdtypeandrace=read.csv("householdtypeandrace.csv")
       house <- householdtypeandrace[(householdtypeandrace$tract==tract) & (householdtypeandrace$county==county),]
       total1=sum(house[1,4:43])
       if (total1>0){
-        partofset=gethouseholdtypeandrace(county,tract,1,seed)#not dependent on anything gets type and race
+        partofset=gethouseholdtypeandrace(county,tract,1,seedy)#not dependent on anything gets type and race
         
         #Debugging Stuff
         #householdsizebyvehicles=read.csv("household_size_by_vehicles_available.csv")
@@ -35,7 +35,7 @@ master<-function(county,tracts,number.of.households,seed){
         #  if(total==0 & nrow(sampledhouse)>=3)stop(partofset)
         #}
         
-        partofset=getnumberofvehicles(county,tract,partofset,seed)#only dependent on size
+        partofset=getnumberofvehicles(county,tract,partofset,seedy)#only dependent on size
         
         #More Debugging Stuff
         #sexbyagebyrace=read.csv("sex_by_age_by_race.csv")
@@ -44,9 +44,9 @@ master<-function(county,tracts,number.of.households,seed){
         #if(sum(AmerIndianAlaskanMen)==0 & ("American Indian or Alaskan Native" %in% partofset$race))stop(tract)
         
         
-        partofset=getsexandage(county,tract,partofset,seed)#only dependent on race
-        partofset=getschoolenrollment(county,tract,partofset,seed)#dependent on sex and age which is fine because those two were cross tabulated together
-        partofset=geteducationattainment(county,tract,partofset,seed)#dependent on sex and age which is fine because those two are cross tabulated together
+        partofset=getsexandage(county,tract,partofset,seedy)#only dependent on race
+        partofset=getschoolenrollment(county,tract,partofset,seedy)#dependent on sex and age which is fine because those two were cross tabulated together
+        partofset=geteducationattainment(county,tract,partofset,seedy)#dependent on sex and age which is fine because those two are cross tabulated together
         
         ##Debugging Stuff don't pay attention
         #employment=read.csv("employment.csv")
@@ -56,16 +56,16 @@ master<-function(county,tracts,number.of.households,seed){
         #if(sum(Men16.19)==0&()) stop(partofset)
         
         
-        partofset=getemployment(county,tract,partofset,seed)#dependent on sex and age which is fine because those two are tabulated together
-        partofset=getdisability(county,tract,partofset,seed)#dependent on age
+        partofset=getemployment(county,tract,partofset,seedy)#dependent on sex and age which is fine because those two are tabulated together
+        partofset=getdisability(county,tract,partofset,seedy)#dependent on age
         #partofset=getdegree(county,tract,partofset,seed)#dependent on race but it's also linked to educattion attainment which wasn't done by race so it's out for now
-        partofset=getlangandnativity(county,tract,partofset,seed)#dependent on race
-        partofset=getcitizenandlang(county,tract,partofset,seed)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-        partofset=getvets(county,tract,partofset,seed)#dependent on sex and age which are cross tabulated
-        partofset=gettransport(county,tract,partofset,seed)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-        partofset=gettraveltime(county,tract,partofset,seed)#dependent on travel method
-        partofset=getincome(county,tract,partofset,seed)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-        partofset=getinsurance(county,tract,partofset,seed)#dependent on income
+        partofset=getlangandnativity(county,tract,partofset,seedy)#dependent on race
+        partofset=getcitizenandlang(county,tract,partofset,seedy)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
+        partofset=getvets(county,tract,partofset,seedy)#dependent on sex and age which are cross tabulated
+        partofset=gettransport(county,tract,partofset,seedy)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
+        partofset=gettraveltime(county,tract,partofset,seedy)#dependent on travel method
+        partofset=getincome(county,tract,partofset,seedy)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+        partofset=getinsurance(county,tract,partofset,seedy)#dependent on income
         
         fullset=rbind(fullset,partofset)
       

@@ -5,19 +5,19 @@ library("plyr", lib.loc="~/R/win-library/3.3")
 sampleset=read.csv('sample_set5.csv')
 #sample.set.error=read.csv('error_for_sample_set5.csv')
 
-#for (seed in 1:10){
-  #source.of.tracts=read.csv("veteran_status.csv") #choice of file was arbitrary all files have counties and regions
-  #a=subset(source.of.tracts,source.of.tracts$county==201)
-  #tracts=unique(a$tract)
-#  sample.set=master(201,tracts,100,seed)
-#  filename <- paste("Harris_sample_set",seed, ".csv", sep="") 
-#  sample.set=read.csv(filename)
+for (seed in 1:10){
+  source.of.tracts=read.csv("veteran_status.csv") #choice of file was arbitrary all files have counties and regions
+  a=subset(source.of.tracts,source.of.tracts$county==201)
+  tracts=unique(a$tract)
+  sample.set=master(201,tracts,100,seed)
+  filename <- paste("sample_set",seed, ".csv", sep="") 
+  #sample.set=read.csv(filename)
   
-#  error.for.sample.set=run.me.for.errors(sample.set)
-#  filename2 <- paste("error_for_Harris.sample_set",seed,".csv",sep="")
-#  write.csv(error.for.sample.set,file=filename2)
+  #error.for.sample.set=run.me.for.errors(sample.set)
+  #filename2 <- paste("error_for_Harris.sample_set",seed,".csv",sep="")
+  #write.csv(error.for.sample.set,file=filename2)
   
-#}
+}
 
 
 #names(df)[names(df) == 'old.var.name'] <- 'new.var.name'
@@ -32,16 +32,7 @@ run.me.for.errors=function(sampleset){
     for (tract in tracts){
       subsample <- sampleset[(sampleset$tract==tract) & (sampleset$county==b),]
       tractsampleseterror=data.frame(tract)
-      #for (col in c(21:23,27:43)){
-      #  variables=unique(subsample[,col])
-      #  
-      #  for (var in variables){
-      #    percentage=data.frame(sum(subsample[,col]==var)/length(subsample[,col]))
-      #    q=colnames(subsample)
-      #    colnames(percentage)=paste(q[col],var,sep=".")
-      #    tractsampleseterror=cbind(percentage,tractsampleseterror)
-          
-        #}
+
       sexbyagebyrace=read.csv("sex_by_age_by_race.csv")
       
       sexbyagebyrace <- sexbyagebyrace[(sexbyagebyrace$tract==tract) & (sexbyagebyrace$county==b),]
@@ -385,12 +376,12 @@ run.me.for.errors=function(sampleset){
       other=c(traveltime$B08134_112E,traveltime$B08134_113E,traveltime$B08134_114E,traveltime$B08134_115E,traveltime$B08134_116E,traveltime$B08134_117E,traveltime$B08134_118E,traveltime$B08134_119E,traveltime$B08134_120E)
       
       time.census=(drovealone+carpooled+publictransport+walked+other)
-      colnames(time.census)=c("less than 10 minutes","10 to 14 minutes","15 to 19 minutes","20 to 24 minutes","25 to 29 minutes","30 to 34 minutes","35 to 44 minutes","45 to 59 minutes","60 minutes or more")
+      time.census=data.frame("less than 10 minutes"=time.census[1],"10 to 14 minutes"=time.census[2],"15 to 19 minutes"=time.census[3],"20 to 24 minutes"=time.census[4],"25 to 29 minutes"=time.census[5],"30 to 34 minutes"=time.census[6],"35 to 44 minutes"=time.census[7],"45 to 59 minutes"=time.census[8],"60 minutes or more"=time.census[9])
       
       time.sampleset=table(subsample$travel.time.to.work)
       
       for (time in colnames(time.census)){
-        successes=c(ifelse(time %in% names(time.sampleset),time.sampleset[t],0),time.census[[t]])
+        successes=c(ifelse(time %in% names(time.sampleset),time.sampleset[time],0),time.census[[time]])
         trials=c(sum(time.sampleset),sum(time.census[1,]))
         
         if(!(0 %in% trials)){
@@ -402,7 +393,7 @@ run.me.for.errors=function(sampleset){
           p=data.frame("No one is working :(")
         }
         
-        colnames(p)=paste(time(),sep=".")
+        colnames(p)=paste(time,sep=".")
         tractsampleseterror=cbind(p,tractsampleseterror)
       }
       
@@ -412,7 +403,8 @@ run.me.for.errors=function(sampleset){
       #as there language and citizenship are already known, I re-mined this data to get it un-cross-tabulated
       citizenship.and.language=citizenship.and.language[(citizenship.and.language$tract==tract)&(citizenship.and.language$county==county),]
       
-      citizenship.census=citizenship.and.language[,c("Citizen","Naturalized Citizen","Not a U.S. Citizen")]
+      citizenship.census=citizenship.and.language[,c("Citizen","Naturalized.Citizen","Not.a.U.S..Citizen")]
+      colnames(citizenship.census)=c("Citizen","Naturalized Citizen","Not a U.S. Citizen")
       citizenship.sampleset=table(subsample$citizenship)
       
       for (c in colnames(citizenship.census)){
@@ -425,11 +417,12 @@ run.me.for.errors=function(sampleset){
         tractsampleseterror=cbind(p,tractsampleseterror)
       }
       
-      at.home.lang.census=citizenship.and.language[,c("English","Speaks Spanish","Speaks Other Language")]
+      at.home.lang.census=citizenship.and.language[,c("English","Speaks.Spanish","Speaks.Other.Language")]
+      colnames(at.home.lang.census)=c("English","Speaks Spanish","Speaks Other Language")
       at.home.lang.sampleset=table(subsample$Language.at.home)
       
       for (lang in colnames(at.home.lang.census)){
-        successes=c(ifelse(lang %in% names(at.home.lang.sampleset),at.home.lang.sampleset[c],0),at.home.lang.census[[c]])
+        successes=c(ifelse(lang %in% names(at.home.lang.sampleset),at.home.lang.sampleset[lang],0),at.home.lang.census[[lang]])
         trials=c(sum(at.home.lang.sampleset),sum(at.home.lang.census[1,]))
         
         p=prop.test(successes,trials, correct=FALSE)
@@ -437,30 +430,115 @@ run.me.for.errors=function(sampleset){
         colnames(p)=paste(lang,sep=".")
         tractsampleseterror=cbind(p,tractsampleseterror)
       }
-      #insurance=read.csv("health_insurance.csv")
-      #insurance=insurance[(insurance$tract==tract)&(insurance$county==county),]
+      
+      insurance=read.csv("health_insurance.csv")
+      insurance=insurance[(insurance$tract==tract)&(insurance$county==county),]
       
       #Organize Data Set by row
-      #under25000=insurance[c("B27015_004E","B27015_005E","B27015_006E")]
-      #between25to49=insurance[c("B27015_009E","B27015_010E","B27015_011E")]
-      #between50to75=insurance[c("B27015_014E","B27015_015E","B27015_016E")]
-      #between75to100=insurance[c("B27015_019E","B27015_020E","B27015_021E")]
-      #over100=insurance[c("B27015_024E","B27015_025E","B27015_026E")]
+      under25000=insurance[c("B27015_004E","B27015_005E","B27015_006E")]
+      between25to49=insurance[c("B27015_009E","B27015_010E","B27015_011E")]
+      between50to75=insurance[c("B27015_014E","B27015_015E","B27015_016E")]
+      between75to100=insurance[c("B27015_019E","B27015_020E","B27015_021E")]
+      over100=insurance[c("B27015_024E","B27015_025E","B27015_026E")]
       
-      #insurance.census=(under25000+between75to100+between50to75+between25to49+over100)
-      #colnames(insurance.census)=c("private insurance","public insurance","no insurance")
+      insurance.census=(under25000+between75to100+between50to75+between25to49+over100)
+      colnames(insurance.census)=c("private insurance","public insurance","no insurance")
       
-      #insurance.sampleset=table(subsample$health.insurance)
+      insurance.sampleset=table(subsample$health.insurance)
       
-      #for (health.insure in colnames(insurance.census)){
-       # successes=c(ifelse(health.insure %in% names(insurance.sampleset),insurance.sampleset[health.insure],0),insurance.census[[health.insure]])
-        #trials=c(sum(insurance.sampleset),sum(insurance.census[1,]))
+      for (health.insure in colnames(insurance.census)){
+        successes=c(ifelse(health.insure %in% names(insurance.sampleset),insurance.sampleset[health.insure],0),insurance.census[[health.insure]])
+        trials=c(sum(insurance.sampleset),sum(insurance.census[1,]))
         
-        #p=prop.test(successes,trials, correct=FALSE)
-        #p=data.frame(p$p.value)
-        #colnames(p)=paste(health.insure,sep=".")
-        #tractsampleseterror=cbind(p,tractsampleseterror)
-      #}
+        p=prop.test(successes,trials, correct=FALSE)
+        p=data.frame(p$p.value)
+        colnames(p)=paste(health.insure,sep=".")
+        tractsampleseterror=cbind(p,tractsampleseterror)
+      }
+      
+      JustHousesNow = subsample[ !duplicated(subsample$householdID), ]
+      
+      income=read.csv("household_income")
+      income=income[(income$tract==tract)&(income$county==county),]
+      income$county=NULL
+      income$tract=NULL
+      income$state=NULL
+      
+      income.census=income
+      colnames(income.census)<-c("less than 10,000","10,000 to 14,999","15,000 to 19,999","20,000 to 24,999","25,000 to 29,999","30,000 to 34,999","35,000 to 39,999","40,000 to 44,999","45,000 to 49,999","50,000 to 59,999","60,000 to 74,999","75,000 to 99,999","100,000 to 124,999","125,000 to 149,999","150,000 to 199,999","200,000 or more")
+      income.sampleset=table(JustHousesNow$household.income)
+      
+      for (inc in colnames(income.census)){
+        successes=c(ifelse(inc %in% names(income.sampleset),income.sampleset[inc],0),income.census[[inc]])
+        trials=c(sum(income.sampleset),sum(income.census[1,]))
+        
+        p=prop.test(successes,trials, correct=FALSE)
+        p=data.frame(p$p.value)
+        colnames(p)=paste(inc,sep=".")
+        tractsampleseterror=cbind(p,tractsampleseterror)
+      }
+      
+      #Household type and size was also easier to just go back and remine then try and piece what I had mined back together
+      householdtypeforerror=read.csv('household_type_for_error.csv')
+      householdtype=householdtypeforerror[(householdtypeforerror$tract==tract)&(householdtypeforerror$county==county),]
+      householdtype$county=NULL
+      householdtype$tract=NULL
+      householdtype$state=NULL
+      
+      type.census=householdtype
+      type.sampleset=table(JustHousesNow$household.type)
+      
+      for (type in colnames(type.census)){
+        successes=c(ifelse(type %in% names(type.sampleset),type.sampleset[type],0),type.census[[type]])
+        trials=c(sum(type.sampleset),sum(type.census[1,]))
+        
+        p=prop.test(successes,trials, correct=FALSE)
+        p=data.frame(p$p.value)
+        colnames(p)=paste(type,sep=".")
+        tractsampleseterror=cbind(p,tractsampleseterror)
+      }
+      
+      householdsize=read.csv("household_size.csv")
+      householdsize=householdsize[(householdsize$tract==tract)&(householdsize$county==county),]
+      family=householdsize[c("B11016_003E","B11016_004E","B11016_005E","B11016_006E","B11016_007E","B11016_008E")]
+      nonfamily=householdsize[c("B11016_011E","B11016_012E","B11016_013E","B11016_014E","B11016_015E","B11016_016E")]
+      householdsize.census=family+nonfamily
+      colnames(householdsize.census)=c("2","3","4","5","6","7")
+      householdsize.census$Alone=type.census$Alone
+      colnames(householdsize.census)[7] <- "1"
+      
+      householdsize.sampleset=table(JustHousesNow$size)
+      
+      for (size in colnames(householdsize.census)){
+        successes=c(ifelse(size %in% names(householdsize.sampleset),householdsize.sampleset[size],0),householdsize.census[[size]])
+        trials=c(sum(householdsize.sampleset),sum(householdsize.census[1,]))
+        
+        p=prop.test(successes,trials, correct=FALSE)
+        p=data.frame(p$p.value)
+        colnames(p)=paste("size",size,sep=".")
+        tractsampleseterror=cbind(p,tractsampleseterror)
+      }
+      
+      householdsizebyvehicles=read.csv("household_size_by_vehicles_available.csv")
+      house <- householdsizebyvehicles[(householdsizebyvehicles$tract==tract) & (householdsizebyvehicles$county==county),]
+      houseofone=house[c("B08201_008E","B08201_009E","B08201_010E","B08201_011E","B08201_012E")]
+      houseoftwo=house[c("B08201_014E","B08201_015E","B08201_016E","B08201_017E","B08201_018E")]
+      houseofthree=house[c("B08201_020E","B08201_021E","B08201_022E","B08201_023E","B08201_024E")]
+      houseoflots=house[c("B08201_026E","B08201_027E","B08201_028E","B08201_029E","B08201_030E")]
+      vehicles.census=(houseoflots+houseofthree+houseoftwo+houseofone)
+      colnames(vehicles.census)=c("0","1","2","3","4")
+      
+      vehicles.sampleset=table(JustHousesNow$number.of.vehicles)
+      
+      for (vehicle in colnames(vehicles.census)){
+        successes=c(ifelse(vehicle %in% names(vehicles.sampleset),vehicles.sampleset[vehicle],0),vehicles.census[[vehicle]])
+        trials=c(sum(vehicles.sampleset),sum(vehicles.census[1,]))
+        
+        p=prop.test(successes,trials, correct=FALSE)
+        p=data.frame(p$p.value)
+        colnames(p)=paste("vehicles",vehicle,sep=".")
+        tractsampleseterror=cbind(p,tractsampleseterror)
+      }
       
       sampleseterror=rbind.fill(sampleseterror,tractsampleseterror)
       
