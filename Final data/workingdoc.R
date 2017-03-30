@@ -5,7 +5,6 @@ gethouseholdtypeandrace <- function(county,tract,number.of.households,seed){
   set.seed(seed)
   householdtypeandrace=read.csv("householdtypeandrace.csv")
   
-  
     house <- householdtypeandrace[(householdtypeandrace$tract==tract) & (householdtypeandrace$county==county),]
     total1=sum(house[1,4:43])
     prob1=(house[1,4:43])/total1

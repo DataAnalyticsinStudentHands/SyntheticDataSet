@@ -2,24 +2,6 @@
 source('masterfunction.R')
 library("plyr", lib.loc="~/R/win-library/3.3")
 
-sampleset=read.csv('sample_set5.csv')
-#sample.set.error=read.csv('error_for_sample_set5.csv')
-
-for (seed in 1:10){
-  source.of.tracts=read.csv("veteran_status.csv") #choice of file was arbitrary all files have counties and regions
-  a=subset(source.of.tracts,source.of.tracts$county==201)
-  tracts=unique(a$tract)
-  sample.set=master(201,tracts,100,seed)
-  filename <- paste("sample_set",seed, ".csv", sep="") 
-  #sample.set=read.csv(filename)
-  
-  #error.for.sample.set=run.me.for.errors(sample.set)
-  #filename2 <- paste("error_for_Harris.sample_set",seed,".csv",sep="")
-  #write.csv(error.for.sample.set,file=filename2)
-  
-}
-
-
 #names(df)[names(df) == 'old.var.name'] <- 'new.var.name'
 run.me.for.errors=function(sampleset){
   
@@ -548,3 +530,19 @@ run.me.for.errors=function(sampleset){
   }
   return(sampleseterror)
 }
+
+
+for (seed in 1:10){
+  source.of.tracts=read.csv("veteran_status.csv") #choice of file was arbitrary all files have counties and regions
+  a=subset(source.of.tracts,source.of.tracts$county==201)
+  tracts=unique(a$tract)
+  sample.set=master(201,tracts,2050,seed)
+  filename <- paste("sample_set",seed, ".csv", sep="")
+  write.csv(sample.set,file=filename)
+  
+  error.for.sample.set=run.me.for.errors(sample.set)
+  filename2 <- paste("error_for_sample_set",seed,".csv",sep="")
+  write.csv(error.for.sample.set,file=filename2)
+  
+}
+

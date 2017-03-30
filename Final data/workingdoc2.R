@@ -4,9 +4,8 @@ getsexandage <- function(county, tractvar, syntheticdataset,seed){
   
   set.seed(seed)
   #Guess Race and Type
-  sexbyagebyrace=read.csv("sex_by_age_by_race.csv")
-  
-  sexbyagebyrace <- sexbyagebyrace[(sexbyagebyrace$tract==tractvar) & (sexbyagebyrace$county==county),]
+  sexbyagebyrace1=read.csv("sex_by_age_by_race.csv")
+  sexbyagebyrace <- sexbyagebyrace1[(sexbyagebyrace1$tract==tractvar) & (sexbyagebyrace1$county==county),]
   householdtypeandrace=read.csv("householdtypeandrace.csv")
   house <- householdtypeandrace[(householdtypeandrace$tract==tractvar) & (householdtypeandrace$county==county),]
   

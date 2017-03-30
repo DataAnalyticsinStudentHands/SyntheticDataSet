@@ -5,18 +5,34 @@ source('workingdoc.R')
 source('workingdoc2.R')
 source('workingdoc3.R')
 source('workingdoc4.R')
-source('BRSSRfunction.R')
+#source('BRSSRfunction.R')
+source('citiesproject.R')
+
 
 
 #site link to list of variables for U.S. Census
 #http://api.census.gov/data/2014/acs5/variables.html
 
 master<-function(county,tracts,number.of.households,seed){
+  library(doParallel)
+  cl <- makeCluster(detectCores(), type='PSOCK')
+  registerDoParallel(cl)
+  
+  houstondata=read.csv('houstondata.csv')
+  substrRight <- function(x, n){
+    substr(x, nchar(x)-n+1, nchar(x))
+  }
+  
+  houstondata$UniqueID=as.character(houstondata$UniqueID)
+  houstondata$tract=substrRight(houstondata$UniqueID,6)
+  houstondata$county=substr(houstondata$TractFIPS, 3, 5)
+  houstondata$Measure=as.character(houstondata$Measure)
+
   set.seed(seed)
   fullset=data.frame()
-  for (tract in tracts){
+  foreach (tract=tracts)%dopar%{ 
     seeds=sample(1:100000000, number.of.households, replace=FALSE)
-    for(seedy in seeds){
+    foreach (seedy=seeds)%dopar%{ 
       #I found out some tracts don't actually have people in them :( hence the next 4 lines
       householdtypeandrace=read.csv("householdtypeandrace.csv")
       house <- householdtypeandrace[(householdtypeandrace$tract==tract) & (householdtypeandrace$county==county),]
@@ -67,6 +83,33 @@ master<-function(county,tracts,number.of.households,seed){
         partofset=getincome(county,tract,partofset,seedy)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
         partofset=getinsurance(county,tract,partofset,seedy)#dependent on income
         
+        partofset=get65menuptodate(county,tract,partofset,seedy)
+        partofset=get65womenuptodate(county,tract,partofset,seedy)
+        partofset=getadultasthma(county,tract,partofset,seedy)
+        partofset=getarthritis(county,tract,partofset,seedy)
+        partofset=getbingedrinking(county,tract,partofset,seedy)
+        partofset=getcancer(county,tract,partofset,seedy)
+        partofset=getcholesterolscreening(county,tract,partofset,seedy)
+        partofset=getchronicobspulmonarydisease(county,tract,partofset,seedy)
+        partofset=getcolonoscopy(county,tract,partofset,seedy)
+        partofset=getcoronaryheartdisease(county,tract,partofset,seedy)
+        partofset=getdiabetes(county,tract,partofset,seedy)
+        partofset=gethbpmedications(county,tract,partofset,seedy)
+        partofset=gethighbloodpressure(county,tract,partofset,seedy)
+        partofset=gethighcholesterol(county,tract,partofset,seedy)
+        partofset=getkidneydisease(county,tract,partofset,seedy)
+        partofset=getmammographyuse(county,tract,partofset,seedy)
+        partofset=getmentalhealth(county,tract,partofset,seedy)
+        partofset=getnoleisuretime(county,tract,partofset,seedy)
+        partofset=getobesity(county,tract,partofset,seedy)
+        partofset=getpapsmear(county,tract,partofset,seedy)
+        partofset=getphysicalhealth(county,tract,partofset,seedy)
+        partofset=getroutinecheckups(county,tract,partofset,seedy)
+        partofset=getsleep(county,tract,partofset,seedy)
+        partofset=getsmokers(county,tract,partofset,seedy)
+        partofset=getstroke(county,tract,partofset,seedy)
+        partofset=getteeth(county,tract,partofset,seedy)
+        
         fullset=rbind(fullset,partofset)
       
     }
@@ -77,7 +120,7 @@ master<-function(county,tracts,number.of.households,seed){
     
    
   }
-  fullset=getBRSSRdata(fullset,seed)
+  #fullset=getBRSSRdata(fullset,seed)
   return(fullset)
 }
 

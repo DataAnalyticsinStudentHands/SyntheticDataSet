@@ -4,8 +4,8 @@
 getschoolenrollment <- function(county,tract,syntheticdataset,seed){
   
   set.seed(seed)
-  enrollschool=read.csv("school_enrollment_by_sex_by_age.csv")
-  enrollschool=enrollschool[(enrollschool$tract==tract)&(enrollschool$county==county),]
+  enrollschool1=read.csv("school_enrollment_by_sex_by_age.csv")
+  enrollschool=enrollschool1[(enrollschool1$tract==tract)&(enrollschool1$county==county),]
   
   Women5.9=enrollschool[c("B14003_033E","B14003_042E","B14003_051E")]
   Women10.14=enrollschool[c("B14003_034E","B14003_043E","B14003_052E")]
@@ -48,8 +48,8 @@ getschoolenrollment <- function(county,tract,syntheticdataset,seed){
 geteducationattainment=function(county,tract,syntheticdataset,seed){
   
   set.seed(seed)
-  eduattain=read.csv("education_attainment_by_sex_by_age.csv")
-  eduattain=eduattain[(eduattain$tract==tract)&(eduattain$county==county),]
+  eduattain1=read.csv("education_attainment_by_sex_by_age.csv")
+  eduattain=eduattain1[(eduattain1$tract==tract)&(eduattain1$county==county),]
   
   
   men18.24=eduattain[c("B15001_004E","B15001_005E","B15001_006E","B15001_007E","B15001_008E","B15001_009E","B15001_010E")]
@@ -84,9 +84,8 @@ geteducationattainment=function(county,tract,syntheticdataset,seed){
 
 getemployment=function(county,tract,syntheticdataset,seed){
   set.seed(seed)
-  
-  employment=read.csv("employment.csv")
-  employment=employment[(employment$tract==tract)&(employment$county==county),]
+  employment1=read.csv("employment.csv")
+  employment=employment1[(employment1$tract==tract)&(employment1$county==county),]
   
   Women16.19=employment[c("B23001_091E","B23001_093E","B23001_094E","B23001_095E")]
   Women20.21=employment[c("B23001_098E","B23001_100E","B23001_101E","B23001_102E")]
@@ -148,9 +147,8 @@ getemployment=function(county,tract,syntheticdataset,seed){
 
 getdisability <- function(county,tract,syntheticdataset,seed){
   set.seed(seed)
-  
-  disability=read.csv("disability_status.csv")
-  disability=disability[(disability$tract==tract)&(disability$county==county),]
+  disability1=read.csv("disability_status.csv")
+  disability=disability1[(disability1$tract==tract)&(disability1$county==county),]
   
   Under18=disability[c("C18108_003E","C18108_004E","C18108_005E")]
   From18.64=disability[c("C18108_007E","C18108_008E","C18108_009E")]
