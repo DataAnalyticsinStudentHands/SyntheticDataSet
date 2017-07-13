@@ -6,3 +6,9 @@ _RData.gz*
 *.gz
 *.XPT
 *.ASC
+*.RData
+*.shx
+*.shp
+*.dbf
+*.txt
+*.zip
