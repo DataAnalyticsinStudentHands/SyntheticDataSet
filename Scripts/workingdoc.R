@@ -159,55 +159,9 @@ gethouseholdtypeandrace <- function(county,tract,number.of.households,seed,input
         
         if( exists("syntheticdataset")==FALSE ) stop(a,b)
         
-        #Replace code sampled from Census with indicated race, "a" in current data.frame
-        syntheticdataset$race <- paste (syntheticdataset$race)
-        syntheticdataset$race[syntheticdataset$race=="B11001B_003E"]<-"Black or African American"
-        syntheticdataset$race[syntheticdataset$race=="B11001B_005E"]<-"Black or African American"
-        syntheticdataset$race[syntheticdataset$race=="B11001B_006E"]<-"Black or African American"
-        syntheticdataset$race[syntheticdataset$race=="B11001B_008E"]<-"Black or African American"
-        syntheticdataset$race[syntheticdataset$race=="B11001B_009E"]<-"Black or African American"
-        
-        syntheticdataset$race[syntheticdataset$race=="B11001C_003E"]<-"American Indian or Alaskan Native"
-        syntheticdataset$race[syntheticdataset$race=="B11001C_005E"]<-"American Indian or Alaskan Native"
-        syntheticdataset$race[syntheticdataset$race=="B11001C_006E"]<-"American Indian or Alaskan Native"
-        syntheticdataset$race[syntheticdataset$race=="B11001C_008E"]<-"American Indian or Alaskan Native"
-        syntheticdataset$race[syntheticdataset$race=="B11001C_009E"]<-"American Indian or Alaskan Native"
-        
-        syntheticdataset$race[syntheticdataset$race=="B11001D_003E"]<-"Asian"
-        syntheticdataset$race[syntheticdataset$race=="B11001D_005E"]<-"Asian"
-        syntheticdataset$race[syntheticdataset$race=="B11001D_006E"]<-"Asian"
-        syntheticdataset$race[syntheticdataset$race=="B11001D_008E"]<-"Asian"
-        syntheticdataset$race[syntheticdataset$race=="B11001D_009E"]<-"Asian"
-        
-        syntheticdataset$race[syntheticdataset$race=="B11001E_003E"]<-"Native Hawaiian or Other Pacific Islander"
-        syntheticdataset$race[syntheticdataset$race=="B11001E_005E"]<-"Native Hawaiian or Other Pacific Islander"
-        syntheticdataset$race[syntheticdataset$race=="B11001E_006E"]<-"Native Hawaiian or Other Pacific Islander"
-        syntheticdataset$race[syntheticdataset$race=="B11001E_008E"]<-"Native Hawaiian or Other Pacific Islander"
-        syntheticdataset$race[syntheticdataset$race=="B11001E_009E"]<-"Native Hawaiian or Other Pacific Islander"
-        
-        syntheticdataset$race[syntheticdataset$race=="B11001F_003E"]<-"Some Other Race"
-        syntheticdataset$race[syntheticdataset$race=="B11001F_005E"]<-"Some Other Race"
-        syntheticdataset$race[syntheticdataset$race=="B11001F_006E"]<-"Some Other Race"
-        syntheticdataset$race[syntheticdataset$race=="B11001F_008E"]<-"Some Other Race"
-        syntheticdataset$race[syntheticdataset$race=="B11001F_009E"]<-"Some Other Race"
-        
-        syntheticdataset$race[syntheticdataset$race=="B11001G_003E"]<-"Two or More Races"
-        syntheticdataset$race[syntheticdataset$race=="B11001G_005E"]<-"Two or More Races"
-        syntheticdataset$race[syntheticdataset$race=="B11001G_006E"]<-"Two or More Races"
-        syntheticdataset$race[syntheticdataset$race=="B11001G_008E"]<-"Two or More Races"
-        syntheticdataset$race[syntheticdataset$race=="B11001G_009E"]<-"Two or More Races"
-        
-        syntheticdataset$race[syntheticdataset$race=="B11001H_003E"]<-"White"
-        syntheticdataset$race[syntheticdataset$race=="B11001H_005E"]<-"White"
-        syntheticdataset$race[syntheticdataset$race=="B11001H_006E"]<-"White"
-        syntheticdataset$race[syntheticdataset$race=="B11001H_008E"]<-"White"
-        syntheticdataset$race[syntheticdataset$race=="B11001H_009E"]<-"White"
-        
-        syntheticdataset$race[syntheticdataset$race=="B11001I_003E"]<-"Hispanic or Latino"
-        syntheticdataset$race[syntheticdataset$race=="B11001I_005E"]<-"Hispanic or Latino"
-        syntheticdataset$race[syntheticdataset$race=="B11001I_006E"]<-"Hispanic or Latino"
-        syntheticdataset$race[syntheticdataset$race=="B11001I_008E"]<-"Hispanic or Latino"
-        syntheticdataset$race[syntheticdataset$race=="B11001I_009E"]<-"Hispanic or Latino"
+        #Because of sampling problems, we've decided to sample race with age and gender and not with household, 
+        #so we are not using this function to determine race anymore
+        syntheticdataset$race=NULL
         
         #Create Unique household ID for each household
         syntheticdataset$householdID=rep(paste(county,tract,index,sep=".",collapse="."))

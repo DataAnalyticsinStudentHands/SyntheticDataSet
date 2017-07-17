@@ -1,13 +1,21 @@
 getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
   
-  syntheticdataset$race=NULL
   
+  #Set seed so sampling is random but repeatable
   set.seed(seed)
-  #Guess Race and Type
+  
+  
+  #Read in Census data and subset by tract and county
+  #Data for sex age and race code
   sexbyagebyrace1=read.csv(paste0(inputdir,"sex_by_age_by_race.csv"))
   sexbyagebyrace <- sexbyagebyrace1[(sexbyagebyrace1$tract==tractvar) & (sexbyagebyrace1$county==county),]
+  #Data for household types so we can reweight populations when sampling so we can make sure householders are sampled as adults then remove them from
+  #population when sampling so we don't over sample adults
   householdtypeandrace=read.csv(paste0(inputdir,"householdtypeandrace.csv"))
   house <- householdtypeandrace[(householdtypeandrace$tract==tractvar) & (householdtypeandrace$county==county),]
+  
+  #Organize Census data by race and adult and children, as well as get the minimum number of necessary adults per race: 1 per household 2 for married couples
+  #boys and girls are 17 and under men and women are 18 and over
   
   Blackboys=sexbyagebyrace[c("B01001B_003E","B01001B_004E","B01001B_005E","B01001B_006E")]
   BlackMen=sexbyagebyrace[c("B01001B_007E","B01001B_008E","B01001B_009E","B01001B_010E","B01001B_011E","B01001B_012E","B01001B_013E","B01001B_014E","B01001B_015E","B01001B_016E")]
@@ -71,23 +79,15 @@ getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
   all.the.adult.women=cbind(BlackWomen,AmerIndianAlaskanWomen,AsianWomen,Islanderwomen,OtherRaceWomen,MultiRaceWomen,WhiteWomen,HispanicWomen)
   totalhouseholders=cbind(BlackH,AmerIndianAlaskanH,AsianH,IslanderH,OtherRaceH,MultiRaceH,WhiteH,HispanicH)
   
+  
+  #householders and married couples were already created in the function gethouseholdtypeandsize, these people must be adults
+  #to make sure adults and children are evenly balanced other members of households are first sampled as either children or adults 
+  #with the population reweighted by removing adult householders this is done in the function get NA members
   getsNAmembers <- function(syntheticdataset) {
-    #members=ifelse((syntheticdataset$race=="American Indian or Alaskan Native")&(syntheticdataset$member=="NA"),sample(c("Child","Adult Woman","Adult Man"),size=1,prob=c(sum(AmerIndianAlaskanboys,AmerIndianAlaskangirls)/(totalIndianAlaskan-AmerIndianAlaskanH),(sum(AmerIndianAlaskanWomen)-sum(house$B11001C_006E))/(totalIndianAlaskan-AmerIndianAlaskanH),(sum(AmerIndianAlaskanMen)-sum(house$B11001C_005E))/(totalIndianAlaskan-AmerIndianAlaskanH))),
-    #               ifelse((syntheticdataset$race=="Black or African American")&(syntheticdataset$member=="NA"),sample(c("Child","Adult Woman","Adult Man"),size=1,prob=c(sum(Blackboys,Blackgirls)/(totalBlack-BlackH),(sum(BlackWomen)-sum(house$B11001B_006E))/(totalBlack-BlackH),(sum(BlackMen)-sum(house$B11001B_005E))/(totalBlack-BlackH))),
-     #                     ifelse((syntheticdataset$race=="Asian")&(syntheticdataset$member=="NA"),sample(c("Child","Adult Woman","Adult Man"),size=1,prob=c(sum(Asianboys,Asiangirls)/(totalAsian-AsianH),(sum(AsianWomen)-sum(house$B11001D_006E))/(totalAsian-AsianH),(sum(AsianMen)-sum(house$B11001D_005E))/(totalAsian-AsianH))),
-      #                           ifelse((syntheticdataset$race=="Native Hawaiian or Other Pacific Islander")&(syntheticdataset$member=="NA"),sample(c("Child","Adult Woman","Adult Man"),size=1,prob=c(sum(Islanderboys,Islandergirls)/(totalIslanders-IslanderH),(sum(IslanderWomen)-sum(house$B11001E_006E))/(totalIslanders-IslanderH),(sum(IslanderMen)-sum(house$B11001E_005E))/(totalIslanders-IslanderH))),
-       #                                 ifelse((syntheticdataset$race=="Some Other Race")&(syntheticdataset$member=="NA"),sample(c("Child","Adult Woman","Adult Man"),size=1,prob=c(sum(OtherRaceboys,OtherRacegirls)/(totalOtherRace-OtherRaceH),(sum(OtherRaceWomen)-sum(house$B11001F_006E))/(totalOtherRace-OtherRaceH),(sum(OtherRaceMen)-sum(house$B11001F_005E))/(totalOtherRace-OtherRaceH))),
-        #                                       ifelse((syntheticdataset$race=="Two or More Races")&(syntheticdataset$member=="NA"),sample(c("Child","Adult Woman","Adult Man"),size=1,prob=c(sum(MultiRaceboys,MultiRacegirls)/(totalMultiRace-MultiRaceH),(sum(MultiRaceWomen)-sum(house$B11001G_006E))/(totalMultiRace-MultiRaceH),(sum(MultiRaceMen)-sum(house$B11001G_005E))/(totalMultiRace-MultiRaceH))),
-         #                                             ifelse((syntheticdataset$race=="White")&(syntheticdataset$member=="NA"),sample(c("Child","Adult Woman","Adult Man"),size=1,prob=c(sum(Whiteboys,Whitegirls)/(totalWhite-WhiteH),(sum(WhiteWomen)-sum(house$B11001H_006E))/(totalWhite-WhiteH),(sum(WhiteMen)-sum(house$B11001H_005E))/(totalWhite-WhiteH))),
-          #                                                   ifelse((syntheticdataset$race=="Hispanic or Latino")&(syntheticdataset$member=="NA"),sample(c("Child","Adult Woman","Adult Man"),size=1,prob=c(sum(Hispanicboys,Hispanicgirls)/(totalHispanic-HispanicH),(sum(HispanicWomen)-sum(house$B11001I_006E))/(totalHispanic-HispanicH),(sum(HispanicMen)-sum(house$B11001I_005E))/(totalHispanic-HispanicH))),
-           #                                                         ifelse(syntheticdataset$member=="Husband","Husband",
-            #                                                               ifelse(syntheticdataset$member=="Wife","Wife",
-             #                                                                     ifelse(syntheticdataset$member=="Female Householder","Female Householder",
-              #                                                                           ifelse(syntheticdataset$member=="Male Householder","Male Householder",
-               #                                                                                 ifelse(syntheticdataset$member=="Householder","Householder",NA
-                #                                                                                )))))))))))))
     
+    #sample non householders as either child or adult by removing householders from the population first
     members=ifelse((syntheticdataset$member=="NA"),sample(c("Child","Adult"),size=1,prob=c(sum(all.the.kids)/(sum(all.the.kids,all.the.adult.women,all.the.adult.men)-sum(totalhouseholders)),(sum(all.the.adult.women,all.the.adult.men)-sum(totalhouseholders))/(sum(all.the.adult.men,all.the.adult.women,all.the.kids)-sum(totalhouseholders)))),
+                   #leave couples and householders alone
                    ifelse((syntheticdataset$member=="Husband"),"Husband",
                           ifelse((syntheticdataset$member=="Wife"),"Wife",
                                   ifelse((syntheticdataset$member=="Male Householder"),"Male Householder",
@@ -98,41 +98,10 @@ getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
     return(members)
   }
   
+  #function to sample sex, age and race code with whether they are adults or children and sex for adults presupposed
   
   getsexagecode <- function(syntheticdataset) {
-    #sexagecode=ifelse((syntheticdataset$race=="American Indian or Alaskan Native")&(syntheticdataset$member=="Husband"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="Adult Man"),sample(colnames(AmerIndianAlaskanMen),size=1,prob=AmerIndianAlaskanMen/sum(AmerIndianAlaskanMen)),
-     #                 ifelse((syntheticdataset$race=="American Indian or Alaskan Native")&(syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),sample(colnames(AmerIndianAlaskanWomen),size=1,prob=AmerIndianAlaskanWomen/sum(AmerIndianAlaskanWomen)),
-      #                       ifelse((syntheticdataset$race=="Black or African American")&(syntheticdataset$member=="Husband"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="Adult Man"),sample(colnames(BlackMen),size=1,prob=BlackMen/sum(BlackMen)),
-       #                             ifelse((syntheticdataset$race=="Black or African American")&(syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),sample(colnames(BlackWomen),size=1,prob=BlackWomen/sum(BlackWomen)),
-        #                                   ifelse((syntheticdataset$race=="Asian")&(syntheticdataset$member=="Husband"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="Adult Man"),sample(colnames(AsianMen),size=1,prob=AsianMen/sum(AsianMen)),
-         #                                         ifelse((syntheticdataset$race=="Asian")&(syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),sample(colnames(AsianWomen),size=1,prob=AsianWomen/sum(AsianWomen)),
-          #                                               ifelse((syntheticdataset$race=="Native Hawaiian or Other Pacific Islander")&(syntheticdataset$member=="Husband"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="Adult Man"),sample(colnames(BlackMen),size=1,prob=IslanderMen/sum(IslanderMen)),
-           #                                                     ifelse((syntheticdataset$race=="Native Hawaiian or Other Pacific Islander")&(syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),sample(colnames(IslanderWomen),size=1,prob=IslanderWomen/sum(IslanderWomen)),
-            #                                                           ifelse((syntheticdataset$race=="Some Other Race")&(syntheticdataset$member=="Husband"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="AdultMan"),sample(colnames(OtherRaceMen),size=1,prob=OtherRaceMen/sum(OtherRaceMen)),
-             #                                                                 ifelse((syntheticdataset$race=="Some Other Race")&(syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),sample(colnames(OtherRaceWomen),size=1,prob=OtherRaceWomen/sum(OtherRaceWomen)),
-              #                                                                       ifelse((syntheticdataset$race=="Two or More Races")&(syntheticdataset$member=="Husband"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="Adult Man"),sample(colnames(MultiRaceMen),size=1,prob=MultiRaceMen/sum(MultiRaceMen)),
-               #                                                                             ifelse((syntheticdataset$race=="Two or More Races")&(syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),sample(colnames(MultiRaceWomen),size=1,prob=MultiRaceWomen/sum(MultiRaceWomen)),
-                #                                                                                   ifelse((syntheticdataset$race=="White")&(syntheticdataset$member=="Husband"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="Adult Man"),sample(colnames(WhiteMen),size=1,prob=WhiteMen/sum(WhiteMen)),
-                 #                                                                                         ifelse((syntheticdataset$race=="White")&(syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),sample(colnames(WhiteWomen),size=1,prob=WhiteWomen/sum(WhiteWomen)),
-                  #                                                                                               ifelse((syntheticdataset$race=="Hispanic or Latino")&(syntheticdataset$member=="Husband"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="Adult Man"),sample(colnames(HispanicMen),size=1,prob=HispanicMen/sum(HispanicMen)),
-                   #                                                                                                     ifelse((syntheticdataset$race=="Hispanic or Latino")&(syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),sample(colnames(HispanicWomen),size=1,prob=HispanicWomen/sum(HispanicWomen)),
-                    #                                                                                                           ifelse((syntheticdataset$race=="Black or African American")&(syntheticdataset$member=="Child"),sample(colnames(cbind(Blackboys,Blackgirls)),size=1,prob=c(Blackboys/sum(Blackgirls,Blackboys),Blackgirls/sum(Blackboys,Blackgirls))),
-                     #                                                                                                                 ifelse((syntheticdataset$race=="American Indian or Alaskan Native")&(syntheticdataset$member=="Child"),sample(colnames(cbind(AmerIndianAlaskanboys,AmerIndianAlaskangirls)),size=1,prob=c(AmerIndianAlaskanboys/sum(AmerIndianAlaskanboys,AmerIndianAlaskangirls),AmerIndianAlaskangirls/sum(AmerIndianAlaskanboys,AmerIndianAlaskangirls))),
-                      #                                                                                                                       ifelse((syntheticdataset$race=="Asian")&(syntheticdataset$member=="Child"),sample(colnames(cbind(Asianboys,Asiangirls)),size=1,prob=c(Asianboys/sum(Asiangirls,Asianboys),Asiangirls/sum(Asianboys,Asiangirls))),
-                       #                                                                                                                             ifelse((syntheticdataset$race=="Native Hawaiian or Other Pacific Islander")&(syntheticdataset$member=="Child"),sample(colnames(cbind(Islanderboys,Islandergirls)),size=1,prob=c(Islanderboys/sum(Islandergirls,Islanderboys),Islandergirls/sum(Islanderboys,Islandergirls))),
-                        #                                                                                                                                   ifelse((syntheticdataset$race=="Some Other Race")&(syntheticdataset$member=="Child"),sample(colnames(cbind(OtherRaceboys,OtherRacegirls)),size=1,prob=c(OtherRaceboys/sum(OtherRacegirls,OtherRaceboys),OtherRacegirls/sum(OtherRaceboys,OtherRacegirls))),
-                         #                                                                                                                                         ifelse((syntheticdataset$race=="Two or More Races")&(syntheticdataset$member=="Child"),sample(colnames(cbind(MultiRaceboys,MultiRacegirls)),size=1,prob=c(MultiRaceboys/sum(MultiRacegirls,MultiRaceboys),MultiRacegirls/sum(MultiRaceboys,MultiRacegirls))),
-                          #                                                                                                                                               ifelse((syntheticdataset$race=="White")&(syntheticdataset$member=="Child"),sample(colnames(cbind(Whiteboys,Whitegirls)),size=1,prob=c(Whiteboys/sum(Whitegirls,Whiteboys),Whitegirls/sum(Whiteboys,Whitegirls))),
-                           #                                                                                                                                                     ifelse((syntheticdataset$race=="Hispanic or Latino")&(syntheticdataset$member=="Child"),sample(colnames(cbind(Hispanicboys,Hispanicgirls)),size=1,prob=c(Hispanicboys/sum(Hispanicgirls,Hispanicboys),Hispanicgirls/sum(Hispanicboys,Hispanicgirls))),
-                            #                                                                                                                                                           ifelse((syntheticdataset$race=="American Indian or Alaskan Native")&(syntheticdataset$member=="Householder"),sample(colnames(cbind(AmerIndianAlaskanMen,AmerIndianAlaskanWomen)),size=1,prob=c(AmerIndianAlaskanMen/sum(AmerIndianAlaskanMen,AmerIndianAlaskanWomen),AmerIndianAlaskanWomen/sum(AmerIndianAlaskanMen,AmerIndianAlaskanWomen))),
-                             #                                                                                                                                                                 ifelse((syntheticdataset$race=="Black or African American")&(syntheticdataset$member=="Householder"),sample(colnames(cbind(BlackMen,BlackWomen)),size=1,prob=c(BlackMen/sum(BlackMen,BlackWomen),BlackWomen/sum(BlackMen,BlackWomen))),
-                              #                                                                                                                                                                       ifelse((syntheticdataset$race=="Asian")&(syntheticdataset$member=="Householder"),sample(colnames(cbind(AsianMen,AsianWomen)),size=1,prob=c(AsianMen/sum(AsianMen,AsianWomen),AsianWomen/sum(AsianMen,AsianWomen))),
-                               #                                                                                                                                                                             ifelse((syntheticdataset$race=="Native Hawaiian or Other Pacific Islander")&(syntheticdataset$member=="Householder"),sample(colnames(cbind(Islandermen,Islanderwomen)),size=1,prob=c(Islandermen/sum(Islandermen,Islanderwomen),Islanderwomen/sum(Islandermen,Islanderwomen))),
-                                #                                                                                                                                                                                   ifelse((syntheticdataset$race=="Some Other Race")&(syntheticdataset$member=="Householder"),sample(colnames(cbind(OtherRaceMen,OtherRaceWomen)),size=1,prob=c(OtherRaceMen/sum(OtherRaceMen,OtherRaceWomen),OtherRaceWomen/sum(OtherRaceMen,OtherRaceWomen))),
-                                 #                                                                                                                                                                                         ifelse((syntheticdataset$race=="Two or More Races")&(syntheticdataset$member=="Householder"),sample(colnames(cbind(MultiRaceMen,MultiRaceWomen)),size=1,prob=c(MultiRaceMen/sum(MultiRaceMen,MultiRaceWomen),MultiRaceWomen/sum(MultiRaceMen,MultiRaceWomen))),
-                                  #                                                                                                                                                                                               ifelse((syntheticdataset$race=="White")&(syntheticdataset$member=="Householder"),sample(colnames(cbind(WhiteMen,WhiteWomen)),size=1,prob=c(WhiteMen/sum(WhiteMen,WhiteWomen),WhiteWomen/sum(WhiteMen,WhiteWomen))),
-                                   #                                                                                                                                                                                                     ifelse((syntheticdataset$race=="Hispanic or Latino")&(syntheticdataset$member=="Householder"),sample(colnames(cbind(HispanicMen,HispanicWomen)),size=1,prob=c(HispanicMen/sum(HispanicMen,HispanicWomen),HispanicWomen/sum(HispanicMen,HispanicWomen))),
-                                    #                                                                                                                                                                        NA))))))))))))))))))))))))))))))))
+   
     sexagecode=ifelse((syntheticdataset$member=="Child"),sample(colnames(all.the.kids),size=1,prob=c(all.the.kids/sum(all.the.kids))),
                       ifelse((syntheticdataset$member=="Adult Man"|syntheticdataset$member=="Male Householder"|syntheticdataset$member=="Husband"),sample(colnames(all.the.adult.men),size=1, prob=c(all.the.adult.men/sum(all.the.adult.men))),
                              ifelse((syntheticdataset$member=="Adult Woman"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Wife"),sample(colnames(all.the.adult.women),size=1,prob=c(all.the.adult.women/sum(all.the.adult.women))),
@@ -140,12 +109,15 @@ getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
     return(sexagecode)
   }
   
+  #Use previous declared functions
+  
   syntheticdataset$member=getsNAmembers(syntheticdataset)
   
   syntheticdataset$sexbyagecode=getsexagecode(syntheticdataset)
   
+  #Use sexageandrace code to get sex
   getsex <- function(syntheticdataset){
-    #sex=ifelse((syntheticdataset$sexbyagecode=="B01001B_018E"|syntheticdataset$sexbyagecode=="B01001B_019E"|syntheticdataset$sexbyagecode=="B01001B_020E"|syntheticdataset$sexbyagecode=="B01001B_021E"|syntheticdataset$sexbyagecode=="B01001B_022E"|syntheticdataset$sexbyagecode=="B01001B_023E"|syntheticdataset$sexbyagecode=="B01001B_024E"|syntheticdataset$sexbyagecode=="B01001B_025E"|syntheticdataset$sexbyagecode=="B01001B_026E"|syntheticdataset$sexbyagecode=="B01001B_027E"|syntheticdataset$sexbyagecode=="B01001B_028E"|syntheticdataset$sexbyagecode=="B01001B_029E"|syntheticdataset$sexbyagecode=="B01001B_030E"|syntheticdataset$sexbyagecode=="B01001B_031E"|syntheticdataset$sexbyagecode=="B01001C_018E"|syntheticdataset$sexbyagecode=="B01001C_019E"|syntheticdataset$sexbyagecode=="B01001C_020E"|syntheticdataset$sexbyagecode=="B01001C_021E"|syntheticdataset$sexbyagecode=="B01001C_022E"|syntheticdataset$sexbyagecode=="B01001C_023E"|syntheticdataset$sexbyagecode=="B01001C_024E"|syntheticdataset$sexbyagecode=="B01001C_025E"|syntheticdataset$sexbyagecode=="B01001C_026E"|syntheticdataset$sexbyagecode=="B01001C_027E"|syntheticdataset$sexbyagecode=="B01001C_028E"|syntheticdataset$sexbyagecode=="B01001C_029E"|syntheticdataset$sexbyagecode=="B01001C_030E"|syntheticdataset$sexbyagecode=="B01001C_031E"|syntheticdataset$sexbyagecode=="B01001D_018E"|syntheticdataset$sexbyagecode=="B01001D_019E"|syntheticdataset$sexbyagecode=="B01001D_020E"|syntheticdataset$sexbyagecode=="B01001D_021E"|syntheticdataset$sexbyagecode=="B01001D_022E"|syntheticdataset$sexbyagecode=="B01001D_023E"|syntheticdataset$sexbyagecode=="B01001D_024E"|syntheticdataset$sexbyagecode=="B01001D_025E"|syntheticdataset$sexbyagecode=="B01001D_026E"|syntheticdataset$sexbyagecode=="B01001E_018E"|syntheticdataset$sexbyagecode=="B01001E_019E"|syntheticdataset$sexbyagecode=="B01001E_020E"|syntheticdataset$sexbyagecode=="B01001E_021E"|syntheticdataset$sexbyagecode=="B01001F_018E"|syntheticdataset$sexbyagecode=="B01001F_019E"|syntheticdataset$sexbyagecode=="B01001F_020E"|syntheticdataset$sexbyagecode=="B01001F_021E"|syntheticdataset$sexbyagecode=="B01001G_018E"|syntheticdataset$sexbyagecode=="B01001G_019E"|syntheticdataset$sexbyagecode=="B01001G_020E"|syntheticdataset$sexbyagecode=="B01001G_021E"|syntheticdataset$sexbyagecode=="B01001H_018E"|syntheticdataset$sexbyagecode=="B01001H_019E"|syntheticdataset$sexbyagecode=="B01001H_020E"|syntheticdataset$sexbyagecode=="B01001H_021E"|syntheticdataset$sexbyagecode=="B01001I_018E"|syntheticdataset$sexbyagecode=="B01001I_019E"|syntheticdataset$sexbyagecode=="B01001I_020E"|syntheticdataset$sexbyagecode=="B01001I_021E"|syntheticdataset$member=="Wife"|syntheticdataset$member=="Female Householder"|syntheticdataset$member=="Adult Woman"),"Female","Male")
+    
     Female=colnames(cbind(BlackWomen,Blackgirls,AmerIndianAlaskanWomen,AmerIndianAlaskangirls,AsianWomen,Asiangirls,Islanderwomen,Islandergirls,OtherRaceWomen,OtherRacegirls,MultiRaceWomen,MultiRacegirls,WhiteWomen,Whitegirls,HispanicWomen,Hispanicgirls))
     sex=ifelse((syntheticdataset$sexbyagecode %in% Female),"Female","Male")
     return(sex)
@@ -153,7 +125,7 @@ getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
   
   syntheticdataset$sex=getsex(syntheticdataset)
   
-  
+  #Use sexageandrace code to get age
   getage <- function(syntheticdataset){
     age=ifelse((syntheticdataset$sexbyagecode=="B01001B_003E"|syntheticdataset$sexbyagecode=="B01001C_003E"|syntheticdataset$sexbyagecode=="B01001D_003E"|syntheticdataset$sexbyagecode=="B01001E_003E"|syntheticdataset$sexbyagecode=="B01001F_003E"|syntheticdataset$sexbyagecode=="B01001G_003E"|syntheticdataset$sexbyagecode=="B01001H_003E"|syntheticdataset$sexbyagecode=="B01001I_003E"|syntheticdataset$sexbyagecode=="B01001B_018E"|syntheticdataset$sexbyagecode=="B01001C_018E"|syntheticdataset$sexbyagecode=="B01001D_018E"|syntheticdataset$sexbyagecode=="B01001E_018E"|syntheticdataset$sexbyagecode=="B01001F_018E"|syntheticdataset$sexbyagecode=="B01001G_018E"|syntheticdataset$sexbyagecode=="B01001H_018E"|syntheticdataset$sexbyagecode=="B01001I_018E"),"Under 5",
                ifelse((syntheticdataset$sexbyagecode=="B01001B_004E"|syntheticdataset$sexbyagecode=="B01001C_004E"|syntheticdataset$sexbyagecode=="B01001D_004E"|syntheticdataset$sexbyagecode=="B01001E_004E"|syntheticdataset$sexbyagecode=="B01001F_004E"|syntheticdataset$sexbyagecode=="B01001G_004E"|syntheticdataset$sexbyagecode=="B01001H_004E"|syntheticdataset$sexbyagecode=="B01001I_004E"|syntheticdataset$sexbyagecode=="B01001B_019E"|syntheticdataset$sexbyagecode=="B01001C_019E"|syntheticdataset$sexbyagecode=="B01001D_019E"|syntheticdataset$sexbyagecode=="B01001E_019E"|syntheticdataset$sexbyagecode=="B01001F_019E"|syntheticdataset$sexbyagecode=="B01001G_019E"|syntheticdataset$sexbyagecode=="B01001H_019E"|syntheticdataset$sexbyagecode=="B01001I_019E"),"5 to 9",
@@ -174,6 +146,7 @@ getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
   
   syntheticdataset$age=getage(syntheticdataset)
   
+  #get race from sexageandrace code
   getrace <- function(syntheticdataset){
     race=ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(BlackWomen,Blackgirls,BlackMen,Blackboys))),"Black or African American",
                 ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(AmerIndianAlaskanWomen,AmerIndianAlaskangirls,AmerIndianAlaskanMen,AmerIndianAlaskanboys))),"American Indian or Alaskan Native",
@@ -187,6 +160,8 @@ getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
   }
   
   syntheticdataset$race=getrace(syntheticdataset)
+  
+  #remove code as it is no longer needed
   syntheticdataset$sexbyagecode=NULL
   
   return(syntheticdataset)
