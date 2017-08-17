@@ -19,7 +19,7 @@ gethouseholdtypeandrace <- function(county,tract,number.of.households,seed,input
     #If it's an empty tract stop
     if( sum(is.na(prob1))!=0 ) stop(tract,county)
     
-    #Sample for households' type and race from sensus data
+    #Sample for households' type and race from Census data
       samples=sample(colnames(prob1),size=number.of.households,replace=TRUE,prob=prob1)
       
       

@@ -98,7 +98,7 @@ master<-function(county,tract,number.of.households,seed,inputdir = "../Inputs/")
         fullset=rbind(fullset,partofset)
     
     
-} 
+      } 
    
    
     }

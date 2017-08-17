@@ -1,33 +1,24 @@
-#Generate appropriate number of households per tract
+#Fixed some stuff that didn't run correctly in houstonprime.R
+#First glue all the smaller csv files into one larger data set and then match with hcad parcels
 
-#read in data
+#read in tract names
 households=read.csv("../Inputs/household_type_for_error.csv")
-#get total number of households per tract
-households$total=rowSums(households[4:8])
 
-#Simulate Houston people
-
-source("masterfunction.R")#function that builds households
-
-#Only build Houston Households
+#Only Houston Households
 households=subset(households,households$county==201)
-#Create tract and number of households vector
+#Get tracts
 tracts=households$tract
-number.of.households=households$total
 
-#Set Up to run in Parallel
-library(doParallel)
-library(foreach)
-cl<-makeCluster(10)
-registerDoParallel(cl)
 
-#Simulate Households
-sample.set=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
-  sample=master(201,tracts[index],number.of.households[index],seed=1)
-  return(sample)
+#Glue smaller csv files back together
+sample.set=read.csv(paste("tract",tracts[1],".csv",sep=""))
+
+for(index in 2:length(tracts)){
+  partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
+  sample.set=rbind(sample.set,partofsampleset)
 }
 
-stopCluster(cl)
+
 
 #Write households to csv
 
@@ -141,7 +132,3 @@ for (tract in tracts){
 
 sample.set=merge(sample.set,validparceldataframe2,by="ACCOUNT",all.x=TRUE)
 write.csv(sample.set,"complete_sample_set.csv")
-
-
-
-

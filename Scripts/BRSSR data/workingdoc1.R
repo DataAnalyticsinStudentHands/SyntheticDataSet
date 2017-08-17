@@ -79,7 +79,3 @@ BRSSR=BRSSR[complete.cases(BRSSR),]
 
 #Write to csv
 write.csv(BRSSR,"BRSSR.csv")
-
-#New problem trying to get extra modules
-
-BRSSR2014v1=read.xport("LLCP14V1.XPT")
