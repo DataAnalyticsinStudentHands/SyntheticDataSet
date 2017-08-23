@@ -37,7 +37,7 @@ inputdir = "../Inputs/"
 
 householdtype=read.csv("../Inputs/household_type_for_error.csv")
 colnames(householdtype)=gsub(".", " ", colnames(householdtype),fixed=TRUE)
-colnames(householdtype)=paste("householdtype_",colnames(householdtype))
+colnames(householdtype)=paste0("household.type_",colnames(householdtype))
 names(householdtype)[1:3] <- c("state","county","tract")
 
 size=read.csv("../Inputs/household_size.csv")
