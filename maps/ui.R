@@ -1,8 +1,9 @@
 library(shiny)
 library(leaflet)
 
-data=read.csv('syntheticdatasetfrequenciespertract.csv')
-options=colnames(data)
+realfrequencypertract=read.csv("../maps/realfrequenciespertract.csv")
+syntheticfrequencypertract=read.csv("../maps/syntheticdatasetfrequenciespertract.csv")
+options=intersect(colnames(realfrequencypertract),colnames(syntheticfrequencypertract))
 options=options[3:length(options)]
 
 # Define UI for application that draws a histogram

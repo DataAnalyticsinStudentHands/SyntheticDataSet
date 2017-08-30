@@ -29,7 +29,7 @@ shinyServer(function(input, output) {
   output$houstonprime <- renderLeaflet({
     pal <- colorNumeric(
       palette = "YlGnBu",
-      domain = Houston_prime@data[input$Variable]
+      domain = union(Houston_prime@data[input$Variable])
     )
     
     leaflet() %>%

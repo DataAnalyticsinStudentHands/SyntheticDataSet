@@ -1,4 +1,4 @@
-syntheticdataset=read.csv('sample_set1.csv')
+syntheticdataset=read.csv('mergedsampleset.csv')
 
 
 #Make first frequency table
@@ -17,6 +17,8 @@ ex2$tract=unlist(attr(example2, "row.vars"))
 
 example=merge(ex,ex2,by.x="tract",by.y="tract")
 
+syntheticdataset$X.1=NULL
+
 #loop through rest of variables
 varnames=colnames(syntheticdataset)
 for (var in 8:24){
@@ -28,6 +30,51 @@ for (var in 8:24){
   
   example=merge(example,newp,by.x="tract",by.y="tract")
 }
+
+#apparently there is no data on colonscopy in Houston
+syntheticdataset$colonoscopy=NULL
+syntheticdataset$mammography.use=NULL
+syntheticdataset$pap.smear=NULL
+
+for (var in 25:47){
+  newpart=ftable(table(syntheticdataset[ ,7],syntheticdataset[ ,var]))
+  newp=as.data.frame.matrix(newpart)
+  
+  colnames(newp)=paste(unlist(attr(newpart, "col.vars")),sep="_")
+  newp$no=NULL
+  newp$`Not Available for this Census Tract`=NULL
+  
+  colnames(newp)=paste(varnames[var],sep="_")
+  
+  newp$tract=unlist(attr(newpart, "row.vars"))
+  
+  example=merge(example,newp,by.x="tract",by.y="tract")
+}
+
+example$"Arthritis among adults aged >=18 Years"=example$diagnosed.arthritis
+example$"Binge drinking among adults aged >=18 Years"=example$binge.drinker
+example$"High blood pressure among adults aged >=18 Years"=example$high.blood.pressure
+example$"Obesity among adults aged >=18 Years"=example$Obesity
+example$"Taking medicine for high blood pressure control among adults aged >=18 Years with high blood pressure"=example$blood.pressure.medications
+example$"Cancer (excluding skin cancer) among adults aged >=18 Years"=example$cancer.not.including.skin.cancer
+example$"Current asthma among adults aged >=18 Years"=example$adult.asthma
+example$"Coronary heart disease among adults aged >=18 Years"=example$coronary.heart.disease
+example$"Visits to doctor for routine checkup within the past Year among adults aged >=18 Years"=example$routine.checkups
+example$"Cholesterol screening among adults aged >=18 Years"=example$cholesterol.screening
+example$"Chronic obstructive pulmonary disease among adults aged >=18 Years"=example$chronic.obstructive.pulmonary.disease
+example$"Older adult men aged >=65 Years who are up to date on a core set of clinical preventive services: Flu shot past Year, PPV shot ever, Colorectal cancer screening"=example$older.men.up.to.date.on.preventative.services
+example$"Older adult women aged >=65 Years who are up to date on a core set of clinical preventive services: Flu shot past Year, PPV shot ever, Colorectal cancer screening, and Mammogram past 2 Years"=example$older.women.up.to.date.on.preventative.services
+example$"Current smoking among adults aged >=18 Years"=example$smoker
+example$"Diagnosed diabetes among adults aged >=18 Years"=example$diagnosed.diabetes
+example$"High cholesterol among adults aged >=18 Years who have been screened in the past 5 Years"=example$high.cholesterol
+example$"Chronic kidney disease among adults aged >=18 Years"=example$chronic.kidney.disease
+example$"No leisure-time physical activity among adults aged >=18 Years"=example$no.leisure.time.physical.activity
+example$"Mental health not good for >=14 days among adults aged >=18 Years"=example$mental.health.not.good.for.more.than.14.days
+example$"Stroke among adults aged >=18 Years"=example$had.a.stroke
+example$"Physical health not good for >=14 days among adults aged >=18 Years"=example$physical.health.not.good.for.14.days
+example$"Sleeping less than 7 hours among adults aged >=18 Years"=example$sleeping.less.than.7.hours
+example$"All teeth lost among adults aged >=65 Years"=example$lost.all.their.teeth
+
 
 write.csv(example,"syntheticdatasetfrequenciespertract.csv")
 
@@ -167,6 +214,34 @@ realfrequencypertract=merge(realfrequencypertract,travel.time.for.work)
 
 other.vars=read.csv("other_vars_for_error.csv")
 realfrequencypertract=merge(realfrequencypertract,other.vars)
+
+inputdir = "../Inputs/"
+houstondata=read.csv(paste0(inputdir,'houstondata.csv'))
+#This provides us with 28 variables all in percentages
+
+#formatting
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+houstondata$UniqueID=as.character(houstondata$UniqueID)
+houstondata$tract=substrRight(houstondata$UniqueID,6)
+houstondata$county=substr(houstondata$TractFIPS, 3, 5)
+houstondata$Measure=as.character(houstondata$Measure)
+
+
+variables=unique(houstondata$Measure)
+
+for (var in 1:28){
+  partofhoustondata=subset(houstondata,houstondata$Measure==variables[var])
+  partofhoustondata=data.frame(county=partofhoustondata$county,tract=partofhoustondata$tract,value=partofhoustondata$Data_Value)
+  
+  cnames=c("county","tract",paste(variables[var]))
+  colnames(partofhoustondata)=cnames
+  
+  realfrequencypertract=merge(partofhoustondata,realfrequencypertract)
+}
+
 
 write.csv(realfrequencypertract,"realfrequenciespertract.csv")
 #

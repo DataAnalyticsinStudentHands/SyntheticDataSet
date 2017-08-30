@@ -13,7 +13,17 @@ tracts=households$tract
 #Glue smaller csv files back together
 sample.set=read.csv(paste("tract",tracts[1],".csv",sep=""))
 
-for(index in 2:length(tracts)){
+#2:196
+for(index in 2:196){
+  partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
+  sample.set=rbind(sample.set,partofsampleset)
+}
+
+for(index in 198:380){
+  partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
+  sample.set=rbind(sample.set,partofsampleset)
+}
+for(index in 382:length(tracts)){
   partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
   sample.set=rbind(sample.set,partofsampleset)
 }
@@ -22,7 +32,7 @@ for(index in 2:length(tracts)){
 
 #Write households to csv
 
-write.csv(sample.set)
+write.csv(sample.set,"mergedsampleset.csv")
 
 #Merge with HCAD data
 
