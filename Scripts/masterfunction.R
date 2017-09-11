@@ -94,6 +94,8 @@ master<-function(county,tract,number.of.households,seed,inputdir = "../Inputs/")
         partofset=getstroke(county,tract,partofset,seedy)
         partofset=getteeth(county,tract,partofset,seedy)
         
+        partofset$householdID=rep(paste(county,tract,seedy,sep=".",collapse=".")nrow(partofset))
+        
         #Save new household with any previous households
         fullset=rbind(fullset,partofset)
     

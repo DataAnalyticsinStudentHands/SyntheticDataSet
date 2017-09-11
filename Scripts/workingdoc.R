@@ -162,16 +162,7 @@ gethouseholdtypeandrace <- function(county,tract,number.of.households,seed,input
         #Because of sampling problems, we've decided to sample race with age and gender and not with household, 
         #so we are not using this function to determine race anymore
         syntheticdataset$race=NULL
-        
-        #Create Unique household ID for each household
-        syntheticdataset$householdID=rep(paste(county,tract,index,sep=".",collapse="."))
-        #Make columns for county and tract
-        syntheticdataset$county=rep(county,nrow(syntheticdataset))
-        syntheticdataset$tract=rep(tract,nrow(syntheticdataset))
-        #Join new households with old households
-        finalsyntheticdataset <- rbind(finalsyntheticdataset,syntheticdataset)
-        #increase index
-        index=index+1
+
       }
       
     

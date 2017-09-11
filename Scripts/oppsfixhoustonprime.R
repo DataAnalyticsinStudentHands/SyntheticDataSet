@@ -11,29 +11,29 @@ tracts=households$tract
 
 
 #Glue smaller csv files back together
-sample.set=read.csv(paste("tract",tracts[1],".csv",sep=""))
+#sample.set=read.csv(paste("tract",tracts[1],".csv",sep=""))
 
 #2:196
-for(index in 2:196){
-  partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
-  sample.set=rbind(sample.set,partofsampleset)
-}
+#for(index in 2:196){
+ # partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
+  #sample.set=rbind(sample.set,partofsampleset)
+#}
 
-for(index in 198:380){
-  partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
-  sample.set=rbind(sample.set,partofsampleset)
-}
-for(index in 382:length(tracts)){
-  partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
-  sample.set=rbind(sample.set,partofsampleset)
-}
+#for(index in 198:380){
+ # partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
+  #sample.set=rbind(sample.set,partofsampleset)
+#}
+#for(index in 382:length(tracts)){
+  #partofsampleset=read.csv(paste("tract",tracts[index],".csv",sep=""))
+ # sample.set=rbind(sample.set,partofsampleset)
+#}
 
 
 
 #Write households to csv
 
-write.csv(sample.set,"mergedsampleset.csv")
-
+#write.csv(sample.set,"mergedsampleset.csv")
+sample.set=read.csv("sampleset.csv")
 #Merge with HCAD data
 
 #Read in Parcels
@@ -73,7 +73,7 @@ sample.set$ACCOUNT=NA
 for (tract in tracts){
   tracthouses=subset(validparceldataframe2,validparceldataframe2$TRACT==tract)
   householdIDs=unique(subset(sample.set,sample.set$tract==tract)$householdID)
-  
+  #browser()
   #populate single family houses
   singlefamilyhouses=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE"=="101"|tracthouses$"BUILDING_STYLE_CODE"=="107"|tracthouses$"BUILDING_STYLE_CODE"=="108"|tracthouses$"BUILDING_STYLE_CODE"=="109"|tracthouses$"BUILDING_STYLE_CODE"=="125"|tracthouses$"BUILDING_STYLE_CODE"=="8351"|tracthouses$"BUILDING_STYLE_CODE"=="8354"))
   Account=singlefamilyhouses$"ACCOUNT"
@@ -125,8 +125,9 @@ for (tract in tracts){
   
   #put everyone else in condos and mixed residential commercial structures
   
-  condos=subset(tracthouses,(tracthouses$"Building_Style_Code"=="106"|tracthouses$"Building_Style_Code"=="105"))
-  Account=ifelse((nrow(condos)>0),sample((condos$"ACCOUNT"),length(householdIDs),replace=TRUE),rep(NA,length(householdIDs)))
+  condos=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE"=="106"|tracthouses$"BUILDING_STYLE_CODE"=="105"))
+  if(nrow(condos)>0) Account=sample((condos$"ACCOUNT"),length(householdIDs),replace=TRUE)
+  if (nrow(condos)==0) Account=rep(NA,length(householdIDs))
   
   for (index in 1:length(householdIDs)){
     sample.set=within.data.frame(sample.set,ACCOUNT[householdID==householdIDs[index]]<-Account[index])
