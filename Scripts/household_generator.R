@@ -5,7 +5,7 @@
 #site link to list of variables for U.S. Census
 #http://api.census.gov/data/2014/acs5/variables.html
 
-master<-function(county,tract,number.of.households,seed,inputdir = "../Inputs/"){
+household_generator<-function(county,tract,number.of.households,seed,inputdir = "../Inputs/"){
   #The master function needs the county and tract number to build it's probability distributions for
   #the number.of.households to make
   #a seed so the sampling is random but repeatable

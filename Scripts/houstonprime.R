@@ -23,7 +23,7 @@ registerDoParallel(cl)
 
 #Simulate Households
 sample.set=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
-  sample=master(201,tracts[index],number.of.households[index],seed=1)
+  sample=household_generator(201,tracts[index],number.of.households[index],seed=1)
   return(sample)
 }
 
