@@ -60,3 +60,41 @@ FEMA2010map<-leaflet() %>%
             title = "FEMA 2010 Flood Zones")
 FEMA2010map
 
+#S1 8-29
+S1_8_29floodplains=readOGR(dsn="S1_8_29")
+S1_8_29floodplains <- spTransform(S1_8_29floodplains, CRSobj = CRS(proj4string(Harris_tract_data)))
+S1_8_29floodplains=S1_8_29floodplains[Houston_bounds,]
+
+S1_8_29map<-leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addPolygons(data = S1_8_29floodplains, 
+              fillColor = "blue", 
+              fillOpacity = 0.7, 
+              weight = 1, 
+              smoothFactor = 0.2)
+
+S1_8_29map
+
+#S1 8-31
+S1_8_31floodplains=readOGR(dsn="S1_8_31",layer="2017083120170807S1a_region")
+#This was empty for me
+
+#Two Week MODIS
+TwoWeekMODISfloodplains=readOGR(dsn="TwoWeekModis")
+MODISfloodplains <- spTransform(TwoWeekMODISfloodplains, CRSobj = CRS(proj4string(Harris_tract_data)))
+MODISfloodplains=MODISfloodplains[Houston_bounds,]
+
+MODISmap<-leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addPolygons(data = MODISfloodplains, 
+              fillColor = "blue", 
+              fillOpacity = 0.7, 
+              weight = 1, 
+              smoothFactor = 0.2)
+
+MODISmap
+
+EMSRfloodplains=readOGR(dsn="EMSR")
+EMSRfloodplains <- spTransform(EMSRfloodplains, CRSobj = CRS(proj4string(Harris_tract_data)))
+EMSRfloodplains=EMSRfloodplains[Houston_bounds,]
+  

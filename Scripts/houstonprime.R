@@ -7,7 +7,7 @@ households$total=rowSums(households[4:8])
 
 #Simulate Houston people
 
-source("masterfunction.R")#function that builds households
+source("household_generator.R")#function that builds households
 
 #Only build Houston Households
 households=subset(households,households$county==201)
