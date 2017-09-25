@@ -1,4 +1,4 @@
-#syntheticdataset=read.csv('mergedsampleset.csv')
+syntheticdataset=read.csv('sampleset.csv',nrow=500000)
 
 
 childhood.asthma <- function(member,sex,age,race,seedy){
@@ -255,3 +255,61 @@ dans_prediabetes_reported <- function(dans_prediabetes,sex,education.attainment,
 }
 
 syntheticdataset$dans_prediabetes_reported=mapply(dans_prediabetes_reported,syntheticdataset$dans_prediabetes,syntheticdataset$sex,syntheticdataset$education.attainment,syntheticdataset$race,syntheticdataset$X)
+
+post.partum.depression <- function(syntheticdataset,seedy){
+  set.seed(seedy)
+  
+  library(dplyr)
+  houses.with.babies=syntheticdataset %>%
+    filter(age=="Under 5")%>%
+    sample_frac(0.2)%>%
+    select(householdID)
+  
+  post.partum.depression.for.mapply=function(age,race,seedy){
+    chance=14.5
+    if(age %in% c("15 to 17","18 to 19")){chance=chance+8.8}
+    if(age %in% c("20 to 24","25 to 29")){chance=chance+1.3}
+    if(age %in% c("30 to 34","35 to 44")){chance=chance-3.2}
+    if(age %in% c("45 to 54","55 to 64")){chance=chance-2.4}
+    
+    if(race=="Hispanic or Latino"){chance=chance+2.3}
+    if(race=="White"){chance=chance-3.6}
+    if(race=="Black or African American"){chance=chance+7}
+    if(!(race %in% c("Hispanic or Latino","White","Black or African American"))){chance=chance+5.2}
+    
+    set.seed(seedy)
+    post.partum.depression.symptoms=sample(c("yes","no"),1,prob=c(chance/100,1-(chance/100)))
+    return(post.partum.depression.symptoms)                                      
+  }
+  
+  
+  mothers=syntheticdataset %>%
+    #filter by wives and female householders or women who have reached an age they could give birth
+    filter((member %in% c("Wife","Female Householder"))|(member %in% c("Householder","Adult")|age=="15 to 17" )&(sex=="Female")) %>%
+    #Group and sample them
+    group_by(householdID)%>%
+    top_n(1,X)%>%
+    mutate(post.partum.depression.symptoms=post.partum.depression.for.mapply(age,race,X))
+  
+  syntheticdataset=left_join(syntheticdataset,mothers)
+  return(syntheticdataset)
+}
+
+syntheticdataset=post.partum.depression(syntheticdataset,1)
+
+number.mentally.unhealthy.days <- function(syntheticdataset,seedy){
+  set.seed(seedy)
+  
+  men=filter(syntheticdataset,member!="Child" & sex=="Male")
+  men$number.mentally.unhealthy.days.per.month=rnorm(nrow(men),mean=2.9,sd=0.102)
+  
+  women=filter(syntheticdataset,member!="Child" & sex=="Female")
+  women$number.mentally.unhealthy.days.per.month=rnorm(nrow(women),mean=4.0,sd=0.0510)
+  
+  adults=bind_rows(men,women)
+  
+  syntheticdataset=left_join(syntheticdataset,adults)
+  return(syntheticdataset)
+}
+
+syntheticdataset=number.mentally.unhealthy.days(syntheticdataset,1)
