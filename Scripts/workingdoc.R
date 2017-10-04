@@ -1,38 +1,38 @@
 
-
-gethouseholdtypeandrace <- function(county,tract,number.of.households,seed,inputdir){
+gethouseholdtypeandrace <- function(county,tract,seed,Census_data_List){
+  
   #Generates family structure and race characteristics for household
   
   #Set seed so sampling is random but repeatable
   set.seed(seed)
   #load data
-  householdtypeandrace=read.csv(paste0(inputdir,"householdtypeandrace.csv"))
+  #householdtypeandrace=read.csv(paste0(inputdir,"householdtypeandrace.csv"))
+  householdtypeandrace=Census_data_List[["householdtypeandrace"]]
   
     #Subset data for approrpriate county and tract and create probability distribution
     house <- householdtypeandrace[(householdtypeandrace$tract==tract) & (householdtypeandrace$county==county),]
     total1=sum(house[1,4:43])
     prob1=(house[1,4:43])/total1
     
-    #Initialize data.frame
-    finalsyntheticdataset=data.frame()
     
     #If it's an empty tract stop
     if( sum(is.na(prob1))!=0 ) stop(tract,county)
     
     #Sample for households' type and race from Census data
-      samples=sample(colnames(prob1),size=number.of.households,replace=TRUE,prob=prob1)
+      samples=sample(colnames(prob1),size=1,replace=TRUE,prob=prob1)
       
       
       #Assuming previously sampled type sample size
       #load size data
-      householdsizebytype=read.csv(paste0(inputdir,"household_size.csv"))
+      #householdsizebytype=read.csv(paste0(inputdir,"household_size.csv"))
       
       #separate types by family and non family, as their probability for sizes is different
-      family=householdsizebytype[c("tract","B11016_003E","B11016_004E","B11016_005E","B11016_006E","B11016_007E","B11016_008E")]
-      nonfamily=householdsizebytype[c("tract","B11016_011E","B11016_012E","B11016_013E","B11016_014E","B11016_015E","B11016_016E")]
+      #family=householdsizebytype[c("tract","B11016_003E","B11016_004E","B11016_005E","B11016_006E","B11016_007E","B11016_008E")]
+      #nonfamily=householdsizebytype[c("tract","B11016_011E","B11016_012E","B11016_013E","B11016_014E","B11016_015E","B11016_016E")]
       
+      family=Census_data_List[["family"]]
+      nonfamily=Census_data_List[["nonfamily"]]
       
-      index=1
       for (a in samples){
         #Sample Size Knowing it's a family household
         if (a=="B11001B_003E"|a=="B11001B_005E"|a=="B11001B_006E"|a=="B11001C_003E"|a=="B11001C_005E"|a=="B11001C_006E"|a=="B11001D_003E"|a=="B11001D_005E"|a=="B11001D_006E"|a=="B11001E_003E"|a=="B11001E_005E"|a=="B11001E_006E"|a=="B11001F_003E"|a=="B11001F_005E"|a=="B11001F_006E"|a=="B11001G_003E"|a=="B11001G_005E"|a=="B11001G_006E"|a=="B11001H_003E"|a=="B11001H_005E"|a=="B11001H_006E"|a=="B11001I_003E"|a=="B11001I_005E"|a=="B11001I_006E"){#if it's a family household
@@ -167,33 +167,36 @@ gethouseholdtypeandrace <- function(county,tract,number.of.households,seed,input
       
     
   
-  return(syntheticdataset=finalsyntheticdataset)
+  return(syntheticdataset)
 }
 
 
 #Get number of vehicles available
 
-getnumberofvehicles <- function(county, tract,syntheticdataset,seed,inputdir){
+getnumberofvehicles <- function(county, tract,syntheticdataset,seed,Census_data_List){
   #Generates number of vehicles per household
   
   #Set seed so sampling is random but repeatable
   set.seed(seed)
+  
   #Read in data for sampling distribution
-  householdsizebyvehicles=read.csv(paste0(inputdir,"household_size_by_vehicles_available.csv"))
+  #householdsizebyvehicles=read.csv(paste0(inputdir,"household_size_by_vehicles_available.csv"))
+  #Read in data for sampling distribution
+  householdsizebyvehicles=Census_data_List[["householdsizebyvehicles"]]
   
   #initialize empty data.frame
-  finalsyntheticdataset=data.frame()
+  #finalsyntheticdataset=data.frame()
   #Subset data for approrpriate county and tract
   house <- householdsizebyvehicles[(householdsizebyvehicles$tract==tract) & (householdsizebyvehicles$county==county),]
     
   
   #For each unique household ID sample for number of cars based on size of household
-    samplehouses=unique(syntheticdataset$householdID)
-    for(sampleID in samplehouses){
-      sampledhouse=subset(syntheticdataset,syntheticdataset$householdID==sampleID)
+   # samplehouses=unique(syntheticdataset$householdID)
+    #for(sampleID in samplehouses){
+     # sampledhouse=subset(syntheticdataset,syntheticdataset$householdID==sampleID)
       
       #Sample for one person household
-      if (nrow(sampledhouse)==1){
+      if (nrow(syntheticdataset)==1){
         #Use appropriate Census Subheadings
         houseofone=house[c("B08201_008E","B08201_009E","B08201_010E","B08201_011E","B08201_012E")]
         #Create probability Distribution
@@ -203,11 +206,11 @@ getnumberofvehicles <- function(county, tract,syntheticdataset,seed,inputdir){
         #Samples
         a=sample(colnames(prob1),size=1,prob=prob1)
         #add number of cars to each person in household in data frame
-        number.of.vehicles <- rep(a,nrow(sampledhouse))
-        sampledhouse$number.of.vehicles=number.of.vehicles
+        number.of.vehicles <- rep(a,nrow(syntheticdataset))
+        syntheticdataset$number.of.vehicles=number.of.vehicles
       }
       #Sample for 2 person households
-      if (nrow(sampledhouse)==2){
+      if (nrow(syntheticdataset)==2){
         #Use apppropriate Census subheadings for 2 people households
         houseofone=house[c("B08201_014E","B08201_015E","B08201_016E","B08201_017E","B08201_018E")]
         #Create probability distribution
@@ -217,11 +220,11 @@ getnumberofvehicles <- function(county, tract,syntheticdataset,seed,inputdir){
         #Sample for number of cars
         a=sample(colnames(prob2),size=1,prob=prob2)
         #add number of cars to each person in household in data frame
-        number.of.vehicles <- rep(a,nrow(sampledhouse))
-        sampledhouse$number.of.vehicles=number.of.vehicles
+        number.of.vehicles <- rep(a,nrow(syntheticdataset))
+        syntheticdataset$number.of.vehicles=number.of.vehicles
       }
       #Sample for 3 or more person households
-      if (nrow(sampledhouse)>=3){
+      if (nrow(syntheticdataset)>=3){
         #Use appropriate Census Subheadings for 3 or more person households
         houseofone=house[c("B08201_020E","B08201_021E","B08201_022E","B08201_023E","B08201_024E","B08201_026E","B08201_027E","B08201_028E","B08201_029E","B08201_030E")]
         #Generate probability distribution
@@ -231,16 +234,16 @@ getnumberofvehicles <- function(county, tract,syntheticdataset,seed,inputdir){
         #Sample for number of cars
         a=sample(colnames(prob3),size=1,prob=prob3)
         #add number of cars to each person in household in data frame
-        number.of.vehicles <- rep(a,nrow(sampledhouse))
+        number.of.vehicles <- rep(a,nrow(syntheticdataset))
         sampledhouse$number.of.vehicles=number.of.vehicles
       }
       
       #Add new sampled house to old
-      finalsyntheticdataset=rbind(finalsyntheticdataset,sampledhouse)
+      #finalsyntheticdataset=rbind(finalsyntheticdataset,sampledhouse)
       
       
-    }
-  return(syntheticdataset=finalsyntheticdataset)
+    #}
+  return(syntheticdataset=syntheticdataset)
 }
 
 

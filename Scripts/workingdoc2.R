@@ -1,4 +1,4 @@
-getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
+getsexandage <- function(county, tractvar, syntheticdataset,seed,Census_data_list){
   
   
   #Set seed so sampling is random but repeatable
@@ -7,11 +7,13 @@ getsexandage <- function(county, tractvar, syntheticdataset,seed,inputdir){
   
   #Read in Census data and subset by tract and county
   #Data for sex age and race code
-  sexbyagebyrace1=read.csv(paste0(inputdir,"sex_by_age_by_race.csv"))
+  #sexbyagebyrace1=read.csv(paste0(inputdir,"sex_by_age_by_race.csv"))
+  sexbyagebyrace1=Census_data_list$sexbyagebyrace1
   sexbyagebyrace <- sexbyagebyrace1[(sexbyagebyrace1$tract==tractvar) & (sexbyagebyrace1$county==county),]
   #Data for household types so we can reweight populations when sampling so we can make sure householders are sampled as adults then remove them from
   #population when sampling so we don't over sample adults
-  householdtypeandrace=read.csv(paste0(inputdir,"householdtypeandrace.csv"))
+  #householdtypeandrace=read.csv(paste0(inputdir,"householdtypeandrace.csv"))
+  householdtypeandrace=Census_data_List$householdtypeandrace
   house <- householdtypeandrace[(householdtypeandrace$tract==tractvar) & (householdtypeandrace$county==county),]
   
   #Organize Census data by race and adult and children, as well as get the minimum number of necessary adults per race: 1 per household 2 for married couples

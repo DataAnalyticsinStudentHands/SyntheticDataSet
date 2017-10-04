@@ -1,10 +1,11 @@
 ####COME BACK TO EMPLOYMENT AND LOOK FOR WORK AROUND ON AGE 15!!!!!!!!!!!!!!!!!!!!
 
 
-getschoolenrollment <- function(county,tract,syntheticdataset,seed,inputdir){
+getschoolenrollment <- function(county,tract,syntheticdataset,seed,Census_data_List){
   
   set.seed(seed)
-  enrollschool1=read.csv(paste0(inputdir,"school_enrollment_by_sex_by_age.csv"))
+  enrollschool1=Census_data_List$enrollschool1
+  #enrollschool1=read.csv(paste0(inputdir,"school_enrollment_by_sex_by_age.csv"))
   enrollschool=enrollschool1[(enrollschool1$tract==tract)&(enrollschool1$county==county),]
   
   Women5.9=enrollschool[c("B14003_033E","B14003_042E","B14003_051E")]
@@ -45,10 +46,11 @@ getschoolenrollment <- function(county,tract,syntheticdataset,seed,inputdir){
 
 
 
-geteducationattainment=function(county,tract,syntheticdataset,seed,inputdir){
+geteducationattainment=function(county,tract,syntheticdataset,seed,Census_data_List){
   
   set.seed(seed)
-  eduattain1=read.csv(paste0(inputdir,"education_attainment_by_sex_by_age.csv"))
+  #eduattain1=read.csv(paste0(inputdir,"education_attainment_by_sex_by_age.csv"))
+  eduattain1=Census_data_List$eduattain1
   eduattain=eduattain1[(eduattain1$tract==tract)&(eduattain1$county==county),]
   
   
@@ -82,9 +84,11 @@ geteducationattainment=function(county,tract,syntheticdataset,seed,inputdir){
 
 
 
-getemployment=function(county,tract,syntheticdataset,seed,inputdir){
+getemployment=function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
-  employment1=read.csv(paste0(inputdir,"employment.csv"))
+  
+  employment1=Census_data_List$employment1
+  #employment1=read.csv(paste0(inputdir,"employment.csv"))
   employment=employment1[(employment1$tract==tract)&(employment1$county==county),]
   
   Women16.19=employment[c("B23001_091E","B23001_093E","B23001_094E","B23001_095E")]
@@ -145,9 +149,11 @@ getemployment=function(county,tract,syntheticdataset,seed,inputdir){
 }
 
 
-getdisability <- function(county,tract,syntheticdataset,seed,inputdir){
+getdisability <- function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
-  disability1=read.csv(paste0(inputdir,"disability_status.csv"))
+  
+  disability1=Census_data_List$disability1
+  #disability1=read.csv(paste0(inputdir,"disability_status.csv"))
   disability=disability1[(disability1$tract==tract)&(disability1$county==county),]
   
   Under18=disability[c("C18108_003E","C18108_004E","C18108_005E")]

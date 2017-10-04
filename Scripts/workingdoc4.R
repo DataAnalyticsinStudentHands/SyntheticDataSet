@@ -33,10 +33,11 @@ getdegree <- function(county,tract,syntheticdataset,seed,inputdir){
 
 
 
-getlangandnativity <- function(county,tract,syntheticdataset,seed,inputdir){
+getlangandnativity <- function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  language=read.csv(paste0(inputdir,"nativity_language.csv"))
+  language=Census_data_List$language
+  #language=read.csv(paste0(inputdir,"nativity_language.csv"))
   language=language[(language$tract==tract)&(language$county==county),]
   
   languageblack=language[c("B16005B_003E","B16005B_005E","B16005B_006E","B16005B_008E","B16005B_010E","B16005B_011E")]
@@ -67,10 +68,11 @@ getlangandnativity <- function(county,tract,syntheticdataset,seed,inputdir){
 }
 
 
-getcitizenandlang <- function(county,tract,syntheticdataset,seed,inputdir){
+getcitizenandlang <- function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  citizen=read.csv(paste0(inputdir,"citizenship_language.csv"))
+  citizen=Census_data_List$citizen
+  #read.csv(paste0(inputdir,"citizenship_language.csv"))
   citizen=citizen[(citizen$tract==tract)&(citizen$county==county),]
   
   native5.17goodenglish=citizen[c("B16008_006E","B16008_009E")]
@@ -101,10 +103,10 @@ getcitizenandlang <- function(county,tract,syntheticdataset,seed,inputdir){
 
 
 
-getvets <- function(county,tract,syntheticdataset,seed,inputdir){
+getvets <- function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  veterans=read.csv(paste0(inputdir,"veteran_status.csv"))
+  veterans=Census_data_List$veterans #read.csv(paste0(inputdir,"veteran_status.csv"))
   veterans=veterans[(veterans$tract==tract)&(veterans$county==county),]
   
   men18to34=c(veterans$B21001_008E,veterans$B21001_009E)
@@ -133,10 +135,10 @@ getvets <- function(county,tract,syntheticdataset,seed,inputdir){
 }
 
 
-gettransport <- function(county,tract,syntheticdataset,seed,inputdir){
+gettransport <- function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  transport=read.csv(paste0(inputdir,"work_transportation.csv"))
+  transport=Census_data_List$transport#read.csv(paste0(inputdir,"work_transportation.csv"))
   transport=transport[(transport$tract==tract)&(transport$county==county),]
   
   male=c(transport$B08006_020E,transport$B08006_021E,transport$B08006_025E,transport$B08006_031E,transport$B08006_032E,transport$B08006_033E,transport$B08006_034E)
@@ -162,10 +164,10 @@ gettransport <- function(county,tract,syntheticdataset,seed,inputdir){
 
 
 
-gettraveltime=function(county,tract,syntheticdataset,seed,inputdir){
+gettraveltime=function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  traveltime=read.csv(paste0(inputdir,"travel_time.csv"))
+  traveltime=Census_data_List$traveltime #read.csv(paste0(inputdir,"travel_time.csv"))
   traveltime=traveltime[(traveltime$tract==tract)&(traveltime$county==county),]
   
   drovealone=c(traveltime$B08134_022E,traveltime$B08134_023E,traveltime$B08134_024E,traveltime$B08134_025E,traveltime$B08134_026E,traveltime$B08134_027E,traveltime$B08134_028E,traveltime$B08134_029E,traveltime$B08134_030E)
@@ -186,10 +188,10 @@ gettraveltime=function(county,tract,syntheticdataset,seed,inputdir){
 }
 
 
-getincome <- function(county,tract,syntheticdataset,seed,inputdir){
+getincome <- function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  income=read.csv(paste0(inputdir,"household_income.csv"))
+  income=Census_data_List$income #read.csv(paste0(inputdir,"household_income.csv"))
   income=income[(income$tract==tract)&(income$county==county),]
   income$county=NULL
   income$tract=NULL
@@ -206,21 +208,26 @@ getincome <- function(county,tract,syntheticdataset,seed,inputdir){
   #hispanicincome=income[c("B19001I_002E","B19001I_003E","B19001I_004E","B19001I_005E","B19001I_006E","B19001I_007E","B19001I_008E","B19001I_009E","B19001I_010E","B19001I_011E","B19001I_012E","B19001I_013E","B19001I_014E","B19001I_015E","B19001I_016E","B19001I_017E")]
   code=c("less than 10,000","10,000 to 14,999","15,000 to 19,999","20,000 to 24,999","25,000 to 29,999","30,000 to 34,999","35,000 to 39,999","40,000 to 44,999","45,000 to 49,999","50,000 to 59,999","60,000 to 74,999","75,000 to 99,999","100,000 to 124,999","125,000 to 149,999","150,000 to 199,999","200,000 or more")
   
-  finalsyntheticdataset=data.frame()
   
-  samplehouses=unique(syntheticdataset$householdID)
-  for(sampleID in samplehouses){
-    sampledhouse=subset(syntheticdataset,syntheticdataset$householdID==sampleID)
+  household.income=sample(code,size=1,prob=c(income/sum(income)))
+  household.income=rep(household.income,nrow(syntheticdataset))
+  syntheticdataset$household.income=household.income
+  
+  #finalsyntheticdataset=data.frame()
+  
+  #samplehouses=unique(syntheticdataset$householdID)
+  #for(sampleID in samplehouses){
+   # sampledhouse=subset(syntheticdataset,syntheticdataset$householdID==sampleID)
     
-    household.income=sample(code,size=1,prob=c(income/sum(income)))
-    household.income=rep(household.income,nrow(sampledhouse))
-    sampledhouse$household.income=household.income
+    #household.income=sample(code,size=1,prob=c(income/sum(income)))
+    #household.income=rep(household.income,nrow(sampledhouse))
+    #sampledhouse$household.income=household.income
 
-    finalsyntheticdataset=rbind(finalsyntheticdataset,sampledhouse)
+    #finalsyntheticdataset=rbind(finalsyntheticdataset,sampledhouse)
     
     
-  }
-  return(syntheticdataset=finalsyntheticdataset)
+  #}
+  return(syntheticdataset)#=finalsyntheticdataset)
   #household.income=ifelse(syntheticdataset$race=="Black or African American",sample(code,1,prob=blackincome/sum(blackincome)),
   #                        ifelse(syntheticdataset$race=="American Indian or Alaskan Native",sample(code,1,prob=AIANincome/sum(AIANincome)),
    #                              ifelse(syntheticdataset$race=="Asian",sample(code,1,prob=asianincome/sum(asianincome)),
@@ -232,15 +239,15 @@ getincome <- function(county,tract,syntheticdataset,seed,inputdir){
          #                 NA))))))))
   
   
-  syntheticdataset$household.income=household.income
-  return(syntheticdataset)
+  #syntheticdataset$household.income=household.income
+  #return(syntheticdataset)
 }
 
 
 getinsurance <- function(county,tract,syntheticdataset,seed,inputdir){
   set.seed(seed)
   
-  insurance=read.csv(paste0(inputdir,"health_insurance.csv"))
+  insurance=Census_data_List$insurance#read.csv(paste0(inputdir,"health_insurance.csv"))
   insurance=insurance[(insurance$tract==tract)&(insurance$county==county),]
   
   #Organize Data Set by row

@@ -97,4 +97,34 @@ MODISmap
 EMSRfloodplains=readOGR(dsn="EMSR")
 EMSRfloodplains <- spTransform(EMSRfloodplains, CRSobj = CRS(proj4string(Harris_tract_data)))
 EMSRfloodplains=EMSRfloodplains[Houston_bounds,]
+
+
+#LIST
+LIST=readOGR("LIST")
+LIST <- spTransform(LIST, CRSobj = CRS(proj4string(Harris_tract_data)))
+LIST=LIST[Houston_bounds,]
   
+LISTmap<-leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addPolygons(data = LIST, 
+              fillColor = "blue", 
+              fillOpacity = 0.7, 
+              weight = 1, 
+              smoothFactor = 0.2)
+
+LISTmap
+
+
+#Load HCAD Parcels
+residentialHCADparcels=readOGR("residential_HCAD_parcels.shp")
+#PUT LIST in same projection
+LIST <- spTransform(LIST,residentialHCADparcels@proj4string)
+
+#Find parcels affected by flood
+library(rgeos)
+floodingforHCADParcels=gIntersects(residentialHCADparcels,LIST)
+CensusTractforHCADParcelsunlisted=rapply(CensusTractforHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+CensusTractforHCADParcelsunlisted=unlist(CensusTractforHCADParcelsunlisted)
+
+validparcels$COUNTY=TXCensusTracts$COUNTY[CensusTractforHCADParcelsunlisted]
+validparcels$TRACT=TXCensusTracts$TRACT[CensusTractforHCADParcelsunlisted]
