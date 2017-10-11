@@ -110,8 +110,8 @@ for (tract in tracts){
 
 #Ask if commercial mobile homes should be populated
 
-sample.set=merge(sample.set,validparceldataframe2,by="ACCOUNT",all.x=TRUE)
-write.csv(sample.set,"complete_sample_set.csv")
+sample.set=merge(sample.set,validparceldataframe2,by="ACCOUNT",all=TRUE)
+saveRDS(sample.set,"complete_sample_set.RDS")
 
 
 
