@@ -45,10 +45,10 @@ houses_addresses=houses_eligible[,c("LocAddr","zip")]
 #FEMA 2015
 FEMA2015floodplains=st_read("FEMA_Floodplains_NFHL_2015.gdb")
 FEMA2015floodplains <- st_transform(FEMA2015floodplains,st_crs(validparcels))
-FEMA2015floodplains <- FEMA2015floodplains[(FEMA2015floodplains$ZONE_SUBTY=="0.2 PCT ANNUAL CHANCE FLOOD HAZARD"|FEMA2015floodplains$ZONE_SUBTY=="FLOODWAY"),]
+FEMA2015floodplains <- FEMA2015floodplains[(FEMA2015floodplains$ZONE_SUBTY=="FLOODWAY"),]
 FEMA2015floodplains <- FEMA2015floodplains[Houston_bounds,]
 
-indexes_of_eligbile_houses=st_intersects(houses_eligible, FEMA2015floodplains)
+indexes_of_eligbile_houses=st_within(houses_eligible, FEMA2015floodplains)
 indexes_of_eligbile_houses=rapply(indexes_of_eligbile_houses,function(x) ifelse(length(x)==0,TRUE,FALSE), how = "replace")
 indexes_of_eligbile_houses=unlist(indexes_of_eligbile_houses)
 houses_eligible2=houses_eligible[indexes_of_eligbile_houses,]
@@ -68,18 +68,20 @@ library(leaflet)
 FEMA2015floodplains <- st_transform(FEMA2015floodplains,"+proj=longlat +datum=WGS84")
 houses_eligible2 <- st_transform(houses_eligible2,"+proj=longlat +datum=WGS84")
 
-#map<-leaflet() %>%
+houses_eligible <- st_transform(houses_eligible,"+proj=longlat +datum=WGS84")
+#floodmap<-leaflet() %>%
  # addPolygons(data = FEMA2015floodplains, 
   #            fillColor = "blue", 
    #           fillOpacity = 0.7, 
     #          weight = 1, 
-     #         smoothFactor = 0.2)%>%
-  #addPolygons(data=houses_eligible2,
-   #           fillColor = "red",
-    #          fillOpacity = 0.7, 
+     #         smoothFactor = 0.2)
+#map<-leaflet() %>%
+ #addPolygons(data=houses_eligible2,
+  #            fillColor = "red",
+   #           fillOpacity = 0.7, 
 
-     #         weight = 1, 
-      #        smoothFactor = 0.2)
+    #          weight = 1, 
+     #         smoothFactor = 0.2)
 #map
 not_in_houston=houses_addresses[!(houses_addresses$LocAddr %in% eligible_addresses$LocAddr),]
 not_in_houston=not_in_houston[!(not_in_houston$LocAddr %in% not_eligible_in_floodplain$LocAddr),]
