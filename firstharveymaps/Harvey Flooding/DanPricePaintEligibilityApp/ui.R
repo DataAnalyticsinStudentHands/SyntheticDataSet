@@ -16,7 +16,18 @@ ui <- fluidPage(
       textInput("text", h3("Text input"), 
                 value  = "Enter Address in All Capital Letters"),
       
-      submitButton("Query Address")),
+      submitButton("Query Address"),
+      
+      helpText("Or upload csv files of addresses also in all capital letters and download results below"),
+      
+      fileInput("file1", "Choose CSV File",
+                accept = c(
+                  "text/csv",
+                  "text/comma-separated-values,text/plain",
+                  ".csv")
+      ),
+      downloadButton('downloadData', 'Download')),
+      #downloadButton("downloadData", "Download")),
     
       
     
@@ -25,7 +36,9 @@ ui <- fluidPage(
     mainPanel(
       
       # Output: Histogram ----
-      textOutput("eligibility_status")
+      textOutput("eligibility_status"),
+      tableOutput("for_csv")
+      
       
     )
   )
