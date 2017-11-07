@@ -12,20 +12,24 @@ ui <- fluidPage(
     # Sidebar panel for inputs ----
     sidebarPanel(
       
+      
       # Input: Slider for the number of bins ----
-      textInput("text", h3("Text input"), 
+      textInput("text", ("Enter Address"), 
                 value  = "14060 Dublin St"),
       
-      submitButton("Query Address"),
+      numericInput("miles_from_location","Miles from location you expect to reach",1),
       
-      helpText("Or upload csv files of addresses")),
+      submitButton("Query Address")),
+      
+      #helpText("Or upload csv files of addresses"),
       
       #fileInput("file1", "Choose CSV File",
-       #         accept = c(
-        #          "text/csv",
-         #         "text/comma-separated-values,text/plain",
-          #        ".csv")
-      #)),
+      #          accept = c(
+      #            "text/csv",
+      #            "text/comma-separated-values,text/plain",
+      #            ".csv")
+      #),
+      #downloadButton("report", "Generate report")),
 
     
       

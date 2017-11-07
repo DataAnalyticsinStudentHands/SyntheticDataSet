@@ -3,7 +3,7 @@
 prediabetes_simulation_data=readRDS("prediabetes_simulation_for_app.RDS")
 library(sf)
 library(dplyr)
-miles_from_location=1
+
 #we will assume a program cost of 417 but will allow the user to change that
 
 cost_per_participant=417
@@ -18,8 +18,9 @@ cost_every_year_after=3900
 
 validparcels=readRDS("validparcels.RDS")
 
-get_houses_close_enough_to_class=function(address,validparcels){
-  address=filter(validparcels,validparcels$LocAddr==address)
+get_houses_close_enough_to_class=function(address,validparcels,miles_from_location){
+  validparcels$LocAddr=as.character(validparcels$LocAddr)
+  address=filter(validparcels,validparcels$LocAddr==as.character(address))
   #If not a vadil address return not a valid address
   if(nrow(address)==0){
     return(paste("Not a valid address"))
@@ -72,7 +73,7 @@ get_number_of_cases_and_costs_for_10_years=function(part_of_set_of_interest,cost
 }
 server <- function(input, output) {
 
-    part_of_set_of_interest<-reactive({get_houses_close_enough_to_class(toupper(input$text),validparcels)})
+    part_of_set_of_interest<-reactive({get_houses_close_enough_to_class(toupper(input$text),validparcels,input$miles_from_location)})
     
     projected_data_for_10_years<-reactive({get_number_of_cases_and_costs_for_10_years(part_of_set_of_interest())})
     
@@ -109,53 +110,44 @@ server <- function(input, output) {
       
       barplot(as.vector(unlist(projected_data_for_10_years()$net_costs)),xlab="Year",names.arg = paste(1:10),ylab = "Costs")
       
-      title(ylab="Net Costs")
-      title(xlab="Year")
-      
     })
     
-    getData<- reactive({
-      inFile <- input$file1
+    #get_houses_close_enough_to_several_classes<- reactive({
+     # inFile <- input$file1
       
-      if(is.null(input$file1))
-        return(NULL)
+      #if(is.null(input$file1))
+       # return(NULL)
       
-      addresses_data=read.csv(inFile$datapath)
+      #addresses_data=read.csv(inFile$datapath)
       
-      colnames(addresses_data)="LocAddr"
+      #colnames(addresses_data)="LocAddr"
       
-      get_eligibility<-function(LocAddr){
-        LocAddr=toupper(LocAddr)
-        eligibility=ifelse(LocAddr %in% eligible$LocAddr,"house is eligible",
-                           ifelse(LocAddr %in% not_in_houston$LocAddr,"house is not within Houston bounds",
-                                  ifelse(LocAddr %in% too_young$LocAddr,"house is too young to be eligible",
-                                         ifelse(LocAddr %in% floodplain_addresses$LocAddr,"house is in a floodplain",
-                                                ifelse(LocAddr=="Enter Address in All Capital Letters","Please Enter Address",
-                                                       ifelse(length(agrep(LocAddr,allhouses$LocAddr))>0,
-                                                              paste("did you mean",allhouses$LocAddr[agrep(LocAddr,allhouses$LocAddr)],"?"),"address is not in system"))))))
-        return(eligibility)
-      }
-      addresses_data$eligibility=sapply(addresses_data$LocAddr,get_eligibility)
-      return(addresses_data)
-    })
+      #part_of_part_of_set_of_interest=get_houses_close_enough_to_class(addresses_data[1,],validparcels,input$miles_from_location)
+      #for(address_number in 2:nrow(addresses_data)){
+       # another_part_of_part_of_set_of_interest=get_houses_close_enough_to_class(addresses_data[address_number,],validparcels,input$miles_from_location)
+        #part_of_part_of_set_of_interest=rbind(part_of_part_of_set_of_interest,another_part_of_part_of_set_of_interest)
+      #}
+      
+      #return(part_of_part_of_set_of_interest)
+    #})
     
-    output$for_csv=renderTable({
-
+    #output$report=downloadHandler(
+     # 
+      #filename = "report.html",
       
-      getData()
-      
-    })
-    
-    output$downloadData=downloadHandler(
-      
-      filename = function(){
-        paste0("data-",Sys.Date(),".csv")
-      },
-      
-      content = function(file){
+      #content=function(file){
+       # tempReport <- file.path(tempdir(), "DPP_report_generator.Rmd")
+        #file.copy("DPP_report_generator.Rmd", tempReport, overwrite = TRUE)
         
-        write.csv(getData(),file)
+       
         
-      })
+        # Knit the document, passing in the `params` list, and eval it in a
+        # child of the global environment (this isolates the code in the document
+        # from the code in this app).
+        #rmarkdown::render(tempReport, output_file = file)
+      #}
       
+      
+    #)
+    
 }
