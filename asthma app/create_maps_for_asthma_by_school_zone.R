@@ -28,7 +28,7 @@ validparcel2=geo_join(validparcels,buildingfeatures,by="HCAD_NUM",how="inner")
 
 #School zones were collected from this site
 #http://cohgis-mycity.opendata.arcgis.com/datasets
-#In November
+#In 11/24/2017
 
 #Read in elementary school zones
 elementary_school_zones <- st_read("HISD_Elementary_Boundary.shp")

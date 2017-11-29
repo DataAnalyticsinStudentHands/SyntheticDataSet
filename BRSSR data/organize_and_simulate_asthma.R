@@ -104,6 +104,9 @@ saveRDS(BRSSR2,"BRSSR_for_children.rds")
 
 
 #Organize data from Child Asthma Call Back survey
+#data from this site:
+#https://www.cdc.gov/brfss/acbs/index.htm
+#accessed 11/27/2017
 library(rio)
 ChildASTHMA2014=import('ACBS_2014_CHILD_PUBLIC_LLCP.sas7bdat')
 ChildASTHMA2013=import('acbs_2013_child_public_llcp.sas7bdat')
