@@ -6,11 +6,11 @@ high_school_kids=readRDS("high_school_kids.RDS")
 #Read in Spatial files for school zones
 library(sf)
 #Read in elementary school zones
-elementary_school_zones <- st_read("HISD_Elementary_Boundary.shp")
+elementary_school_zones <- readRDS("elementary_school_zones.RDS")
 #Read in middle school zones
-middle_school_zones <- st_read("HISD_Middle_School_Boundary.shp")
+middle_school_zones <- readRDS("middle_school_zones.RDS")
 #Read in high school zones
-high_school_zones <- st_read("HISD_High_School_Boundary.shp")
+high_school_zones <- readRDS("high_school_zones.RDS")
 
 #use table command to get variables of interest by school zone in elementary schools
 Frequency_Elementary_School_Table=as.data.frame(table(elementary_school_kids$School,elementary_school_kids$EPIS_12M))
