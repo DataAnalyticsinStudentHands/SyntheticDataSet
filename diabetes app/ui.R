@@ -39,11 +39,13 @@ ui <- fluidPage(
     mainPanel(
       
       # Output: Histogram ----
+      
       textOutput("projected_particpants"),
       plotOutput("cumulative_cases"),
       plotOutput("cumulative_costs"),
-      plotOutput("net_costs")
-      
+      plotOutput("net_costs"),
+      plotOutput("QALY_gained"),
+      plotOutput("ICERS")
     )
   )
 )

@@ -68,9 +68,17 @@ elementary_school_zones=st_transform(elementary_school_zones,crs='+proj=longlat 
 library(leaflet)
 palAsthmaElementary <- colorNumeric(
   palette = "YlOrRd",
-  domain = elementary_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months
+  domain = c(elementary_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,elementary_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms)
 )
-map<-leaflet() %>%
+
+popup<-paste0("School: ",elementary_school_zones$Elementary,"<br>",
+              "Children who had an asthma attack or episode in past year: ",
+              elementary_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,"<br>",
+              "Children who went to the ER for asthma symptoms in past year: ",
+              elementary_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms)
+
+map<-leaflet(options = leafletOptions(zoomControl = FALSE,
+                                      dragging = FALSE)) %>%
   addProviderTiles("CartoDB.Positron") %>%
   addPolygons(data = elementary_school_zones, 
               fillColor = ~palAsthmaElementary(elementary_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months), 
@@ -78,20 +86,22 @@ map<-leaflet() %>%
               fillOpacity = 0.7, 
               weight = 1,
               group="Children with Asthma Attack or Episode in past 12 months",
-              smoothFactor = 0.2)%>%
+              smoothFactor = 0.2,
+              popup=popup)%>%
   addPolygons(data = elementary_school_zones, 
               fillColor = ~palAsthmaElementary(elementary_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms), 
               color = "#b2aeae", # you need to use hex colors
               fillOpacity = 0.7, 
               weight = 1,
               group="Children who have visited the ER because of asthma symptoms",
-              smoothFactor = 0.2)%>%
+              smoothFactor = 0.2,
+              popup=popup)%>%
   addLayersControl(
     baseGroups=c("Children with Asthma Attack or Episode in past 12 months","Children who have visited the ER because of asthma symptoms"),
     options=layersControlOptions(collapsed=FALSE)
   )%>%
   addLegend(pal = palAsthmaElementary, 
-            values = elementary_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,
+            values = c(elementary_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,elementary_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms),
             position = "bottomleft")
 map
 
@@ -152,9 +162,18 @@ middle_school_zones=st_transform(middle_school_zones,crs='+proj=longlat +datum=W
 #create middle school map of symptoms
 palAsthmaMiddle <- colorNumeric(
   palette = "YlOrRd",
-  domain = middle_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months
+  domain = c(middle_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,middle_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms)
 )
-map<-leaflet() %>%
+
+popup<-paste0("School: ",middle_school_zones$Middle_Sch,"<br>",
+              "Children who had an asthma attack or episode in past year: ",
+              middle_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,"<br>",
+              "Children who went to the ER for asthma symptoms in past year: ",
+              middle_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms)
+
+
+map<-leaflet(options = leafletOptions(zoomControl = FALSE,
+                                      dragging = FALSE)) %>%
   addProviderTiles("CartoDB.Positron") %>%
   addPolygons(data = middle_school_zones, 
               fillColor = ~palAsthmaMiddle(middle_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months), 
@@ -162,20 +181,22 @@ map<-leaflet() %>%
               fillOpacity = 0.7, 
               weight = 1,
               group="Children with Asthma Attack or Episode in past 12 months",
-              smoothFactor = 0.2)%>%
+              smoothFactor = 0.2,
+              popup=popup)%>%
   addPolygons(data = middle_school_zones, 
               fillColor = ~palAsthmaMiddle(middle_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms), 
               color = "#b2aeae", # you need to use hex colors
               fillOpacity = 0.7, 
               weight = 1,
               group="Children who have visited the ER because of asthma symptoms",
-              smoothFactor = 0.2)%>%
+              smoothFactor = 0.2,
+              popup=popup)%>%
   addLayersControl(
     baseGroups=c("Children with Asthma Attack or Episode in past 12 months","Children who have visited the ER because of asthma symptoms"),
     options=layersControlOptions(collapsed=FALSE)
   )%>%
   addLegend(pal = palAsthmaMiddle, 
-            values = middle_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,
+            values = c(middle_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,middle_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms),
             position = "bottomleft")
 map
 
@@ -239,9 +260,17 @@ high_school_zones=st_transform(high_school_zones,crs='+proj=longlat +datum=WGS84
 #Create High School map of symptoms
 palAsthmaHigh <- colorNumeric(
   palette = "YlOrRd",
-  domain = high_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months
+  domain = c(high_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,high_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms)
 )
-map<-leaflet() %>%
+popup<-paste0("School: ",high_school_zones$High_Schoo,"<br>",
+              "Children who had an asthma attack or episode in past year: ",
+              high_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,"<br>",
+              "Children who went to the ER for asthma symptoms in past year: ",
+              high_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms)
+
+
+map<-leaflet(options = leafletOptions(zoomControl = FALSE,
+                                      dragging = FALSE)) %>%
   addProviderTiles("CartoDB.Positron") %>%
   addPolygons(data = high_school_zones, 
               fillColor = ~palAsthmaHigh(high_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months), 
@@ -249,27 +278,36 @@ map<-leaflet() %>%
               fillOpacity = 0.7, 
               weight = 1,
               group="Children with Asthma Attack or Episode in past 12 months",
-              smoothFactor = 0.2)%>%
+              smoothFactor = 0.2,
+              popup=popup)%>%
   addPolygons(data = high_school_zones, 
               fillColor = ~palAsthmaHigh(high_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms), 
               color = "#b2aeae", # you need to use hex colors
               fillOpacity = 0.7, 
               weight = 1,
               group="Children who have visited the ER because of asthma symptoms",
-              smoothFactor = 0.2)%>%
+              smoothFactor = 0.2,
+              popup=popup)%>%
   addLayersControl(
     baseGroups=c("Children with Asthma Attack or Episode in past 12 months","Children who have visited the ER because of asthma symptoms"),
     options=layersControlOptions(collapsed=FALSE)
   )%>%
   addLegend(pal = palAsthmaHigh, 
-            values = high_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,
+            values = c(high_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,high_school_zones$Children.who.have.visited.the.Er.because.of.asthma.symptoms),
             position = "bottomleft")
 map
 
 saveRDS(map,"High_School_Severity_Map.rds")
 
 #Make maps by environmental hazards and school zones
-map<-leaflet() %>%
+
+palAsthmaElementary <- colorNumeric(
+  palette = "YlOrRd",
+  domain = c(elementary_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home,elementary_school_zones$Seen.or.Smelt.Mold.or.Musty.in.Asthmatic.Child.home,elementary_school_zones$Seen.Cockroach.in.Asthmatic.Child.home,elementary_school_zones$Seen.Rodent.in.Asthmatic.Child.home,elementary_school_zones$Smoked.inside.Asthmatic.Child.home)
+)
+
+map<-leaflet(options = leafletOptions(zoomControl = FALSE,
+                                      dragging = FALSE)) %>%
   addProviderTiles("CartoDB.Positron") %>%
   addPolygons(data = elementary_school_zones, 
               fillColor = ~palAsthmaElementary(elementary_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home), 
@@ -311,7 +349,7 @@ map<-leaflet() %>%
     options=layersControlOptions(collapsed=FALSE)
   )%>%
   addLegend(pal = palAsthmaElementary, 
-            values = elementary_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,
+            values = c(elementary_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home,elementary_school_zones$Seen.or.Smelt.Mold.or.Musty.in.Asthmatic.Child.home,elementary_school_zones$Seen.Cockroach.in.Asthmatic.Child.home,elementary_school_zones$Seen.Rodent.in.Asthmatic.Child.home,elementary_school_zones$Smoked.inside.Asthmatic.Child.home),
             position = "bottomleft")
 map
 
@@ -319,10 +357,11 @@ saveRDS(map,"Elementary_School_Hazards_Map.rds")
 
 palAsthmaMiddle <- colorNumeric(
   palette = "YlOrRd",
-  domain = middle_school_zones$Seen.Cockroach.in.Asthmatic.Child.home
+  domain = c(middle_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home,middle_school_zones$Seen.or.Smelt.Mold.or.Musty.in.Asthmatic.Child.home,middle_school_zones$Seen.Cockroach.in.Asthmatic.Child.home,middle_school_zones$Seen.Rodent.in.Asthmatic.Child.home,middle_school_zones$Smoked.inside.Asthmatic.Child.home)
 )
 
-map<-leaflet() %>%
+map<-leaflet(options = leafletOptions(zoomControl = FALSE,
+                                      dragging = FALSE)) %>%
   addProviderTiles("CartoDB.Positron") %>%
   addPolygons(data = middle_school_zones, 
               fillColor = ~palAsthmaMiddle(middle_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home), 
@@ -364,7 +403,7 @@ map<-leaflet() %>%
     options=layersControlOptions(collapsed=FALSE)
   )%>%
   addLegend(pal = palAsthmaMiddle, 
-            values = middle_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,
+            values = c(middle_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home,middle_school_zones$Seen.or.Smelt.Mold.or.Musty.in.Asthmatic.Child.home,middle_school_zones$Seen.Cockroach.in.Asthmatic.Child.home,middle_school_zones$Seen.Rodent.in.Asthmatic.Child.home,middle_school_zones$Smoked.inside.Asthmatic.Child.home),
             position = "bottomleft")
 map
 
@@ -372,10 +411,11 @@ saveRDS(map,"Middle_School_Hazards_Map.rds")
 
 palAsthmaHigh <- colorNumeric(
   palette = "YlOrRd",
-  domain = High_school_zones$Seen.Cockroach.in.Asthmatic.Child.home
+  domain = c(High_school_zones$Seen.Cockroach.in.Asthmatic.Child.home,High_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home,High_school_zones$Seen.or.Smelt.Mold.or.Musty.in.Asthmatic.Child.home,High_school_zones$Seen.Rodent.in.Asthmatic.Child.home,High_school_zones$Smoked.inside.Asthmatic.Child.home)
 )
 
-map<-leaflet() %>%
+map<-leaflet(options = leafletOptions(zoomControl = FALSE,
+                                      dragging = FALSE)) %>%
   addProviderTiles("CartoDB.Positron") %>%
   addPolygons(data = High_school_zones, 
               fillColor = ~palAsthmaHigh(High_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home), 
@@ -417,8 +457,13 @@ map<-leaflet() %>%
     options=layersControlOptions(collapsed=FALSE)
   )%>%
   addLegend(pal = palAsthmaHigh, 
-            values = High_school_zones$Children.with.Asthma.Attack.or.Episode.in.past.12.months,
+            values = c(High_school_zones$Seen.Cockroach.in.Asthmatic.Child.home,High_school_zones$Gas.Used.in.Cooking.in.Asthmatic.Child.home,High_school_zones$Seen.or.Smelt.Mold.or.Musty.in.Asthmatic.Child.home,High_school_zones$Seen.Rodent.in.Asthmatic.Child.home,High_school_zones$Smoked.inside.Asthmatic.Child.home),
             position = "bottomleft")
 map
 
 saveRDS(map,"High_School_Hazards_Map.rds")
+
+saveRDS(Frequency_Elementary_School_Table,"Frequency_Elementary_School_Table.RDS")
+saveRDS(Frequency_Middle_School_Table,"Frequency_Middle_School_Table.RDS")
+saveRDS(Frequency_High_School_Table,"Frequency_High_School_Table.RDS")
+

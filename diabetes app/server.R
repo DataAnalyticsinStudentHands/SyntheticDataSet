@@ -68,8 +68,14 @@ get_number_of_cases_and_costs_for_10_years=function(part_of_set_of_interest,cost
   
   cases_costs=rbind(without_intervention_cases_costs,with_intervention_cases_costs)
   net_costs=with_intervention_cases_costs[2,]-without_intervention_cases_costs[2,]
+  QALYgained=0.05*(without_intervention_cases_costs[1,]-with_intervention_cases_costs[1,])
+  for(year in 2:10){
+    QALYgained[year]=QALYgained[year]+QALYgained[year-1]
+  }
   
-  return(list(cases_costs=cases_costs,net_costs=net_costs))
+  ICERS=net_costs/QALYgained
+  
+  return(list(cases_costs=cases_costs,net_costs=net_costs,QALYgained=QALYgained,ICERS=ICERS))
 }
 server <- function(input, output) {
 
@@ -112,8 +118,15 @@ server <- function(input, output) {
       
     })
     
+    output$QALY_gained<-renderPlot(({
+      barplot(as.vector(unlist(projected_data_for_10_years()$QALYgained)),xlab="Year",names.arg = paste(1:10),ylab="Quality of Life Years Gained")
+    }))
+    
+    output$ICERS<-renderPlot(({
+      barplot(as.vector(unlist(projected_data_for_10_years()$ICERS)),xlab="Year",names.arg = paste(1:10),ylab="Incremental Cost Effective Ratios")
+    }))
     #get_houses_close_enough_to_several_classes<- reactive({
-     # inFile <- input$file1
+     # inFile <- input$file1sssss
       
       #if(is.null(input$file1))
        # return(NULL)
