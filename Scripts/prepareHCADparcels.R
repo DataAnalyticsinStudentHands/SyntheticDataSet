@@ -1,5 +1,3 @@
-#Read in Parcels
-
 library(sf)
 parcels <- st_read("../hcadparcelstuff/Parcels/Parcels.shp")
 

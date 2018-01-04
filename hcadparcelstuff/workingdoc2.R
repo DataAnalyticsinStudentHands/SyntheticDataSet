@@ -3,6 +3,8 @@ parcels <- st_read("Parcels/Parcels.shp")
 parcels$valid=st_is_valid(parcels, reason = TRUE)
 validparcels=subset(parcels,parcels$valid=="Valid Geometry")
 
+church=validparcels[grep("14060 DUBLIN",validparcels$LocAddr),]
+saveRDS(church,"Church.RDS")
 #st_write(validparcels,"validparcels.shp")
 
 TXCensusTracts <- st_read("TexasCensusTractShapefiles/gz_2010_48_140_00_500k.shp")

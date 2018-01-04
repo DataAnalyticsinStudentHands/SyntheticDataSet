@@ -22,12 +22,12 @@ validparcels=validparcels[c("HCAD_NUM","Super_Neighborhood")]
 
 #Now add Super Neighboorhood to simulated households
 #load simulated households
-syntheticdataset=readRDS("prediabetes_simulation_for_app.RDS")
+syntheticdataset=readRDS("prediabetes_simulation_for_app_not_matching_insurance.RDS")
 #merge to get superneighborhoods
 syntheticdataset=merge(syntheticdataset,validparcels)
 
 #Start tabling for map
-Frequency_Table=as.data.frame(table(syntheticdataset$Super_Neighborhood,syntheticdataset$dans_prediabetes))
+Frequency_Table=as.data.frame(table(syntheticdataset$Super_Neighborhood,syntheticdataset$pre_diabetes))
 Frequency_Table$Var2=NULL
 colnames(Frequency_Table)<-c("Super_Neighborhood","pre-diabetes")
 
@@ -136,7 +136,7 @@ saveRDS(map,"super_neighborhoods_prediabetes.rds")
 
 palPrediabetes <- colorNumeric(
   palette = "YlOrRd",
-  domain = c(-50000,50000)
+  domain = c(-500000,500000)
 )
 
 easier_to_refer_to=as.data.frame(super_neighborhoods)
@@ -173,7 +173,7 @@ for(year in 1:10){
       options=layersControlOptions(collapsed=FALSE)
     )%>%
     addLegend(pal = palPrediabetes, 
-              values = super_neighborhoods$pre.diabetes,
+              values = c(-50000:50000),
               position = "bottomleft")
   map
   

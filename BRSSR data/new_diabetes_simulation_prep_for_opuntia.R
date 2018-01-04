@@ -109,21 +109,21 @@ getBRSSRdata_with_health_insurance <- function(syntheticdataset,seed){
   return(finaldataset)
 }
 
-syntheticdataset=readRDS('complete_sample_set.RDS')
+#syntheticdataset=readRDS('complete_sample_set.RDS')
 
 #remove unnecessary variables for now
-syntheticdataset=syntheticdataset[,1:65]
-syntheticdataset$diagnosed.diabetes=NULL
+#syntheticdataset=syntheticdataset[,1:65]
+#syntheticdataset$diagnosed.diabetes=NULL
 #No kids for now
-syntheticdataset=subset(syntheticdataset,syntheticdataset$member!="Child")
+#syntheticdataset=subset(syntheticdataset,syntheticdataset$member!="Child")
 
 #match to get prediabetes, diabetes, and BMI
-syntheticdataset_not_matching_with_health_insurance=getBRSSRdata_not_matching_with_health_insurance(syntheticdataset,1)
-saveRDS(syntheticdataset_not_matching_with_health_insurance,"prediabetes_simulation_not_matching_insurance.RDS")
-rm(syntheticdataset_not_matching_with_health_insurance)
+#syntheticdataset_not_matching_with_health_insurance=getBRSSRdata_not_matching_with_health_insurance(syntheticdataset,1)
+#saveRDS(syntheticdataset_not_matching_with_health_insurance,"prediabetes_simulation_not_matching_insurance.RDS")
+#rm(syntheticdataset_not_matching_with_health_insurance)
 
-syntheticdataset_matching_with_health_insurance=getBRSSRdata_with_health_insurance(syntheticdataset,1)
-saveRDS(syntheticdataset_matching_with_health_insurance,"prediabetes_simulation_matching_insurance.RDS")
+#syntheticdataset_matching_with_health_insurance=getBRSSRdata_with_health_insurance(syntheticdataset,1)
+#saveRDS(syntheticdataset_matching_with_health_insurance,"prediabetes_simulation_matching_insurance.RDS")
 
 #Now for simulating development of diabetes with and without intervention using numbers from
 #CDC's IMPACT app for the Diabetes Prevention Program
@@ -171,7 +171,7 @@ days_lost=3.3
 #Time to start simulating
 #first subset people with prediabetes
 syntheticdataset=readRDS('prediabetes_simulation_not_matching_insurance.RDS')
-part_of_set_of_interest=subset(syntheticdataset,syntheticdataset$pre_diabetes=="yes")
+part_of_set_of_interest=subset(syntheticdataset,syntheticdataset$pre_diabetes=="1")
 
 diabetes_without_intervention <- function(incidence_rate_of_diabetes,diabetes,seed){
   if(diabetes=="yes"|diabetes=="already developed"){
@@ -249,7 +249,7 @@ saveRDS(part_of_set_of_interest,file="prediabetes_simulation_for_app_not_matchin
 #Time to start simulating
 #first subset people with prediabetes
 syntheticdataset=readRDS('prediabetes_simulation_matching_insurance.RDS')
-part_of_set_of_interest=subset(syntheticdataset,syntheticdataset$pre_diabetes=="yes")
+part_of_set_of_interest=subset(syntheticdataset,syntheticdataset$pre_diabetes=="1")
 
 diabetes_without_intervention <- function(incidence_rate_of_diabetes,diabetes,seed){
   if(diabetes=="yes"|diabetes=="already developed"){

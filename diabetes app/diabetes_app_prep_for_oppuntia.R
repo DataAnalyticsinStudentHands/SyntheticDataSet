@@ -76,10 +76,6 @@ dans_prediabetes <- function(member,dans_diabetes,sex,education.attainment,race,
 
 syntheticdataset$dans_prediabetes=mapply(dans_prediabetes,syntheticdataset$member,syntheticdataset$dans_diabetes,syntheticdataset$sex,syntheticdataset$education.attainment,syntheticdataset$race,1:nrow(syntheticdataset))
 
-
-
-
-
 #Now for simulating development of diabetes with and without intervention using numbers from
 #CDC's IMPACT app for the Diabetes Prevention Program
 
