@@ -2,9 +2,7 @@
 _Rhistory*
 _RData.gz*
 .Rhistory*
-.XPT*
 *.gz
-*.XPT
 *.ASC
 *.RData
 *.shx
@@ -12,3 +10,12 @@ _RData.gz*
 *.dbf
 *.txt
 *.zip
+*.cpg
+*.gdb
+*.RDS
+*.rds
+*.XPT
+firstharveymaps/Harvey Flooding/residential_HCAD_parcels.prj
+firstharveymaps/
+Nick app/other data/
+BRSSR data/LLCP2014.XPT
