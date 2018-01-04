@@ -15,7 +15,12 @@ _RData.gz*
 *.RDS
 *.rds
 *.XPT
+*.csv
 firstharveymaps/Harvey Flooding/residential_HCAD_parcels.prj
 firstharveymaps/
 Nick app/other data/
 BRSSR data/LLCP2014.XPT
+HUD/Parcels.prj
+HUD/Parcels.sbn
+HUD/Parcels.sbx
+HUD/Parcels.shp.xml
