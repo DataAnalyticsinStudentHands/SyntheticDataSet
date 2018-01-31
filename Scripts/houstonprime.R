@@ -37,6 +37,7 @@ write.csv(sample.set)
 
 #Read in HCAD parcels
 validparceldataframe2=readRDS("validparceldataframe2.RDS")
+validparceldataframe2$ACCOUNT=paste0(validparceldataframe2$ACCOUNT,"_",validparceldataframe2$BUILDING_NUMBER)
 #Merge households with houses
 sample.set$ACCOUNT=NA
 

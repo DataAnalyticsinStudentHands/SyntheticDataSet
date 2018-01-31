@@ -20,3 +20,20 @@ Houston_HUD_buildings=geo_join(validparcels,Houston_HUD_data,by="LocAddr",how="i
 
 #some houses went missing?
 Houston_HUD_buildings2=geo_join(parcels,Houston_HUD_data,by="LocAddr",how="inner")
+#still missing?
+missing_addresses=setdiff(Houston_HUD_data$LocAddr,parcels$LocAddr)
+
+library(sf)
+Houston_HUD_buildings2=st_transform(Houston_HUD_buildings2,crs='+proj=longlat +datum=WGS84')
+
+library(leaflet)
+
+map = leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addPolygons(data = Houston_HUD_buildings2, 
+              color = "red", # you need to use hex colors
+              fillOpacity = 0.7, 
+              weight = 1, 
+              smoothFactor = 0.2)
+
+map
