@@ -1,5 +1,10 @@
 #syntheticdataset=readRDS("complete_sample_set.RDS")
-syntheticdataset=readRDS("does_complete_sample_set_have_duplicate_rows.RDS")
+#syntheticdataset=readRDS("does_complete_sample_set_have_duplicate_rows.RDS")
+
+#Duplicated rows still don't explain everything damn it all
+#try before the merge
+syntheticdataset=readRDS("sampleset.RDS")
+
 #syntheticdataset[55:98]=NULL
 #syntheticdataset <- syntheticdataset[!duplicated(syntheticdataset), ]
 syntheticdataset$GEOID=paste0(syntheticdataset$county,syntheticdataset$tract)
@@ -30,8 +35,8 @@ syntheticdataset$pap.smear=NULL
 
 #loop through rest of variables
 varnames=colnames(syntheticdataset)
-for (var in 10:26){
-  newpart=ftable(table(syntheticdataset[ ,96],syntheticdataset[ ,var]))
+for (var in 9:25){
+  newpart=ftable(table(syntheticdataset[ ,49],syntheticdataset[ ,var]))
   newp=as.data.frame.matrix(newpart)
   
   colnames(newp)=paste(varnames[var],unlist(attr(newpart, "col.vars")),sep="_")
@@ -45,18 +50,18 @@ for (var in 10:26){
 #Next 13 lines table data gotten from the 500 Cities Project by number but not percentage
 #I thought the percentage would be better so I commented these out and the next chunk of lines do it by percentage
 #for (var in 27:49){
- # newpart=ftable(table(syntheticdataset[ ,9],syntheticdataset[ ,var]))
-  #newp=as.data.frame.matrix(newpart)
-  
-  #colnames(newp)=paste(unlist(attr(newpart, "col.vars")),sep="_")
-  #newp$no=NULL
-  #newp$`Not Available for this Census Tract`=NULL
-  
-  #colnames(newp)=paste(varnames[var],sep="_")
-  
-  #newp$tract=unlist(attr(newpart, "row.vars"))
-  
-  #example=merge(example,newp,by.x="tract",by.y="tract")
+# newpart=ftable(table(syntheticdataset[ ,9],syntheticdataset[ ,var]))
+#newp=as.data.frame.matrix(newpart)
+
+#colnames(newp)=paste(unlist(attr(newpart, "col.vars")),sep="_")
+#newp$no=NULL
+#newp$`Not Available for this Census Tract`=NULL
+
+#colnames(newp)=paste(varnames[var],sep="_")
+
+#newp$tract=unlist(attr(newpart, "row.vars"))
+
+#example=merge(example,newp,by.x="tract",by.y="tract")
 #}
 
 adults=example[c("age_18 to 19","age_20 to 24","age_25 to 29","age_30 to 34","age_35 to 44","age_45 to 54","age_55 to 64","age_65 to 74","age_75 to 84","age_Over 85")]
@@ -68,8 +73,8 @@ older_adults$total_older_adults=rowSums(older_adults)
 older_adults$GEOID=example$GEOID
 older_adults=older_adults[c("GEOID","total_older_adults")]
 
-for (var in 27:28){
-  newpart=ftable(table(syntheticdataset[ ,96],syntheticdataset[ ,var]))
+for (var in 26:27){
+  newpart=ftable(table(syntheticdataset[ ,49],syntheticdataset[ ,var]))
   newp=as.data.frame.matrix(newpart)
   
   colnames(newp)=paste(unlist(attr(newpart, "col.vars")),sep="_")
@@ -85,8 +90,8 @@ for (var in 27:28){
   
   example=merge(example,newp,by.x="GEOID",by.y="GEOID",all=TRUE)
 }
-for (var in 29:49){
-  newpart=ftable(table(syntheticdataset[ ,96],syntheticdataset[ ,var]))
+for (var in 28:48){
+  newpart=ftable(table(syntheticdataset[ ,49],syntheticdataset[ ,var]))
   newp=as.data.frame.matrix(newpart)
   
   colnames(newp)=paste(unlist(attr(newpart, "col.vars")),sep="_")

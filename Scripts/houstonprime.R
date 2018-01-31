@@ -31,8 +31,8 @@ stopCluster(cl)
 
 #Write households to csv
 
-write.csv(sample.set)
-
+#write.csv(sample.set)
+saveRDS(sample.set,"sampleset.RDS")
 #Merge with HCAD data
 
 #Read in HCAD parcels

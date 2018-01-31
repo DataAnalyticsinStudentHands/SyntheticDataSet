@@ -12,12 +12,13 @@ Houston_HUD_data=subset(HUD_data,HUD_data$city_name_text=="Houston")
 Houston_HUD_data$LocAddr=toupper(Houston_HUD_data$address_line1_text)
 
 #Read in Valid Parcels
-#validparcels=readRDS("validparcels.RDS")
-
+validparcels=readRDS("validparcels.RDS")
+#complete_sample_set=readRDS("complete_sample_set.RDS")
 #Join
 library(tigris)
 Houston_HUD_buildings=geo_join(validparcels,Houston_HUD_data,by="LocAddr",how="inner")
 
+#Houston_HUD_simulated_people=subset(complete_sample_set,complete_sample_set$LocAddr %in% Houston_HUD_data$LocAddr)
 #some houses went missing?
 Houston_HUD_buildings2=geo_join(parcels,Houston_HUD_data,by="LocAddr",how="inner")
 #still missing?
@@ -37,3 +38,13 @@ map = leaflet() %>%
               smoothFactor = 0.2)
 
 map
+
+saveRDS(Houston_HUD_buildings2,"Recent_HUD_Buildings")
+
+
+#Playing with this
+#clear environment
+rm(list = ls())
+
+Recent_HUD_Buildings=readRDS("Recent_HUD_Buildings")
+syntheticdataset=readRDS("complete_sample_set.RDS")
