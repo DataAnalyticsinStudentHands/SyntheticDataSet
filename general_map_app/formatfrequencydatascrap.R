@@ -374,6 +374,10 @@ boxplot(number_of_people$percent_difference)
 #
 #number_of_people=readRDS("number_of_people.RDS")
 weird_tracts=subset(number_of_people,number_of_people$percent_difference>=15)
+subset(syntheticfrequencypertract,syntheticfrequencypertract$GEOID==201210100)
+subset(realfrequencypertract,realfrequencypertract$GEOID==201210100)
+
+201210100
 #lets look at one weird tract
 weird_tract_201211000=subset(syntheticdataset,syntheticdataset$GEOID==201211000)
 weird_tract_201211000 <- weird_tract_201211000[!duplicated(weird_tract_201211000), ]

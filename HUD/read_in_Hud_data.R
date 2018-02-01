@@ -42,9 +42,19 @@ map
 saveRDS(Houston_HUD_buildings2,"Recent_HUD_Buildings")
 
 
-#Playing with this
-#clear environment
-rm(list = ls())
 
-Recent_HUD_Buildings=readRDS("Recent_HUD_Buildings")
-syntheticdataset=readRDS("complete_sample_set.RDS")
+
+#Trying to match with the validparcels our dataframe is built off of instead of the latest
+#Read in HUD data
+HUD_data=read.csv("MF_Properties_with_Assistance_&_Sec8_Contracts.csv")
+
+#Subset Houston
+Houston_HUD_data=subset(HUD_data,HUD_data$city_name_text=="Houston")
+Houston_HUD_data$LocAddr=toupper(Houston_HUD_data$address_line1_text)
+
+validparcels=readRDS("validparcels1.RDS")
+
+Houston_HUD_buildings=rbind(validparcels[grep(paste(toupper(Houston_HUD_data$owner_organization_name), collapse='|'), validparcels$CurrOwner, ignore.case=TRUE),],
+                            validparcels[grep(paste(toupper(Houston_HUD_data$address_line1_text), collapse='|'), validparcels$LocAddr, ignore.case=TRUE),],
+                            validparcels[grep(paste(toupper(Houston_HUD_data$property_name_text), collapse='|'), validparcels$LocName, ignore.case=TRUE),])
+

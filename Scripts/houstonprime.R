@@ -21,9 +21,11 @@ library(foreach)
 cl<-makeCluster(10)
 registerDoParallel(cl)
 
+Census_data_List=readRDS("Census_Data_List.RDS")
+
 #Simulate Households
 sample.set=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
-  sample=household_generator(201,tracts[index],number.of.households[index],seed=1)
+  sample=household_generator(201,tracts[index],number.of.households[index],seed=1,inputdir = "../Inputs/",Census_data_List)
   return(sample)
 }
 

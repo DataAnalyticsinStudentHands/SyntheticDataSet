@@ -235,7 +235,7 @@ getnumberofvehicles <- function(county, tract,syntheticdataset,seed,Census_data_
         a=sample(colnames(prob3),size=1,prob=prob3)
         #add number of cars to each person in household in data frame
         number.of.vehicles <- rep(a,nrow(syntheticdataset))
-        sampledhouse$number.of.vehicles=number.of.vehicles
+        syntheticdataset$number.of.vehicles=number.of.vehicles
       }
       
       #Add new sampled house to old
