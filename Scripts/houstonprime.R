@@ -31,6 +31,24 @@ sample.set=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
 
 stopCluster(cl)
 
+number.of.group.quarters.members=read.csv("../Inputs/group_quarters.csv")
+number.of.group.quarters.members=subset(number.of.group.quarters.members,number.of.group.quarters.members$county==201)
+number.of.group.quarters.members=number.of.group.quarters.members[4]
+tracts=number.of.group.quarters.members$tract
+
+cl<-makeCluster(10)
+registerDoParallel(cl)
+
+#Simulate Group Quarters
+sample.set2=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
+  sample=group_quarters_simulater(201,tracts[index],number.of.group.quarters.members[index],seed=1,inputdir = "../Inputs/",Census_data_List)
+  return(sample)
+}
+
+stopCluster(cl)
+
+sample.set=rbind(sample.set,sample.set2)
+
 #Write households to csv
 
 #write.csv(sample.set)
