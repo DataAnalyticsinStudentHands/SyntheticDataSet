@@ -359,14 +359,14 @@ saveRDS(realfrequencypertract,"realfrequencypertract.RDS")
 realfrequencypertract=read.csv("realfrequenciespertract.csv")
 syntheticfrequencypertract=read.csv("syntheticdatasetfrequenciespertract.csv")
 
-HCATindicator_real=data.frame(GEOID=paste0(realfrequencypertract$county,realfrequencypertract$tract),Adult_Education_Attainment=rowSums(realfrequencypertract[,78:82])/rowSums(realfrequencypertract[,76:82]))
-HCATindicator_prime=data.frame(GEOID=syntheticfrequencypertract$GEOID,Adult_Education_Attainment=rowSums(syntheticfrequencypertract[,c(48:51,53)])/rowSums(syntheticfrequencypertract[,47:53]))
+HCATindicator_real=data.frame(GEOID=paste0(realfrequencypertract$county,realfrequencypertract$tract),Adult_Education_Attainment=(rowSums(realfrequencypertract[,78:82])/rowSums(realfrequencypertract[,76:82]))*100)
+HCATindicator_prime=data.frame(GEOID=syntheticfrequencypertract$GEOID,Adult_Education_Attainment=(rowSums(syntheticfrequencypertract[,c(48:51,53)])/rowSums(syntheticfrequencypertract[,47:53]))*100)
 
-HCATindicator_real$employment_rate=rowSums(realfrequencypertract[,c("employment_Employed","employment_In.Armed.Forces")])/rowSums(realfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])
-HCATindicator_prime$employment_rate=rowSums(syntheticfrequencypertract[,c("employment_Employed","employment_In.Armed.Forces")])/rowSums(syntheticfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])                                                                 
+HCATindicator_real$employment_rate=(rowSums(realfrequencypertract[,c("employment_Employed","employment_In.Armed.Forces")])/rowSums(realfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")]))*100
+HCATindicator_prime$employment_rate=(rowSums(syntheticfrequencypertract[,c("employment_Employed","employment_In.Armed.Forces")])/rowSums(syntheticfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])) *100                                                                
 
-HCATindicator_real$unemployment_rate=(realfrequencypertract[,c("employment_Unemployed")])/rowSums(realfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])
-HCATindicator_prime$unemployment_rate=(syntheticfrequencypertract[,c("employment_Unemployed")])/rowSums(syntheticfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])                                                                 
+HCATindicator_real$unemployment_rate=(realfrequencypertract[,c("employment_Unemployed")])/rowSums(realfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])*100
+HCATindicator_prime$unemployment_rate=(syntheticfrequencypertract[,c("employment_Unemployed")])/rowSums(syntheticfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])*100                                                                 
 
 
 #Merge for maps

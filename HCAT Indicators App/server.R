@@ -18,7 +18,7 @@ shinyServer(function(input, output) {
   output$HCATprime <- renderLeaflet({
     pal <- colorNumeric(
       palette = "YlGnBu",
-      domain = c(0,1)
+      domain = c(0,100)
     )
     
     popup=paste0("GEOID:",HCAT_prime@data$GEOID)
@@ -34,14 +34,15 @@ shinyServer(function(input, output) {
                   popup=popup)%>%
       addLegend(pal = pal, 
                 values = unlist(HCAT_prime@data[input$Variable]), 
-                position = "bottomright", 
+                position = "bottomright",
+                labFormat = labelFormat(suffix="%"),
                 title = paste("Houston Prime:",input$Variable))
   })
   
   output$HCATreal <- renderLeaflet({
     pal <- colorNumeric(
       palette = "YlGnBu",
-      domain = c(0,1)
+      domain = c(0,100)
     )
     popupR=paste0("GEOID:",HCAT_real@data$GEOID)
     
@@ -56,7 +57,8 @@ shinyServer(function(input, output) {
                   popup=popupR)%>%
       addLegend(pal = pal, 
                 values = unlist(HCAT_real@data[input$Variable]), 
-                position = "bottomright", 
+                position = "bottomright",
+                labFormat = labelFormat(suffix="%"),
                 title = paste("Houston Real:",input$Variable))
   })
   output$Table<-renderTable({

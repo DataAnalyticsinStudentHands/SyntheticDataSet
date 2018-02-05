@@ -102,7 +102,7 @@ key <- "6ee9b8141913fdd7763ff46af20c20d0e9a5bc68"
 acs5_2014_api <- 'http://api.census.gov/data/2014/acs5?'
 #variables used
 #Household type and race
-vars <- c("B09001_010E")
+vars <- c("B26001_001E")
 census_data <- getCensusApi(acs5_2014_api, key=key, vars, region="for=tract:*&in=state:48")
 
 #write data frame to csv file without quotes
