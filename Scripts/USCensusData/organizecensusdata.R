@@ -10,8 +10,11 @@ householdtypeandrace=read.csv(paste0(inputdir,"householdtypeandrace.csv"))
 householdsizebytype=read.csv(paste0(inputdir,"household_size.csv"))
 
 #separate types by family and non family, as their probability for sizes is different
-family=householdsizebytype[c("tract","B11016_003E","B11016_004E","B11016_005E","B11016_006E","B11016_007E","B11016_008E")]
-nonfamily=householdsizebytype[c("tract","B11016_011E","B11016_012E","B11016_013E","B11016_014E","B11016_015E","B11016_016E")]
+family=householdsizebytype[c("county","tract","B11016_003E","B11016_004E","B11016_005E","B11016_006E","B11016_007E","B11016_008E")]
+nonfamily=householdsizebytype[c("county","tract","B11016_011E","B11016_012E","B11016_013E","B11016_014E","B11016_015E","B11016_016E")]
+
+#read in family household types
+family_household_types=read.csv("family_houdehold_types.csv")
 
 #Read in data for sampling distribution for number of vehicles by number of people in household
 householdsizebyvehicles=read.csv(paste0(inputdir,"household_size_by_vehicles_available.csv"))
@@ -20,8 +23,8 @@ householdsizebyvehicles=read.csv(paste0(inputdir,"household_size_by_vehicles_ava
 #Data for sex age and race code
 sexbyagebyrace1=read.csv(paste0(inputdir,"sex_by_age_by_race.csv"))
 
-Census_data_List=list(householdtypeandrace=householdtypeandrace,family=family,nonfamily=nonfamily,householdsizebyvehicles=householdsizebyvehicles,sexbyagebyrace1=sexbyagebyrace1)
-rm(householdsizebytype,householdtypeandrace,family,nonfamily)
+Census_data_List=list(householdtypeandrace=householdtypeandrace,family=family,familyhouseholdtypes=family_household_types,nonfamily=nonfamily,householdsizebyvehicles=householdsizebyvehicles,sexbyagebyrace1=sexbyagebyrace1)
+rm(householdsizebytype,householdtypeandrace,family,nonfamily,family_household_types)
 
 #read in school enrollment data
 Census_data_List$enrollschool1=read.csv(paste0(inputdir,"school_enrollment_by_sex_by_age.csv"))
@@ -45,6 +48,8 @@ Census_data_List$traveltime=read.csv(paste0(inputdir,"travel_time.csv"))
 Census_data_List$income=read.csv(paste0(inputdir,"household_income.csv"))
 
 Census_data_List$insurance=read.csv(paste0(inputdir,"health_insurance.csv"))
+
+saveRDS(Census_data_List,"Census_data_List.RDS")
 
 #source("workingdoc.R")
 #source("workingdoc2.R")

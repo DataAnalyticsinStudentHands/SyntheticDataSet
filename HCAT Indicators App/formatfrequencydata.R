@@ -1,6 +1,6 @@
 #This code was previously written for the general_map_app, but reformatting for HCAD Indicators is simpler from the frequency tables
 #so we will just comment out some of the lines and work further with the HCAT Indicators
-syntheticdataset=readRDS("complete_sample_set.RDS")
+syntheticdataset=readRDS("sampleset.RDS")
 syntheticdataset$GEOID=paste0(syntheticdataset$county,syntheticdataset$tract)
 
 #Make first frequency table
@@ -368,7 +368,21 @@ HCATindicator_prime$employment_rate=(rowSums(syntheticfrequencypertract[,c("empl
 HCATindicator_real$unemployment_rate=(realfrequencypertract[,c("employment_Unemployed")])/rowSums(realfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])*100
 HCATindicator_prime$unemployment_rate=(syntheticfrequencypertract[,c("employment_Unemployed")])/rowSums(syntheticfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])*100                                                                 
 
+oops_I_did_simulated_adult_education_attainment_wrong=subset(syntheticdataset,syntheticdataset$member!="Child")
+oops_I_did_simulated_adult_education_attainment_wrong=subset(oops_I_did_simulated_adult_education_attainment_wrong,oops_I_did_simulated_adult_education_attainment_wrong$age %in% 
+                                                               c("35 to 44", "45 to 54", "25 to 29", "30 to 34", "55 to 64", "65 to 74","75 to 84", "Over 85"))
+oops_adult_education_attainment=ftable(table(oops_I_did_simulated_adult_education_attainment_wrong$GEOID,oops_I_did_simulated_adult_education_attainment_wrong$education.attainment))
+fixed_adult_education_attainment=as.data.frame.matrix(oops_adult_education_attainment)
+colnames(fixed_adult_education_attainment)=paste("education_attainment",unlist(attr(oops_adult_education_attainment, "col.vars")),sep="_")
+fixed_adult_education_attainment$GEOID=unlist(attr(oops_adult_education_attainment, "row.vars"))
 
+fixed_adult_education_attainment$Adult_Education_Attainment=(abs(fixed_adult_education_attainment$`education_attainment_Associate's degree` + fixed_adult_education_attainment$`education_attainment_Bachelor's Degree` + fixed_adult_education_attainment$`education_attainment_Graduate or Professional Degree` + fixed_adult_education_attainment$`education_attainment_High School Graduate` + fixed_adult_education_attainment$`education_attainment_Some College, no degree`)/
+                                                               (fixed_adult_education_attainment$`education_attainment_9th to 12th grade, no diploma`+fixed_adult_education_attainment$`education_attainment_Associate's degree`+fixed_adult_education_attainment$`education_attainment_Bachelor's Degree`
+                                                                + fixed_adult_education_attainment$`education_attainment_Graduate or Professional Degree`+fixed_adult_education_attainment$`education_attainment_High School Graduate`+fixed_adult_education_attainment$`education_attainment_Less than 9th grade`+fixed_adult_education_attainment$`education_attainment_Some College, no degree`))*100
+
+to_merge_adult_education_attainment=data.frame(Adult_Education_Attainment=fixed_adult_education_attainment$Adult_Education_Attainment,GEOID=fixed_adult_education_attainment$GEOID)
+HCATindicator_prime$Adult_Education_Attainment=NULL
+HCATindicator_prime=merge(HCATindicator_prime,to_merge_adult_education_attainment,by="GEOID")
 #Merge for maps
 Harris_tract_data <- readRDS("Harris_tract_data.rds")
 Harris_tract_data=Harris_tract_data[,-(6:1779)]

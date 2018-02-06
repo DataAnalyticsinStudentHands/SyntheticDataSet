@@ -370,14 +370,20 @@ summary(number_of_people$difference_between_simulated_and_Census)
 number_of_people$percent_difference=abs(number_of_people$difference_between_simulated_and_Census/number_of_people$total_people_recorded_in_Census)*100
 summary(number_of_people$percent_difference)
 boxplot(number_of_people$percent_difference)
-
+#Is it group quarters people
+group_quarters=read.csv("group_quarters.csv")
+group_quarters=data.frame(GEOID=paste0(group_quarters$county,group_quarters$tract),people_living_in_group_quarters=group_quarters$B26001_001E)
+number_of_people=merge(number_of_people,group_quarters)
+number_of_people$difference_if_group_quarters_people_had_been_simulated=number_of_people$difference_between_simulated_and_Census-number_of_people$people_living_in_group_quarters
+number_of_people$percent_difference_if_group_quarters_had_been_simulated=(abs(number_of_people$difference_if_group_quarters_people_had_been_simulated)/number_of_people$total_people_recorded_in_Census)*100
 #
 #number_of_people=readRDS("number_of_people.RDS")
 weird_tracts=subset(number_of_people,number_of_people$percent_difference>=15)
 subset(syntheticfrequencypertract,syntheticfrequencypertract$GEOID==201210100)
 subset(realfrequencypertract,realfrequencypertract$GEOID==201210100)
 
-201210100
+#how many weird tracts would there be if group quarters people had been accounted for
+weird_tracts=subset(number_of_people,number_of_people$percent_difference_if_group_quarters_had_been_simulated>=15)
 #lets look at one weird tract
 weird_tract_201211000=subset(syntheticdataset,syntheticdataset$GEOID==201211000)
 weird_tract_201211000 <- weird_tract_201211000[!duplicated(weird_tract_201211000), ]
