@@ -101,9 +101,12 @@ key <- "6ee9b8141913fdd7763ff46af20c20d0e9a5bc68"
 #api link for housing data 
 acs5_2014_api <- 'http://api.census.gov/data/2014/acs5?'
 #variables used
-vars <- c("B11016_003E","B11016_004E","B11016_005E","B11016_006E","B11016_007E","B11016_008E","B11016_010E","B11016_011E","B11016_012E","B11016_013E","B11016_014E","B11016_015E","B11016_016E")
+#Household type and race
+vars <- c()
 # Get data for all census tracts in TX
 census_data <- getCensusApi(acs5_2014_api, key=key, vars, region="for=tract:*&in=state:48")
 
 #write data frame to csv file without quotes
-write.csv(census_data, file = "household_size.csv",row.names=FALSE, na="", quote = FALSE)
+
+
+write.csv(census_data, file = "householdtypeandsize.csv",row.names=FALSE, na="", quote = FALSE)

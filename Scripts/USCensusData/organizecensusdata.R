@@ -11,7 +11,7 @@ householdsizebytype=read.csv(paste0(inputdir,"household_size.csv"))
 
 #separate types by family and non family, as their probability for sizes is different
 family=householdsizebytype[c("county","tract","B11016_003E","B11016_004E","B11016_005E","B11016_006E","B11016_007E","B11016_008E")]
-nonfamily=householdsizebytype[c("county","tract","B11016_011E","B11016_012E","B11016_013E","B11016_014E","B11016_015E","B11016_016E")]
+nonfamily=householdsizebytype[c("county","tract","B11016_010E","B11016_011E","B11016_012E","B11016_013E","B11016_014E","B11016_015E","B11016_016E")]
 
 #read in family household types
 family_household_types=read.csv("family_houdehold_types.csv")
