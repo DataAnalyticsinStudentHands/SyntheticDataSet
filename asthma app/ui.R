@@ -5,10 +5,11 @@ ui <- fluidPage(
   
   # App title ----
   titlePanel("Projected Childhood Asthma in School Zones (This is Simulated)"),
+  p("A synthetic data set was created using Census tract information to simulate the number of households and people with characteristics such as race, gender, educational attainment, and age. Health behvaiors and conditions were then simulated by matching with the CDC's Behavioral Risk Factor Surveillance system by sex, race, and income. Child Asthma was originally simulated in this way, further variables such as whether or not they had visited the ER for an asthma related emergency in the past 12 months or the presence of mold and cockroaches in the house were simulated by further matching with the Child Asthma Call Back survey. These simulated people were then randomly put into houses within a census tract using data from the Harris County Appraisal District, and the school the children were expected to go to based off of their simulated age and school zone available at http://cohgis-mycity.opendata.arcgis.com/datasets."),
+  
   
   tabsetPanel(
-    p("A synthetic data set was created using Census tract information to simulate the number of households and people with characteristics such as race, gender, educational attainment, and age. Health behvaiors and conditions were then simulated by matching with the CDC's Behavioral Risk Factor Surveillance system by sex, race, and income. Child Asthma was originally simulated in this way, further variables such as whether or not they had visited the ER for an asthma related emergency in the past 12 months or the presence of mold and cockroaches in the house were simulated by further matching with the Child Asthma Call Back survey. These simulated people were then randomly put into houses within a census tract using data from the Harris County Appraisal District, and the school the children were expected to go to based off of their simulated age and school zone available at http://cohgis-mycity.opendata.arcgis.com/datasets."),
-    tabPanel("Maps",
+   tabPanel("Maps",
              fluidRow(
                column(4,
                       h4("Elementary Schools Severity of Symptoms Map"),
