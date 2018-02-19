@@ -24,6 +24,7 @@ shinyUI(fluidPage(
     
     # Show a plot of the generated distribution
     mainPanel(
+      h3(textOutput("Variable_Definition")),
       tabsetPanel(
         tabPanel("Plots",leafletOutput("HCATreal"),
             leafletOutput("HCATprime")),

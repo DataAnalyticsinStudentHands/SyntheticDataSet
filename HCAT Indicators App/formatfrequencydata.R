@@ -30,7 +30,7 @@ syntheticdataset$pap.smear=NULL
 #loop through rest of variables
 varnames=colnames(syntheticdataset)
 for (var in 10:26){
-  newpart=ftable(table(syntheticdataset[ ,97],syntheticdataset[ ,var]))
+  newpart=ftable(table(syntheticdataset[ ,"GEOID"],syntheticdataset[ ,var]))
   newp=as.data.frame.matrix(newpart)
   
   colnames(newp)=paste(varnames[var],unlist(attr(newpart, "col.vars")),sep="_")
@@ -68,7 +68,7 @@ older_adults$GEOID=example$GEOID
 older_adults=older_adults[c("GEOID","total_older_adults")]
 
 for (var in 27:28){
-  newpart=ftable(table(syntheticdataset[ ,97],syntheticdataset[ ,var]))
+  newpart=ftable(table(syntheticdataset[ ,"GEOID"],syntheticdataset[ ,var]))
   newp=as.data.frame.matrix(newpart)
   
   colnames(newp)=paste(unlist(attr(newpart, "col.vars")),sep="_")
@@ -84,8 +84,8 @@ for (var in 27:28){
   
   example=merge(example,newp,by.x="GEOID",by.y="GEOID",all=TRUE)
 }
-for (var in 29:49){
-  newpart=ftable(table(syntheticdataset[ ,97],syntheticdataset[ ,var]))
+for (var in 29:48){
+  newpart=ftable(table(syntheticdataset[ ,"GEOID"],syntheticdataset[ ,var]))
   newp=as.data.frame.matrix(newpart)
   
   colnames(newp)=paste(unlist(attr(newpart, "col.vars")),sep="_")
@@ -365,8 +365,8 @@ HCATindicator_prime=data.frame(GEOID=syntheticfrequencypertract$GEOID,Adult_Educ
 HCATindicator_real$employment_rate=(rowSums(realfrequencypertract[,c("employment_Employed","employment_In.Armed.Forces")])/rowSums(realfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")]))*100
 HCATindicator_prime$employment_rate=(rowSums(syntheticfrequencypertract[,c("employment_Employed","employment_In.Armed.Forces")])/rowSums(syntheticfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])) *100                                                                
 
-HCATindicator_real$unemployment_rate=(realfrequencypertract[,c("employment_Unemployed")])/rowSums(realfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])*100
-HCATindicator_prime$unemployment_rate=(syntheticfrequencypertract[,c("employment_Unemployed")])/rowSums(syntheticfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed","employment_Not.in.labor.force")])*100                                                                 
+HCATindicator_real$unemployment_rate=(realfrequencypertract[,c("employment_Unemployed")])/rowSums(realfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed")])*100
+HCATindicator_prime$unemployment_rate=(syntheticfrequencypertract[,c("employment_Unemployed")])/rowSums(syntheticfrequencypertract[c("employment_Employed","employment_In.Armed.Forces","employment_Unemployed")])*100                                                                 
 
 oops_I_did_simulated_adult_education_attainment_wrong=subset(syntheticdataset,syntheticdataset$member!="Child")
 oops_I_did_simulated_adult_education_attainment_wrong=subset(oops_I_did_simulated_adult_education_attainment_wrong,oops_I_did_simulated_adult_education_attainment_wrong$age %in% 

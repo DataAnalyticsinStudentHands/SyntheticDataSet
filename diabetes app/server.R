@@ -94,7 +94,7 @@ server <- function(input, output) {
       
       plot(year,projected_data_for_10_years()$cases_costs["cumulative_cases_of_diabetes_without_intervention",],type="o",col="red",ann=FALSE)
       lines(year,projected_data_for_10_years()$cases_costs["cumulative_cases_of_diabetes_with_intervention",],type="o",col="blue")
-      title(ylab="Cumaltive Cases of Diabetes")
+      title(ylab="Cumulative Cases of Diabetes")
       title(xlab="Year")
       legend("bottomright",c("With Intervention","Without Intervention"),cex=0.8,
              col=c("blue","red"),pch=21:22,lty = 1:2)
@@ -105,7 +105,7 @@ server <- function(input, output) {
       
       plot(year,projected_data_for_10_years()$cases_costs["cumlative_costs_without_intervention",],type="o",col="red",ann=FALSE)
       lines(year,projected_data_for_10_years()$cases_costs["cumlative_costs_with_intervention",],type="o",col="blue")
-      title(ylab="Cumaltive Costs of Diabetes")
+      title(ylab="Cumulative Costs of Diabetes")
       title(xlab="Year")
       legend("bottomright",c("With Intervention","Without Intervention"),cex=0.8,
              col=c("blue","red"),pch=21:22,lty = 1:2)

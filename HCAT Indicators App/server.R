@@ -15,6 +15,21 @@ shinyServer(function(input, output) {
   #     when inputs change
   #  2) Its output type is a plot
   
+  output$Variable_Definition<-renderText({
+    if(as.character(input$Variable)=="employment_rate"){
+      definition=paste("The percentage of people aged 16 or older who are employed")
+    }
+    if(as.character(input$Variable)=="unemployment_rate"){
+      definition=paste("The percentage of people aged 16 or older who are unemployed, with the total population not including people not in the labor force")
+    }
+    if(as.character(input$Variable)=="Adult_Education_Attainment"){
+      definition=paste("The percentage of neighborhood adults, aged 25 or older, with a high school diploma or higher degree of educational attainment")
+    }
+    
+    definition
+    #paste("Where's my text?")
+  })
+  
   output$HCATprime <- renderLeaflet({
     pal <- colorNumeric(
       palette = "YlGnBu",
