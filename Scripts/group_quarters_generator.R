@@ -14,6 +14,7 @@ source('workingdoc.R')
 source('workingdoc2.R')
 source('workingdoc3.R')
 source('workingdoc4.R')
+source('workingdoc5.R')
 source('citiesproject.R')
 
 group_quarters_simulater<-function(county,tract,number.of.people,seed,inputdir = "../Inputs/",Census_data_List){  
@@ -52,8 +53,9 @@ group_quarters_simulater<-function(county,tract,number.of.people,seed,inputdir =
       #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data_List)#not dependent on anything gets type
       partofset=data.frame(household.type="Group Quarters",member="NA",size="Group Quarters")
       #partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data_List)#only dependent on size
-      partofset$number.of.vehicles=rep(NA,nrow(partofset))#leave as NA for now
+      #partofset$number.of.vehicles=rep(NA,nrow(partofset))#leave as NA for now
       partofset=getsexandage(county,tract,partofset,seedy,Census_data_List)
+      partofset=getnumberofvehiclesforgroupquarters(county,tract,partofset,seedy,Census_data_List)#by sex
       partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two were cross tabulated together
       partofset=geteducationattainment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are cross tabulated together
       partofset=getemployment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are tabulated together
@@ -64,9 +66,10 @@ group_quarters_simulater<-function(county,tract,number.of.people,seed,inputdir =
       partofset=gettransport(county,tract,partofset,seedy,Census_data_List)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
       partofset=gettraveltime(county,tract,partofset,seedy,Census_data_List)#dependent on travel method
       #partofset=getincome(county,tract,partofset,seedy,Census_data_List)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset$household.income=rep(NA,nrow(partofset))#leave as NA for now
-      #partofset=getinsurance(county,tract,partofset,seedy,Census_data_List)#dependent on income
-      partofset$health.insurance=rep(NA,nrow(partofset))#leave as NA for now
+      #partofset$household.income=rep(NA,nrow(partofset))#leave as NA for now
+      partofset=getincomeforgroupquarters(county,tract,partofset,seedy,Census_data_List)
+      partofset=gethealthinsuranceforgroupquarters(county,tract,partofset,seedy,Census_data_List)#dependent on income
+      #partofset$health.insurance=rep(NA,nrow(partofset))#leave as NA for now
       
       
       #Build Using 500 Cities Project Data

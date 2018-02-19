@@ -3,6 +3,15 @@
 
 source("household_generator2.R")#function that builds households
 
+#Generate appropriate number of households per tract
+
+#read in data
+households=read.csv("../Inputs/household_type_for_error.csv")
+#Only build Houston Households
+households=subset(households,households$county==201)
+#Create tract and number of households vector
+tracts=households$tract
+
 
 #Set Up to run in Parallel
 library(doParallel)

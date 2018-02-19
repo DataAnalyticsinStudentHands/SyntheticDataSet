@@ -49,6 +49,11 @@ Census_data_List$income=read.csv(paste0(inputdir,"household_income.csv"))
 
 Census_data_List$insurance=read.csv(paste0(inputdir,"health_insurance.csv"))
 
+Census_data_List$vehicles_for_group_quarters=read.csv(paste0(inputdir,"vehicles_for_group_quarters.csv"))
+
+Census_data_List$individual_income=read.csv(paste0(inputdir,"individual_income.csv"))
+
+Census_data_List$health_insurance_for_group_quarters=read.csv(paste0(inputdir,"health_insurance_not_by_household_income.csv"))
 saveRDS(Census_data_List,"Census_data_List.RDS")
 
 #source("workingdoc.R")
