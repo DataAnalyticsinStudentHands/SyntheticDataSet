@@ -1,28 +1,27 @@
-####COME BACK TO EMPLOYMENT AND LOOK FOR WORK AROUND ON AGE 15!!!!!!!!!!!!!!!!!!!!
+####COME BACK TO Census_data AND LOOK FOR WORK AROUND ON AGE 15!!!!!!!!!!!!!!!!!!!!
 
 
-getschoolenrollment <- function(county,tract,syntheticdataset,seed,Census_data_List){
+getschoolenrollment <- function(county,tract,syntheticdataset,seed,Census_data){
   
   set.seed(seed)
-  enrollschool1=Census_data_List$enrollschool1
-  #enrollschool1=read.csv(paste0(inputdir,"school_enrollment_by_sex_by_age.csv"))
-  enrollschool=enrollschool1[(enrollschool1$tract==tract)&(enrollschool1$county==county),]
   
-  Women5.9=enrollschool[c("B14003_033E","B14003_042E","B14003_051E")]
-  Women10.14=enrollschool[c("B14003_034E","B14003_043E","B14003_052E")]
-  Women15.17=enrollschool[c("B14003_035E","B14003_044E","B14003_053E")]
-  Women18.19=enrollschool[c("B14003_036E","B14003_045E","B14003_054E")]
-  Women20.24=enrollschool[c("B14003_037E","B14003_046E","B14003_055E")]
-  Women25.34=enrollschool[c("B14003_038E","B14003_047E","B14003_056E")]
-  Women35=enrollschool[c("B14003_039E","B14003_048E","B14003_057E")]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  Men5.9=enrollschool[c("B14003_005E","B14003_014E","B14003_023E")]
-  Men10.14=enrollschool[c("B14003_006E","B14003_015E","B14003_024E")]
-  Men15.17=enrollschool[c("B14003_007E","B14003_016E","B14003_025E")]
-  Men18.19=enrollschool[c("B14003_008E","B14003_017E","B14003_026E")]
-  Men20.24=enrollschool[c("B14003_009E","B14003_018E","B14003_027E")]
-  Men25.34=enrollschool[c("B14003_010E","B14003_019E","B14003_028E")]
-  Men35=enrollschool[c("B14003_011E","B14003_020E","B14003_029E")]
+  Women5.9=Census_data[c("public.school.women.5.to.9","private.school.women.5.to.9","no.school.women.5.to.9")]
+  Women10.14=Census_data[c("public.school.women.10.to.14","private.school.women.10.to.14","no.school.women.10.to.14")]
+  Women15.17=Census_data[c("public.school.women.15.to.17","private.school.women.15.to.17","no.school.women.15.to.17")]
+  Women18.19=Census_data[c("public.school.women.18.to.19","private.school.women.18.to.19","no.school.women.18.to.19")]
+  Women20.24=Census_data[c("public.school.women.20.to.24","private.school.women.20.to.24","no.school.women.20.to.24")]
+  Women25.34=Census_data[c("public.school.women.25.to.34","private.school.women.25.to.34","no.school.women.25.to.34")]
+  Women35=Census_data[c("public.school.women.over.35","private.school.women.over.35","no.school.women.over.35")]
+  
+  Men5.9=Census_data[c("public.school.men.5.to.9","private.school.men.5.to.9","no.school.men.5.to.9")]
+  Men10.14=Census_data[c("public.school.men.10.to.14","private.school.men.10.to.14","no.school.men.10.to.14")]
+  Men15.17=Census_data[c("public.school.men.15.to.17","private.school.men.15.to.17","no.school.men.15.to.17")]
+  Men18.19=Census_data[c("public.school.men.18.to.19","private.school.men.18.to.19","no.school.men.18.to.19")]
+  Men20.24=Census_data[c("public.school.men.20.to.24","private.school.men.20.to.24","no.school.men.20.to.24")]
+  Men25.34=Census_data[c("public.school.men.25.to.34","private.school.men.25.to.34","no.school.men.25.to.34")]
+  Men35=Census_data[c("public.school.men.over.35","private.school.men.over.35","no.school.men.over.35")]
   #"Public School","Private School","Not Enrolled in School"
 
   school.enrollment=ifelse(syntheticdataset$sex=="Female"&syntheticdataset$age=="5 to 9",sample(c("Public School","Private School","Not Enrolled in School"),1,prob=Women5.9/sum(Women5.9)),
@@ -46,25 +45,23 @@ getschoolenrollment <- function(county,tract,syntheticdataset,seed,Census_data_L
 
 
 
-geteducationattainment=function(county,tract,syntheticdataset,seed,Census_data_List){
+geteducationattainment=function(county,tract,syntheticdataset,seed,Census_data){
   
   set.seed(seed)
-  #eduattain1=read.csv(paste0(inputdir,"education_attainment_by_sex_by_age.csv"))
-  eduattain1=Census_data_List$eduattain1
-  eduattain=eduattain1[(eduattain1$tract==tract)&(eduattain1$county==county),]
   
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  men18.24=eduattain[c("B15001_004E","B15001_005E","B15001_006E","B15001_007E","B15001_008E","B15001_009E","B15001_010E")]
-  men25.34=eduattain[c("B15001_012E","B15001_013E","B15001_014E","B15001_015E","B15001_016E","B15001_017E","B15001_018E")]
-  men35.44=eduattain[c("B15001_020E","B15001_021E","B15001_022E","B15001_023E","B15001_024E","B15001_025E","B15001_026E")]
-  men45.64=eduattain[c("B15001_028E","B15001_029E","B15001_030E","B15001_031E","B15001_032E","B15001_033E","B15001_034E")]
-  men65=eduattain[c("B15001_036E","B15001_037E","B15001_038E","B15001_039E","B15001_040E","B15001_041E","B15001_042E")]
+  men18.24=Census_data[c("less.than.9.grade.men.18.24","btwn.9.to.12.grade.men.18.24","high.school.men.18.24","some.college.men.18.24","associates.men.18.24","bachelors.men.18.24","post.grad.men.18.24")]
+  men25.34=Census_data[c("less.than.9.grade.men.25.34","btwn.9.to.12.grade.men.25.34","high.school.men.25.34","some.college.men.25.34","associates.men.25.34","bachelors.men.25.34","post.grad.men.25.34")]
+  men35.44=Census_data[c("less.than.9.grade.men.35.44","btwn.9.to.12.grade.men.35.44","high.school.men.35.44","some.college.men.35.44","associates.men.35.44","bachelors.men.35.44","post.grad.men.35.44")]
+  men45.64=Census_data[c("less.than.9.grade.men.45.64","btwn.9.to.12.grade.men.45.64","high.school.men.45.64","some.college.men.45.64","associates.men.45.64","bachelors.men.45.64","post.grad.men.45.64")]
+  men65=Census_data[c("less.than.9.grade.men.over.65","btwn.9.to.12.grade.men.over.65","high.school.men.over.65","some.college.men.over.65","associates.men.over.65","bachelors.men.over.65","post.grad.men.over.65")]
   
-  women18.24=eduattain[c("B15001_045E","B15001_046E","B15001_047E","B15001_048E","B15001_049E","B15001_050E","B15001_051E")]
-  women25.34=eduattain[c("B15001_053E","B15001_054E","B15001_055E","B15001_056E","B15001_057E","B15001_058E","B15001_059E")]
-  women35.44=eduattain[c("B15001_061E","B15001_062E","B15001_063E","B15001_064E","B15001_065E","B15001_066E","B15001_067E")]
-  women45.64=eduattain[c("B15001_069E","B15001_070E","B15001_071E","B15001_072E","B15001_073E","B15001_074E","B15001_075E")]
-  women65=eduattain[c("B15001_077E","B15001_078E","B15001_079E","B15001_080E","B15001_081E","B15001_082E","B15001_083E")]
+  women18.24=Census_data[c("less.than.9.grade.women.18.24","btwn.9.to.12.grade.women.18.24","high.school.women.18.24","some.college.women.18.24","associates.women.18.24","bachelors.women.18.24","post.grad.women.18.24")]
+  women25.34=Census_data[c("less.than.9.grade.women.25.34","btwn.9.to.12.grade.women.25.34","high.school.women.25.34","some.college.women.25.34","associates.women.25.34","bachelors.women.25.34","post.grad.women.25.34")]
+  women35.44=Census_data[c("less.than.9.grade.women.35.44","btwn.9.to.12.grade.women.35.44","high.school.women.35.44","some.college.women.35.44","associates.women.35.44","bachelors.women.35.44","post.grad.women.35.44")]
+  women45.64=Census_data[c("less.than.9.grade.women.45.64","btwn.9.to.12.grade.women.45.64","high.school.women.45.64","some.college.women.45.64","associates.women.45.64","bachelors.women.45.64","post.grad.women.45.64")]
+  women65=Census_data[c("less.than.9.grade.women.over.65","btwn.9.to.12.grade.women.over.65","high.school.women.over.65","some.college.women.over.65","associates.women.over.65","bachelors.women.over.65","post.grad.women.over.65")]
   
   code=c("Less than 9th grade","9th to 12th grade, no diploma","High School Graduate","Some College, no degree","Associate's degree","Bachelor's Degree","Graduate or Professional Degree")
   
@@ -84,49 +81,48 @@ geteducationattainment=function(county,tract,syntheticdataset,seed,Census_data_L
 
 
 
-getemployment=function(county,tract,syntheticdataset,seed,Census_data_List){
+getemployment=function(county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
   
-  employment1=Census_data_List$employment1
-  #employment1=read.csv(paste0(inputdir,"employment.csv"))
-  employment=employment1[(employment1$tract==tract)&(employment1$county==county),]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  Women16.19=employment[c("B23001_091E","B23001_093E","B23001_094E","B23001_095E")]
-  Women20.21=employment[c("B23001_098E","B23001_100E","B23001_101E","B23001_102E")]
-  Women22.24=employment[c("B23001_105E","B23001_107E","B23001_108E","B23001_109E")]
-  Women20.24=c(Women20.21$B23001_098E+Women22.24$B23001_105E,Women20.21$B23001_100E+Women22.24$B23001_107E,Women20.21$B23001_101E+Women22.24$B23001_108E,Women20.21$B23001_102E+Women22.24$B23001_109E)
-  Women25.29=employment[c("B23001_112E","B23001_114E","B23001_115E","B23001_116E")]
-  Women30.34=employment[c("B23001_119E","B23001_121E","B23001_122E","B23001_123E")]
-  Women35.44=employment[c("B23001_126E","B23001_128E","B23001_129E","B23001_130E")]
-  Women45.54=employment[c("B23001_133E","B23001_135E","B23001_136E","B23001_137E")]
-  Women55.59=employment[c("B23001_140E","B23001_142E","B23001_143E","B23001_144E")]
-  Women60.61=employment[c("B23001_147E","B23001_149E","B23001_150E","B23001_151E")]
-  Women62.64=employment[c("B23001_154E","B23001_156E","B23001_157E","B23001_158E")]
-  Women55.64=c(Women55.59$B23001_140E+Women60.61$B23001_147E+Women62.64$B23001_154E,Women55.59$B23001_142E+Women60.61$B23001_149E+Women62.64$B23001_156E,Women55.59$B23001_143E+Women60.61$B23001_150E+Women62.64$B23001_157E,Women55.59$B23001_144E+Women60.61$B23001_151E+Women62.64$B23001_158E)
-  Women65.69=employment[c("B23001_161E","B23001_162E","B23001_163E")]
-  Women70.74=employment[c("B23001_166E","B23001_167E","B23001_168E")]
-  Women65.74=c(Women65.69$B23001_161E+Women70.74$B23001_166E,Women65.69$B23001_162E+Women70.74$B23001_167E,Women65.69$B23001_163E+Women70.74$B23001_168E)
-  Women75=employment[c("B23001_171E","B23001_172E","B23001_173E")]
-  Men16.19=employment[c("B23001_005E","B23001_007E","B23001_008E","B23001_009E")]
-  Men20.21=employment[c("B23001_012E","B23001_014E","B23001_015E","B23001_016E")]
-  Men22.24=employment[c("B23001_019E","B23001_021E","B23001_022E","B23001_023E")]
-  Men20.24=c(Men20.21$B23001_012E+Men22.24$B23001_019E,Men20.21$B23001_014E+Men22.24$B23001_021E,Men20.21$B23001_015E+Men22.24$B23001_022E,Men20.21$B23001_016E+Men22.24$B23001_023E)
-  Men25.29=employment[c("B23001_026E","B23001_028E","B23001_029E","B23001_030E")]
-  Men30.34=employment[c("B23001_033E","B23001_035E","B23001_036E","B23001_037E")]
-  Men35.44=employment[c("B23001_040E","B23001_042E","B23001_043E","B23001_044E")]
-  Men45.54=employment[c("B23001_047E","B23001_049E","B23001_050E","B23001_051E")]
-  Men55.59=employment[c("B23001_054E","B23001_056E","B23001_057E","B23001_058E")]
-  Men60.61=employment[c("B23001_061E","B23001_063E","B23001_064E","B23001_065E")]
-  Men62.64=employment[c("B23001_068E","B23001_070E","B23001_071E","B23001_072E")]
-  Men55.64=c(Men55.59$B23001_054E+Men60.61$B23001_061E+Men62.64$B23001_068E,Men55.59$B23001_056E+Men60.61$B23001_063E+Men62.64$B23001_070E,Men55.59$B23001_057E+Men60.61$B23001_064E+Men62.64$B23001_071E,Men55.59$B23001_058E+Men60.61$B23001_065E+Men62.64$B23001_072E)
-  Men65.69=employment[c("B23001_075E","B23001_076E","B23001_077E")]
-  Men70.74=employment[c("B23001_080E","B23001_081E","B23001_082E")]
-  Men65.74=c(Men65.69$B23001_075E+Men70.74$B23001_080E,Men65.69$B23001_076E+Men70.74$B23001_081E,Men65.69$B23001_077E+Men70.74$B23001_082E)
-  Men75=employment[c("B23001_085E","B23001_086E","B23001_087E")]
+  Women16.19=Census_data[c("in.armed.forces.women.16.19","employed.women.16.19","unemployed.women.16.19","not.in.labor.forces.women.16.19")]
+  Women20.21=Census_data[c("in.armed.forces.women.20.21","employed.women.20.21","unemployed.women.20.21","not.in.labor.forces.women.20.21")]
+  Women22.24=Census_data[c("in.armed.forces.women.22.24","employed.women.22.24","unemployed.women.22.24","not.in.labor.forces.women.22.24")]
+  Women20.24=c(Women20.21$in.armed.forces.women.20.21+Women22.24$in.armed.forces.22.24,Women20.21$employed.women.20.21+Women22.24$employed.women.22.24,Women20.21$unemployed.women.20.21+Women22.24$unemployed.women.22.24,Women20.21$not.in.labor.forces.women.20.21+Women22.24$not.in.labor.forces.women.22.24)
+  Women25.29=Census_data[c("in.armed.forces.women.25.29","employed.women.25.29","unemployed.women.25.29","not.in.labor.forces.women.25.29")]
+  Women30.34=Census_data[c("in.armed.forces.women.30.34","employed.women.30.34","unemployed.women.30.34","not.in.labor.forces.women.30.34")]
+  Women35.44=Census_data[c("in.armed.forces.women.35.44","employed.women.35.44","unemployed.women.35.44","not.in.labor.forces.women.35.44")]
+  Women45.54=Census_data[c("in.armed.forces.women.45.54","employed.women.45.54","unemployed.women.45.54","not.in.labor.forces.women.45.54")]
+  Women55.59=Census_data[c("in.armed.forces.women.55.59","employed.women.55.59","unemployed.women.55.59","not.in.labor.forces.women.55.59")]
+  Women60.61=Census_data[c("in.armed.forces.women.60.61","employed.women.60.61","unemployed.women.60.61","not.in.labor.forces.women.60.61")]
+  Women62.64=Census_data[c("in.armed.forces.women.62.64","employed.women.62.64","unemployed.women.62.64","not.in.labor.forces.women.62.64")]
+  Women55.64=c(Women55.59$in.armed.forces.women.55.59+Women60.61$in.armed.forces.women.60.61+Women62.64$in.armed.forces.women.62.64,Women55.59$employed.women.55.59+Women60.61$employed.women.60.61+Women62.64$employed.women.62.64,Women55.59$unemployed.women.55.59+Women60.61$unemployed.women.60.61+Women62.64$unemployed.women.62.64,Women55.59$not.in.labor.forces.women.55.59+Women60.61$not.in.labor.forces.women.60.61+Women62.64$not.in.labor.forces.women.62.64)
+  Women65.69=Census_data[c("employed.women.65.69","unemployed.women.65.69","not.in.labor.forces.women.65.69")]
+  Women70.74=Census_data[c("employed.women.70.74","unemployed.women.70.74","not.in.labor.forces.women.70.74")]
+  Women65.74=c(Women65.69$employed.women.65.69+Women70.74$employed.women.70.74,Women65.69$unemployed.65.69+Women70.74$unemployed.70.74,Women65.69$not.in.labor.forces.women.65.69+Women70.74$not.in.labor.forces.women.70.74)
+  Women75=Census_data[c("employed.women.over.75","unemployed.women.over.75","not.in.labor.forces.women.over.75")]
+  
+  Men16.19=Census_data[c("in.armed.forces.men.16.19","employed.men.16.19","unemployed.men.16.19","not.in.labor.forces.men.16.19")]
+  Men20.21=Census_data[c("in.armed.forces.men.20.21","employed.men.20.21","unemployed.men.20.21","not.in.labor.forces.men.20.21")]
+  Men22.24=Census_data[c("in.armed.forces.men.22.24","employed.men.22.24","unemployed.men.22.24","not.in.labor.forces.men.22.24")]
+  Men20.24=c(Men20.21$in.armed.forces.men.20.21+Men22.24$in.armed.forces.22.24,Men20.21$employed.men.20.21+Men22.24$employed.men.22.24,Men20.21$unemployed.men.20.21+Men22.24$unemployed.men.22.24,Men20.21$not.in.labor.forces.men.20.21+Men22.24$not.in.labor.forces.men.22.24)
+  Men25.29=Census_data[c("in.armed.forces.men.25.29","employed.men.25.29","unemployed.men.25.29","not.in.labor.forces.men.25.29")]
+  Men30.34=Census_data[c("in.armed.forces.men.30.34","employed.men.30.34","unemployed.men.30.34","not.in.labor.forces.men.30.34")]
+  Men35.44=Census_data[c("in.armed.forces.men.35.44","employed.men.35.44","unemployed.men.35.44","not.in.labor.forces.men.35.44")]
+  Men45.54=Census_data[c("in.armed.forces.men.45.54","employed.men.45.54","unemployed.men.45.54","not.in.labor.forces.men.45.54")]
+  Men55.59=Census_data[c("in.armed.forces.men.55.59","employed.men.55.59","unemployed.men.55.59","not.in.labor.forces.men.55.59")]
+  Men60.61=Census_data[c("in.armed.forces.men.60.61","employed.men.60.61","unemployed.men.60.61","not.in.labor.forces.men.60.61")]
+  Men62.64=Census_data[c("in.armed.forces.men.62.64","employed.men.62.64","unemployed.men.62.64","not.in.labor.forces.men.62.64")]
+  Men55.64=c(Men55.59$in.armed.forces.men.55.59+Men60.61$in.armed.forces.men.60.61+Men62.64$in.armed.forces.men.62.64,Men55.59$employed.men.55.59+Men60.61$employed.men.60.61+Men62.64$employed.men.62.64,Men55.59$unemployed.men.55.59+Men60.61$unemployed.men.60.61+Men62.64$unemployed.men.62.64,Men55.59$not.in.labor.forces.men.55.59+Men60.61$not.in.labor.forces.men.60.61+Men62.64$not.in.labor.forces.men.62.64)
+  Men65.69=Census_data[c("employed.men.65.69","unemployed.men.65.69","not.in.labor.forces.men.65.69")]
+  Men70.74=Census_data[c("employed.men.70.74","unemployed.men.70.74","not.in.labor.forces.men.70.74")]
+  Men65.74=c(Men65.69$employed.men.65.69+Men70.74$employed.men.70.74,Men65.69$unemployed.65.69+Men70.74$unemployed.70.74,Men65.69$not.in.labor.forces.men.65.69+Men70.74$not.in.labor.forces.men.70.74)
+  Men75=Census_data[c("employed.men.over.75","unemployed.men.over.75","not.in.labor.forces.men.over.75")]
   
   code1=c("In Armed Forces","Employed","Unemployed","Not in labor force")
   code2=c("Employed","Unemployed","Not in labor force")
-  employment=ifelse((syntheticdataset$sex=="Male"&(syntheticdataset$age=="18 to 19")),sample(code1,1,prob=Men16.19/sum(Men16.19)), #syntheticdataset$age=="15 to 17"| is left out because of age problems :(
+  Census_data=ifelse((syntheticdataset$sex=="Male"&(syntheticdataset$age=="18 to 19")),sample(code1,1,prob=Men16.19/sum(Men16.19)), #syntheticdataset$age=="15 to 17"| is left out because of age problems :(
                     ifelse(syntheticdataset$sex=="Male"&(syntheticdataset$age=="20 to 24"),sample(code1,1,prob=Men20.24/sum(Men20.24)),
                                 ifelse(syntheticdataset$sex=="Male"&(syntheticdataset$age=="25 to 29"),sample(code1,1,prob=Men25.29/sum(Men25.29)),
                                        ifelse(syntheticdataset$sex=="Male"&(syntheticdataset$age=="30 to 34"),sample(code1,1,prob=Men30.34/sum(Men30.34)),
@@ -144,21 +140,19 @@ getemployment=function(county,tract,syntheticdataset,seed,Census_data_List){
                                                                                                ifelse(syntheticdataset$sex=="Female"&(syntheticdataset$age=="55 to 64"),sample(code1,1,prob=Women55.64/sum(Women55.64)),
                                                                                                       ifelse(syntheticdataset$sex=="Female"&(syntheticdataset$age=="65 to 74"),sample(code2,1,prob=Women65.74/sum(Women65.74)),
                                                                                                              ifelse(syntheticdataset$sex=="Female"&(syntheticdataset$age=="75 to 84"|syntheticdataset$age=="Over 85"),sample(code2,1,prob=Women75/sum(Women75)),NA))))))))))))))))))
-  syntheticdataset$employment=employment
+  syntheticdataset$Census_data=Census_data
   return(syntheticdataset)
 }
 
 
-getdisability <- function(county,tract,syntheticdataset,seed,Census_data_List){
+getdisability <- function(county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
   
-  disability1=Census_data_List$disability1
-  #disability1=read.csv(paste0(inputdir,"disability_status.csv"))
-  disability=disability1[(disability1$tract==tract)&(disability1$county==county),]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  Under18=disability[c("C18108_003E","C18108_004E","C18108_005E")]
-  From18.64=disability[c("C18108_007E","C18108_008E","C18108_009E")]
-  Over65=disability[c("C18108_011E","C18108_012E","C18108_013E")]
+  Under18=Census_data[c("under18.1.disability","under18.2.disability","under18.no.disability")]
+  From18.64=Census_data[c("from18.64.1.disability","from18.64.2.disability","from18.64.no.disability")]
+  Over65=Census_data[c("over65.1.disability","over65.2.disability","over65.no.disability")]
   code=c("With One Type of Disability","With Two or More Types of Disabilities","No Disabilities")
   
   disability=ifelse(syntheticdataset$age=="Under 5"|syntheticdataset$age=="5 to 9"|syntheticdataset$age=="10 to 14"|syntheticdataset$age=="15 to 17",sample(code,1,prob=Under18/sum(Under18)),

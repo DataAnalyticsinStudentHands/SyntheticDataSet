@@ -18,19 +18,17 @@ source('workingdoc3.R')
 source('workingdoc4.R')
 source('citiesproject.R')
 
-household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_data_List){  
+household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_data){  
   
   #initialize data frame
   fullset=data.frame()
   
-  #Get the number of each size of family households to make
-  family=Census_data_List[["family"]]
-  familyhouseholds=family[(family$tract==tract & family$county==county),]
+  #subset data for correct Census tract
+  Census_data=Census_data[(Census_data$tract==tract)&(Census_data$county==county)]
   
   #Get a probability vector for their type
-  familyHHtypes=Census_data_List[["familyhouseholdtypes"]]
-  familyHHtypes=familyHHtypes[(familyHHtypes$county==county & familyHHtypes$tract==tract),]
-  familyHHtypes=familyHHtypes[4:6]
+  familyHHtypes=Census_data["married.couple.families","male.householders.no.wife","female.householders.no.husband"]
+  
   colnames(familyHHtypes)<-c("Married-couple family", "Male householder- no wife present","Female householder- no husband present")
   familyHHtypes=familyHHtypes/rowSums(familyHHtypes)
   
@@ -48,9 +46,9 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
   
   #Create 2 family households
   #Make Sure there are 2 family households
-  if(familyhouseholds$B11016_003E>0){
+  if(Census_data$family.2.person.household>0){
     #make a seed for each household
-    family_HH_sz2_seeds=sample(1:100000000,familyhouseholds$B11016_003E,replace = FALSE)
+    family_HH_sz2_seeds=sample(1:100000000,Census_data$family.2.person.household,replace = FALSE)
     
     for(seedy in family_HH_sz2_seeds){ #for each seed create a household
       #set seed
@@ -119,7 +117,7 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
         partofset=getstroke(county,tract,partofset,seedy)
         partofset=getteeth(county,tract,partofset,seedy)
         
-        partofset$householdID=rep(paste(county,tract,seedy,"B11016_003E",sep=".",collapse="."),nrow(partofset))
+        partofset$householdID=rep(paste(county,tract,seedy,"family.2.person.household",sep=".",collapse="."),nrow(partofset))
         
         #Save new household with any previous households
         fullset=rbind(fullset,partofset)
@@ -128,9 +126,9 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
   
   #Create 3 family households
   #Make Sure there are 3 family households
-  if(familyhouseholds$B11016_004E>0){
+  if(Census_data$family.3.person.household>0){
     #make a seed for each household
-    family_HH_sz3_seeds=sample(1:100000000,familyhouseholds$B11016_004E,replace = FALSE)
+    family_HH_sz3_seeds=sample(1:100000000,Census_data$family.3.person.household,replace = FALSE)
     
     for(seedy in family_HH_sz3_seeds){ #for each seed create a household
       #set seed
@@ -199,7 +197,7 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       partofset=getstroke(county,tract,partofset,seedy)
       partofset=getteeth(county,tract,partofset,seedy)
       
-      partofset$householdID=rep(paste(county,tract,seedy,"B11016_004E",sep=".",collapse="."),nrow(partofset))
+      partofset$householdID=rep(paste(county,tract,seedy,"family.3.person.household",sep=".",collapse="."),nrow(partofset))
       
       #Save new household with any previous households
       fullset=rbind(fullset,partofset)
@@ -208,9 +206,9 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
   
   #Create 4 family households
   #Make Sure there are 4 family households
-  if(familyhouseholds$B11016_005E>0){
+  if(Census_data$family.4.person.household>0){
     #make a seed for each household
-    family_HH_sz4_seeds=sample(1:100000000,familyhouseholds$B11016_005E,replace = FALSE)
+    family_HH_sz4_seeds=sample(1:100000000,Census_data$family.4.person.household,replace = FALSE)
     
     for(seedy in family_HH_sz4_seeds){ #for each seed create a household
       #set seed
@@ -279,7 +277,7 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       partofset=getstroke(county,tract,partofset,seedy)
       partofset=getteeth(county,tract,partofset,seedy)
       
-      partofset$householdID=rep(paste(county,tract,seedy,"B11016_005E",sep=".",collapse="."),nrow(partofset))
+      partofset$householdID=rep(paste(county,tract,seedy,"family.4.person.household",sep=".",collapse="."),nrow(partofset))
       
       #Save new household with any previous households
       fullset=rbind(fullset,partofset)
@@ -288,9 +286,9 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
   
   #Create 5 family households
   #Make Sure there are 5 family households
-  if(familyhouseholds$B11016_006E>0){
+  if(Census_data$family.5.person.household>0){
     #make a seed for each household
-    family_HH_sz5_seeds=sample(1:100000000,familyhouseholds$B11016_006E,replace = FALSE)
+    family_HH_sz5_seeds=sample(1:100000000,Census_data$family.5.person.household,replace = FALSE)
     
     for(seedy in family_HH_sz5_seeds){ #for each seed create a household
       #set seed
@@ -359,7 +357,7 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       partofset=getstroke(county,tract,partofset,seedy)
       partofset=getteeth(county,tract,partofset,seedy)
       
-      partofset$householdID=rep(paste(county,tract,seedy,"B11016_006E",sep=".",collapse="."),nrow(partofset))
+      partofset$householdID=rep(paste(county,tract,seedy,"family.5.person.household",sep=".",collapse="."),nrow(partofset))
       
       #Save new household with any previous households
       fullset=rbind(fullset,partofset)
@@ -368,9 +366,9 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
   
   #Create 6 family households
   #Make Sure there are 6 family households
-  if(familyhouseholds$B11016_007E>0){
+  if(Census_data$family.6.person.household>0){
     #make a seed for each household
-    family_HH_sz6_seeds=sample(1:100000000,familyhouseholds$B11016_007E,replace = FALSE)
+    family_HH_sz6_seeds=sample(1:100000000,Census_data$family.6.person.household,replace = FALSE)
     
     for(seedy in family_HH_sz6_seeds){ #for each seed create a household
       #set seed
@@ -439,7 +437,7 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       partofset=getstroke(county,tract,partofset,seedy)
       partofset=getteeth(county,tract,partofset,seedy)
       
-      partofset$householdID=rep(paste(county,tract,seedy,"B11016_007E",sep=".",collapse="."),nrow(partofset))
+      partofset$householdID=rep(paste(county,tract,seedy,"family.6.person.household",sep=".",collapse="."),nrow(partofset))
       
       #Save new household with any previous households
       fullset=rbind(fullset,partofset)
@@ -448,9 +446,9 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
   
   #Create 7 family households
   #Make Sure there are 7 family households
-  if(familyhouseholds$B11016_008E>0){
+  if(Census_data$family.7.person.household>0){
     #make a seed for each household
-    family_HH_sz7_seeds=sample(1:100000000,familyhouseholds$B11016_008E,replace = FALSE)
+    family_HH_sz7_seeds=sample(1:100000000,Census_data$family.7.person.household,replace = FALSE)
     
     for(seedy in family_HH_sz7_seeds){ #for each seed create a household
       #set seed
@@ -519,7 +517,7 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       partofset=getstroke(county,tract,partofset,seedy)
       partofset=getteeth(county,tract,partofset,seedy)
       
-      partofset$householdID=rep(paste(county,tract,seedy,"B11016_008E",sep=".",collapse="."),nrow(partofset))
+      partofset$householdID=rep(paste(county,tract,seedy,"family.7.person.household",sep=".",collapse="."),nrow(partofset))
       
       #Save new household with any previous households
       fullset=rbind(fullset,partofset)
@@ -527,14 +525,13 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
   }
   
   #Create Non family households
-  nonfamily=Census_data_List[["nonfamily"]]
-  nonfamilyHHs=nonfamily[(nonfamily$county==county & nonfamily$tract==tract),]
-
+  nonfamily=Census_data["nonfamily.1.person.household","nonfamily.2.person.household","nonfamily.3.person.household","nonfamily.4.person.household","nonfamily.5.person.household","nonfamily.6.person.household","nonfamily.7.person.household"]
+  
   for(x in 1:7){
     
-    if(nonfamilyHHs[2+x]>0){
+    if(nonfamilyHHs[x]>0){
       #make a seed for each household
-      nonfamily_seeds=sample(1:100000000,nonfamilyHHs[2+x],replace = FALSE)
+      nonfamily_seeds=sample(1:100000000,nonfamilyHHs[x],replace = FALSE)
       
       for(seedy in nonfamily_seeds){ #for each seed create a household
         #set seed
@@ -596,7 +593,7 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
         partofset=getstroke(county,tract,partofset,seedy)
         partofset=getteeth(county,tract,partofset,seedy)
         
-        partofset$householdID=rep(paste(county,tract,seedy,"B11016_008E",sep=".",collapse="."),nrow(partofset))
+        partofset$householdID=rep(paste(county,tract,seedy,"nonfamily",sep=".",collapse="."),nrow(partofset))
         
         #Save new household with any previous households
         fullset=rbind(fullset,partofset)

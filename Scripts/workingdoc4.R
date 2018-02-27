@@ -1,53 +1,18 @@
-######ASK ABOUT AGE PROBLEM!!!!!
 
-
-getdegree <- function(county,tract,syntheticdataset,seed,inputdir){
+getlangandnativity <- function(county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
   
-  field=read.csv(paste0(inputdir,"field_Bachelor_degree.csv"))
-  field=field[(field$tract==tract)&(field$county==county),]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  degreeblack=field[c("C15010B_002E","C15010B_003E","C15010B_004E","C15010B_005E","C15010B_006E")]
-  degreeAIAN=field[c("C15010C_002E","C15010C_003E","C15010C_004E","C15010C_005E","C15010C_006E")]
-  degreeasian=field[c("C15010D_002E","C15010D_003E","C15010D_004E","C15010D_005E","C15010D_006E")]
-  degreeNHPI=field[c("C15010E_002E","C15010E_003E","C15010E_004E","C15010E_005E","C15010E_006E")]
-  degreeother=field[c("C15010F_002E","C15010F_003E","C15010F_004E","C15010F_005E","C15010F_006E")]
-  degree2=field[c("C15010G_002E","C15010G_003E","C15010G_004E","C15010G_005E","C15010G_006E")]
-  degreewhite=field[c("C15010H_002E","C15010H_003E","C15010H_004E","C15010H_005E","C15010H_006E")]
-  degreehispanic=field[c("C15010I_002E","C15010I_003E","C15010I_004E","C15010I_005E","C15010I_006E")]
+  languageblack=Census_data[c("black.native.only.english","black.native.other.language.english.well","black.native.other.language.english.bad","black.foreign.only.english","black.foreign.other.language.english.well","black.foreign.other.language.english.bad")]
+  languageAIAN=Census_data[c("amer.indian.alaskan.native.only.english","amer.indian.alaskan.native.other.language.english.well","amer.indian.alaskan.native.other.language.english.bad","amer.indian.alaskan.foreign.only.english","amer.indian.alaskan.foreign.other.language.english.well","amer.indian.alaskan.foreign.other.language.english.bad")]
+  languageasian=Census_data[c("asian.native.only.english","asian.native.other.language.english.well","asian.native.other.language.english.bad","asian.foreign.only.english","asian.foreign.other.language.english.well","asian.foreign.other.language.english.bad")]
+  languageNHPI=Census_data[c("islander.native.only.english","islander.native.other.language.english.well","islander.native.other.language.english.bad","islander.foreign.only.english","islander.foreign.other.language.english.well","islander.foreign.other.language.english.bad")]
+  languageother=Census_data[c("other.native.only.english","other.native.other.language.english.well","other.native.other.language.english.bad","other.foreign.only.english","other.foreign.other.language.english.well","other.foreign.other.language.english.bad")]
+  language2=Census_data[c("multiracial.native.only.english","multiracial.native.other.language.english.well","multiracial.native.other.language.english.bad","multiracial.foreign.only.english","multiracial.foreign.other.language.english.well","multiracial.foreign.other.language.english.bad")]
+  languagewhite=Census_data[c("white.native.only.english","white.native.other.language.english.well","white.native.other.language.english.bad","white.foreign.only.english","white.foreign.other.language.english.well","white.foreign.other.language.english.bad")]
+  languagehispanic=Census_data[c("hispanic.native.only.english","hispanic.native.other.language.english.well","hispanic.native.other.language.english.bad","hispanic.foreign.only.english","hispanic.foreign.other.language.english.well","hispanic.foreign.other.language.english.bad")]
   
-  code=c("Science and Engineering","Science and Engineering Related Fields","Business","Education","Arts, Humanities and Other")
-  
-  bachelors.degree=ifelse(syntheticdataset$race=="Black or African American"&(syntheticdataset$education.attainment=="Bachelor's Degree"|syntheticdataset$education.attainment=="Graduate or Professional Degree"),sample(code,1,prob=degreeblack/sum(degreeblack)),
-         ifelse(syntheticdataset$race=="American Indian or Alaskan Native"&(syntheticdataset$education.attainment=="Bachelor's Degree"|syntheticdataset$education.attainment=="Graduate or Professional Degree"),sample(code,1,prob=degreeAIAN/sum(degreeAIAN)),
-                ifelse(syntheticdataset$race=="Asian"&(syntheticdataset$education.attainment=="Bachelor's Degree"|syntheticdataset$education.attainment=="Graduate or Professional Degree"),sample(code,1,prob=degreeasian/sum(degreeasian)),
-                       ifelse(syntheticdataset$race=="Native Hawaiian or Other Pacific Islander"&(syntheticdataset$education.attainment=="Bachelor's Degree"|syntheticdataset$education.attainment=="Graduate or Professional Degree"),sample(code,1,prob=degreeNHPI/sum(degreeNHPI)),
-                              ifelse(syntheticdataset$race=="Some Other Race"&(syntheticdataset$education.attainment=="Bachelor's Degree"|syntheticdataset$education.attainment=="Graduate or Professional Degree"),sample(code,1,prob=degreeother/sum(degreeother)),
-                                     ifelse(syntheticdataset$race=="Two or More Races"&(syntheticdataset$education.attainment=="Bachelor's Degree"|syntheticdataset$education.attainment=="Graduate or Professional Degree"),sample(code,1,prob=degree2/sum(degree2)),
-                                            ifelse(syntheticdataset$race=="White"&(syntheticdataset$education.attainment=="Bachelor's Degree"|syntheticdataset$education.attainment=="Graduate or Professional Degree"),sample(code,1,prob=degreewhite/sum(degreewhite)),
-                                                   ifelse(syntheticdataset$race=="Hispanic or Latino"&(syntheticdataset$education.attainment=="Bachelor's Degree"|syntheticdataset$education.attainment=="Graduate or Professional Degree"),sample(code,1,prob=degreehispanic/sum(degreehispanic)),
-                                                          NA))))))))
-  syntheticdataset$bachelors.degree=bachelors.degree
-  return(syntheticdataset)
-}
-
-
-
-getlangandnativity <- function(county,tract,syntheticdataset,seed,Census_data_List){
-  set.seed(seed)
-  
-  language=Census_data_List$language
-  #language=read.csv(paste0(inputdir,"nativity_language.csv"))
-  language=language[(language$tract==tract)&(language$county==county),]
-  
-  languageblack=language[c("B16005B_003E","B16005B_005E","B16005B_006E","B16005B_008E","B16005B_010E","B16005B_011E")]
-  languageAIAN=language[c("B16005C_003E","B16005C_005E","B16005C_006E","B16005C_008E","B16005C_010E","B16005C_011E")]
-  languageasian=language[c("B16005D_003E","B16005D_005E","B16005D_006E","B16005D_008E","B16005D_010E","B16005D_011E")]
-  languageNHPI=language[c("B16005E_003E","B16005E_005E","B16005E_006E","B16005E_008E","B16005E_010E","B16005E_011E")]
-  languageother=language[c("B16005F_003E","B16005F_005E","B16005F_006E","B16005F_008E","B16005F_010E","B16005F_011E")]
-  language2=language[c("B16005G_003E","B16005G_005E","B16005G_006E","B16005G_008E","B16005G_010E","B16005G_011E")]
-  languagewhite=language[c("B16005H_003E","B16005H_005E","B16005H_006E","B16005H_008E","B16005H_010E","B16005H_011E")]
-  languagehispanic=language[c("B16005I_003E","B16005I_005E","B16005I_006E","B16005I_008E","B16005I_010E","B16005I_011E")]
   codelangnat=ifelse(syntheticdataset$race=="Black or African American"&!syntheticdataset$age=="Under 5",sample(colnames(languageblack),1,prob=languageblack/sum(languageblack)),
          ifelse(syntheticdataset$race=="American Indian or Alaskan Native"&!syntheticdataset$age=="Under 5",sample(colnames(languageblack),1,prob=languageAIAN/sum(languageAIAN)),
                 ifelse(syntheticdataset$race=="Asian"&!syntheticdataset$age=="Under 5",sample(colnames(languageblack),1,prob=languageasian/sum(languageasian)),
@@ -57,11 +22,16 @@ getlangandnativity <- function(county,tract,syntheticdataset,seed,Census_data_Li
                                             ifelse(syntheticdataset$race=="White"&!syntheticdataset$age=="Under 5",sample(colnames(languageblack),1,prob=languagewhite/sum(languagewhite)),
                                                    ifelse(syntheticdataset$race=="Hispanic or Latino"&!syntheticdataset$age=="Under 5",sample(colnames(languageblack),1,prob=languagehispanic/sum(languagehispanic)),
                                                           NA))))))))
-  nativity=ifelse(codelangnat=="B16005B_003E"|codelangnat=="B16005B_005E"|codelangnat=="B16005B_006E","Native",
-                                      ifelse(codelangnat=="B16005B_008E"|codelangnat=="B16005B_010E"|codelangnat=="B16005B_011E","Foreign",NA))
-  English=ifelse(codelangnat=="B16005B_003E"|codelangnat=="B16005B_008E","Speaks Only English",
-                 ifelse(codelangnat=="B16005B_005E"|codelangnat=="B16005B_010E","Speaks English Very Well",
-                        ifelse(codelangnat=="B16005B_006E"|codelangnat=="B16005B_011E","Speaks English Not Very Well",NA)))
+  nativity=ifelse(codelangnat %in% c("black.native.only.english","black.native.other.language.english.well","black.native.other.language.english.bad","amer.indian.alaskan.native.only.english","amer.indian.alaskan.native.other.language.english.well","amer.indian.alaskan.native.other.language.english.bad","asian.native.only.english","asian.native.other.language.english.well","asian.native.other.language.english.bad",
+                                     "islander.native.only.english","islander.native.other.language.english.well","islander.native.other.language.english.bad","other.native.only.english","other.native.other.language.english.well","other.native.other.language.english.bad","multiracial.native.only.english","multiracial.native.other.language.english.well","multiracial.native.other.language.english.bad","white.native.only.english","white.native.other.language.english.well","white.native.other.language.english.bad",
+                                     "hispanic.native.only.english","hispanic.native.other.language.english.well","hispanic.native.other.language.english.bad"),"Native",
+                                      ifelse(codelangnat %in% c("black.foreign.only.english","black.foreign.other.language.english.well","black.foreign.other.language.english.bad","amer.indian.alaskan.foreign.only.english","amer.indian.alaskan.foreign.other.language.english.well","amer.indian.alaskan.foreign.other.language.english.bad","asian.foreign.only.english","asian.foreign.other.language.english.well","asian.foreign.other.language.english.bad",
+                                                                "islander.foreign.only.english","islander.foreign.other.language.english.well","islander.foreign.other.language.english.bad","other.foreign.only.english","other.foreign.other.language.english.well","other.foreign.other.language.english.bad",
+                                                                "multiracial.foreign.only.english","multiracial.foreign.other.language.english.well","multiracial.foreign.other.language.english.bad","white.foreign.only.english","white.foreign.other.language.english.well","white.foreign.other.language.english.bad","hispanic.foreign.only.english","hispanic.foreign.other.language.english.well","hispanic.foreign.other.language.english.bad"),"Foreign",NA))
+  
+  English=ifelse(codelangnat %in% c("hispanic.native.only.english","other.native.only.english","white.native.only.english","multiracial.native.only.english","islander.native.only.english","asian.native.only.english","amer.indian.alaskan.native.only.english","black.native.only.english","hispanic.foreign.only.english","white.foreign.only.english","multiracial.foreign.only.english","islander.foreign.only.english","asian.foreign.only.english","amer.indian.alaskan.foreign.only.english","black.foreign.only.english","other.foreign.only.english"),"Speaks Only English",
+                 ifelse(codelangnat %in% c("other.native.other.language.english.well","other.foreign.other.language.english.well","hispanic.foreign.other.language.english.well","white.foreign.other.language.english.well","multiracial.foreign.other.language.english.well","islander.foreign.other.language.english.well","asian.foreign.other.language.english.well","amer.indian.alaskan.foreign.other.language.english.well","black.foreign.other.language.english.well"),"Speaks English Very Well",
+                        ifelse(codelangnat %in% c("other.native.other.language.english.bad","other.foreign.other.language.english.bad","hispanic.foreign.other.language.english.bad","white.foreign.other.language.english.bad","multiracial.foreign.other.language.english.bad","islander.foreign.other.language.english.bad","asian.foreign.other.language.english.bad","amer.indian.alaskan.foreign.other.language.english.bad","black.foreign.other.language.english.bad"),"Speaks English less than well",NA)))
   syntheticdataset$nativity=nativity
   syntheticdataset$English.speaking.skills=English
   return(syntheticdataset)
@@ -106,10 +76,9 @@ getcitizenandlang <- function(county,tract,syntheticdataset,seed,Census_data_Lis
 getvets <- function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  veterans=Census_data_List$veterans #read.csv(paste0(inputdir,"veteran_status.csv"))
-  veterans=veterans[(veterans$tract==tract)&(veterans$county==county),]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  men18to34=c(veterans$B21001_008E,veterans$B21001_009E)
+  men18to34=Census_data[c("veteran.men.18.34","nonveteran.men.18.34")]
   men35to54=c(veterans$B21001_011E,veterans$B21001_012E)
   men55to64=c(veterans$B21001_014E,veterans$B21001_015E)
   men65to74=c(veterans$B21001_017E,veterans$B21001_018E)
