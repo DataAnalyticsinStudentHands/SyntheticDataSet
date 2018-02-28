@@ -74,20 +74,20 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
         
         
         #Build using Census Data
-        #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data_List)#not dependent on anything gets type and race
-        partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data_List)#only dependent on size
-        partofset=getsexandage(county,tract,partofset,seedy,Census_data_List)#only dependent on race
-        partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two were cross tabulated together
-        partofset=geteducationattainment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are cross tabulated together
-        partofset=getemployment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are tabulated together
-        partofset=getdisability(county,tract,partofset,seedy,Census_data_List)#dependent on age
-        partofset=getlangandnativity(county,tract,partofset,seedy,Census_data_List)#dependent on race
-        partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data_List)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-        partofset=getvets(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which are cross tabulated
-        partofset=gettransport(county,tract,partofset,seedy,Census_data_List)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-        partofset=gettraveltime(county,tract,partofset,seedy,Census_data_List)#dependent on travel method
-        partofset=getincome(county,tract,partofset,seedy,Census_data_List)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-        partofset=getinsurance(county,tract,partofset,seedy,Census_data_List)#dependent on income
+        #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data)#not dependent on anything gets type and race
+        partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
+        partofset=getsexandage(county,tract,partofset,seedy,Census_data)#only dependent on race
+        partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
+        partofset=geteducationattainment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
+        partofset=getemployment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
+        partofset=getdisability(county,tract,partofset,seedy,Census_data)#dependent on age
+        partofset=getlangandnativity(county,tract,partofset,seedy,Census_data)#dependent on race
+        partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
+        partofset=getvets(county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
+        partofset=gettransport(county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
+        partofset=gettraveltime(county,tract,partofset,seedy,Census_data)#dependent on travel method
+        partofset=getincome(county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+        partofset=getinsurance(county,tract,partofset,seedy,Census_data)#dependent on income
         
         #Build Using 500 Cities Project Data
         partofset=get65menuptodate(county,tract,partofset,seedy)
@@ -154,20 +154,20 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       
       
       #Build using Census Data
-      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data_List)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data_List)#only dependent on size
-      partofset=getsexandage(county,tract,partofset,seedy,Census_data_List)#only dependent on race
-      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two were cross tabulated together
-      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are cross tabulated together
-      partofset=getemployment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are tabulated together
-      partofset=getdisability(county,tract,partofset,seedy,Census_data_List)#dependent on age
-      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data_List)#dependent on race
-      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data_List)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-      partofset=getvets(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which are cross tabulated
-      partofset=gettransport(county,tract,partofset,seedy,Census_data_List)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-      partofset=gettraveltime(county,tract,partofset,seedy,Census_data_List)#dependent on travel method
-      partofset=getincome(county,tract,partofset,seedy,Census_data_List)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(county,tract,partofset,seedy,Census_data_List)#dependent on income
+      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data)#not dependent on anything gets type and race
+      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexandage(county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
+      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
+      partofset=getemployment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
+      partofset=getdisability(county,tract,partofset,seedy,Census_data)#dependent on age
+      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data)#dependent on race
+      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
+      partofset=getvets(county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
+      partofset=gettransport(county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
+      partofset=gettraveltime(county,tract,partofset,seedy,Census_data)#dependent on travel method
+      partofset=getincome(county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=getinsurance(county,tract,partofset,seedy,Census_data)#dependent on income
       
       #Build Using 500 Cities Project Data
       partofset=get65menuptodate(county,tract,partofset,seedy)
@@ -234,20 +234,20 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       
       
       #Build using Census Data
-      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data_List)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data_List)#only dependent on size
-      partofset=getsexandage(county,tract,partofset,seedy,Census_data_List)#only dependent on race
-      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two were cross tabulated together
-      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are cross tabulated together
-      partofset=getemployment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are tabulated together
-      partofset=getdisability(county,tract,partofset,seedy,Census_data_List)#dependent on age
-      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data_List)#dependent on race
-      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data_List)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-      partofset=getvets(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which are cross tabulated
-      partofset=gettransport(county,tract,partofset,seedy,Census_data_List)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-      partofset=gettraveltime(county,tract,partofset,seedy,Census_data_List)#dependent on travel method
-      partofset=getincome(county,tract,partofset,seedy,Census_data_List)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(county,tract,partofset,seedy,Census_data_List)#dependent on income
+      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data)#not dependent on anything gets type and race
+      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexandage(county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
+      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
+      partofset=getemployment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
+      partofset=getdisability(county,tract,partofset,seedy,Census_data)#dependent on age
+      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data)#dependent on race
+      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
+      partofset=getvets(county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
+      partofset=gettransport(county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
+      partofset=gettraveltime(county,tract,partofset,seedy,Census_data)#dependent on travel method
+      partofset=getincome(county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=getinsurance(county,tract,partofset,seedy,Census_data)#dependent on income
       
       #Build Using 500 Cities Project Data
       partofset=get65menuptodate(county,tract,partofset,seedy)
@@ -314,20 +314,20 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       
       
       #Build using Census Data
-      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data_List)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data_List)#only dependent on size
-      partofset=getsexandage(county,tract,partofset,seedy,Census_data_List)#only dependent on race
-      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two were cross tabulated together
-      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are cross tabulated together
-      partofset=getemployment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are tabulated together
-      partofset=getdisability(county,tract,partofset,seedy,Census_data_List)#dependent on age
-      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data_List)#dependent on race
-      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data_List)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-      partofset=getvets(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which are cross tabulated
-      partofset=gettransport(county,tract,partofset,seedy,Census_data_List)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-      partofset=gettraveltime(county,tract,partofset,seedy,Census_data_List)#dependent on travel method
-      partofset=getincome(county,tract,partofset,seedy,Census_data_List)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(county,tract,partofset,seedy,Census_data_List)#dependent on income
+      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data)#not dependent on anything gets type and race
+      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexandage(county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
+      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
+      partofset=getemployment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
+      partofset=getdisability(county,tract,partofset,seedy,Census_data)#dependent on age
+      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data)#dependent on race
+      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
+      partofset=getvets(county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
+      partofset=gettransport(county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
+      partofset=gettraveltime(county,tract,partofset,seedy,Census_data)#dependent on travel method
+      partofset=getincome(county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=getinsurance(county,tract,partofset,seedy,Census_data)#dependent on income
       
       #Build Using 500 Cities Project Data
       partofset=get65menuptodate(county,tract,partofset,seedy)
@@ -394,20 +394,20 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       
       
       #Build using Census Data
-      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data_List)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data_List)#only dependent on size
-      partofset=getsexandage(county,tract,partofset,seedy,Census_data_List)#only dependent on race
-      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two were cross tabulated together
-      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are cross tabulated together
-      partofset=getemployment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are tabulated together
-      partofset=getdisability(county,tract,partofset,seedy,Census_data_List)#dependent on age
-      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data_List)#dependent on race
-      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data_List)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-      partofset=getvets(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which are cross tabulated
-      partofset=gettransport(county,tract,partofset,seedy,Census_data_List)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-      partofset=gettraveltime(county,tract,partofset,seedy,Census_data_List)#dependent on travel method
-      partofset=getincome(county,tract,partofset,seedy,Census_data_List)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(county,tract,partofset,seedy,Census_data_List)#dependent on income
+      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data)#not dependent on anything gets type and race
+      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexandage(county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
+      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
+      partofset=getemployment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
+      partofset=getdisability(county,tract,partofset,seedy,Census_data)#dependent on age
+      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data)#dependent on race
+      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
+      partofset=getvets(county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
+      partofset=gettransport(county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
+      partofset=gettraveltime(county,tract,partofset,seedy,Census_data)#dependent on travel method
+      partofset=getincome(county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=getinsurance(county,tract,partofset,seedy,Census_data)#dependent on income
       
       #Build Using 500 Cities Project Data
       partofset=get65menuptodate(county,tract,partofset,seedy)
@@ -474,20 +474,20 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
       
       
       #Build using Census Data
-      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data_List)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data_List)#only dependent on size
-      partofset=getsexandage(county,tract,partofset,seedy,Census_data_List)#only dependent on race
-      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two were cross tabulated together
-      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are cross tabulated together
-      partofset=getemployment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are tabulated together
-      partofset=getdisability(county,tract,partofset,seedy,Census_data_List)#dependent on age
-      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data_List)#dependent on race
-      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data_List)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-      partofset=getvets(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which are cross tabulated
-      partofset=gettransport(county,tract,partofset,seedy,Census_data_List)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-      partofset=gettraveltime(county,tract,partofset,seedy,Census_data_List)#dependent on travel method
-      partofset=getincome(county,tract,partofset,seedy,Census_data_List)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(county,tract,partofset,seedy,Census_data_List)#dependent on income
+      #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data)#not dependent on anything gets type and race
+      partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexandage(county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
+      partofset=geteducationattainment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
+      partofset=getemployment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
+      partofset=getdisability(county,tract,partofset,seedy,Census_data)#dependent on age
+      partofset=getlangandnativity(county,tract,partofset,seedy,Census_data)#dependent on race
+      partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
+      partofset=getvets(county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
+      partofset=gettransport(county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
+      partofset=gettraveltime(county,tract,partofset,seedy,Census_data)#dependent on travel method
+      partofset=getincome(county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=getinsurance(county,tract,partofset,seedy,Census_data)#dependent on income
       
       #Build Using 500 Cities Project Data
       partofset=get65menuptodate(county,tract,partofset,seedy)
@@ -550,20 +550,20 @@ household_generator<-function(county,tract,seed,inputdir = "../Inputs/",Census_d
         
         
         #Build using Census Data
-        #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data_List)#not dependent on anything gets type and race
-        partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data_List)#only dependent on size
-        partofset=getsexandage(county,tract,partofset,seedy,Census_data_List)#only dependent on race
-        partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two were cross tabulated together
-        partofset=geteducationattainment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are cross tabulated together
-        partofset=getemployment(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which is fine because those two are tabulated together
-        partofset=getdisability(county,tract,partofset,seedy,Census_data_List)#dependent on age
-        partofset=getlangandnativity(county,tract,partofset,seedy,Census_data_List)#dependent on race
-        partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data_List)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-        partofset=getvets(county,tract,partofset,seedy,Census_data_List)#dependent on sex and age which are cross tabulated
-        partofset=gettransport(county,tract,partofset,seedy,Census_data_List)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-        partofset=gettraveltime(county,tract,partofset,seedy,Census_data_List)#dependent on travel method
-        partofset=getincome(county,tract,partofset,seedy,Census_data_List)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-        partofset=getinsurance(county,tract,partofset,seedy,Census_data_List)#dependent on income
+        #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data)#not dependent on anything gets type and race
+        partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
+        partofset=getsexandage(county,tract,partofset,seedy,Census_data)#only dependent on race
+        partofset=getschoolenrollment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
+        partofset=geteducationattainment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
+        partofset=getemployment(county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
+        partofset=getdisability(county,tract,partofset,seedy,Census_data)#dependent on age
+        partofset=getlangandnativity(county,tract,partofset,seedy,Census_data)#dependent on race
+        partofset=getcitizenandlang(county,tract,partofset,seedy,Census_data)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
+        partofset=getvets(county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
+        partofset=gettransport(county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
+        partofset=gettraveltime(county,tract,partofset,seedy,Census_data)#dependent on travel method
+        partofset=getincome(county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+        partofset=getinsurance(county,tract,partofset,seedy,Census_data)#dependent on income
         
         #Build Using 500 Cities Project Data
         partofset=get65menuptodate(county,tract,partofset,seedy)

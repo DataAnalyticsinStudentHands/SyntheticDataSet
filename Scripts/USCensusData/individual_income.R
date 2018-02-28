@@ -106,5 +106,6 @@ vars <- c(paste0("B06010_00",2:9,"E"),paste0("B06010_0",10:11,"E"))
 # Get data for all census tracts in TX
 census_data <- getCensusApi(acs5_2014_api, key=key, vars, region="for=tract:*&in=state:48")
 
+
 #write data frame to csv file without quotes
 write.csv(census_data, file = "individual_income.csv",row.names=FALSE, na="", quote = FALSE)

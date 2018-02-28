@@ -38,23 +38,21 @@ getlangandnativity <- function(county,tract,syntheticdataset,seed,Census_data){
 }
 
 
-getcitizenandlang <- function(county,tract,syntheticdataset,seed,Census_data_List){
+getcitizenandlang <- function(county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
   
-  citizen=Census_data_List$citizen
-  #read.csv(paste0(inputdir,"citizenship_language.csv"))
-  citizen=citizen[(citizen$tract==tract)&(citizen$county==county),]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  native5.17goodenglish=citizen[c("B16008_006E","B16008_009E")]
-  native5.17badenglish=citizen[c("B16008_007E","B16008_010E")]
-  native18goodenglish=citizen[c("B16008_014E","B16008_017E")]
-  native18badenglish=citizen[c("B16008_015E","B16008_018E")]
-  foreign5.17onlyenglish=citizen[c("B16008_022E","B16008_039E")]
-  foreign5.17goodenglish=citizen[c("B16008_024E","B16008_027E","B16008_041E","B16008_044E")]
-  foreign5.17badenglish=citizen[c("B16008_025E","B16008_028E","B16008_042E","B16008_045E")]
-  foreign18onlyenglish=citizen[c("B16008_030E","B16008_047E")]
-  foreign18goodenglish=citizen[c("B16008_032E","B16008_035E","B16008_049E","B16008_052E")]
-  foreign18badenglish=citizen[c("B16008_033E","B16008_036E","B16008_050E","B16008_053E")]
+  native5.17goodenglish=Census_data[c("spanish.native.5.17.english.well","other.lang.native.5.17.english.well")]
+  native5.17badenglish=Census_data[c("spanish.native.5.17.english.bad","other.lang.native.5.17.english.bad")]
+  native18goodenglish=Census_data[c("spanish.native.over18.english.well","other.lang.native.over18.english.well")]
+  native18badenglish=Census_data[c("spanish.native.over18.english.bad","other.lang.native.over18.english.bad")]
+  foreign5.17onlyenglish=Census_data[c("english.foreign.5.17.naturalized","english.foreign.5.17.not.citizen")]
+  foreign5.17goodenglish=Census_data[c("spanish.foreign.5.17.naturalized.english.well","other.lang.foreign.5.17.naturalized.english.well","spanish.foreign.5.17.not.citizen.english.well","other.lang.foreign.5.17.not.citizen.english.well")]
+  foreign5.17badenglish=Census_data[c("spanish.foreign.5.17.naturalized.english.bad","other.lang.foreign.5.17.naturalized.english.bad","spanish.foreign.5.17.not.citizen.english.bad","other.lang.foreign.5.17.not.citizen.english.bad")]
+  foreign18onlyenglish=Census_data[c("english.foreign.over18.naturalized","english.foreign.over18.not.citizen")]
+  foreign18goodenglish=Census_data[c("spanish.foreign.18.naturalized.english.well","other.lang.foreign.18.naturalized.english.well","spanish.foreign.18.not.citizen.english.well","other.lang.foreign.18.not.citizen.english.well")]
+  foreign18badenglish=Census_data[c("spanish.foreign.18.naturalized.english.bad","other.lang.foreign.18.naturalized.english.bad","spanish.foreign.18.not.citizen.english.bad","other.lang.foreign.18.not.citizen.english.bad")]
   
   syntheticdataset$acode=ifelse(syntheticdataset$nativity=="Native"&syntheticdataset$English.speaking.skills=="Speaks English Very Well",sample(colnames(cbind(native5.17goodenglish,native18goodenglish)),1,prob=cbind(native5.17goodenglish/sum(native5.17goodenglish,native18goodenglish),native18goodenglish/sum(native5.17goodenglish,native18goodenglish))),
                                 ifelse(syntheticdataset$nativity=="Native"&syntheticdataset$English.speaking.skills=="Speaks English Not Very Well",sample(colnames(cbind(native5.17badenglish,native18badenglish)),1,prob=cbind(native5.17badenglish/sum(native5.17badenglish,native18badenglish),native18badenglish/sum(native18badenglish,native5.17badenglish))),
@@ -62,11 +60,11 @@ getcitizenandlang <- function(county,tract,syntheticdataset,seed,Census_data_Lis
                                                      ifelse(syntheticdataset$nativity=="Foreign"&syntheticdataset$English.speaking.skills=="Speaks English Very Well",sample(colnames(cbind(foreign5.17goodenglish,foreign18goodenglish)),1,prob=cbind(foreign5.17goodenglish/sum(foreign5.17goodenglish,foreign18goodenglish),foreign18goodenglish/sum(foreign18goodenglish,foreign5.17goodenglish))),
                                                             ifelse(syntheticdataset$nativity=="Foreign"&syntheticdataset$English.speaking.skills=="Speaks English Not Very Well",sample(colnames(cbind(foreign5.17badenglish,foreign18badenglish)),1,prob=cbind(foreign5.17badenglish/sum(foreign5.17badenglish,foreign18badenglish),foreign18badenglish/sum(foreign18badenglish,foreign5.17badenglish))),NA)))))
   syntheticdataset$citizenship=ifelse(syntheticdataset$nativity=="Native","Citizen",
-                                      ifelse(syntheticdataset$acode=="B16008_022E"|syntheticdataset$acode=="B16008_024E"|syntheticdataset$acode=="B16008_025E"|syntheticdataset$acode=="B16008_027E"|syntheticdataset$acode=="B16008_028E"|syntheticdataset$acode=="B16008_030E"|syntheticdataset$acode=="B16008_032E"|syntheticdataset$acode=="B16008_033E"|syntheticdataset$acode=="B16008_035E"|syntheticdataset$acode=="B16008_036E"|syntheticdataset$acode=="B16008_037E","Naturalized Citizen",
-                                             ifelse(syntheticdataset$acode=="B16008_039E"|syntheticdataset$acode=="B16008_041E"|syntheticdataset$acode=="B16008_042E"|syntheticdataset$acode=="B16008_044E"|syntheticdataset$acode=="B16008_045E"|syntheticdataset$acode=="B16008_047E"|syntheticdataset$acode=="B16008_049E"|syntheticdataset$acode=="B16008_050E"|syntheticdataset$acode=="B16008_052E"|syntheticdataset$acode=="B16008_053E","Not a U.S. Citizen",NA)))
+                                      ifelse(syntheticdataset$acode %in% c("english.foreign.5.17.naturalized","spanish.foreign.5.17.naturalized.english.well","other.lang.foreign.5.17.naturalized.english.well","spanish.foreign.5.17.naturalized.english.bad","other.lang.foreign.5.17.naturalized.english.bad","english.foreign.18.naturalized","spanish.foreign.18.naturalized.english.well","other.lang.foreign.18.naturalized.english.well","spanish.foreign.18.naturalized.english.bad","other.lang.foreign.18.naturalized.english.bad"),"Naturalized Citizen",
+                                             ifelse(grepl("not.citizen",syntheticdataset$acode),"Not a U.S. Citizen",NA)))
   syntheticdataset$Language.at.home=ifelse(syntheticdataset$English.speaking.skills=="Speaks Only English","English",
-                                      ifelse(syntheticdataset$acode=="B16008_006E"|syntheticdataset$acode=="B16008_007E"|syntheticdataset$acode=="B16008_014E"|syntheticdataset$acode=="B16008_015E"|syntheticdataset$acode=="B16008_024E"|syntheticdataset$acode=="B16008_025E"|syntheticdataset$acode=="B16008_032E"|syntheticdataset$acode=="B16008_033E"|syntheticdataset$acode=="B16008_041E"|syntheticdataset$acode=="B16008_042E"|syntheticdataset$acode=="B16008_049E"|syntheticdataset$acode=="B16008_050E","Speaks Spanish",
-                                             ifelse(syntheticdataset$acode=="B16008_009E"|syntheticdataset$acode=="B16008_010E"|syntheticdataset$acode=="B16008_017E"|syntheticdataset$acode=="B16008_018E"|syntheticdataset$acode=="B16008_027E"|syntheticdataset$acode=="B16008_028E"|syntheticdataset$acode=="B16008_035E"|syntheticdataset$acode=="B16008_036E"|syntheticdataset$acode=="B16008_044E"|syntheticdataset$acode=="B16008_045E"|syntheticdataset$acode=="B16008_052E"|syntheticdataset$acode=="B16008_053E","Speaks Other Languages",NA)))
+                                      ifelse(grepl("spanish",syntheticdataset$acode),"Speaks Spanish",
+                                             ifelse(grepl("other.lang",syntheticdataset$acode),"Speaks Other Languages",NA)))
   syntheticdataset$acode=NULL
   return(syntheticdataset)
 }
@@ -79,15 +77,16 @@ getvets <- function(county,tract,syntheticdataset,seed,Census_data_List){
   Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
   men18to34=Census_data[c("veteran.men.18.34","nonveteran.men.18.34")]
-  men35to54=c(veterans$B21001_011E,veterans$B21001_012E)
-  men55to64=c(veterans$B21001_014E,veterans$B21001_015E)
-  men65to74=c(veterans$B21001_017E,veterans$B21001_018E)
-  men75up=c(veterans$B21001_020E,veterans$B21001_021E)
-  women18to34=c(veterans$B21001_026E,veterans$B21001_027E)
-  women35to54=c(veterans$B21001_029E,veterans$B21001_030E)
-  women55to64=c(veterans$B21001_032E,veterans$B21001_033E)
-  women65to74=c(veterans$B21001_035E,veterans$B21001_036E)
-  women75up=c(veterans$B21001_038E,veterans$B21001_039E)
+  men35to54=Census_data[c("veteran.men.35.54","nonveteran.men.35.54")]
+  men55to64=Census_data[c("veteran.men.55.64","nonveteran.men.55.64")]
+  men65to74=Census_data[c("veteran.men.65.74","nonveteran.men.65.74")]
+  men75up=Census_data[c("veteran.men.over75","nonveteran.men.over75")]
+
+  women18to34=Census_data[c("veteran.women.18.34","nonveteran.women.18.34")]
+  women35to54=Census_data[c("veteran.women.35.54","nonveteran.women.35.54")]
+  women55to64=Census_data[c("veteran.women.55.64","nonveteran.women.55.64")]
+  women65to74=Census_data[c("veteran.women.65.74","nonveteran.women.65.74")]
+  women75up=Census_data[c("veteran.women.over75","nonveteran.women.over75")]
   
   veteran.status=ifelse(syntheticdataset$sex=="Male"&(syntheticdataset$age=="18 to 19"|syntheticdataset$age=="20 to 24"|syntheticdataset$age=="25 to 29"|syntheticdataset$age=="30 to 34")&!(syntheticdataset$employment=="In Armed Forces"),sample(c("Veteran","Nonveteran"),1,prob=men18to34/sum(men18to34)),
                         ifelse(syntheticdataset$sex=="Male"&(syntheticdataset$age=="35 to 44"|syntheticdataset$age=="45 to 54")&!(syntheticdataset$employment=="In Armed Forces"),sample(c("Veteran","Nonveteran"),1,prob=men35to54/sum(men35to54)),
@@ -104,26 +103,16 @@ getvets <- function(county,tract,syntheticdataset,seed,Census_data_List){
 }
 
 
-gettransport <- function(county,tract,syntheticdataset,seed,Census_data_List){
+gettransport <- function(county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
   
-  transport=Census_data_List$transport#read.csv(paste0(inputdir,"work_transportation.csv"))
-  transport=transport[(transport$tract==tract)&(transport$county==county),]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  male=c(transport$B08006_020E,transport$B08006_021E,transport$B08006_025E,transport$B08006_031E,transport$B08006_032E,transport$B08006_033E,transport$B08006_034E)
-  female=c(transport$B08006_037E,transport$B08006_038E,transport$B08006_042E,transport$B08006_048E,transport$B08006_049E,transport$B08006_050E,transport$B08006_051E)
-  
-  #novehicleavailable=c(transport$B08141_007E,transport$B08141_012E,transport$B08141_017E,transport$B08141_022E,transport$B08141_027E,transport$B08141_032E)
-  #onevehicleavailable=c(transport$B08141_008E,transport$B08141_013E,transport$B08141_018E,transport$B08141_023E,transport$B08141_028E,transport$B08141_033E)
-  #twovehiclesavailable=c(transport$B08141_009E,transport$B08141_014E,transport$B08141_019E,transport$B08141_024E,transport$B08141_029E,transport$B08141_034E)
-  #threevehiclesavailable=c(transport$B08141_010E,transport$B08141_015E,transport$B08141_020E,transport$B08141_025E,transport$B08141_030E,transport$B08141_035E)
-  code=c("drove alone","carpooled","public transportation","bicycle","walked","motorcycle taxicab or other","worked at home")
-  
-  #transport=ifelse(syntheticdataset$employment=="Employed"&syntheticdataset$number.of.vehicles==0,sample(code,1,prob=novehicleavailable/sum(novehicleavailable)),
-   #                ifelse(syntheticdataset$employment=="Employed"&syntheticdataset$number.of.vehicles==1,sample(code,1,prob=onevehicleavailable/sum(onevehicleavailable)),
-    #                      ifelse(syntheticdataset$employment=="Employed"&syntheticdataset$number.of.vehicles==2,sample(code,1,prob=twovehiclesavailable/sum(twovehiclesavailable)),
-     #                            ifelse(syntheticdataset$employment=="Employed"&(syntheticdataset$number.of.vehicles==3|syntheticdataset$number.of.vehicles==4),sample(code,1,prob=threevehiclesavailable/sum(threevehiclesavailable)),NA))))
-  
+  male=Census_data[c("drove.alone.men","carpooled.men","public.transport.men","bike.men","walk.men","other.transport.men","work.at.home.men")]
+  female=Census_data[c("drove.alone.women","carpooled.women","public.transport.women","bike.women","walk.women","other.transport.women","work.at.home.women")]
+
+    code=c("drove alone","carpooled","public transportation","bicycle","walked","motorcycle taxicab or other","worked at home")
+
   transport=ifelse(syntheticdataset$employment=="Employed"&syntheticdataset$sex=="Male",sample(code,1,prob=male/sum(male)),
                        ifelse(syntheticdataset$employment=="Employed"&syntheticdataset$sex=="Female",sample(code,1,prob=female/sum(female)),NA))
   
@@ -136,15 +125,14 @@ gettransport <- function(county,tract,syntheticdataset,seed,Census_data_List){
 gettraveltime=function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  traveltime=Census_data_List$traveltime #read.csv(paste0(inputdir,"travel_time.csv"))
-  traveltime=traveltime[(traveltime$tract==tract)&(traveltime$county==county),]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  drovealone=c(traveltime$B08134_022E,traveltime$B08134_023E,traveltime$B08134_024E,traveltime$B08134_025E,traveltime$B08134_026E,traveltime$B08134_027E,traveltime$B08134_028E,traveltime$B08134_029E,traveltime$B08134_030E)
-  carpooled=c(traveltime$B08134_032E,traveltime$B08134_033E,traveltime$B08134_034E,traveltime$B08134_035E,traveltime$B08134_036E,traveltime$B08134_037E,traveltime$B08134_038E,traveltime$B08134_039E,traveltime$B08134_040E)
-  publictransport=c(traveltime$B08134_062E,traveltime$B08134_063E,traveltime$B08134_064E,traveltime$B08134_065E,traveltime$B08134_066E,traveltime$B08134_067E,traveltime$B08134_068E,traveltime$B08134_069E,traveltime$B08134_070E)
-  walked=c(traveltime$B08134_102E,traveltime$B08134_103E,traveltime$B08134_104E,traveltime$B08134_105E,traveltime$B08134_106E,traveltime$B08134_107E,traveltime$B08134_108E,traveltime$B08134_109E,traveltime$B08134_110E)
-  other=c(traveltime$B08134_112E,traveltime$B08134_113E,traveltime$B08134_114E,traveltime$B08134_115E,traveltime$B08134_116E,traveltime$B08134_117E,traveltime$B08134_118E,traveltime$B08134_119E,traveltime$B08134_120E)
-  
+  drovealone=Census_data[c("drove.alone.less.than.10.minutes","drove.alone.10.14.minutes","drove.alone.15.19.minutes","drove.alone.20.24.minutes","drove.alone.30.34.minutes","drove.alone.35.44.minutes","drove.alone.45.59.minutes","drove.alone.over60.minutes")]
+  carpooled=Census_data[c("carpooled.less.than.10.minutes","carpooled.10.14.minutes","carpooled.15.19.minutes","carpooled.20.24.minutes","carpooled.30.34.minutes","carpooled.35.44.minutes","carpooled.45.59.minutes","carpooled.over60.minutes")]
+  publictransport==Census_data[c("public.transport.less.than.10.minutes","public.transport.10.14.minutes","public.transport.15.19.minutes","public.transport.20.24.minutes","public.transport.30.34.minutes","public.transport.35.44.minutes","public.transport.45.59.minutes","public.transport.over60.minutes")]
+  walked=Census_data[c("walked.less.than.10.minutes","walked.10.14.minutes","walked.15.19.minutes","walked.20.24.minutes","walked.30.34.minutes","walked.35.44.minutes","walked.45.59.minutes","walked.over60.minutes")]
+  other=Census_data[c("other.less.than.10.minutes","other.10.14.minutes","other.15.19.minutes","other.20.24.minutes","other.30.34.minutes","other.35.44.minutes","other.45.59.minutes","other.over60.minutes")]
+
   code=c("less than 10 minutes","10 to 14 minutes","15 to 19 minutes","20 to 24 minutes","25 to 29 minutes","30 to 34 minutes","35 to 44 minutes","45 to 59 minutes","60 minutes or more")
   
   travel.time.to.work=ifelse(syntheticdataset$means.of.transportation.to.work=="drove alone",sample(code,1,prob=drovealone/sum(drovealone)),
@@ -160,21 +148,12 @@ gettraveltime=function(county,tract,syntheticdataset,seed,Census_data_List){
 getincome <- function(county,tract,syntheticdataset,seed,Census_data_List){
   set.seed(seed)
   
-  income=Census_data_List$income #read.csv(paste0(inputdir,"household_income.csv"))
-  income=income[(income$tract==tract)&(income$county==county),]
-  income$county=NULL
-  income$tract=NULL
-  income$state=NULL
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
-  #This is from when income was cross tabulated with race
-  #blackincome=income[c("B19001B_002E","B19001B_003E","B19001B_004E","B19001B_005E","B19001B_006E","B19001B_007E","B19001B_008E","B19001B_009E","B19001B_010E","B19001B_011E","B19001B_012E","B19001B_013E","B19001B_014E","B19001B_015E","B19001B_016E","B19001B_017E")]
-  #AIANincome=income[c("B19001C_002E","B19001C_003E","B19001C_004E","B19001C_005E","B19001C_006E","B19001C_007E","B19001C_008E","B19001C_009E","B19001C_010E","B19001C_011E","B19001C_012E","B19001C_013E","B19001C_014E","B19001C_015E","B19001C_016E","B19001C_017E")]
-  #asianincome=income[c("B19001D_002E","B19001D_003E","B19001D_004E","B19001D_005E","B19001D_006E","B19001D_007E","B19001D_008E","B19001D_009E","B19001D_010E","B19001D_011E","B19001D_012E","B19001D_013E","B19001D_014E","B19001D_015E","B19001D_016E","B19001D_017E")]
-  #NHPIincome=income[c("B19001E_002E","B19001E_003E","B19001E_004E","B19001E_005E","B19001E_006E","B19001E_007E","B19001E_008E","B19001E_009E","B19001E_010E","B19001E_011E","B19001E_012E","B19001E_013E","B19001E_014E","B19001E_015E","B19001E_016E","B19001E_017E")]
-  #otherincome=income[c("B19001F_002E","B19001F_003E","B19001F_004E","B19001F_005E","B19001F_006E","B19001F_007E","B19001F_008E","B19001F_009E","B19001F_010E","B19001F_011E","B19001F_012E","B19001F_013E","B19001F_014E","B19001F_015E","B19001F_016E","B19001F_017E")]
-  #morethan1income=income[c("B19001G_002E","B19001G_003E","B19001G_004E","B19001G_005E","B19001G_006E","B19001G_007E","B19001G_008E","B19001G_009E","B19001G_010E","B19001G_011E","B19001G_012E","B19001G_013E","B19001G_014E","B19001G_015E","B19001G_016E","B19001G_017E")]
-  #whiteincome=income[c("B19001H_002E","B19001H_003E","B19001H_004E","B19001H_005E","B19001H_006E","B19001H_007E","B19001H_008E","B19001H_009E","B19001H_010E","B19001H_011E","B19001H_012E","B19001H_013E","B19001H_014E","B19001H_015E","B19001H_016E","B19001H_017E")]
-  #hispanicincome=income[c("B19001I_002E","B19001I_003E","B19001I_004E","B19001I_005E","B19001I_006E","B19001I_007E","B19001I_008E","B19001I_009E","B19001I_010E","B19001I_011E","B19001I_012E","B19001I_013E","B19001I_014E","B19001I_015E","B19001I_016E","B19001I_017E")]
+  income=Census_data[c("income.less.10000","income.10000.14999","income.15000.19999","income.20000.24999","income.25000.29999",
+                       "income.30000.34999","income.35000.39999","income.40000.44999","income.45000.49999","income.50000.59999",
+                       "income.60000.74999","income.75000.99999","income.100000.124999","income.125000.149999","income.150000.199999","income.over.200000")]
+  
   code=c("less than 10,000","10,000 to 14,999","15,000 to 19,999","20,000 to 24,999","25,000 to 29,999","30,000 to 34,999","35,000 to 39,999","40,000 to 44,999","45,000 to 49,999","50,000 to 59,999","60,000 to 74,999","75,000 to 99,999","100,000 to 124,999","125,000 to 149,999","150,000 to 199,999","200,000 or more")
   
   
@@ -182,49 +161,24 @@ getincome <- function(county,tract,syntheticdataset,seed,Census_data_List){
   household.income=rep(household.income,nrow(syntheticdataset))
   syntheticdataset$household.income=household.income
   
-  #finalsyntheticdataset=data.frame()
-  
-  #samplehouses=unique(syntheticdataset$householdID)
-  #for(sampleID in samplehouses){
-   # sampledhouse=subset(syntheticdataset,syntheticdataset$householdID==sampleID)
-    
-    #household.income=sample(code,size=1,prob=c(income/sum(income)))
-    #household.income=rep(household.income,nrow(sampledhouse))
-    #sampledhouse$household.income=household.income
 
-    #finalsyntheticdataset=rbind(finalsyntheticdataset,sampledhouse)
-    
-    
-  #}
   return(syntheticdataset)#=finalsyntheticdataset)
-  #household.income=ifelse(syntheticdataset$race=="Black or African American",sample(code,1,prob=blackincome/sum(blackincome)),
-  #                        ifelse(syntheticdataset$race=="American Indian or Alaskan Native",sample(code,1,prob=AIANincome/sum(AIANincome)),
-   #                              ifelse(syntheticdataset$race=="Asian",sample(code,1,prob=asianincome/sum(asianincome)),
-    #                                    ifelse(syntheticdataset$race=="Native Hawaiian or Other Pacific Islander",sample(code,1,prob=NHPIincome/sum(NHPIincome)),
-     #                                          ifelse(syntheticdataset$race=="Some Other Race",sample(code,1,prob=otherincome/sum(otherincome)),
-      #                                                ifelse(syntheticdataset$race=="Two or More Races",sample(code,1,prob=morethan1income/sum(morethan1income)),
-       #                                                      ifelse(syntheticdataset$race=="White",sample(code,1,prob=whiteincome/sum(whiteincome)),
-        #                                                            ifelse(syntheticdataset$race=="Hispanic or Latino",sample(code,1,prob=hispanicincome/sum(hispanicincome)),
-         #                 NA))))))))
   
-  
-  #syntheticdataset$household.income=household.income
-  #return(syntheticdataset)
 }
 
 
 getinsurance <- function(county,tract,syntheticdataset,seed,inputdir){
   set.seed(seed)
   
-  insurance=Census_data_List$insurance#read.csv(paste0(inputdir,"health_insurance.csv"))
-  insurance=insurance[(insurance$tract==tract)&(insurance$county==county),]
+  Census_data=Census_data[(Census_data$county==county) & (Census_data$tract==tract),]
   
   #Organize Data Set by row
-  under25000=insurance[c("B27015_004E","B27015_005E","B27015_006E")]
-  between25to49=insurance[c("B27015_009E","B27015_010E","B27015_011E")]
-  between50to75=insurance[c("B27015_014E","B27015_015E","B27015_016E")]
-  between75to100=insurance[c("B27015_019E","B27015_020E","B27015_021E")]
-  over100=insurance[c("B27015_024E","B27015_025E","B27015_026E")]
+  under25000=Census_data[c("private.insurance.under25000","public.insurance.under25000","no.insurance.under25000")]
+  between25to49=Census_data[c("private.insurance.25.49","public.insurance.25.49","no.insurance.25.49")]
+  between50to75=Census_data[c("private.insurance.50.75","public.insurance.50.75","no.insurance.50.75")]
+  between75to100=Census_data[c("private.insurance.75.100","public.insurance.75.100","no.insurance.75.100")]
+  over100=Census_data[c("private.insurance.over100","public.insurance.over100","no.insurance.over100")]
+
   
   code=c("private insurance","public insurance","no insurance")
   
