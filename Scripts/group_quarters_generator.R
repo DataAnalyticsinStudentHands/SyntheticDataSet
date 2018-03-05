@@ -17,7 +17,7 @@ source('workingdoc4.R')
 source('workingdoc5.R')
 source('citiesproject.R')
 
-group_quarters_simulater<-function(county,tract,number.of.people,seed,inputdir = "../Inputs/",Census_data_List){  
+group_quarters_simulater<-function(county,tract,number.of.people,seed,inputdir = "../Inputs/",Census_data){  
   #Set seed so sampling will be repeatable
   set.seed(seed)
   fullset=data.frame()
