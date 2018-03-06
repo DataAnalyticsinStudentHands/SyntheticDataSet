@@ -14,7 +14,7 @@
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset The simulated dataset with the added variable for number.of.vehicles.
 
-getnumberofvehiclesforgroupquarters <- function(state, county, tract,syntheticdataset,seed,Census_data_List){
+getnumberofvehiclesforgroupquarters <- function(state, county, tract,syntheticdataset,seed,Census_data){
   #Generates number of vehicles per household
 
   #Set seed so sampling is random but repeatable
@@ -22,8 +22,7 @@ getnumberofvehiclesforgroupquarters <- function(state, county, tract,syntheticda
 
   Census_data=Census_data[(Census_data$state==state) &(Census_data$county==county) & (Census_data$tract==tract),]
 
-  vehicles <- vehiclesbygender[(vehiclesbygender$tract==tract) & (vehiclesbygender$county==county),]
-  male_number_of_vehicles=vCensus_data[c("male0cars","male1car","male2cars","male3cars","male4cars","male5cars")]
+  male_number_of_vehicles=Census_data[c("male0cars","male1car","male2cars","male3cars","male4cars","male5cars")]
   colnames(male_number_of_vehicles)=paste0(0:5)
   female_number_of_vehicles=Census_data[c("female0cars","female1car","female2cars","female3cars","female4cars","female5cars")]
   colnames(female_number_of_vehicles)=paste0(0:5)
@@ -51,7 +50,7 @@ getnumberofvehiclesforgroupquarters <- function(state, county, tract,syntheticda
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset The simulated dataset with the added variable for income.
 #'
-getincomeforgroupquarters <- function(state, county, tract,syntheticdataset,seed,Census_data_List){
+getincomeforgroupquarters <- function(state, county, tract,syntheticdataset,seed,Census_data){
   #Generates number of vehicles per household
 
   #Set seed so sampling is random but repeatable
@@ -73,10 +72,10 @@ getincomeforgroupquarters <- function(state, county, tract,syntheticdataset,seed
   colnames(income)=c("No income","less than 10,000","10,000 to 14,999","15,000 to 24,999","25,000 to 34,999","35,000 to 49,999","50,000 to 64,999","65,000 to 74,999","Over 75,000")
 
   #Sample
-  household.income=paste0("individual_income:",sample(colnames(income)),1,prob=income/sum(income))
+  household.income=paste0("individual_income:",sample(colnames(income),1,prob=income/sum(income)))
 
   #add to data frame
-  syntheticdataset$household.income=income
+  syntheticdataset$household.income=household.income
 
   return(syntheticdataset=syntheticdataset)
 }
@@ -97,7 +96,7 @@ getincomeforgroupquarters <- function(state, county, tract,syntheticdataset,seed
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset The simulated dataset with the added variable for health insurance.
 #'
-gethealthinsuranceforgroupquarters <- function(state, county, tract,syntheticdataset,seed,Census_data_List){
+gethealthinsuranceforgroupquarters <- function(state, county, tract,syntheticdataset,seed,Census_data){
   #Generates number of vehicles per household
 
   #Set seed so sampling is random but repeatable
@@ -107,11 +106,11 @@ gethealthinsuranceforgroupquarters <- function(state, county, tract,syntheticdat
 
   #divide out appropriately
   with_disability_under_18=Census_data[c("with.disability.under18.private.insurance","with.disability.under18.public.insurance","with.disability.under18.no.insurance")]
-  withoutout_disability_under_18=Census_data[c("without.disability.under18.private.insurance","without.disability.under18.public.insurance","without.disability.under18.no.insurance")]
+  without_disability_under_18=Census_data[c("without.disability.under18.private.insurance","without.disability.under18.public.insurance","without.disability.under18.no.insurance")]
   with_disability_18_to_64=Census_data[c("with.disability.18.64.private.insurance","with.disability.18.64.public.insurance","with.disability.18.64.no.insurance")]
-  withoutout_disability_18_to_64=Census_data[c("without.disability.18.64.private.insurance","without.disability.18.64.public.insurance","without.disability.18.64.no.insurance")]
+  without_disability_18_to_64=Census_data[c("without.disability.18.64.private.insurance","without.disability.18.64.public.insurance","without.disability.18.64.no.insurance")]
   with_disability_over_65=Census_data[c("with.disability.over65.private.insurance","with.disability.over65.public.insurance","with.disability.over65.no.insurance")]
-  withoutout_disability_over_65=Census_data[c("without.disability.over65.private.insurance","without.disability.over65.public.insurance","without.disability.over65.no.insurance")]
+  without_disability_over_65=Census_data[c("without.disability.over65.private.insurance","without.disability.over65.public.insurance","without.disability.over65.no.insurance")]
 
   code=c("private insurance","public insurance","no insurance")
 

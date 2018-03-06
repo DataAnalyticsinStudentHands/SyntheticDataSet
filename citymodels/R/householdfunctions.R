@@ -20,7 +20,7 @@ getnumberofvehiclesforhouseholds <- function(state, county, tract,syntheticdatas
   set.seed(seed)
 
   #Read in data for sampling distribution
-  Census_data=Census_data[(Census_data$tract==tract)&(Census_data$county==county)&(Census_data$state==state)]
+  Census_data=Census_data[(Census_data$tract==tract)&(Census_data$county==county)&(Census_data$state==state),]
 
 
   #Sample for one person household

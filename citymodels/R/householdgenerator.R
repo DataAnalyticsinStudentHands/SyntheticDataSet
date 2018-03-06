@@ -18,11 +18,14 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
   #initialize data frame
   fullset=data.frame()
 
+  #set seed
+  set.seed(seed)
+
   #subset data for correct Census tract
-  Census_data=Census_data[(Census_data$state==state)&(Census_data$tract==tract)&(Census_data$county==county)]
+  Census_data=Census_data[(Census_data$state==state)&(Census_data$tract==tract)&(Census_data$county==county),]
 
   #Get a probability vector for their type
-  familyHHtypes=Census_data["married.couple.families","male.householders.no.wife","female.householders.no.husband"]
+  familyHHtypes=Census_data[c("married.couple.families","male.householders.no.wife","female.householders.no.husband")]
 
   colnames(familyHHtypes)<-c("Married-couple family", "Male householder- no wife present","Female householder- no husband present")
   familyHHtypes=familyHHtypes/rowSums(familyHHtypes)
@@ -56,11 +59,11 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
         partofset=data.frame(household.type=rep(HHtype,2),member=c("Husband","Wife"),size=rep(2,2))
       }
 
-      if(HHtype=="Male householder, no wife present"){
+      if(HHtype=="Male householder- no wife present"){
         partofset=data.frame(household.type=rep(HHtype,2),member=c("Male Householder","NA"),size=rep(2,2))
       }
 
-      if(HHtype=="Female householder, no wife present"){
+      if(HHtype=="Female householder- no husband present"){
         partofset=data.frame(household.type=rep(HHtype,2),member=c("Female Householder","NA"),size=rep(2,2))
       }
 
@@ -70,8 +73,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
 
       #Build using Census Data
       #partofset=gethouseholdtypeandrace(state,county,tract,seedy,Census_data)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(state,county,tract,partofset,seedy,Census_data)#only dependent on size
-      partofset=getsexandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
       partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
       partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
       partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
@@ -81,8 +84,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
       partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
       partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
       partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-      partofset=getincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
+      partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
 
       #Build Using 500 Cities Project Data
       #partofset=get65menuptodate(state,county,tract,partofset,seedy)
@@ -136,11 +139,11 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
         partofset=data.frame(household.type=rep(HHtype,3),member=c("Husband","Wife","NA"),size=rep(3,3))
       }
 
-      if(HHtype=="Male householder, no wife present"){
+      if(HHtype=="Male householder- no wife present"){
         partofset=data.frame(household.type=rep(HHtype,3),member=c("Male Householder",rep("NA",2)),size=rep(3,3))
       }
 
-      if(HHtype=="Female householder, no wife present"){
+      if(HHtype=="Female householder- no husband present"){
         partofset=data.frame(household.type=rep(HHtype,3),member=c("Female Householder",rep("NA",2)),size=rep(3,3))
       }
 
@@ -150,8 +153,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
 
       #Build using Census Data
       #partofset=gethouseholdtypeandrace(state,county,tract,seedy,Census_data)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(state,county,tract,partofset,seedy,Census_data)#only dependent on size
-      partofset=getsexandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
       partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
       partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
       partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
@@ -161,8 +164,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
       partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
       partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
       partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-      partofset=getincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
+      partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
 
       #Build Using 500 Cities Project Data
       #partofset=get65menuptodate(state,county,tract,partofset,seedy)
@@ -216,11 +219,11 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
         partofset=data.frame(household.type=rep(HHtype,4),member=c("Husband","Wife",rep("NA",2)),size=rep(4,4))
       }
 
-      if(HHtype=="Male householder, no wife present"){
+      if(HHtype=="Male householder- no wife present"){
         partofset=data.frame(household.type=rep(HHtype,4),member=c("Male Householder",rep("NA",3)),size=rep(4,4))
       }
 
-      if(HHtype=="Female householder, no wife present"){
+      if(HHtype=="Female householder- no husband present"){
         partofset=data.frame(household.type=rep(HHtype,4),member=c("Female Householder",rep("NA",3)),size=rep(4,4))
       }
 
@@ -230,8 +233,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
 
       #Build using Census Data
       #partofset=gethouseholdtypeandrace(state,county,tract,seedy,Census_data)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(state,county,tract,partofset,seedy,Census_data)#only dependent on size
-      partofset=getsexandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
       partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
       partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
       partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
@@ -241,8 +244,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
       partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
       partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
       partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-      partofset=getincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
+      partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
 
       #Build Using 500 Cities Project Data
       #partofset=get65menuptodate(state,county,tract,partofset,seedy)
@@ -296,11 +299,11 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
         partofset=data.frame(household.type=rep(HHtype,5),member=c("Husband","Wife",rep("NA",3)),size=rep(5,5))
       }
 
-      if(HHtype=="Male householder, no wife present"){
+      if(HHtype=="Male householder- no wife present"){
         partofset=data.frame(household.type=rep(HHtype,5),member=c("Male Householder",rep("NA",4)),size=rep(5,5))
       }
 
-      if(HHtype=="Female householder, no wife present"){
+      if(HHtype=="Female householder- no husband present"){
         partofset=data.frame(household.type=rep(HHtype,5),member=c("Female Householder",rep("NA",4)),size=rep(5,5))
       }
 
@@ -310,8 +313,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
 
       #Build using Census Data
       #partofset=gethouseholdtypeandrace(state,county,tract,seedy,Census_data)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(state,county,tract,partofset,seedy,Census_data)#only dependent on size
-      partofset=getsexandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
       partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
       partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
       partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
@@ -321,8 +324,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
       partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
       partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
       partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-      partofset=getincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
+      partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
 
       #Build Using 500 Cities Project Data
       #partofset=get65menuptodate(state,county,tract,partofset,seedy)
@@ -376,11 +379,11 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
         partofset=data.frame(household.type=rep(HHtype,6),member=c("Husband","Wife",rep("NA",4)),size=rep(6,6))
       }
 
-      if(HHtype=="Male householder, no wife present"){
+      if(HHtype=="Male householder- no wife present"){
         partofset=data.frame(household.type=rep(HHtype,6),member=c("Male Householder",rep("NA",5)),size=rep(6,6))
       }
 
-      if(HHtype=="Female householder, no wife present"){
+      if(HHtype=="Female householder- no husband present"){
         partofset=data.frame(household.type=rep(HHtype,6),member=c("Female Householder",rep("NA",5)),size=rep(6,6))
       }
 
@@ -390,8 +393,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
 
       #Build using Census Data
       #partofset=gethouseholdtypeandrace(state,county,tract,seedy,Census_data)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(state,county,tract,partofset,seedy,Census_data)#only dependent on size
-      partofset=getsexandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
       partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
       partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
       partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
@@ -401,8 +404,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
       partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
       partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
       partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-      partofset=getincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
+      partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
 
       #Build Using 500 Cities Project Data
       #partofset=get65menuptodate(state,county,tract,partofset,seedy)
@@ -456,11 +459,11 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
         partofset=data.frame(household.type=rep(HHtype,7),member=c("Husband","Wife",rep("NA",5)),size=rep(7,7))
       }
 
-      if(HHtype=="Male householder, no wife present"){
+      if(HHtype=="Male householder- no wife present"){
         partofset=data.frame(household.type=rep(HHtype,7),member=c("Male Householder",rep("NA",6)),size=rep(7,7))
       }
 
-      if(HHtype=="Female householder, no wife present"){
+      if(HHtype=="Female householder- no husband present"){
         partofset=data.frame(household.type=rep(HHtype,7),member=c("Female Householder",rep("NA",6)),size=rep(7,7))
       }
 
@@ -470,8 +473,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
 
       #Build using Census Data
       #partofset=gethouseholdtypeandrace(state,county,tract,seedy,Census_data)#not dependent on anything gets type and race
-      partofset=getnumberofvehicles(state,county,tract,partofset,seedy,Census_data)#only dependent on size
-      partofset=getsexandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
+      partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
+      partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
       partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
       partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
       partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
@@ -481,8 +484,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
       partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
       partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
       partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-      partofset=getincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=getinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
+      partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
 
       #Build Using 500 Cities Project Data
       #partofset=get65menuptodate(state,county,tract,partofset,seedy)
@@ -520,13 +523,13 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
   }
 
   #Create Non family households
-  nonfamily=Census_data["nonfamily.1.person.household","nonfamily.2.person.household","nonfamily.3.person.household","nonfamily.4.person.household","nonfamily.5.person.household","nonfamily.6.person.household","nonfamily.7.person.household"]
+  nonfamilyHHs=Census_data[c("nonfamily.1.person.household","nonfamily.2.person.household","nonfamily.3.person.household","nonfamily.4.person.household","nonfamily.5.person.household","nonfamily.6.person.household","nonfamily.7.person.household")]
 
   for(x in 1:7){
 
     if(nonfamilyHHs[x]>0){
       #make a seed for each household
-      nonfamily_seeds=sample(1:100000000,nonfamilyHHs[x],replace = FALSE)
+      nonfamily_seeds=sample(1:100000000,as.numeric(nonfamilyHHs[x]),replace = FALSE)
 
       for(seedy in nonfamily_seeds){ #for each seed create a household
         #set seed
@@ -546,8 +549,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
 
         #Build using Census Data
         #partofset=gethouseholdtypeandrace(state,county,tract,seedy,Census_data)#not dependent on anything gets type and race
-        partofset=getnumberofvehicles(state,county,tract,partofset,seedy,Census_data)#only dependent on size
-        partofset=getsexandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
+        partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
+        partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
         partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
         partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
         partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
@@ -557,8 +560,8 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
         partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
         partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
         partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-        partofset=getincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-        partofset=getinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
+        partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+        partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
 
         #Build Using 500 Cities Project Data
         #partofset=get65menuptodate(state,county,tract,partofset,seedy)

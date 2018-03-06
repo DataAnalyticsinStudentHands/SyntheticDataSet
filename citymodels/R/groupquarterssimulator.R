@@ -53,7 +53,7 @@ group_quarters_simulater<-function(state,county,tract,number.of.people,seed,inpu
         partofset=data.frame(household.type="Group Quarters",member="NA",size="Group Quarters")
         #partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
         #partofset$number.of.vehicles=rep(NA,nrow(partofset))#leave as NA for now
-        partofset=getsexandage(state,county,tract,partofset,seedy,Census_data)
+        partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)
         partofset=getnumberofvehiclesforgroupquarters(state,county,tract,partofset,seedy,Census_data)#by sex
         partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
         partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
@@ -101,7 +101,10 @@ group_quarters_simulater<-function(state,county,tract,number.of.people,seed,inpu
 
         partofset$householdID=rep(paste("group_quarters",county,tract,seedy,sep=".",collapse="."),nrow(partofset))
 
-        #Save new household with any previous households
+        #Save everyone together
+        #Get rid of row names so they'll merge
+        rownames(fullset) <- NULL
+        rownames(partofset) <- NULL
         fullset=rbind(fullset,partofset)
 
 

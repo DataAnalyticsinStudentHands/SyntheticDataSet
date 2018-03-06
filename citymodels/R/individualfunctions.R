@@ -14,7 +14,7 @@
 #' @return syntheticdataset The simulated dataset with the added variables for sex, age and race.
 
 
-getsexraceandage <- function(state, county, tract, syntheticdataset,seed,Census_data_list){
+getsexraceandage <- function(state, county, tract, syntheticdataset,seed,Census_data){
 
 
   #Set seed so sampling is random but repeatable
@@ -23,7 +23,7 @@ getsexraceandage <- function(state, county, tract, syntheticdataset,seed,Census_
 
   #Read in Census data and subset by tract and county
   #Data for sex age and race code
-  Census_data=Census_data[(Census_data$state==state)&(Census_data$tract==tract)&(Census_data$county==county)]
+  Census_data=Census_data[(Census_data$state==state)&(Census_data$tract==tract)&(Census_data$county==county),]
 
 
   #Organize Census data by race and adult and children, as well as get the minimum number of necessary adults per race: 1 per household 2 for married couples
@@ -78,9 +78,9 @@ getsexraceandage <- function(state, county, tract, syntheticdataset,seed,Census_
   totalHispanic=sum(HispanicWomen,Hispanicgirls,HispanicMen,Hispanicboys)
 
   all.the.kids=cbind(Blackboys,Blackgirls,AmerIndianAlaskanboys,AmerIndianAlaskangirls,Asianboys,Asiangirls,Islanderboys,Islandergirls,OtherRaceboys,OtherRacegirls,MultiRaceboys,MultiRacegirls,Whiteboys,Whitegirls,Hispanicboys,Hispanicgirls)
-  all.the.adult.men=cbind(BlackMen,AmerIndianAlaskanMen,AsianMen,Islandermen,OtherRaceMen,MultiRaceMen,WhiteMen,HispanicMen)
-  all.the.adult.women=cbind(BlackWomen,AmerIndianAlaskanWomen,AsianWomen,Islanderwomen,OtherRaceWomen,MultiRaceWomen,WhiteWomen,HispanicWomen)
-  totalhouseholders=sum(2*Census_data$married.couple.families,male.householders.no.wife,female.householders.no.husband,nonfamily.1.person.household,nonfamily.2.person.household,nonfamily.3.person.household,nonfamily.4.person.household,nonfamily.5.person.household,nonfamily.6.person.household,nonfamily.7.person.household)
+  all.the.adult.men=cbind(BlackMen,AmerIndianAlaskanMen,AsianMen,IslanderMen,OtherRaceMen,MultiRaceMen,WhiteMen,HispanicMen)
+  all.the.adult.women=cbind(BlackWomen,AmerIndianAlaskanWomen,AsianWomen,IslanderWomen,OtherRaceWomen,MultiRaceWomen,WhiteWomen,HispanicWomen)
+  totalhouseholders=sum(2*Census_data$married.couple.families,Census_data$male.householders.no.wife,Census_data$female.householders.no.husband,Census_data$nonfamily.1.person.household,Census_data$nonfamily.2.person.household,Census_data$nonfamily.3.person.household,Census_data$nonfamily.4.person.household,Census_data$nonfamily.5.person.household,Census_data$nonfamily.6.person.household,Census_data$nonfamily.7.person.household)
 
   #householders and married couples were already created in the function gethouseholdtypeandsize, these people must be adults
   #to make sure adults and children are evenly balanced other members of households are first sampled as either children or adults
@@ -120,7 +120,7 @@ getsexraceandage <- function(state, county, tract, syntheticdataset,seed,Census_
   #Use sexageandrace code to get sex
   getsex <- function(syntheticdataset){
 
-    Female=colnames(cbind(BlackWomen,Blackgirls,AmerIndianAlaskanWomen,AmerIndianAlaskangirls,AsianWomen,Asiangirls,Islanderwomen,Islandergirls,OtherRaceWomen,OtherRacegirls,MultiRaceWomen,MultiRacegirls,WhiteWomen,Whitegirls,HispanicWomen,Hispanicgirls))
+    Female=colnames(cbind(BlackWomen,Blackgirls,AmerIndianAlaskanWomen,AmerIndianAlaskangirls,AsianWomen,Asiangirls,IslanderWomen,Islandergirls,OtherRaceWomen,OtherRacegirls,MultiRaceWomen,MultiRacegirls,WhiteWomen,Whitegirls,HispanicWomen,Hispanicgirls))
     sex=ifelse((syntheticdataset$sexbyagecode %in% Female),"Female","Male")
     return(sex)
   }
@@ -154,7 +154,7 @@ getsexraceandage <- function(state, county, tract, syntheticdataset,seed,Census_
     race=ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(BlackWomen,Blackgirls,BlackMen,Blackboys))),"Black or African American",
                 ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(AmerIndianAlaskanWomen,AmerIndianAlaskangirls,AmerIndianAlaskanMen,AmerIndianAlaskanboys))),"American Indian or Alaskan Native",
                        ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(AsianWomen,Asiangirls,AsianMen,Asianboys))),"Asian",
-                              ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(Islanderwomen,Islandergirls,Islandermen,Islanderboys))),"Native Hawaiian or Other Pacific Islander",
+                              ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(IslanderWomen,Islandergirls,IslanderMen,Islanderboys))),"Native Hawaiian or Other Pacific Islander",
                                      ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(OtherRaceWomen,OtherRacegirls,OtherRaceMen,OtherRaceboys))),"Some Other Race",
                                             ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(MultiRaceboys,MultiRacegirls,MultiRaceMen,MultiRaceWomen))),"Two or More Races",
                                                    ifelse((syntheticdataset$sexbyagecode %in% colnames(cbind(WhiteWomen,Whitegirls,WhiteMen,Whiteboys))),"White",
@@ -300,7 +300,7 @@ getemployment=function(state, county,tract,syntheticdataset,seed,Census_data){
   Women16.19=Census_data[c("in.armed.forces.women.16.19","employed.women.16.19","unemployed.women.16.19","not.in.labor.forces.women.16.19")]
   Women20.21=Census_data[c("in.armed.forces.women.20.21","employed.women.20.21","unemployed.women.20.21","not.in.labor.forces.women.20.21")]
   Women22.24=Census_data[c("in.armed.forces.women.22.24","employed.women.22.24","unemployed.women.22.24","not.in.labor.forces.women.22.24")]
-  Women20.24=c(Women20.21$in.armed.forces.women.20.21+Women22.24$in.armed.forces.22.24,Women20.21$employed.women.20.21+Women22.24$employed.women.22.24,Women20.21$unemployed.women.20.21+Women22.24$unemployed.women.22.24,Women20.21$not.in.labor.forces.women.20.21+Women22.24$not.in.labor.forces.women.22.24)
+  Women20.24=Women20.21+Women22.24
   Women25.29=Census_data[c("in.armed.forces.women.25.29","employed.women.25.29","unemployed.women.25.29","not.in.labor.forces.women.25.29")]
   Women30.34=Census_data[c("in.armed.forces.women.30.34","employed.women.30.34","unemployed.women.30.34","not.in.labor.forces.women.30.34")]
   Women35.44=Census_data[c("in.armed.forces.women.35.44","employed.women.35.44","unemployed.women.35.44","not.in.labor.forces.women.35.44")]
@@ -308,16 +308,16 @@ getemployment=function(state, county,tract,syntheticdataset,seed,Census_data){
   Women55.59=Census_data[c("in.armed.forces.women.55.59","employed.women.55.59","unemployed.women.55.59","not.in.labor.forces.women.55.59")]
   Women60.61=Census_data[c("in.armed.forces.women.60.61","employed.women.60.61","unemployed.women.60.61","not.in.labor.forces.women.60.61")]
   Women62.64=Census_data[c("in.armed.forces.women.62.64","employed.women.62.64","unemployed.women.62.64","not.in.labor.forces.women.62.64")]
-  Women55.64=c(Women55.59$in.armed.forces.women.55.59+Women60.61$in.armed.forces.women.60.61+Women62.64$in.armed.forces.women.62.64,Women55.59$employed.women.55.59+Women60.61$employed.women.60.61+Women62.64$employed.women.62.64,Women55.59$unemployed.women.55.59+Women60.61$unemployed.women.60.61+Women62.64$unemployed.women.62.64,Women55.59$not.in.labor.forces.women.55.59+Women60.61$not.in.labor.forces.women.60.61+Women62.64$not.in.labor.forces.women.62.64)
+  Women55.64=Women55.59+Women60.61+Women62.64
   Women65.69=Census_data[c("employed.women.65.69","unemployed.women.65.69","not.in.labor.forces.women.65.69")]
   Women70.74=Census_data[c("employed.women.70.74","unemployed.women.70.74","not.in.labor.forces.women.70.74")]
-  Women65.74=c(Women65.69$employed.women.65.69+Women70.74$employed.women.70.74,Women65.69$unemployed.65.69+Women70.74$unemployed.70.74,Women65.69$not.in.labor.forces.women.65.69+Women70.74$not.in.labor.forces.women.70.74)
+  Women65.74=Women65.69+Women70.74
   Women75=Census_data[c("employed.women.over.75","unemployed.women.over.75","not.in.labor.forces.women.over.75")]
 
   Men16.19=Census_data[c("in.armed.forces.men.16.19","employed.men.16.19","unemployed.men.16.19","not.in.labor.forces.men.16.19")]
   Men20.21=Census_data[c("in.armed.forces.men.20.21","employed.men.20.21","unemployed.men.20.21","not.in.labor.forces.men.20.21")]
   Men22.24=Census_data[c("in.armed.forces.men.22.24","employed.men.22.24","unemployed.men.22.24","not.in.labor.forces.men.22.24")]
-  Men20.24=c(Men20.21$in.armed.forces.men.20.21+Men22.24$in.armed.forces.22.24,Men20.21$employed.men.20.21+Men22.24$employed.men.22.24,Men20.21$unemployed.men.20.21+Men22.24$unemployed.men.22.24,Men20.21$not.in.labor.forces.men.20.21+Men22.24$not.in.labor.forces.men.22.24)
+  Men20.24=Men20.21+Men22.24
   Men25.29=Census_data[c("in.armed.forces.men.25.29","employed.men.25.29","unemployed.men.25.29","not.in.labor.forces.men.25.29")]
   Men30.34=Census_data[c("in.armed.forces.men.30.34","employed.men.30.34","unemployed.men.30.34","not.in.labor.forces.men.30.34")]
   Men35.44=Census_data[c("in.armed.forces.men.35.44","employed.men.35.44","unemployed.men.35.44","not.in.labor.forces.men.35.44")]
@@ -325,10 +325,10 @@ getemployment=function(state, county,tract,syntheticdataset,seed,Census_data){
   Men55.59=Census_data[c("in.armed.forces.men.55.59","employed.men.55.59","unemployed.men.55.59","not.in.labor.forces.men.55.59")]
   Men60.61=Census_data[c("in.armed.forces.men.60.61","employed.men.60.61","unemployed.men.60.61","not.in.labor.forces.men.60.61")]
   Men62.64=Census_data[c("in.armed.forces.men.62.64","employed.men.62.64","unemployed.men.62.64","not.in.labor.forces.men.62.64")]
-  Men55.64=c(Men55.59$in.armed.forces.men.55.59+Men60.61$in.armed.forces.men.60.61+Men62.64$in.armed.forces.men.62.64,Men55.59$employed.men.55.59+Men60.61$employed.men.60.61+Men62.64$employed.men.62.64,Men55.59$unemployed.men.55.59+Men60.61$unemployed.men.60.61+Men62.64$unemployed.men.62.64,Men55.59$not.in.labor.forces.men.55.59+Men60.61$not.in.labor.forces.men.60.61+Men62.64$not.in.labor.forces.men.62.64)
+  Men55.64=Men55.59+Men60.61+Men62.64
   Men65.69=Census_data[c("employed.men.65.69","unemployed.men.65.69","not.in.labor.forces.men.65.69")]
   Men70.74=Census_data[c("employed.men.70.74","unemployed.men.70.74","not.in.labor.forces.men.70.74")]
-  Men65.74=c(Men65.69$employed.men.65.69+Men70.74$employed.men.70.74,Men65.69$unemployed.65.69+Men70.74$unemployed.70.74,Men65.69$not.in.labor.forces.men.65.69+Men70.74$not.in.labor.forces.men.70.74)
+  Men65.74=Men65.69+Men70.74
   Men75=Census_data[c("employed.men.over.75","unemployed.men.over.75","not.in.labor.forces.men.over.75")]
 
   code1=c("In Armed Forces","Employed","Unemployed","Not in labor force")
@@ -507,7 +507,7 @@ getcitizenandlang <- function(state,county,tract,syntheticdataset,seed,Census_da
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset The simulated dataset with the added variable for veteran status.
 
-getvets <- function(state, county,tract,syntheticdataset,seed,Census_data_List){
+getvets <- function(state, county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
 
   Census_data=Census_data[(Census_data$state==state) &(Census_data$county==county) & (Census_data$tract==tract),]
@@ -585,16 +585,16 @@ gettransport <- function(state, county,tract,syntheticdataset,seed,Census_data){
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset The simulated dataset with the added variable for transport.
-gettraveltime=function(state,county,tract,syntheticdataset,seed,Census_data_List){
+gettraveltime=function(state,county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
 
   Census_data=Census_data[(Census_data$state==state) &(Census_data$county==county) & (Census_data$tract==tract),]
 
-  drovealone=Census_data[c("drove.alone.less.than.10.minutes","drove.alone.10.14.minutes","drove.alone.15.19.minutes","drove.alone.20.24.minutes","drove.alone.30.34.minutes","drove.alone.35.44.minutes","drove.alone.45.59.minutes","drove.alone.over60.minutes")]
-  carpooled=Census_data[c("carpooled.less.than.10.minutes","carpooled.10.14.minutes","carpooled.15.19.minutes","carpooled.20.24.minutes","carpooled.30.34.minutes","carpooled.35.44.minutes","carpooled.45.59.minutes","carpooled.over60.minutes")]
-  publictransport==Census_data[c("public.transport.less.than.10.minutes","public.transport.10.14.minutes","public.transport.15.19.minutes","public.transport.20.24.minutes","public.transport.30.34.minutes","public.transport.35.44.minutes","public.transport.45.59.minutes","public.transport.over60.minutes")]
-  walked=Census_data[c("walked.less.than.10.minutes","walked.10.14.minutes","walked.15.19.minutes","walked.20.24.minutes","walked.30.34.minutes","walked.35.44.minutes","walked.45.59.minutes","walked.over60.minutes")]
-  other=Census_data[c("other.less.than.10.minutes","other.10.14.minutes","other.15.19.minutes","other.20.24.minutes","other.30.34.minutes","other.35.44.minutes","other.45.59.minutes","other.over60.minutes")]
+  drovealone=Census_data[c("drove.alone.less.than.10.minutes","drove.alone.10.14.minutes","drove.alone.15.19.minutes","drove.alone.20.24.minutes","drove.alone.25.29.minutes","drove.alone.30.34.minutes","drove.alone.35.44.minutes","drove.alone.45.59.minutes","drove.alone.over60.minutes")]
+  carpooled=Census_data[c("carpooled.less.than.10.minutes","carpooled.10.14.minutes","carpooled.15.19.minutes","carpooled.20.24.minutes","carpooled.25.29.minutes","carpooled.30.34.minutes","carpooled.35.44.minutes","carpooled.45.59.minutes","carpooled.over60.minutes")]
+  publictransport=Census_data[c("public.transport.less.than.10.minutes","public.transport.10.14.minutes","public.transport.15.19.minutes","public.transport.20.24.minutes","public.transport.25.29.minutes","public.transport.30.34.minutes","public.transport.35.44.minutes","public.transport.45.59.minutes","public.transport.over60.minutes")]
+  walked=Census_data[c("walked.less.than.10.minutes","walked.10.14.minutes","walked.15.19.minutes","walked.20.24.minutes","walked.25.29.minutes","walked.30.34.minutes","walked.35.44.minutes","walked.45.59.minutes","walked.over60.minutes")]
+  other=Census_data[c("other.less.than.10.minutes","other.10.14.minutes","other.15.19.minutes","other.20.24.minutes","other.25.29.minutes","other.30.34.minutes","other.35.44.minutes","other.45.59.minutes","other.over60.minutes")]
 
   code=c("less than 10 minutes","10 to 14 minutes","15 to 19 minutes","20 to 24 minutes","25 to 29 minutes","30 to 34 minutes","35 to 44 minutes","45 to 59 minutes","60 minutes or more")
 
