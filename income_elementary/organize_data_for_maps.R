@@ -4,7 +4,8 @@ tract_map=readRDS("Harris_tract_data.rds")
 tract_map$FIPS=paste0(tract_map$STATEFP,tract_map$COUNTYFP,tract_map$TRACTCE)
 
 #load income file
-income_data=read.csv("income.csv")
+income_data=read.csv("better_income_maybe.csv")
+income_data$Population.in.Poverty.2017=100-income_data$Population.Not.in.Poverty..Total..2017
 
 #join
 library(tigris)
