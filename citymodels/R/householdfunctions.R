@@ -95,7 +95,7 @@ getnumberofvehiclesforhouseholds <- function(state, county, tract,syntheticdatas
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset The simulated household with the added variable of household income.
 
-gethouseholdincome <- function(state,county,tract,syntheticdataset,seed,Census_data_List){
+gethouseholdincome <- function(state,county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
 
   Census_data=Census_data[(Census_data$state==state) & (Census_data$county==county) & (Census_data$tract==tract),]
@@ -128,7 +128,7 @@ gethouseholdincome <- function(state,county,tract,syntheticdataset,seed,Census_d
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset The simulated household with the added variable of health insurance status.
 
-gethouseholdhealthinsurance <- function(state, county,tract,syntheticdataset,seed,inputdir){
+gethouseholdhealthinsurance <- function(state, county,tract,syntheticdataset,seed,Census_data){
   set.seed(seed)
 
   Census_data=Census_data[(Census_data$state==state) &(Census_data$county==county) & (Census_data$tract==tract),]

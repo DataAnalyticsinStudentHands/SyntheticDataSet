@@ -115,7 +115,8 @@ acs5_2014_api <- 'http://api.census.gov/data/2014/acs5?'
 #variables used
 source('map_variables_from_Census_Table.R')
 #Household size and number of vehicles
-vars <- c(c(family.2.person.household,
+vars <- c(c(group.quarters.population,
+            family.2.person.household,
             family.3.person.household,
             family.4.person.household,
             family.5.person.household,
@@ -823,7 +824,7 @@ vars <- c(c(family.2.person.household,
 # Get data for all census tracts in TX
 census_data <- getCensusApi(acs5_2014_api, key=key, vars, region=paste0("for=tract:*&in=state:",state))
 
-colnames(census_data)<-c("state","county","tract","family.2.person.household",
+colnames(census_data)<-c("state","county","tract","group.quarters.population","family.2.person.household",
                          "family.3.person.household",
                          "family.4.person.household",
                          "family.5.person.household",
@@ -1530,7 +1531,7 @@ colnames(census_data)<-c("state","county","tract","family.2.person.household",
                          "without.disability.over65.no.insurance")
 
 #write data frame to csv file without quotes
-saveRDS(census_data,"Census_data.RDS")
-write.csv(census_data, file = "Census_data.csv",row.names=FALSE, na="", quote = FALSE)
+#saveRDS(census_data,"Census_data.RDS")
+#write.csv(census_data, file = "Census_data.csv",row.names=FALSE, na="", quote = FALSE)
 return(census_data)
 }

@@ -7,17 +7,21 @@
 #' @param state The state the user is simulating
 #' @param county The county the user is simulating
 #' @param tract The tract the user is simulating
-#' @param number.of.people The number of people to simulate
 #' @param seed The seed to use for sampling.
 #' @param inputdir The input directory for other data
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset A dataframe of simulated people living in group quarters.
 
 
-group_quarters_simulater<-function(state,county,tract,number.of.people,seed,inputdir = "../Inputs/",Census_data){
+group_quarters_simulater<-function(state,county,tract,seed,inputdir = "../Inputs/",Census_data){
   #Set seed so sampling will be repeatable
   set.seed(seed)
   fullset=data.frame()
+
+  #subset data for correct Census tract
+  Census_data=Census_data[(Census_data$state==state)&(Census_data$tract==tract)&(Census_data$county==county),]
+
+  number.of.people=Census_data$group.quarters.population
 
   if(number.of.people>0){
     #Create a seed for each household from original seed
@@ -27,21 +31,9 @@ group_quarters_simulater<-function(state,county,tract,number.of.people,seed,inpu
     for(seedy in seeds){ #for each seed create a group quarter person
 
 
-      #load and organize 500 Cities project data
-      houstondata=read.csv(paste0(inputdir,'houstondata.csv'))
-      substrRight <- function(x, n){
-        substr(x, nchar(x)-n+1, nchar(x))
-      }
-
-      houstondata$UniqueID=as.character(houstondata$UniqueID)
-      houstondata$tract=substrRight(houstondata$UniqueID,6)
-      houstondata$county=substr(houstondata$TractFIPS, 3, 5)
-      houstondata$Measure=as.character(houstondata$Measure)
 
       #Make Sure tract picked actually has people in it
-      group_quarters=read.csv(paste0(inputdir,"group_quarters.csv"))
-      group_quarters_people <- group_quarters[(group_quarters$state==state)&(group_quarters$tract==tract) & (group_quarters$county==county),]
-      total1=group_quarters[1,3]
+      total1=number.of.people
       if (total1>0){
 
         #Begin sampling characteristics of household (functions stored in other scripts)
