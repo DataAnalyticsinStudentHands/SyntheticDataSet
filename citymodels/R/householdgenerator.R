@@ -31,15 +31,6 @@ household_generator<-function(state,county,tract,seed,inputdir = "../Inputs/",Ce
   familyHHtypes=familyHHtypes/rowSums(familyHHtypes)
 
   #load and organize 500 Cities project data
-  houstondata=read.csv(paste0(inputdir,'houstondata.csv'))
-  substrRight <- function(x, n){
-    substr(x, nchar(x)-n+1, nchar(x))
-  }
-
-  houstondata$UniqueID=as.character(houstondata$UniqueID)
-  houstondata$tract=substrRight(houstondata$UniqueID,6)
-  houstondata$county=substr(houstondata$TractFIPS, 3, 5)
-  houstondata$Measure=as.character(houstondata$Measure)
 
 
   #Create 2 family households

@@ -2,7 +2,6 @@
 _Rhistory*
 _RData.gz*
 .Rhistory*
-*.gz
 *.ASC
 *.RData
 *.shx
