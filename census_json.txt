@@ -1,0 +1,3411 @@
+{
+  "name": "US_Census_data",
+  # here we list the data files in this dataset
+  "resources": [
+    {
+      "path": "Census_data.RDS",
+      "schema": {
+        "fields": [
+          {
+            "name": "state",
+            "type": "integer"
+			"description": "Census code for the state"
+          },
+		  {
+            "name": "county",
+            "type": "integer"
+			"description": "Census code for the county"
+          },
+		  {
+            "name": "tract",
+            "type": "integer"
+			"description": "Census code for the tract"
+          },
+		  {
+            "name": "family.2.person.household",
+            "type": "integer"
+			"description": "estimate of the number of family households with 2 members in a census tract"
+          },
+		  {
+            "name": "family.3.person.household",
+            "type": "integer"
+			"description": "estimate of the number of family households with 3 members in a census tract"
+          },
+		  {
+            "name": "family.4.person.household",
+            "type": "integer"
+			"description": "estimate of the number of family households with 4 members in a census tract"
+          },
+		  {
+            "name": "family.5.person.household",
+            "type": "integer"
+			"description": "estimate of the number of family households with 5 members in a census tract"
+          },
+		  {
+            "name": "family.6.person.household",
+            "type": "integer"
+			"description": "estimate of the number of family households with 6 members in a census tract"
+          },
+		  {
+            "name": "family.7.person.household",
+            "type": "integer"
+			"description": "estimate of the number of family households with 7 members in a census tract"
+          },
+		  {
+            "name": "nonfamily.1.person.household",
+            "type": "integer"
+			"description": "estimate of the number of nonfamily households with only 1 member in a census tract"
+          },
+		  {
+            "name": "nonfamily.2.person.household",
+            "type": "integer"
+			"description": "estimate of the number of nonfamily households with 2 members in a census tract"
+          },
+		  {
+            "name": "nonfamily.3.person.household",
+            "type": "integer"
+			"description": "estimate of the number of nonfamily households with 3 members in a census tract"
+          },
+		  {
+            "name": "nonfamily.4.person.household",
+            "type": "integer"
+			"description": "estimate of the number of nonfamily households with 4 members in a census tract"
+          },
+		  {
+            "name": "nonfamily.5.person.household",
+            "type": "integer"
+			"description": "estimate of the number of nonfamily households with 5 members in a census tract"
+          },
+		  {
+            "name": "nonfamily.6.person.household",
+            "type": "integer"
+			"description": "estimate of the number of nonfamily households with 6 members in a census tract"
+          },
+		  {
+            "name": "nonfamily.7.person.household",
+            "type": "integer"
+			"description": "estimate of the number of nonfamily households with 7 members in a census tract"
+          },
+		  {
+            "name": "married.couple.families",
+            "type": "integer"
+			"description": "estimate of the number of married couple families in a census tract"
+          },
+		  {
+            "name": "male.householders.no.wife",
+            "type": "integer"
+			"description": "estimate of the number of families with a male householder and no wife present in a census tract"
+          },
+		  {
+            "name": "female.householders.no.husband",
+            "type": "integer"
+			"description": "estimate of the number of families with a female householder and no husband present in a census tract"
+          },
+		  {
+            "name": "households.of.1.no.vehicle",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 1 member without a vehicle in a census tract"
+          },
+		  {
+            "name": "households.of.1.1.vehicle",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 1 member with 1 vehicle in a census tract"
+          },
+		  {
+            "name": "households.of.1.2.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 1 member with 2 vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.1.3.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 1 member with 3 vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.1.4.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 1 member with 4 or more vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.2.no.vehicle",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 2 members without a vehicle in a census tract"
+          },
+		  {
+            "name": "households.of.2.1.vehicle",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 2 members with 1 vehicle in a census tract"
+          },
+		  {
+            "name": "households.of.2.2.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 2 members with 2 vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.2.3.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 2 members with 3 vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.2.4.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 2 members with 4 or more vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.3.no.vehicle",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 3 members without a vehicle in a census tract"
+          },
+		  {
+            "name": "households.of.3.1.vehicle",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 3 members with 1 vehicle in a census tract"
+          },
+		  {
+            "name": "households.of.3.2.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 3 members with 2 vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.3.3.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 3 members with 3 vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.3.4.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 3 members with 4 or more vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.4.no.vehicle",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 4 or more members without a vehicle in a census tract"
+          },
+		  {
+            "name": "households.of.4.1.vehicle",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 4 or more members with 1 vehicle in a census tract"
+          },
+		  {
+            "name": "households.of.4.2.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 4 or more members with 2 vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.4.3.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 4 or more members with 3 vehicles in a census tract"
+          },
+		  {
+            "name": "households.of.4.4.vehicles",
+            "type": "integer"
+			"description": "estimate of the number of housesholds of 4 or more members with 4 or more vehicles in a census tract"
+          },
+		  {
+            "name": "black.boys.under.5",
+            "type": "integer"
+			"description": "estimate of the number of Black boys under 5 in a census tract"
+          },
+		  {
+            "name": "black.boys.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of Black boys between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "black.boys.10.14",
+            "type": "integer"
+			"description": "estimate of the number of Black boys between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "black.boys.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of Black boys between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "black.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "black.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "black.men.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "black.men.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "black.men.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "black.men.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "black.men.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "black.men.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "black.men.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of Black men between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "black.men.over.85",
+            "type": "integer"
+			"description": "estimate of the number of Black men over 85 in a census tract"
+          },
+		  		  {
+            "name": "black.girls.under.5",
+            "type": "integer"
+			"description": "estimate of the number of Black girls under 5 in a census tract"
+          },
+		  {
+            "name": "black.girls.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of Black girls between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "black.girls.10.14",
+            "type": "integer"
+			"description": "estimate of the number of Black girls between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "black.girls.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of Black girls between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "black.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "black.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "black.women.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "black.women.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "black.women.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "black.women.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "black.women.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "black.women.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "black.women.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of Black women between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "black.women.over.85",
+            "type": "integer"
+			"description": "estimate of the number of Black women over 85 in a census tract"
+          },
+		  		  {
+            "name": "amer.indian.alaskan.boys.under.5",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native boys under 5 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.boys.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native boys between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.boys.10.14",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native boys between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.boys.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native boys between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.men.over.85",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native men over 85 in a census tract"
+          },
+		  		  {
+            "name": "amer.indian.alaskan.girls.under.5",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native girls under 5 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.girls.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native girls between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.girls.10.14",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native girls between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.girls.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native girls between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "amer.indian.alaskan.women.over.85",
+            "type": "integer"
+			"description": "estimate of the number of American Indian and Alaskan Native women over 85 in a census tract"
+          },
+		  		  {
+            "name": "asian.boys.under.5",
+            "type": "integer"
+			"description": "estimate of the number of Asian boys under 5 in a census tract"
+          },
+		  {
+            "name": "asian.boys.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of Asian boys between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "asian.boys.10.14",
+            "type": "integer"
+			"description": "estimate of the number of Asian boys between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "asian.boys.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of Asian boys between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "asian.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "asian.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "asian.men.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "asian.men.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "asian.men.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "asian.men.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "asian.men.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "asian.men.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "asian.men.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of Asian men between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "asian.men.over.85",
+            "type": "integer"
+			"description": "estimate of the number of Asian men over 85 in a census tract"
+          },
+		  {
+            "name": "asian.girls.under.5",
+            "type": "integer"
+			"description": "estimate of the number of Asian girls under 5 in a census tract"
+          },
+		  {
+            "name": "asian.girls.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of Asian girls between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "asian.girls.10.14",
+            "type": "integer"
+			"description": "estimate of the number of Asian girls between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "asian.girls.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of Asian girls between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "asian.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "asian.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "asian.women.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "asian.women.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "asian.women.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "asian.women.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "asian.women.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "asian.women.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "asian.women.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of Asian women between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "asian.women.over.85",
+            "type": "integer"
+			"description": "estimate of the number of Asian women over 85 in a census tract"
+          },
+		  {
+            "name": "islander.boys.under.5",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander boys under 5 in a census tract"
+          },
+		  {
+            "name": "islander.boys.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander boys between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "islander.boys.10.14",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander boys between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "islander.boys.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander boys between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "islander.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "islander.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "islander.men.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "islander.men.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "islander.men.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "islander.men.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "islander.men.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "islander.men.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "islander.men.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "islander.men.over.85",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander men over 85 in a census tract"
+          },
+		  {
+            "name": "islander.girls.under.5",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander girls under 5 in a census tract"
+          },
+		  {
+            "name": "islander.girls.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander girls between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "islander.girls.10.14",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander girls between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "islander.girls.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander girls between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "islander.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "islander.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "islander.women.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "islander.women.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "islander.women.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "islander.women.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "islander.women.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "islander.women.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "islander.women.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "islander.women.over.85",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander women over 85 in a census tract"
+          },
+		  {
+            "name": "other.boys.under.5",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings boys under 5 in a census tract"
+          },
+		  {
+            "name": "other.boys.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings boys between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "other.boys.10.14",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings boys between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "other.boys.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings boys between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "other.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "other.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "other.men.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "other.men.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "other.men.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "other.men.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "other.men.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "other.men.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "other.men.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "other.men.over.85",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings men over 85 in a census tract"
+          },
+		  {
+            "name": "other.girls.under.5",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings girls under 5 in a census tract"
+          },
+		  {
+            "name": "other.girls.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings girls between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "other.girls.10.14",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings girls between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "other.girls.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings girls between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "other.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "other.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "other.women.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "other.women.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "other.women.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "other.women.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "other.women.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "other.women.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "other.women.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "other.women.over.85",
+            "type": "integer"
+			"description": "estimate of the number of some other race not included in other headings women over 85 in a census tract"
+          },
+		  {
+            "name": "multiracial.boys.under.5",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races boys under 5 in a census tract"
+          },
+		  {
+            "name": "multiracial.boys.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races boys between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "multiracial.boys.10.14",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races boys between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "multiracial.boys.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races boys between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "multiracial.men.over.85",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races men over 85 in a census tract"
+          },
+		  {
+            "name": "multiracial.girls.under.5",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races girls under 5 in a census tract"
+          },
+		  {
+            "name": "multiracial.girls.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races girls between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "multiracial.girls.10.14",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races girls between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "multiracial.girls.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races girls between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "multiracial.women.over.85",
+            "type": "integer"
+			"description": "estimate of the number of people identifying by 2 or more races women over 85 in a census tract"
+          },
+		  {
+            "name": "white.boys.under.5",
+            "type": "integer"
+			"description": "estimate of the number of White boys under 5 in a census tract"
+          },
+		  {
+            "name": "white.boys.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of White boys between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "white.boys.10.14",
+            "type": "integer"
+			"description": "estimate of the number of White boys between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "white.boys.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of White boys between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "white.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "white.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "white.men.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "white.men.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "white.men.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "white.men.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "white.men.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "white.men.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "white.men.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of White men between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "white.men.over.85",
+            "type": "integer"
+			"description": "estimate of the number of White men over 85 in a census tract"
+          },
+		  {
+            "name": "white.girls.under.5",
+            "type": "integer"
+			"description": "estimate of the number of White girls under 5 in a census tract"
+          },
+		  {
+            "name": "white.girls.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of White girls between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "white.girls.10.14",
+            "type": "integer"
+			"description": "estimate of the number of White girls between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "white.girls.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of White girls between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "white.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "white.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "white.women.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "white.women.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "white.women.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "white.women.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "white.women.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "white.women.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "white.women.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of White women between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "white.women.over.85",
+            "type": "integer"
+			"description": "estimate of the number of White women over 85 in a census tract"
+          },
+		  {
+            "name": "hispanic.boys.under.5",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic boys under 5 in a census tract"
+          },
+		  {
+            "name": "hispanic.boys.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic boys between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "hispanic.boys.10.14",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic boys between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "hispanic.boys.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic boys between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "hispanic.men.over.85",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic men over 85 in a census tract"
+          },
+		  		  {
+            "name": "hispanic.girls.under.5",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic girls under 5 in a census tract"
+          },
+		  {
+            "name": "hispanic.girls.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic girls between the ages of 5 and 9 in a census tract"
+          },
+		  {
+            "name": "hispanic.girls.10.14",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic girls between the ages of 10 and 14 in a census tract"
+          },
+		  {
+            "name": "hispanic.girls.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic girls between the ages of 15 and 17 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 18 and 19 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 20 and 24 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 25 and 29 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 30 and 34 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.35.to.44",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 35 and 44 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.45.to.54",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 45 and 54 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.55.to.64",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 55 and 64 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.65.to.74",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 65 and 74 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.75.to.84",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women between the ages of 75 and 84 in a census tract"
+          },
+		  {
+            "name": "hispanic.women.over.85",
+            "type": "integer"
+			"description": "estimate of the number of Hispanic women over 85 in a census tract"
+          },
+		  {
+            "name": "public.school.women.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 5 and 9 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.women.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 5 and 9 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.women.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 5 and 9 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.women.10.to.14",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 10 and 14 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.women.10.to.14",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 10 and 14 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.women.10.to.14",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 10 and 14 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.women.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 15 and 17 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.women.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 15 and 17 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.women.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 15 and 17 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 19 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 19 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.women.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 19 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 20 to 24 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 20 to 24 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.women.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 20 to 24 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.women.25.to.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.women.25.to.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.women.25.to.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.women.over.35",
+            "type": "integer"
+			"description": "estimate of the number of women over the age of 35 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.women.over.35",
+            "type": "integer"
+			"description": "estimate of the number of women over the age of 35 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.women.over.35",
+            "type": "integer"
+			"description": "estimate of the number of women over the age of 35 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.men.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 5 and 9 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.men.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 5 and 9 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.men.5.to.9",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 5 and 9 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.men.10.to.14",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 10 and 14 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.men.10.to.14",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 10 and 14 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.men.10.to.14",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 10 and 14 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.men.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 15 and 17 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.men.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 15 and 17 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.men.15.to.17",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 15 and 17 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 19 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 19 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.men.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 19 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 20 to 24 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 20 to 24 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.men.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 20 to 24 not enrolled in school in a census tract"
+          },
+		  		  {
+            "name": "public.school.men.25.to.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.men.25.to.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.men.25.to.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "public.school.men.over.35",
+            "type": "integer"
+			"description": "estimate of the number of men over the age of 35 enrolled in public school in a census tract"
+          },
+		  {
+            "name": "private.school.men.over.35",
+            "type": "integer"
+			"description": "estimate of the number of men over the age of 35 enrolled in private school in a census tract"
+          },
+		  {
+            "name": "no.school.men.over.35",
+            "type": "integer"
+			"description": "estimate of the number of men over the age of 35 not enrolled in school in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.men.18.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 24 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.men.18.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 24 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.men.18.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 24 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.men.18.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 24 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.men.18.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 24 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.men.18.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 24 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.men.18.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 18 and 24 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.men.25.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.men.25.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.men.25.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.men.25.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.men.25.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.men.25.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.men.25.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 34 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.men.45.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 64 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.men.45.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 64 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.men.45.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 64 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.men.45.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 64 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.men.45.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 64 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.men.45.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 64 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.men.45.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 64 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.men.over.65",
+            "type": "integer"
+			"description": "estimate of the number of men over 65 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.men.over.65",
+            "type": "integer"
+			"description": "estimate of the number of men over 65 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.men.over.65",
+            "type": "integer"
+			"description": "estimate of the number of men over 65 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.men.over.65",
+            "type": "integer"
+			"description": "estimate of the number of men over 65 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.men.over.65",
+            "type": "integer"
+			"description": "estimate of the number of men over 65 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.men.over.65",
+            "type": "integer"
+			"description": "estimate of the number of men over 65 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.men.over.65",
+            "type": "integer"
+			"description": "estimate of the number of men over 65 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.women.18.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 24 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.women.18.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 24 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.women.18.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 24 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.women.18.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 24 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.women.18.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 24 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.women.18.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 24 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.women.18.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 18 and 24 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.women.25.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.women.25.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.women.25.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.women.25.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.women.25.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.women.25.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.women.25.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 34 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.women.45.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 64 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.women.45.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 64 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.women.45.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 64 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.women.45.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 64 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.women.45.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 64 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.women.45.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 64 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.women.45.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 64 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "less.than.9.grade.women.over.65",
+            "type": "integer"
+			"description": "estimate of the number of women over 65 with less than a 9th grade education in a census tract"
+          },
+		  {
+            "name": "btwn.9.to.12.grade.women.over.65",
+            "type": "integer"
+			"description": "estimate of the number of women 65 with between a 9th and 12th grade education but no high school diploma in a census tract"
+          },
+		  {
+            "name": "high.school.women.over.65",
+            "type": "integer"
+			"description": "estimate of the number of women over 65 with only a high school diploma in a census tract"
+          },
+		  {
+            "name": "some.college.women.over.65",
+            "type": "integer"
+			"description": "estimate of the number of women over 65 with some college experience but no degree in a census tract"
+          },
+		  {
+            "name": "associates.women.over.65",
+            "type": "integer"
+			"description": "estimate of the number of women over 65 with an associate's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "bachelors.women.over.65",
+            "type": "integer"
+			"description": "estimate of the number of women over 65 with a bachelor's degree as their highest degree in a census tract"
+          },
+		  {
+            "name": "post.grad.women.over.65",
+            "type": "integer"
+			"description": "estimate of the number of women over 65 with post baccalaurette education in a census tract"
+          },
+		  {
+            "name": "in.armed.forces.women.16.19",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 16 and 19 in the armed forces"
+          },
+		  {
+            "name": "employed.women.16.19",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 16 and 19 who are employed"
+          },
+		  {
+            "name": "unemployed.women.16.19",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 16 and 19 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.16.19",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 16 and 19 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.20.21",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 20 and 21 in the armed forces"
+          },
+		  {
+            "name": "employed.women.20.21",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 20 and 21 who are employed"
+          },
+		  {
+            "name": "unemployed.women.20.21",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 20 and 21 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.20.21",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 20 and 21 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.22.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 22 and 24 in the armed forces"
+          },
+		  {
+            "name": "employed.women.22.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 22 and 24 who are employed"
+          },
+		  {
+            "name": "unemployed.women.22.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 22 and 24 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.22.24",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 22 and 24 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.25.29",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 29 in the armed forces"
+          },
+		  {
+            "name": "employed.women.25.29",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 29 who are employed"
+          },
+		  {
+            "name": "unemployed.women.25.29",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 29 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.25.29",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 25 and 29 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.30.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 30 and 34 in the armed forces"
+          },
+		  {
+            "name": "employed.women.30.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 30 and 34 who are employed"
+          },
+		  {
+            "name": "unemployed.women.30.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 30 and 34 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.30.34",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 30 and 34 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 in the armed forces"
+          },
+		  {
+            "name": "employed.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 who are employed"
+          },
+		  {
+            "name": "unemployed.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.35.44",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 35 and 44 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.45.54",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 54 in the armed forces"
+          },
+		  {
+            "name": "employed.women.45.54",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 54 who are employed"
+          },
+		  {
+            "name": "unemployed.women.45.54",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 54 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.45.54",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 45 and 54 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.55.59",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 55 and 59 in the armed forces"
+          },
+		  {
+            "name": "employed.women.55.59",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 55 and 59 who are employed"
+          },
+		  {
+            "name": "unemployed.women.55.59",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 55 and 59 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.55.59",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 55 and 59 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.60.61",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 60 and 61 in the armed forces"
+          },
+		  {
+            "name": "employed.women.60.61",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 60 and 61 who are employed"
+          },
+		  {
+            "name": "unemployed.women.60.61",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 60 and 61 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.60.61",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 60 and 61 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.women.62.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 62 and 64 in the armed forces"
+          },
+		  {
+            "name": "employed.women.62.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 62 and 64 who are employed"
+          },
+		  {
+            "name": "unemployed.women.62.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 62 and 64 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.62.64",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 62 and 64 who are not in the labor force"
+          },
+		  {
+            "name": "employed.women.65.69",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 65 and 69 who are employed"
+          },
+		  {
+            "name": "unemployed.women.65.69",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 65 and 69 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.65.69",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 65 and 69 who are not in the labor force"
+          },
+		  {
+            "name": "employed.women.70.74",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 70 and 74 who are employed"
+          },
+		  {
+            "name": "unemployed.women.70.74",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 70 and 74 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.70.74",
+            "type": "integer"
+			"description": "estimate of the number of women between the ages of 70 and 74 who are not in the labor force"
+          },
+		  {
+            "name": "employed.women.over.75",
+            "type": "integer"
+			"description": "estimate of the number of women over the age of 75 who are employed"
+          },
+		  {
+            "name": "unemployed.women.over.75",
+            "type": "integer"
+			"description": "estimate of the number of women over the age of 75 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.women.over.75",
+            "type": "integer"
+			"description": "estimate of the number of women over the age of 75 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.16.19",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 16 and 19 in the armed forces"
+          },
+		  {
+            "name": "employed.men.16.19",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 16 and 19 who are employed"
+          },
+		  {
+            "name": "unemployed.men.16.19",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 16 and 19 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.16.19",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 16 and 19 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.20.21",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 20 and 21 in the armed forces"
+          },
+		  {
+            "name": "employed.men.20.21",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 20 and 21 who are employed"
+          },
+		  {
+            "name": "unemployed.men.20.21",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 20 and 21 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.20.21",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 20 and 21 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.22.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 22 and 24 in the armed forces"
+          },
+		  {
+            "name": "employed.men.22.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 22 and 24 who are employed"
+          },
+		  {
+            "name": "unemployed.men.22.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 22 and 24 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.22.24",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 22 and 24 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.25.29",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 29 in the armed forces"
+          },
+		  {
+            "name": "employed.men.25.29",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 29 who are employed"
+          },
+		  {
+            "name": "unemployed.men.25.29",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 29 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.25.29",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 25 and 29 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.30.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 30 and 34 in the armed forces"
+          },
+		  {
+            "name": "employed.men.30.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 30 and 34 who are employed"
+          },
+		  {
+            "name": "unemployed.men.30.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 30 and 34 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.30.34",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 30 and 34 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 in the armed forces"
+          },
+		  {
+            "name": "employed.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 who are employed"
+          },
+		  {
+            "name": "unemployed.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.35.44",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 35 and 44 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.45.54",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 54 in the armed forces"
+          },
+		  {
+            "name": "employed.men.45.54",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 54 who are employed"
+          },
+		  {
+            "name": "unemployed.men.45.54",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 54 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.45.54",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 45 and 54 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.55.59",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 55 and 59 in the armed forces"
+          },
+		  {
+            "name": "employed.men.55.59",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 55 and 59 who are employed"
+          },
+		  {
+            "name": "unemployed.men.55.59",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 55 and 59 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.55.59",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 55 and 59 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.60.61",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 60 and 61 in the armed forces"
+          },
+		  {
+            "name": "employed.men.60.61",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 60 and 61 who are employed"
+          },
+		  {
+            "name": "unemployed.men.60.61",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 60 and 61 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.60.61",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 60 and 61 who are not in the labor force"
+          },
+		  {
+            "name": "in.armed.forces.men.62.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 62 and 64 in the armed forces"
+          },
+		  {
+            "name": "employed.men.62.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 62 and 64 who are employed"
+          },
+		  {
+            "name": "unemployed.men.62.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 62 and 64 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.62.64",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 62 and 64 who are not in the labor force"
+          },
+		  {
+            "name": "employed.men.65.69",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 65 and 69 who are employed"
+          },
+		  {
+            "name": "unemployed.men.65.69",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 65 and 69 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.65.69",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 65 and 69 who are not in the labor force"
+          },
+		  {
+            "name": "employed.men.70.74",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 70 and 74 who are employed"
+          },
+		  {
+            "name": "unemployed.men.70.74",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 70 and 74 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.70.74",
+            "type": "integer"
+			"description": "estimate of the number of men between the ages of 70 and 74 who are not in the labor force"
+          },
+		  {
+            "name": "employed.men.over.75",
+            "type": "integer"
+			"description": "estimate of the number of men over the age of 75 who are employed"
+          },
+		  {
+            "name": "unemployed.men.over.75",
+            "type": "integer"
+			"description": "estimate of the number of men over the age of 75 who are unemployed"
+          },
+		  {
+            "name": "not.in.labor.forces.men.over.75",
+            "type": "integer"
+			"description": "estimate of the number of men over the age of 75 who are not in the labor force"
+          },
+		  {
+            "name": "under18.1.disability",
+            "type": "integer"
+			"description": "estimate of the number of people under 18 with 1 declared disability"
+          },
+		  {
+            "name": "under18.2.disability",
+            "type": "integer"
+			"description": "estimate of the number of people under 18 with 2 or more declared disabilities"
+          },
+		  {
+            "name": "under18.no.disability",
+            "type": "integer"
+			"description": "estimate of the number of people under 18 without any declared disabilities"
+          },
+		  {
+            "name": "from18.64.1.disability",
+            "type": "integer"
+			"description": "estimate of the number of people from the ages of 18 to 64 with 1 declared disability"
+          },
+		  {
+            "name": "from18.64.2.disability",
+            "type": "integer"
+			"description": "estimate of the number of people from the ages of 18 to 64 with 2 or more declared disabilities"
+          },
+		  {
+            "name": "from18.64.no.disability",
+            "type": "integer"
+			"description": "estimate of the number of people from the ages of 18 to 64 without any declared disabilities"
+          },
+		  {
+            "name": "over65.1.disability",
+            "type": "integer"
+			"description": "estimate of the number of people  over the age of 65 with 1 declared disability"
+          },
+		  {
+            "name": "over65.2.disability",
+            "type": "integer"
+			"description": "estimate of the number of people  over the age of 65 with 2 or more declared disabilities"
+          },
+		  {
+            "name": "over65.no.disability",
+            "type": "integer"
+			"description": "estimate of the number of people  over the age of 65 without any declared disabilities"
+          },
+		  {
+            "name": "black.native.only.english",
+            "type": "integer"
+			"description": "estimate of the number of Black or African American people born in the United States who only speak English"
+          },
+		  {
+            "name": "black.native.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of Black or African American people born in the United States who speak English well and another language at home"
+          },
+		  {
+            "name": "black.native.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of Black or African American people born in the United States who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "black.foreign.only.english",
+            "type": "integer"
+			"description": "estimate of the number of Black or African American people born abroad who only speak English"
+          },
+		  {
+            "name": "black.foreign.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of Black or African American people born abroad who speak English well and another language at home"
+          },
+		  {
+            "name": "black.foreign.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of Black or African American people born abroad who don't speak English well and speak another language at home"
+          },
+		  {
+		    "name": "amer.indian.alaskan.native.only.english",
+            "type": "integer"
+			"description": "estimate of the number of American Indian or Alaskan Native people born in the United States who only speak English"
+          },
+		  {
+            "name": "amer.indian.alaskan.native.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of American Indian or Alaskan Native people born in the United States who speak English well and another language at home"
+          },
+		  {
+            "name": "amer.indian.alaskan.native.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of American Indian or Alaskan Native people born in the United States who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "amer.indian.alaskan.foreign.only.english",
+            "type": "integer"
+			"description": "estimate of the number of American Indian or Alaskan Native people born abroad who only speak English"
+          },
+		  {
+            "name": "amer.indian.alaskan.foreign.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of American Indian or Alaskan Native people born abroad who speak English well and another language at home"
+          },
+		  {
+            "name": "amer.indian.alaskan.foreign.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of American Indian or Alaskan Native people born abroad who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "asian.native.only.english",
+            "type": "integer"
+			"description": "estimate of the number of Asian people born in the United States who only speak English"
+          },
+		  {
+            "name": "asian.native.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of Asian people born in the United States who speak English well and another language at home"
+          },
+		  {
+            "name": "asian.native.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of Asian people born in the United States who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "asian.foreign.only.english",
+            "type": "integer"
+			"description": "estimate of the number of Asian people born abroad who only speak English"
+          },
+		  {
+            "name": "asian.foreign.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of Asian people born abroad who speak English well and another language at home"
+          },
+		  {
+            "name": "asian.foreign.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of Asian people born abroad who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "islander.native.only.english",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander people born in the United States who only speak English"
+          },
+		  {
+            "name": "islander.native.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander people born in the United States who speak English well and another language at home"
+          },
+		  {
+            "name": "islander.native.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander people born in the United States who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "islander.foreign.only.english",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander people born abroad who only speak English"
+          },
+		  {
+            "name": "islander.foreign.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander people born abroad who speak English well and another language at home"
+          },
+		  {
+            "name": "islander.foreign.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of Native Hawaiian and other Pacific Islander people born abroad who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "other.native.only.english",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by another race not listed people born in the United States who only speak English"
+          },
+		  {
+            "name": "other.native.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by another race not listed people born in the United States who speak English well and another language at home"
+          },
+		  {
+            "name": "other.native.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by another race not listed people born in the United States who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "other.foreign.only.english",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by another race not listed people born abroad who only speak English"
+          },
+		  {
+            "name": "other.foreign.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by another race not listed people born abroad who speak English well and another language at home"
+          },
+		  {
+            "name": "other.foreign.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by another race not listed people born abroad who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "multiracial.native.only.english",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by 2 or more races people born in the United States who only speak English"
+          },
+		  {
+            "name": "multiracial.native.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by 2 or more races people born in the United States who speak English well and another language at home"
+          },
+		  {
+            "name": "multiracial.native.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by 2 or more races people born in the United States who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "multiracial.foreign.only.english",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by 2 or more races people born abroad who only speak English"
+          },
+		  {
+            "name": "multiracial.foreign.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by 2 or more races people born abroad who speak English well and another language at home"
+          },
+		  {
+            "name": "multiracial.foreign.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people who identify by 2 or more races people born abroad who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "white.native.only.english",
+            "type": "integer"
+			"description": "estimate of the number White people born in the United States who only speak English"
+          },
+		  {
+            "name": "white.native.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number White people born in the United States who speak English well and another language at home"
+          },
+		  {
+            "name": "white.native.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number White people born in the United States who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "white.foreign.only.english",
+            "type": "integer"
+			"description": "estimate of the number White people born abroad who only speak English"
+          },
+		  {
+            "name": "white.foreign.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number White people born abroad who speak English well and another language at home"
+          },
+		  {
+            "name": "white.foreign.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number White people born abroad who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "hispanic.native.only.english",
+            "type": "integer"
+			"description": "estimate of the number Hispanic people born in the United States who only speak English"
+          },
+		  {
+            "name": "hispanic.native.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number Hispanic people born in the United States who speak English well and another language at home"
+          },
+		  {
+            "name": "hispanic.native.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number Hispanic people born in the United States who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "hispanic.foreign.only.english",
+            "type": "integer"
+			"description": "estimate of the number Hispanic people born abroad who only speak English"
+          },
+		  {
+            "name": "hispanic.foreign.other.language.english.well",
+            "type": "integer"
+			"description": "estimate of the number Hispanic people born abroad who speak English well and another language at home"
+          },
+		  {
+            "name": "hispanic.foreign.other.language.english.bad",
+            "type": "integer"
+			"description": "estimate of the number Hispanic people born abroad who don't speak English well and speak another language at home"
+          },
+		  {
+            "name": "spanish.native.5.17.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born in the United States who speak Spanish at home who speak English well"
+          },
+		  {
+            "name": "other.lang.native.5.17.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born in the United States who speak another language other than Spanish or English at home who speak English well"
+          },
+		  {
+            "name": "spanish.native.5.17.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born in the United States who speak Spanish at home who speak English 'less than' well"
+          },
+		  {
+            "name": "other.lang.native.5.17.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born in the United States who speak another language other than Spanish or English at home who speak English 'less than' well"
+          },
+		  {
+            "name": "spanish.native.over18.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and older born in the United States who speak Spanish at home who speak English well"
+          },
+		  {
+            "name": "other.lang.native.over18.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and older born in the United States who speak another language other than Spanish or English at home who speak English well"
+          },{
+            "name": "spanish.native.over18.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and older born in the United States who speak Spanish at home who speak English 'less than' well"
+          },
+		  {
+            "name": "other.lang.native.over18.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and older born in the United States who speak another language other than Spanish or English at home who speak English 'less than' well"
+          },
+		  {
+            "name": "english.foreign.5.17.naturalized",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born abroad who only speak english and are naturalized citizens"
+          },
+		  {
+            "name": "english.foreign.5.17.not.citizen",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born abroad who only speak english and are not citizens"
+          },
+		  {
+            "name": "spanish.foreign.5.17.naturalized.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born abroad who speak Spanish at home who speak English well and are naturalized citizens"
+          },
+		  {
+            "name": "other.lang.foreign.5.17.naturalized.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born  who speak another abroad other than Spanish or English at home who speak English well and are naturalized citizens"
+          },
+		  {
+            "name": "spanish.foreign.5.17.not.citizen.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born abroad who speak Spanish at home who speak English well and are not citizens"
+          },
+		  {
+            "name": "other.lang.foreign.5.17.not.citizen.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born  who speak another abroad other than Spanish or English at home who speak English well and are not citizens"
+          },
+		  {
+            "name": "spanish.foreign.5.17.naturalized.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born abroad who speak Spanish at home who speak English 'less than' well and are naturalized citizens"
+          },
+		  {
+            "name": "other.lang.foreign.5.17.naturalized.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born  who speak another abroad other than Spanish or English at home who speak English 'less than' well and are naturalized citizens"
+          },
+		  {
+            "name": "spanish.foreign.5.17.not.citizen.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born abroad who speak Spanish at home who speak English 'less than' well and are not citizens"
+          },
+		  {
+            "name": "other.lang.foreign.5.17.not.citizen.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 born  who speak another abroad other than Spanish or English at home who speak English 'less than' well and are not citizens"
+          },
+		  {
+            "name": "english.foreign.over18.naturalized",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born abroad who only speak english and are naturalized citizens"
+          },
+		  {
+            "name": "english.foreign.over18.not.citizen",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born abroad who only speak english and are not citizens"
+          },
+		  {
+            "name": "spanish.foreign.over18.naturalized.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born abroad who speak Spanish at home who speak English well and are naturalized citizens"
+          },
+		  {
+            "name": "other.lang.foreign.over18.naturalized.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born  who speak another abroad other than Spanish or English at home who speak English well and are naturalized citizens"
+          },
+		  {
+            "name": "spanish.foreign.over18.not.citizen.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born abroad who speak Spanish at home who speak English well and are not citizens"
+          },
+		  {
+            "name": "other.lang.foreign.over18.not.citizen.english.well",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born  who speak another abroad other than Spanish or English at home who speak English well and are not citizens"
+          },
+		  {
+            "name": "spanish.foreign.over18.naturalized.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born abroad who speak Spanish at home who speak English 'less than' well and are naturalized citizens"
+          },
+		  {
+            "name": "other.lang.foreign.over18.naturalized.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born  who speak another abroad other than Spanish or English at home who speak English 'less than' well and are naturalized citizens"
+          },
+		  {
+            "name": "spanish.foreign.over18.not.citizen.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born abroad who speak Spanish at home who speak English 'less than' well and are not citizens"
+          },
+		  {
+            "name": "other.lang.foreign.over18.not.citizen.english.bad",
+            "type": "integer"
+			"description": "estimate of the number of people 18 and over born  who speak another abroad other than Spanish or English at home who speak English 'less than' well and are not citizens"
+          },
+		  {
+            "name": "veteran.men.18.34",
+            "type": "integer"
+			"description": "estimate of the number men between the ages of 18 and 34 who are veterans"
+          },
+		  {
+            "name": "nonveteran.men.18.34",
+            "type": "integer"
+			"description": "estimate of the number men between the ages of 18 and 34 who are not veterans"
+          },
+		  {
+            "name": "veteran.men.35.54",
+            "type": "integer"
+			"description": "estimate of the number men between the ages of 35 and 54 who are veterans"
+          },
+		  {
+            "name": "nonveteran.men.35.54",
+            "type": "integer"
+			"description": "estimate of the number men between the ages of 35 and 54 who are not veterans"
+          },
+		  {
+            "name": "veteran.men.55.64",
+            "type": "integer"
+			"description": "estimate of the number men between the ages of 55 and 64 who are veterans"
+          },
+		  {
+            "name": "nonveteran.men.55.64",
+            "type": "integer"
+			"description": "estimate of the number men between the ages of 55 and 64 who are not veterans"
+          },
+		  {
+            "name": "veteran.men.65.74",
+            "type": "integer"
+			"description": "estimate of the number men between the ages of 65 and 74 who are veterans"
+          },
+		  {
+            "name": "nonveteran.men.65.74",
+            "type": "integer"
+			"description": "estimate of the number men between the ages of 65 and 74 who are not veterans"
+          },
+		  {
+            "name": "veteran.men.over75",
+            "type": "integer"
+			"description": "estimate of the number men 75 and older who are veterans"
+          },
+		  {
+            "name": "nonveteran.men.over75",
+            "type": "integer"
+			"description": "estimate of the number men 75 and older who are not veterans"
+          },
+		  		  {
+            "name": "veteran.women.18.34",
+            "type": "integer"
+			"description": "estimate of the number women between the ages of 18 and 34 who are veterans"
+          },
+		  {
+            "name": "nonveteran.women.18.34",
+            "type": "integer"
+			"description": "estimate of the number women between the ages of 18 and 34 who are not veterans"
+          },
+		  {
+            "name": "veteran.women.35.54",
+            "type": "integer"
+			"description": "estimate of the number women between the ages of 35 and 54 who are veterans"
+          },
+		  {
+            "name": "nonveteran.women.35.54",
+            "type": "integer"
+			"description": "estimate of the number women between the ages of 35 and 54 who are not veterans"
+          },
+		  {
+            "name": "veteran.women.55.64",
+            "type": "integer"
+			"description": "estimate of the number women between the ages of 55 and 64 who are veterans"
+          },
+		  {
+            "name": "nonveteran.women.55.64",
+            "type": "integer"
+			"description": "estimate of the number women between the ages of 55 and 64 who are not veterans"
+          },
+		  {
+            "name": "veteran.women.65.74",
+            "type": "integer"
+			"description": "estimate of the number women between the ages of 65 and 74 who are veterans"
+          },
+		  {
+            "name": "nonveteran.women.65.74",
+            "type": "integer"
+			"description": "estimate of the number women between the ages of 65 and 74 who are not veterans"
+          },
+		  {
+            "name": "veteran.women.over75",
+            "type": "integer"
+			"description": "estimate of the number women 75 and older who are veterans"
+          },
+		  {
+            "name": "nonveteran.women.over75",
+            "type": "integer"
+			"description": "estimate of the number women 75 and older who are not veterans"
+          },
+		  {
+            "name": "drove.alone.men",
+            "type": "integer"
+			"description": "estimate of the number of men who drove alone to work"
+          },
+		  {
+            "name": "carpooled.men",
+            "type": "integer"
+			"description": "estimate of the number of men who carpooled to work"
+          },
+		  {
+            "name": "public.transport.men",
+            "type": "integer"
+			"description": "estimate of the number of men who used public transport to get to work"
+          },
+		  {
+            "name": "walk.men",
+            "type": "integer"
+			"description": "estimate of the number of men who walked to work"
+          },
+		  {
+            "name": "other.transport.men",
+            "type": "integer"
+			"description": "estimate of the number of men who used another form of transport not listed to get to work"
+          },
+		  {
+            "name": "work.at.home.men",
+            "type": "integer"
+			"description": "estimate of the number of men who work at home"
+          },
+		  {
+            "name": "drove.alone.women",
+            "type": "integer"
+			"description": "estimate of the number of women who drove alone to work"
+          },
+		  {
+            "name": "carpooled.women",
+            "type": "integer"
+			"description": "estimate of the number of women who carpooled to work"
+          },
+		  {
+            "name": "public.transport.women",
+            "type": "integer"
+			"description": "estimate of the number of women who used public transport to get to work"
+          },
+		  {
+            "name": "walk.women",
+            "type": "integer"
+			"description": "estimate of the number of women who walked to work"
+          },
+		  {
+            "name": "other.transport.women",
+            "type": "integer"
+			"description": "estimate of the number of women who used another form of transport not listed to get to work"
+          },
+		  {
+            "name": "work.at.home.women",
+            "type": "integer"
+			"description": "estimate of the number of women who work at home"
+          },
+		  
+		  {
+            "name": "drove.alone.less.than.10.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in under 10 minutes"
+          },
+		  {
+            "name": "drove.alone.10.14.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in 10 to 14 minutes"
+          },
+		  {
+            "name": "drove.alone.15.19.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in 15 to 19 minutes"
+          },
+		  {
+            "name": "drove.alone.20.24.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in 20 to 24 minutes"
+          },
+		  {
+            "name": "drove.alone.25.29.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in 25 to 29 minutes"
+          },
+		  {
+            "name": "drove.alone.30.34.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in 30 to 34 minutes"
+          },
+		  {
+            "name": "drove.alone.35.44.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in 35 to 44 minutes"
+          },
+		  {
+            "name": "drove.alone.45.59.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in 45 to 59 minutes"
+          },
+		  {
+            "name": "drove.alone.over60.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who drove alone to work in over an hour"
+          },
+		  {
+            "name": "carpooled.less.than.10.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in under 10 minutes"
+          },
+		  {
+            "name": "carpooled.10.14.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in 10 to 14 minutes"
+          },
+		  {
+            "name": "carpooled.15.19.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in 15 to 19 minutes"
+          },
+		  {
+            "name": "carpooled.20.24.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in 20 to 24 minutes"
+          },
+		  {
+            "name": "carpooled.25.29.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in 25 to 29 minutes"
+          },
+		  {
+            "name": "carpooled.30.34.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in 30 to 34 minutes"
+          },
+		  {
+            "name": "carpooled.35.44.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in 35 to 44 minutes"
+          },
+		  {
+            "name": "carpooled.45.59.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in 45 to 59 minutes"
+          },
+		  {
+            "name": "carpooled.over60.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who carpooled to work in over an hour"
+          },
+		  {
+            "name": "walked.less.than.10.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in under 10 minutes"
+          },
+		  {
+            "name": "walked.10.14.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in 10 to 14 minutes"
+          },
+		  {
+            "name": "walked.15.19.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in 15 to 19 minutes"
+          },
+		  {
+            "name": "walked.20.24.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in 20 to 24 minutes"
+          },
+		  {
+            "name": "walked.25.29.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in 25 to 29 minutes"
+          },
+		  {
+            "name": "walked.30.34.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in 30 to 34 minutes"
+          },
+		  {
+            "name": "walked.35.44.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in 35 to 44 minutes"
+          },
+		  {
+            "name": "walked.45.59.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in 45 to 59 minutes"
+          },
+		  {
+            "name": "walked.over60.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who walked to work in over an hour"
+          },
+		  {
+            "name": "other.less.than.10.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in under 10 minutes"
+          },
+		  {
+            "name": "other.10.14.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in 10 to 14 minutes"
+          },
+		  {
+            "name": "other.15.19.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in 15 to 19 minutes"
+          },
+		  {
+            "name": "other.20.24.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in 20 to 24 minutes"
+          },
+		  {
+            "name": "other.25.29.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in 25 to 29 minutes"
+          },
+		  {
+            "name": "other.30.34.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in 30 to 34 minutes"
+          },
+		  {
+            "name": "other.35.44.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in 35 to 44 minutes"
+          },
+		  {
+            "name": "other.45.59.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in 45 to 59 minutes"
+          },
+		  {
+            "name": "other.over60.minutes",
+            "type": "integer"
+			"description": "estimate of the number of people who used another form of transport not listed to work in over an hour"
+          },
+		  {
+            "name": "income.less.10000",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income of less than 10000"
+          },
+		  {
+            "name": "income.10000.14999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 10000 and 14999"
+          },
+		  {
+            "name": "income.15000.19999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 15000 and 19999"
+          },
+		  {
+            "name": "income.20000.24999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 20000 and 24999"
+          },
+		  {
+            "name": "income.25000.29999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 25000 and 29999"
+          },
+		  {
+            "name": "income.30000.34999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 30000 and 34999"
+          },
+		  {
+            "name": "income.35000.39999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 35000 and 39999"
+          },
+		  {
+            "name": "income.40000.44999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 40000 and 44999"
+          },
+		  {
+            "name": "income.45000.49999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 45000 and 49999"
+          },
+		  {
+            "name": "income.50000.59999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 50000 and 59999"
+          },
+		  {
+            "name": "income.60000.74999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 60000 and 74999"
+          },
+		  {
+            "name": "income.75000.99999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 75000 and 99999"
+          },
+		  {
+            "name": "income.100000.124999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 100000 and 124999"
+          },
+		  {
+            "name": "income.150000.199999",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 150000 and 199999"
+          },
+		  {
+            "name": "income.over.200000",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income of over 200000"
+          },
+		  {
+            "name": "private.insurance.under25000",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income under 25000 with private insurance"
+          },
+		  {
+            "name": "private.insurance.25.49",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 25000 and 49999 with private insurance"
+          },
+		  {
+            "name": "private.insurance.50.75",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 50000 and 74999 with private insurance"
+          },
+		  {
+            "name": "private.insurance.75.100",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 75000 and 100000 with private insurance"
+          },
+		  {
+            "name": "private.insurance.over100",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between over 100000 with private insurance"
+          },
+		  		  {
+            "name": "public.insurance.under25000",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income under 25000 with public insurance"
+          },
+		  {
+            "name": "public.insurance.25.49",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 25000 and 49999 with public insurance"
+          },
+		  {
+            "name": "public.insurance.50.75",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 50000 and 74999 with public insurance"
+          },
+		  {
+            "name": "public.insurance.75.100",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 75000 and 100000 with public insurance"
+          },
+		  {
+            "name": "public.insurance.over100",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between over 100000 with public insurance"
+          },
+		  		  {
+            "name": "no.insurance.under25000",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income under 25000 with no insurance"
+          },
+		  {
+            "name": "no.insurance.25.49",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 25000 and 49999 with no insurance"
+          },
+		  {
+            "name": "no.insurance.50.75",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 50000 and 74999 with no insurance"
+          },
+		  {
+            "name": "no.insurance.75.100",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between 75000 and 100000 with no insurance"
+          },
+		  {
+            "name": "no.insurance.over100",
+            "type": "integer"
+			"description": "estimate of the number of households with an annual income between over 100000 with no insurance"
+          },
+		  {
+            "name": "male0cars",
+            "type": "integer"
+			"description": "estimate of the number of men without access to a car"
+          },
+		  {
+            "name": "male1car",
+            "type": "integer"
+			"description": "estimate of the number of men with access to 1 car"
+          },
+		  {
+            "name": "male2cars",
+            "type": "integer"
+			"description": "estimate of the number of men with access to 2 cars"
+          },
+		  {
+            "name": "male3cars",
+            "type": "integer"
+			"description": "estimate of the number of men with access to 3 cars"
+          },
+		  {
+            "name": "male4cars",
+            "type": "integer"
+			"description": "estimate of the number of men with access to 4 cars"
+          },
+		  {
+            "name": "male5cars",
+            "type": "integer"
+			"description": "estimate of the number of men with access to 5 or more cars"
+          },
+		  {
+            "name": "female0cars",
+            "type": "integer"
+			"description": "estimate of the number of women without access to a car"
+          },
+		  {
+            "name": "female1car",
+            "type": "integer"
+			"description": "estimate of the number of women with access to 1 car"
+          },
+		  {
+            "name": "female2cars",
+            "type": "integer"
+			"description": "estimate of the number of women with access to 2 cars"
+          },
+		  {
+            "name": "female3cars",
+            "type": "integer"
+			"description": "estimate of the number of women with access to 3 cars"
+          },
+		  {
+            "name": "female4cars",
+            "type": "integer"
+			"description": "estimate of the number of women with access to 4 cars"
+          },
+		  {
+            "name": "female5cars",
+            "type": "integer"
+			"description": "estimate of the number of women with access to 5 or more cars"
+          },
+		  {
+            "name": "individual.no.income",
+            "type": "integer"
+			"description": "estimate of the number of adults making no income annually"
+          },
+		  {
+            "name": "individual.less.10000",
+            "type": "integer"
+			"description": "estimate of the number of adults making less than 10000 annually"
+          },
+		  {
+            "name": "individual.10000.14999",
+            "type": "integer"
+			"description": "estimate of the number of adults making between 10000 and 14999 annually"
+          },
+		  {
+            "name": "individual.15000.19999",
+            "type": "integer"
+			"description": "estimate of the number of adults making between 15000 and 19999 annually"
+          },
+		  {
+            "name": "individual.20000.24999",
+            "type": "integer"
+			"description": "estimate of the number of adults making between 20000 and 24999 annually"
+          },
+		  {
+            "name": "individual.25000.34999",
+            "type": "integer"
+			"description": "estimate of the number of adults making between 25000 and 34999 annually"
+          },
+		  {
+            "name": "individual.35000.49999",
+            "type": "integer"
+			"description": "estimate of the number of adults making between 35000 and 49999 annually"
+          },
+		  {
+            "name": "individual.50000.64999",
+            "type": "integer"
+			"description": "estimate of the number of adults making between 50000 and 64999 annually"
+          },
+		  {
+            "name": "individual.65000.74999",
+            "type": "integer"
+			"description": "estimate of the number of adults making between 65000 and 74999 annually"
+          },
+		  {
+            "name": "individual.over75000",
+            "type": "integer"
+			"description": "estimate of the number of adults making over 75000 annually"
+          },
+          {
+            "name": "var2",
+            "type": "integer"
+          },
+          {
+            "name": "var3",
+            "type": "number"
+          }
+        ]
+      }
+    }
+  ]
+}
