@@ -1,0 +1,121 @@
+{
+  "name": "syntheticdataset",
+  # here we list the data files in this dataset
+  "resources": [
+    {
+      "path": "syntheticdataset.RDS",
+      "schema": {
+        "fields": [
+          {
+            "name": "var1",
+            "type": "string"
+          },
+		  {
+            "name": "household.type",
+            "type": "string"
+			"description": "simulated household type, options were family types including: married-couple family, female householder - no husband present, male householder - no wife present, nonfamily, or group quarters for people not in Census defined households"
+          },
+		  {
+            "name": "member",
+            "type": "string"
+			"description": "simulated household member, either a householder, part of the married couple who were assumed co householders, a non householding adult, child or group quarters for people not in Census defined households"
+          },
+		  {
+            "name": "size",
+            "type": "integer"
+			"description": "simulated size of a household automatically 1 for group quarters people"
+          },
+		  {
+            "name": "number.of.vehicles",
+            "type": "integer"
+			"description": "simulated number of vehicles available for either the household or individual level if living in group quarters"
+          },
+		  {
+            "name": "sex",
+            "type": "string"
+			"description": "simulated registered sex, either male or female"
+          },
+		  {
+            "name": "age",
+            "type": "string"
+			"description": "simulated age range from US Census brackets"
+          },
+		  {
+            "name": "race",
+            "type": "string"
+			"description": "simulated registered race with the US Census"
+          },
+		  {
+            "name": "school.enrollment",
+            "type": "string"
+			"description": "simulated school enrollment either public, private or not enrolled"
+          },
+		  {
+            "name": "education.attainment",
+            "type": "string"
+			"description": "simulated educational attainment either less than 9th grade, 9th to 12th grade but no highschool diploma, high school diploma, some college no diploma, associate's degree, bachelor's degree or post baccalaurette degree"
+          },
+		  {
+            "name": "employment",
+            "type": "string"
+			"description": "simulated employment, either employed, unemployed, not in labor force, or in armed forces"
+          },
+		  {
+            "name": "disability",
+            "type": "string"
+			"description": "simulated disability either no registered disability, with one type of disability, or multiple disabilities"
+          },
+		  {
+            "name": "nativity",
+            "type": "string"
+			"description": "simulated whether individual was born in the Unoited States or abroad"
+          },
+		  {
+            "name": "English.speaking.skills",
+            "type": "string"
+			"description": "simulated English Speaking skills either English as primary language, speaks English very well, or speaks English less than well" 
+          },
+		  {
+            "name": "citizenship",
+            "type": "string"
+			"description": "simulated citizenship either citizen, naturalized citizen or not a citizen"
+          },
+		  {
+            "name": "Language.at.home",
+            "type": "string"
+			"description": "simulated language spoken at home either English, Spanish, or some other language"
+          },
+		  {
+            "name": "veteran.status",
+            "type": "string"
+			"description": "simulated veteran status"
+          },
+		  {
+            "name": "means.of.transportation.to.work",
+            "type": "string"
+			"description": "simulated means of transportation for employed individuals either drove alone, carpooled, used public transport, walked, worked at home, or used some other form of transport such as bike or taxi"
+          },
+		  {
+            "name": "travel.time.to.work",
+            "type": "string"
+			"description": "simulated range of time to get to work for employed people not working at home from US Census brackets"
+          },
+		  {
+            "name": "household.income",
+            "type": "string"
+			"description": "simulated range of income for household from US Census brackets, if living in group quarters individual income with different brackets"
+          },
+		  {
+            "name": "health.insurance",
+            "type": "string"
+			"description": "simulated health insurance status, either private insurance, public insurance, or no insurance"
+          },
+		    "name": "householdID",
+            "type": "string"
+			"description": "a unique ID assigned to each household or group quarters individual"
+          },
+        ]
+      }
+    }
+  ]
+}

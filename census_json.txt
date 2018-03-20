@@ -3396,14 +3396,471 @@
             "type": "integer"
 			"description": "estimate of the number of adults making over 75000 annually"
           },
-          {
-            "name": "var2",
+		  {
+            "name": "with.disability.under18.private.insurance",
             "type": "integer"
+			"description": "estimate of the number of people under 18 with a disability on private insurance"
           },
-          {
-            "name": "var3",
-            "type": "number"
-          }
+		  {
+            "name": "with.disability.18.64.private.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 64 with a disability on private insurance"
+          },
+		  {
+            "name": "with.disability.over65.private.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people over 65 with a disability on private insurance"
+          },
+		  {
+            "name": "with.disability.under18.public.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people under 18 with a disability on public insurance"
+          },
+		  {
+            "name": "with.disability.18.64.public.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 64 with a disability on public insurance"
+          },
+		  {
+            "name": "with.disability.over65.public.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people over 65 with a disability on public insurance"
+          },
+		  {
+            "name": "with.disability.under18.no.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people under 18 with a disability on no insurance"
+          },
+		  {
+            "name": "with.disability.18.64.no.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 64 with a disability on no insurance"
+          },
+		  {
+            "name": "with.disability.over65.no.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people over 65 with a disability on no insurance"
+          },
+		  {
+            "name": "without.disability.under18.private.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people under 18 without a disability on private insurance"
+          },
+		  {
+            "name": "without.disability.18.64.private.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 64 without a disability on private insurance"
+          },
+		  {
+            "name": "without.disability.over65.private.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people over 65 without a disability on private insurance"
+          },
+		  {
+            "name": "without.disability.under18.public.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people under 18 without a disability on public insurance"
+          },
+		  {
+            "name": "without.disability.18.64.public.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 64 without a disability on public insurance"
+          },
+		  {
+            "name": "without.disability.over65.public.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people over 65 without a disability on public insurance"
+          },
+		  {
+            "name": "without.disability.under18.no.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people under 18 without a disability on no insurance"
+          },
+		  {
+            "name": "without.disability.18.64.no.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 64 without a disability on no insurance"
+          },
+		  {
+            "name": "without.disability.over65.no.insurance",
+            "type": "integer"
+			"description": "estimate of the number of people over 65 without a disability on no insurance"
+          },
+		  {
+            "name": "same.house.under.5",
+            "type": "integer"
+			"description": "estimate of the number of people under 5 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.5.to.17",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 19 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 20 and 24 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 25 and 29 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 30 and 34 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.35.to.39",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 35 and 39 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.40.to.44",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 40 and 44 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.45.to.49",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 45 and 49 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.50.to.54",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 50 and 54 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.55.to.59",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 55 and 59 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.60.to.64",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 60 and 64 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.65.to.69",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 65 and 69 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.70.to.74",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 70 and 74 who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "same.house.over.75",
+            "type": "integer"
+			"description": "estimate of the number of people 75 or older who are living in the same house they lived a year ago"
+          },
+		  {
+            "name": "moved.within.county.under.5",
+            "type": "integer"
+			"description": "estimate of the number of people under 5 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.5.to.17",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 19 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 20 and 24 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 25 and 29 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 30 and 34 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.35.to.39",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 35 and 39 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.40.to.44",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 40 and 44 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.45.to.49",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 45 and 49 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.50.to.54",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 50 and 54 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.55.to.59",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 55 and 59 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.60.to.64",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 60 and 64 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.65.to.69",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 65 and 69 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.70.to.74",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 70 and 74 who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.county.over.75",
+            "type": "integer"
+			"description": "estimate of the number of people 75 or older who moved from within the same county in the last year"
+          },
+		  {
+            "name": "moved.within.state.under.5",
+            "type": "integer"
+			"description": "estimate of the number of people under 5 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.5.to.17",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 19 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 20 and 24 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 25 and 29 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 30 and 34 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.35.to.39",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 35 and 39 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.40.to.44",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 40 and 44 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.45.to.49",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 45 and 49 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.50.to.54",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 50 and 54 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.55.to.59",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 55 and 59 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.60.to.64",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 60 and 64 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.65.to.69",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 65 and 69 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.70.to.74",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 70 and 74 who moved from within the same state in the last year"
+          },
+		  {
+            "name": "moved.within.state.over.75",
+            "type": "integer"
+			"description": "estimate of the number of people 75 or older who moved from within the same state in the last year"
+          },
+		  {
+            "name": "out.of.state.under.5",
+            "type": "integer"
+			"description": "estimate of the number of people under 5 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.5.to.17",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 19 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 20 and 24 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 25 and 29 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 30 and 34 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.35.to.39",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 35 and 39 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.40.to.44",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 40 and 44 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.45.to.49",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 45 and 49 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.50.to.54",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 50 and 54 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.55.to.59",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 55 and 59 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.60.to.64",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 60 and 64 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.65.to.69",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 65 and 69 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.70.to.74",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 70 and 74 who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.state.over.75",
+            "type": "integer"
+			"description": "estimate of the number of people 75 or older who moved from another state in the last year"
+          },
+		  {
+            "name": "out.of.nation.under.5",
+            "type": "integer"
+			"description": "estimate of the number of people under 5 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.5.to.17",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 5 and 17 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.18.to.19",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 18 and 19 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.20.to.24",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 20 and 24 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.25.to.29",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 25 and 29 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.30.to.34",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 30 and 34 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.35.to.39",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 35 and 39 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.40.to.44",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 40 and 44 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.45.to.49",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 45 and 49 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.50.to.54",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 50 and 54 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.55.to.59",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 55 and 59 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.60.to.64",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 60 and 64 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.65.to.69",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 65 and 69 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.70.to.74",
+            "type": "integer"
+			"description": "estimate of the number of people between the ages of 70 and 74 who moved from another nation in the last year"
+          },
+		  {
+            "name": "out.of.nation.over.75",
+            "type": "integer"
+			"description": "estimate of the number of people 75 or older who moved from another nation in the last year"
+          },
         ]
       }
     }
