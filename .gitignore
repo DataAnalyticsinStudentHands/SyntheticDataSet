@@ -7,7 +7,6 @@ _RData.gz*
 *.shx
 *.shp
 *.dbf
-*.txt
 *.zip
 *.cpg
 *.gdb
