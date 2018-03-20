@@ -1,5 +1,7 @@
 #Map variable names to appropriate headings in Census
 
+group.quarters.population="B26001_001E"
+
 #family households by size
 family.2.person.household="B11016_003E"
 family.3.person.household="B11016_004E"
@@ -809,23 +811,23 @@ male3cars="B08014_012E"
 male4cars="B08014_013E"
 male5cars="B08014_014E"
 
-female0cars="B08014_016E" 
-female1car="B08014_017E" 
-female2cars="B08014_018E" 
-female3cars="B08014_019E" 
-female4cars="B08014_020E" 
+female0cars="B08014_016E"
+female1car="B08014_017E"
+female2cars="B08014_018E"
+female3cars="B08014_019E"
+female4cars="B08014_020E"
 female5cars="B08014_021E"
 
 #individual income (used for group quarters)
-individual.no.income="B06010_002E" 
-individual.less.10000="B06010_003E" 
-individual.10000.14999="B06010_004E" 
+individual.no.income="B06010_002E"
+individual.less.10000="B06010_003E"
+individual.10000.14999="B06010_004E"
 individual.15000.19999="B06010_005E"
-individual.20000.24999="B06010_006E" 
-individual.25000.34999="B06010_007E" 
-individual.35000.49999="B06010_008E" 
-individual.50000.64999="B06010_009E" 
-individual.65000.74999="B06010_010E" 
+individual.20000.24999="B06010_006E"
+individual.25000.34999="B06010_007E"
+individual.35000.49999="B06010_008E"
+individual.50000.64999="B06010_009E"
+individual.65000.74999="B06010_010E"
 individual.over75000="B06010_011E"
 
 #health insurance by disability (used for group quarters)
@@ -933,4 +935,3 @@ out.of.nation.60.to.64="B07001_093E"
 out.of.nation.65.to.69="B07001_094E"
 out.of.nation.70.to.74="B07001_095E"
 out.of.nation.over.75="B07001_096E"
-
