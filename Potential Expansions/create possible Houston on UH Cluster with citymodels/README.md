@@ -1,2 +1,2 @@
-# SyntheticDataSet
-A synthetic dataset to simulate Houston
+# Possible Houston
+Code to simulate Houston using the citymodels package.
