@@ -1,9 +1,0 @@
-#!/bin/bash 
-#SBATCH -t 11:10:00 
-#SBATCH -o my_r_job.o%j
-#SBATCH -J my_r_job
-#SBATCH -N 1
-#SBATCH --mem 24000
-module load geos
-module load R/3.4.0
-Rscript runonopuntiaformemory.R

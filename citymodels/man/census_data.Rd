@@ -23,6 +23,6 @@ census_data
 }
 \description{
 A dataset mined from the U.S. Census for Texas from the 5 year data available for 2009-2014.
-Can be mined using the census_data_api function
+Can be created using the census_data_api function
 }
 \keyword{datasets}
