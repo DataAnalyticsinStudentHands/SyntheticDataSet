@@ -1,4 +1,4 @@
-getBRSSRdata <- function(syntheticdataset,seed){
+getBRFSSdata <- function(syntheticdataset,seed){
   set.seed(seed)
   
   BRSSR=read.csv('BRSSR.csv')
