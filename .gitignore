@@ -12,6 +12,8 @@ _RData.gz*
 *.gdb
 *.XPT
 *.prj
+*.rds
+*.RDS
 *.accdb
 *.xlsx
 *.sbn
