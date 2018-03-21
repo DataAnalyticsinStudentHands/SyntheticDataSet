@@ -10,8 +10,6 @@ _RData.gz*
 *.zip
 *.cpg
 *.gdb
-*.RDS
-*.rds
 *.XPT
 *.prj
 *.accdb
