@@ -19,6 +19,7 @@ _RData.gz*
 *.sbn
 *.spdf
 *.csv
+*.txt
 firstharveymaps/Harvey Flooding/residential_HCAD_parcels.prj
 firstharveymaps/
 Nick app/other data/
