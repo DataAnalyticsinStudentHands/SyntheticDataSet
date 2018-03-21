@@ -1,8 +1,0 @@
-#!/bin/bash 
-#SBATCH -t 168:00:00 
-#SBATCH -o my_r_job.o%j
-#SBATCH -J my_r_job
-#SBATCH -N 1 -n 10
-#SBATCH --mem 24000
-module load R
-Rscript possiblehouston.R
