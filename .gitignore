@@ -17,6 +17,10 @@ _RData.gz*
 *.accdb
 *.xlsx
 *.sbn
+*.xml
+*.sbx
+*.html
+*.xls
 *.spdf
 *.csv
 *.txt
