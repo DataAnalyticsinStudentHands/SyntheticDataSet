@@ -1,0 +1,78 @@
+---
+title: "CityModels"
+author: "Carol Upchurch"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CityModels}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+library(citymodels)
+```
+
+This package is to make models of individuals in a population using a combination of U.S. Census data, data from the Center for Disease Control, and user inputed shapefiles to place the population in houses.
+
+This package includes a function to mine the necessary Census data called census_data_API. This function takes a user inputed state, base_url for the API, and key to get all the U.S. Census variables needed for the simulation. An example of this data for Texas is in the data folder. It uses the codes and heaings in the map_variables_from_Census_Table.R code, which may need to be updated for different years. It uses the 5 year data from 2009 to 2014.
+
+After mining the appropriate U.S. Census data, households can be generated using the function household_generator. This function simulates the estimated number of households by size from Census data information. It calls subfunctions such as get household income or getsexageandrace to characterize these households and individuals in these households. It requires the Census code, for the state, county and tract, the user is simulating, a seed to use for sampling, and census_data in the same format is created using the census_data_API function.
+
+For example to simulate a tract in Harris County from the data included in the package the state number would be 48, Harris County's number is 201, and a potential tract would be 421300. Calling the household function with a seed of 1 would look like this.
+
+```{r}
+households_in_421300=household_generator(48,201,421300,seed=1,inputdir = "../Inputs/",census_data)
+View(households_in_421300)
+```
+
+Outside of households the U.S. Census also includes data on people living in group quarters which the U.S. Census defines as "a group living arrangement that is owned or managed by an entity or organization providing housing and/or services for the residents." These people are simulated by the group_quarters_simulator, which like the household_generator, calls subfunctions to characterize these individuals. For example to simulate group quarters in the same tract the code would look like such:
+
+```{r}
+group_quarters_in_421300=group_quarters_simulater(48,201,421300,seed=1,inputdir = "../Inputs/",census_data)
+View(group_quarters_in_421300)
+```
+
+To run these functions for a larger simulation such as all of Harris County, these functions can work with the doParallel and foreach packages. That code could look like below, which is commented out as it is not meant to be run on personal computers.
+
+```{r}
+#library(citymodels)
+#Census_data=readRDS("Census_data.RDS")
+
+#tracts=subset(Census_data,Census_data$county==201)
+#tracts=tracts$tract
+
+#Set Up to run in Parallel
+#library(doParallel)
+#library(foreach)
+#no_cores <- detectCores() - 1
+#cl<-makeCluster(no_cores)
+#registerDoParallel(cl)
+
+#Simulate Households
+#sample.set=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
+ # library(citymodels)
+  #sample=household_generator(48,201,tracts[index],seed=1,inputdir = "../Inputs/",Census_data)
+  #return(sample)
+#}
+
+#stopCluster(cl)
+
+
+#cl<-makeCluster(no_cores)
+#registerDoParallel(cl)
+
+#Simulate Group Quarters
+#sample.set2=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
+ # library(citymodels)
+#  sample=group_quarters_simulater(48,201,tracts[index],seed=1,inputdir = "../Inputs/",Census_data)
+ # return(sample)
+#}
+
+#stopCluster(cl)
+
+#sample.set=rbind(sample.set,sample.set2)
+
+
+```
+
