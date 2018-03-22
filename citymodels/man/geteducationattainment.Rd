@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{geteducationattainment}
 \alias{geteducationattainment}
-\title{Get Education Attainment}
+\title{Simulate Education Attainment}
 \usage{
 geteducationattainment(state, county, tract, syntheticdataset, seed,
   Census_data)

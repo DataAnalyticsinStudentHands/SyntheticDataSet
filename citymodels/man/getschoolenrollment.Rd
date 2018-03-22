@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{getschoolenrollment}
 \alias{getschoolenrollment}
-\title{Get School Enrollment}
+\title{Simulate School Enrollment}
 \usage{
 getschoolenrollment(state, county, tract, syntheticdataset, seed, Census_data)
 }

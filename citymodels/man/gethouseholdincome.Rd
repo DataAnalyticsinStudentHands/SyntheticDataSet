@@ -2,7 +2,7 @@
 % Please edit documentation in R/householdfunctions.R
 \name{gethouseholdincome}
 \alias{gethouseholdincome}
-\title{Get Household Income}
+\title{Simulate Household Income}
 \usage{
 gethouseholdincome(state, county, tract, syntheticdataset, seed, Census_data)
 }

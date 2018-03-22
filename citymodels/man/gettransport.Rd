@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{gettransport}
 \alias{gettransport}
-\title{Get Mode of Transportation}
+\title{Simulate Mode of Transportation}
 \usage{
 gettransport(state, county, tract, syntheticdataset, seed, Census_data)
 }

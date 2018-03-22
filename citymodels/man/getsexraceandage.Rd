@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{getsexraceandage}
 \alias{getsexraceandage}
-\title{Get Sex Age and Race}
+\title{Simulate Sex Age and Race}
 \usage{
 getsexraceandage(state, county, tract, syntheticdataset, seed, Census_data)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/groupquartersfunctions.R
 \name{gethealthinsuranceforgroupquarters}
 \alias{gethealthinsuranceforgroupquarters}
-\title{Get health insurance for people in group quarters}
+\title{Simulate health insurance for people in group quarters}
 \usage{
 gethealthinsuranceforgroupquarters(state, county, tract, syntheticdataset, seed,
   Census_data)

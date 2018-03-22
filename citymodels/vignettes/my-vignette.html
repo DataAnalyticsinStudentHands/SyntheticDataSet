@@ -12,7 +12,7 @@
 
 <meta name="author" content="Carol Upchurch" />
 
-<meta name="date" content="2018-03-07" />
+<meta name="date" content="2018-03-22" />
 
 <title>CityModels</title>
 
@@ -70,11 +70,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">CityModels</h1>
 <h4 class="author"><em>Carol Upchurch</em></h4>
-<h4 class="date"><em>2018-03-07</em></h4>
+<h4 class="date"><em>2018-03-22</em></h4>
 
 
 
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(citymodels)</code></pre></div>
 <p>This package is to make models of individuals in a population using a combination of U.S. Census data, data from the Center for Disease Control, and user inputed shapefiles to place the population in houses.</p>
 <p>This package includes a function to mine the necessary Census data called census_data_API. This function takes a user inputed state, base_url for the API, and key to get all the U.S. Census variables needed for the simulation. An example of this data for Texas is in the data folder. It uses the codes and heaings in the map_variables_from_Census_Table.R code, which may need to be updated for different years. It uses the 5 year data from 2009 to 2014.</p>
 <p>After mining the appropriate U.S. Census data, households can be generated using the function household_generator. This function simulates the estimated number of households by size from Census data information. It calls subfunctions such as get household income or getsexageandrace to characterize these households and individuals in these households. It requires the Census code, for the state, county and tract, the user is simulating, a seed to use for sampling, and census_data in the same format is created using the census_data_API function.</p>

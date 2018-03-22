@@ -1,4 +1,4 @@
-#' Get Sex Age and Race
+#' Simulate Sex Age and Race
 #'
 #' This function uses data from the U.S. Census to simulate the sex, race and age of an individual.
 #'
@@ -170,7 +170,7 @@ getsexraceandage <- function(state, county, tract, syntheticdataset,seed,Census_
   return(syntheticdataset)
 }
 
-#' Get School Enrollment
+#' Simulate School Enrollment
 #'
 #' This function uses data from the U.S. Census to simulate the school enrollment an individual.
 #'
@@ -227,7 +227,7 @@ getschoolenrollment <- function(state,county,tract,syntheticdataset,seed,Census_
   return(syntheticdataset)
 }
 
-#' Get Education Attainment
+#' Simulate Education Attainment
 #'
 #' This function uses data from the U.S. Census to simulate the educational attainment of an individual.
 #'
@@ -277,7 +277,7 @@ geteducationattainment=function(state, county,tract,syntheticdataset,seed,Census
   return(syntheticdataset)
 }
 
-#' Get Employment
+#' Simulate Employment
 #'
 #' This function uses data from the U.S. Census to simulate the educational attainment of an individual.
 #'
@@ -355,7 +355,7 @@ getemployment=function(state, county,tract,syntheticdataset,seed,Census_data){
   return(syntheticdataset)
 }
 
-#' Get Disability
+#' Simulate Disability
 #'
 #' This function uses data from the U.S. Census to simulate the disability status of an individual.
 #'
@@ -389,7 +389,7 @@ getdisability <- function(state,county,tract,syntheticdataset,seed,Census_data){
   return(syntheticdataset)
 }
 
-#' Get English Speaking Ability and Nativity
+#' Simulate English Speaking Ability and Nativity
 #'
 #' This function uses data from the U.S. Census to simulate the Language and Naticity of an individual.
 #'
@@ -444,7 +444,7 @@ getlangandnativity <- function(state, county,tract,syntheticdataset,seed,Census_
   return(syntheticdataset)
 }
 
-#' Get Citizenship and Language at Home
+#' Simulate Citizenship and Language at Home
 #'
 #' This function uses data from the U.S. Census to simulate the Citizenship and Language of an individual.
 #'
@@ -491,7 +491,7 @@ getcitizenandlang <- function(state,county,tract,syntheticdataset,seed,Census_da
   return(syntheticdataset)
 }
 
-#' Get Veteran Status
+#' Simulate Veteran Status
 #'
 #' This function uses data from the U.S. Census to simulate the Veteran Status of an individual.
 #'
@@ -538,7 +538,7 @@ getvets <- function(state, county,tract,syntheticdataset,seed,Census_data){
   return(syntheticdataset)
 }
 
-#' Get Mode of Transportation
+#' Simulate Mode of Transportation
 #'
 #' This function uses data from the U.S. Census to simulate the mode of transportation to work of an individual.
 #'
@@ -570,7 +570,7 @@ gettransport <- function(state, county,tract,syntheticdataset,seed,Census_data){
   return(syntheticdataset)
 }
 
-#' Get Transportation Time
+#' Simulate Transportation Time
 #'
 #' This function uses data from the U.S. Census to simulate the time taken to get to work for an individual.
 #'

@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{getcitizenandlang}
 \alias{getcitizenandlang}
-\title{Get Citizenship and Language at Home}
+\title{Simulate Citizenship and Language at Home}
 \usage{
 getcitizenandlang(state, county, tract, syntheticdataset, seed, Census_data)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{getemployment}
 \alias{getemployment}
-\title{Get Employment}
+\title{Simulate Employment}
 \usage{
 getemployment(state, county, tract, syntheticdataset, seed, Census_data)
 }

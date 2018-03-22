@@ -4,6 +4,7 @@
   "resources": [
     {
       "path": "Census_data.RDS",
+	  "description": "Data mined from the American Community Survey 5 year summary files for use in simulations with the citymodels package. Can be created with the getCensusdataAPI function in citymodels."
       "schema": {
         "fields": [
           {
@@ -20,6 +21,11 @@
             "name": "tract",
             "type": "integer",
 			"description": "Census code for the tract"
+          },
+		  {
+            "name": "group quarters",
+            "type": "integer",
+			"description": "estimate of the number of people living in a non household setting such as a dorm or assisted living facility"
           },
 		  {
             "name": "family.2.person.household",

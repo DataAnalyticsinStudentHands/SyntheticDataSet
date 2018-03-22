@@ -2,7 +2,7 @@
 % Please edit documentation in R/householdfunctions.R
 \name{gethouseholdhealthinsurance}
 \alias{gethouseholdhealthinsurance}
-\title{Get Household Health Insurance}
+\title{Simulate Household Health Insurance}
 \usage{
 gethouseholdhealthinsurance(state, county, tract, syntheticdataset, seed,
   Census_data)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{getlangandnativity}
 \alias{getlangandnativity}
-\title{Get English Speaking Ability and Nativity}
+\title{Simulate English Speaking Ability and Nativity}
 \usage{
 getlangandnativity(state, county, tract, syntheticdataset, seed, Census_data)
 }

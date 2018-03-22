@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{getdisability}
 \alias{getdisability}
-\title{Get Disability}
+\title{Simulate Disability}
 \usage{
 getdisability(state, county, tract, syntheticdataset, seed, Census_data)
 }

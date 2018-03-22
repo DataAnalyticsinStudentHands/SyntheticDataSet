@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{getvets}
 \alias{getvets}
-\title{Get Veteran Status}
+\title{Simulate Veteran Status}
 \usage{
 getvets(state, county, tract, syntheticdataset, seed, Census_data)
 }

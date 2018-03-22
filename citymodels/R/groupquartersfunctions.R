@@ -1,4 +1,4 @@
-#' Get number of vehicles for people in group quarters
+#' Simulate number of vehicles for people in group quarters
 #'
 #' This function uses data from the U.S. Census to sample the number of vehicles for people living in group quarters.
 #'
@@ -35,7 +35,7 @@ getnumberofvehiclesforgroupquarters <- function(state, county, tract,syntheticda
   return(syntheticdataset=syntheticdataset)
 }
 
-#' Get income for people in group quarters
+#' Simulate income for people in group quarters
 #'
 #' This function uses data from the U.S. Census to sample the income for people living in group quarters.
 #'
@@ -80,7 +80,7 @@ getincomeforgroupquarters <- function(state, county, tract,syntheticdataset,seed
   return(syntheticdataset=syntheticdataset)
 }
 
-#' Get health insurance for people in group quarters
+#' Simulate health insurance for people in group quarters
 #'
 #' This function uses data from the U.S. Census to sample the health insurance status for people living in group quarters.
 #'

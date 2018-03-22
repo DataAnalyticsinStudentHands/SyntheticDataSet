@@ -2,7 +2,7 @@
 % Please edit documentation in R/groupquartersfunctions.R
 \name{getnumberofvehiclesforgroupquarters}
 \alias{getnumberofvehiclesforgroupquarters}
-\title{Get number of vehicles for people in group quarters}
+\title{Simulate number of vehicles for people in group quarters}
 \usage{
 getnumberofvehiclesforgroupquarters(state, county, tract, syntheticdataset,
   seed, Census_data)

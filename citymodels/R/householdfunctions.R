@@ -1,4 +1,4 @@
-#' Get number of vehicles for households
+#' Simulate number of vehicles for households
 #'
 #' This function uses data from the U.S. Census to sample the number of vehicles a household would have based on its size.
 #'
@@ -83,7 +83,7 @@ getnumberofvehiclesforhouseholds <- function(state, county, tract,syntheticdatas
   return(syntheticdataset=syntheticdataset)
 }
 
-#' Get Household Income
+#' Simulate Household Income
 #'
 #' This function uses data from the U.S. Census on the tract level to build a probability vector for different household incomes and sample with the user inputed seed.
 #'
@@ -116,7 +116,7 @@ gethouseholdincome <- function(state,county,tract,syntheticdataset,seed,Census_d
 
 }
 
-#' Get Household Health Insurance
+#' Simulate Household Health Insurance
 #'
 #' This function uses data from the U.S. Census on the tract level to build a probability vector for health insurance status based on the presimulated household income. It then samples with the user inputed seed. Household income can be simulated with the function gethouseholdincome.
 #'

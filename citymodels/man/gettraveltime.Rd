@@ -2,7 +2,7 @@
 % Please edit documentation in R/individualfunctions.R
 \name{gettraveltime}
 \alias{gettraveltime}
-\title{Get Transportation Time}
+\title{Simulate Transportation Time}
 \usage{
 gettraveltime(state, county, tract, syntheticdataset, seed, Census_data)
 }

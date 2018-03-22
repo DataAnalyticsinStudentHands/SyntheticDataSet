@@ -2,7 +2,7 @@
 % Please edit documentation in R/householdfunctions.R
 \name{getnumberofvehiclesforhouseholds}
 \alias{getnumberofvehiclesforhouseholds}
-\title{Get number of vehicles for households}
+\title{Simulate number of vehicles for households}
 \usage{
 getnumberofvehiclesforhouseholds(state, county, tract, syntheticdataset, seed,
   Census_data)

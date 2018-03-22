@@ -2,7 +2,7 @@
 % Please edit documentation in R/groupquartersfunctions.R
 \name{getincomeforgroupquarters}
 \alias{getincomeforgroupquarters}
-\title{Get income for people in group quarters}
+\title{Simulate income for people in group quarters}
 \usage{
 getincomeforgroupquarters(state, county, tract, syntheticdataset, seed,
   Census_data)
