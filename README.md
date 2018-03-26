@@ -13,7 +13,7 @@ The source package is included as citymodel_0.1.0.tar.gz and can be downloaded a
 ```R
 install.packages("citymodels_0.1.0.tar.gz", repos = NULL, type = "source")
 ```
-### Potential Expansions
+## Potential Expansions
 
 In the Potential Expansions folder is an example case use of this package in modeling Houston, as well as some folders for possible expansions of the project with modules to add health data from the Center for Disease Control and better geospacial resolution using spacial files from the Harris County Appraisal District. Some of these will eventually be incorporated in the Citymodels package.
 
