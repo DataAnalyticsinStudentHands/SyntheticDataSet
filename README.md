@@ -1,5 +1,19 @@
-# SyntheticDataSet
-Citymodels is an R package made to build models of city populations to use in investigating public health questions. The current package uses data mined from the U.S. Census to model populations by tract. The finished code for this is in the citymodels folder. The source package is included as citymodel_0.1.0.tar.gz and can be downloaded and installed into R using the install.packages function with the type option set to "source". 
+# Synthetic Data Set
+
+This repository is the main development repo for the Synthetic Dataset project. The aim of this project is to build code and examples that help emulating certain aspects of mostly health realated data questions. Examples have been created to illustrate the approach and they are based on the City of Houston where the [DASH](http://dash.hnet.uh.edu/DASH/) team at the [University of Houston](http://www.uh.edu/) is located. 
+
+## citymodels package
+
+Citymodels is an R package made to build models of city populations to use in investigating public health questions. The current package uses data mined from the U.S. Census to model populations by tract. The development code for this can be found in the [citymodels folder](https://github.com/DataAnalyticsinStudentHands/SyntheticDataSet/tree/master/citymodels). 
+
+### Install
+
+The source package is included as citymodel_0.1.0.tar.gz and can be downloaded and installed into R using the install.packages function with the type option set to "source". 
+
+```R
+install.packages("citymodels_0.1.0.tar.gz", repos = NULL, type = "source")
+```
+## Potential Expansions
 
 In the Potential Expansions folder is an example case use of this package in modeling Houston, as well as some folders for possible expansions of the project with modules to add health data from the Center for Disease Control and better geospacial resolution using spacial files from the Harris County Appraisal District. Some of these will eventually be incorporated in the Citymodels package.
 
