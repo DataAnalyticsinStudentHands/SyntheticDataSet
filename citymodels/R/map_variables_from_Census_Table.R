@@ -1,4 +1,5 @@
 #Map variable names to appropriate headings in Census
+group.quarters.population="B26001_001E"
 
 #family households by size
 family.2.person.household="B11016_003E"
