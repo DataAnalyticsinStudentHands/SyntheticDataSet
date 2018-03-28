@@ -1,14 +1,15 @@
 
 #Save data for two years
-source("getcensusdata.R")
-saveRDS(census_data_API(),"Census_data_2014.RDS")
-saveRDS(census_data_API(base_url='http://api.census.gov/data/2015/acs5?'),"Census_data_2015.RDS")
+#source("getcensusdata.R")
+#saveRDS(census_data_API(),"Census_data_2014.RDS")
+#saveRDS(census_data_API(base_url='http://api.census.gov/data/2015/acs5?'),"Census_data_2015.RDS")
 
 #Clear environment
 #Going to load part of the big dataset, subset a tract and lose the rest
-rm(list=ls())
-synthetic_data_set=readRDS("complete_sample_set.RDS")
-synthetic_data_set=subset(synthetic_data_set,synthetic_data_set$tract==554403)
+#rm(list=ls())
+#synthetic_data_set=readRDS("complete_sample_set.RDS")
+#synthetic_data_set=subset(synthetic_data_set,synthetic_data_set$tract==554403)
+synthetic_data_set=readRDS("tract554403toworkwith.RDS")
 
 #load following year information
 Census_data_following_year=readRDS("Census_data_2015.RDS")
@@ -45,6 +46,9 @@ Census_data_following_year$new_people_65_to_69=rowSums(Census_data_following_yea
 Census_data_following_year$new_people_70_to_74=rowSums(Census_data_following_year[c("moved.within.county.70.to.74","moved.within.state.70.to.74","out.of.state.70.to.74","out.of.nation.70.to.74")])
 Census_data_following_year$new_people_over_75=rowSums(Census_data_following_year[c("moved.within.county.over.75","moved.within.state.over.75","out.of.state.over.75","out.of.nation.over.75")])
 
+state=48
+county=201
+tract=554403
 
 ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synthetic_data_set,seed,Census_data_following_year){
   
@@ -69,16 +73,18 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   #Start looking at differences and begin aging
   differences=Census_data_following_year[c("state","county","tract")]
   differences$over_75=Census_data_following_year$Over_85+Census_data_following_year$`75_to_84`-Census_data_following_year$new_people_65_to_69-Census_data_following_year$new_people_70_to_74-old_ages_dataframe$Over_85-old_ages_dataframe$`75_to_84`
+  #make indexes of people that can age up
+  indexes_of_potential_age_ups <- which(synthetic_data_set$age=="65 to 74")
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   if(differences$over_75 > 0){
-    #make indexes
-    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="65 to 74")
     #make sure there are enough people to age up
     if(length(indexes_of_potential_age_ups)>differences$over_75){
       #sample indexes
       people_to_age=sample(indexes_of_potential_age_ups,differences$over_75)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "75 to 84"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "65 to 74"
       #update value for difference
       differences$over_75_aged <- differences$over_75
     }
@@ -92,6 +98,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$over_75 < 0){
     differences$over_75_aged=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"65 to 74"
   }
   
   #Next Age Set
@@ -107,6 +114,8 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`65_to_74`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "65 to 74"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "55 to 64"
       #update value for difference
       differences$`65_to_74_aged` <- differences$`65_to_74`
     }
@@ -120,6 +129,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$`65_to_74` < 0){
     differences$`65_to_74_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"55 to 64"
   } 
   
   #Next Age Set
@@ -135,6 +145,8 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`55_to_64`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "55 to 64"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "45 to 54"
       #update value for difference
       differences$`55_to_64_aged` <- differences$`55_to_64`
     }
@@ -148,6 +160,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$`55_to_64` < 0){
     differences$`55_to_64_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"45 to 54"
   }
   
   #Next Age Set
@@ -163,6 +176,8 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`45_to_54`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "45 to 54"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "35 to 44"
       #update value for difference
       differences$`45_to_54_aged` <- differences$`45_to_54`
     }
@@ -176,6 +191,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$`45_to_54` < 0){
     differences$`45_to_54_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"35 to 44"
   }
   
   #Next Age Set
@@ -191,6 +207,8 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`35_to_44`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "35 to 44"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "30 to 34"
       #update value for difference
       differences$`35_to_44_aged` <- differences$`35_to_44`
     }
@@ -204,6 +222,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$`35_to_44` < 0){
     differences$`35_to_44_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"30 to 34"
   }
   
   
@@ -220,6 +239,8 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`30_to_34`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "30 to 34"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "25 to 29"
       #update value for difference
       differences$`30_to_34_aged` <- differences$`30_to_34`
     }
@@ -233,6 +254,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$`30_to_34` < 0){
     differences$`30_to_34_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"25 to 29"
   }
   
   
@@ -249,6 +271,8 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`25_to_29`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "25 to 29"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "20 to 24"
       #update value for difference
       differences$`25_to_29_aged` <- differences$`25_to_29`
     }
@@ -262,6 +286,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$`25_to_29` < 0){
     differences$`25_to_29_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"20 to 24"
   }  
   
   #Next Age Set
@@ -277,6 +302,8 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`20_to_24`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "20 to 24"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "18 to 19"
       #update value for difference
       differences$`20_to_24_aged` <- differences$`20_to_24`
     }
@@ -290,6 +317,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$`20_to_24` < 0){
     differences$`20_to_24_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"18 to 19"
   }
   
   
@@ -307,19 +335,22 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`18_to_19`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "18 to 19"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "15 to 17"
       #update value for difference
-      differences$`20_to_24_aged` <- differences$`20_to_24`
+      differences$`18_to_19_aged` <- differences$`18_to_19`
     }
     #if not age up everyone and update the difference
     if(length(indexes_of_potential_age_ups)<differences$`20_to_24`){
       #make everyone older
       synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "20 to 24"
       #update value for difference
-      differences$`20_to_24_aged` <- differences$`20_to_24`-length(indexes_of_potential_age_ups)
+      differences$`18_to_19_aged` <- differences$`18_to_19`-length(indexes_of_potential_age_ups)
     }
   }
-  if(differences$`20_to_24` < 0){
-    differences$`20_to_24_aged`=0
+  if(differences$`18_to_19` < 0){
+    differences$`18_to_19_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"15 to 17"
   } 
   
   #Next Age Set
@@ -335,6 +366,8 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       people_to_age=sample(indexes_of_potential_age_ups,differences$`5_to_17`)
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "5 to 9"
+      #everyone else can stay the same age
+      synthetic_data_set$new_age[setdiff(indexes_of_potential_age_ups,people_to_age)] <- "Under 5"
       #update value for difference
       differences$`5_to_17_aged` <- differences$`5_to_17`
     }
@@ -348,6 +381,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   }
   if(differences$`5_to_17` < 0){
     differences$`5_to_17_aged`=0
+    synthetic_data_set$new_age[indexes_of_potential_age_ups]<-"Under 5"
   }
   
   #Babbies!!!!!!!!!
@@ -355,26 +389,25 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   differences$`under_5`=Census_data_following_year$Under_5-Census_data_following_year$Under_5+differences$`5_to_17_aged`-old_ages_dataframe$`Under_5`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   if(differences$`under_5` > 0){
-    #make indexes
-    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="Under 5")
-    #make sure there are enough people to age up
-    if(length(indexes_of_potential_age_ups)>differences$`5_to_17`){
-      #sample indexes
-      people_to_age=sample(indexes_of_potential_age_ups,differences$`5_to_17`)
-      #make those people older
-      synthetic_data_set$new_age[people_to_age] <- "5 to 9"
-      #update value for difference
-      differences$`5_to_17_aged` <- differences$`5_to_17`
-    }
-    #if not age up everyone and update the difference
-    if(length(indexes_of_potential_age_ups)<differences$`5_to_17`){
-      #make everyone older
-      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "5 to 9"
-      #update value for difference
-      differences$`5_to_17_aged` <- differences$`5_to_17`-length(indexes_of_potential_age_ups)
-    }
-
-    
-    
+    number_of_babies=differences$'under_5'
+  }
   
+  #Time to start sorting houeholds
+  
+  #make a variable in synthetic dataset to more easily table to work with Census data
+  make_easier=function(household.type,size){
+    type=ifelse(household.type=="Non-family","nonfamily",
+                ifelse(household.type=="Group Quarters","group.quarters.population","family"))
+    easier_to_table=paste0(type,".",size,".person.household")
+    return(easier_to_table)
+  }
+  synthetic_data_set$household_and_size=mapply(make_easier,synthetic_data_set$household.type,synthetic_data_set$size)
+  #create table of household sizes and family or not family in synthetic dataset
+  old_households_table=ftable(synthetic_data_set$household_and_size)
+  old_households_dataframe=as.data.frame.matrix(old_households_table)
+  colnames(old_households_dataframe)=unlist(attr(old_households_table, "col.vars"))
+  
+    
+    
+    
 }
