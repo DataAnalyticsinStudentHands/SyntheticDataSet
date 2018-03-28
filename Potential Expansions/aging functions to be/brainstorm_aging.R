@@ -68,7 +68,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Start looking at differences and begin aging
   differences=Census_data_following_year[c("state","county","tract")]
-  differences$over_75=Census_data_following_year$Over_85+Census_data_following_year$`75_to_84`-Census_data_following_year$new_people_over_75
+  differences$over_75=Census_data_following_year$Over_85+Census_data_following_year$`75_to_84`-Census_data_following_year$new_people_65_to_69-Census_data_following_year$new_people_70_to_74-old_ages_dataframe$Over_85-old_ages_dataframe$`75_to_84`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   if(differences$over_75 > 0){
     #make indexes
@@ -80,19 +80,301 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       #make those people older
       synthetic_data_set$new_age[people_to_age] <- "75 to 84"
       #update value for difference
-      differences$over_75 <- 0
+      differences$over_75_aged <- differences$over_75
     }
     #if not age up everyone and update the difference
     if(length(indexes_of_potential_age_ups)<differences$over_75){
       #make everyone older
       synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "75 to 84"
       #update value for difference
-      differences$over_75 <- differences$over_75-length(indexes_of_potential_age_ups)
+      differences$over_75_aged=length(indexes_of_potential_age_ups)
     }
+  }
+  if(differences$over_75 < 0){
+    differences$over_75_aged=0
+  }
+  
+  #Next Age Set
+  
+  differences$`65_to_74`=Census_data_following_year$`65_to_74`-Census_data_following_year$new_people_70_to_74-Census_data_following_year$new_people_65_to_69+differences$over_75_aged-old_ages_dataframe$`65_to_74`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`65_to_74` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="55 to 64")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`65_to_74`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`65_to_74`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "65 to 74"
+      #update value for difference
+      differences$`65_to_74_aged` <- differences$`65_to_74`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`65_to_74`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "65 to 74"
+      #update value for difference
+      differences$`65_to_74_aged` <- differences$`65_to_74`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`65_to_74` < 0){
+    differences$`65_to_74_aged`=0
+  } 
+  
+  #Next Age Set
+  
+  differences$`55_to_64`=Census_data_following_year$`55_to_64`-Census_data_following_year$new_people_60_to_64-Census_data_following_year$new_people_55_to_59+differences$`65_to_74_aged`-old_ages_dataframe$`55_to_64`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`55_to_64` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="45 to 54")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`55_to_64`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`55_to_64`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "55 to 64"
+      #update value for difference
+      differences$`55_to_64_aged` <- differences$`55_to_64`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`55_to_64`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "55 to 64"
+      #update value for difference
+      differences$`55_to_64_aged` <- differences$`55_to_64`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`55_to_64` < 0){
+    differences$`55_to_64_aged`=0
+  }
+  
+  #Next Age Set
+  
+  differences$`45_to_54`=Census_data_following_year$`45_to_54`-Census_data_following_year$new_people_50_to_54-Census_data_following_year$new_people_45_to_49+differences$`55_to_64_aged`-old_ages_dataframe$`45_to_54`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`45_to_54` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="35 to 44")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`45_to_54`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`45_to_54`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "45 to 54"
+      #update value for difference
+      differences$`45_to_54_aged` <- differences$`45_to_54`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`45_to_54`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "45 to 54"
+      #update value for difference
+      differences$`45_to_54_aged` <- differences$`45_to_54`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`45_to_54` < 0){
+    differences$`45_to_54_aged`=0
+  }
+  
+  #Next Age Set
+  
+  differences$`35_to_44`=Census_data_following_year$`35_to_44`-Census_data_following_year$new_people_40_to_44-Census_data_following_year$new_people_35_to_39+differences$`45_to_54_aged`-old_ages_dataframe$`35_to_44`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`35_to_44` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="30 to 34")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`35_to_44`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`35_to_44`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "35 to 44"
+      #update value for difference
+      differences$`35_to_44_aged` <- differences$`35_to_44`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`35_to_44`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "35 to 44"
+      #update value for difference
+      differences$`35_to_44_aged` <- differences$`35_to_44`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`35_to_44` < 0){
+    differences$`35_to_44_aged`=0
+  }
+  
+  
+  #Next Age Set
+  
+  differences$`30_to_34`=Census_data_following_year$`30_to_34`-Census_data_following_year$new_people_30_to_34+differences$`35_to_44_aged`-old_ages_dataframe$`30_to_34`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`30_to_34`> 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="25 to 29")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`30_to_34`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`30_to_34`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "30 to 34"
+      #update value for difference
+      differences$`30_to_34_aged` <- differences$`30_to_34`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`30_to_34`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "30 to 34"
+      #update value for difference
+      differences$`30_to_34_aged` <- differences$`30_to_34`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`30_to_34` < 0){
+    differences$`30_to_34_aged`=0
+  }
+  
+  
+  #Next Age Set
+  
+  differences$`25_to_29`=Census_data_following_year$`25_to_29`-Census_data_following_year$new_people_25_to_29+differences$`30_to_34_aged`-old_ages_dataframe$`25_to_29`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`25_to_29` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="20 to 24")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`25_to_29`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`25_to_29`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "25 to 29"
+      #update value for difference
+      differences$`25_to_29_aged` <- differences$`25_to_29`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`25_to_29`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "25 to 29"
+      #update value for difference
+      differences$`25_to_29_aged` <- differences$`25_to_29`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`25_to_29` < 0){
+    differences$`25_to_29_aged`=0
+  }  
+  
+  #Next Age Set
+  
+  differences$`20_to_24`=Census_data_following_year$`20_to_24`-Census_data_following_year$new_people_20_to_24+differences$`25_to_29_aged`-old_ages_dataframe$`20_to_24`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`20_to_24` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="18 to 19")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`20_to_24`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`20_to_24`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "20 to 24"
+      #update value for difference
+      differences$`20_to_24_aged` <- differences$`20_to_24`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`20_to_24`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "20 to 24"
+      #update value for difference
+      differences$`20_to_24_aged` <- differences$`20_to_24`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`20_to_24` < 0){
+    differences$`20_to_24_aged`=0
   }
   
   
   
+  #Next Age Set
   
+  differences$`18_to_19`=Census_data_following_year$`18_to_19`-Census_data_following_year$new_people_18_to_19+differences$`20_to_24_aged`-old_ages_dataframe$`18_to_19`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`18_to_19` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="15 to 17")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`18_to_19`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`18_to_19`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "18 to 19"
+      #update value for difference
+      differences$`20_to_24_aged` <- differences$`20_to_24`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`20_to_24`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "20 to 24"
+      #update value for difference
+      differences$`20_to_24_aged` <- differences$`20_to_24`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`20_to_24` < 0){
+    differences$`20_to_24_aged`=0
+  } 
+  
+  #Next Age Set
+  
+  differences$`5_to_17`=Census_data_following_year$`15_to_17`+Census_data_following_year$`10_to_14`+Census_data_following_year$`5_to_9`-Census_data_following_year$new_people_5_to_17+differences$`18_to_19_aged`-old_ages_dataframe$`15_to_17`-old_ages_dataframe$`10_to_14`-old_ages_dataframe$`5_to_9`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`5_to_17` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="Under 5")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`5_to_17`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`5_to_17`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "5 to 9"
+      #update value for difference
+      differences$`5_to_17_aged` <- differences$`5_to_17`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`5_to_17`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "5 to 9"
+      #update value for difference
+      differences$`5_to_17_aged` <- differences$`5_to_17`-length(indexes_of_potential_age_ups)
+    }
+  }
+  if(differences$`5_to_17` < 0){
+    differences$`5_to_17_aged`=0
+  }
+  
+  #Babbies!!!!!!!!!
+  
+  differences$`under_5`=Census_data_following_year$Under_5-Census_data_following_year$Under_5+differences$`5_to_17_aged`-old_ages_dataframe$`Under_5`
+  #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
+  if(differences$`under_5` > 0){
+    #make indexes
+    indexes_of_potential_age_ups <- which(synthetic_data_set$age=="Under 5")
+    #make sure there are enough people to age up
+    if(length(indexes_of_potential_age_ups)>differences$`5_to_17`){
+      #sample indexes
+      people_to_age=sample(indexes_of_potential_age_ups,differences$`5_to_17`)
+      #make those people older
+      synthetic_data_set$new_age[people_to_age] <- "5 to 9"
+      #update value for difference
+      differences$`5_to_17_aged` <- differences$`5_to_17`
+    }
+    #if not age up everyone and update the difference
+    if(length(indexes_of_potential_age_ups)<differences$`5_to_17`){
+      #make everyone older
+      synthetic_data_set$new_age[indexes_of_potential_age_ups] <- "5 to 9"
+      #update value for difference
+      differences$`5_to_17_aged` <- differences$`5_to_17`-length(indexes_of_potential_age_ups)
+    }
+
+    
+    
   
 }

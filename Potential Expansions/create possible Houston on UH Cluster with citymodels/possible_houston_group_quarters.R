@@ -1,6 +1,6 @@
 library(doParallel)
 library(foreach)
-cl<-makeCluster(1)
+cl<-makeCluster(10)
 registerDoParallel(cl)
 
 Census_data=readRDS("Census_data.RDS")
@@ -18,3 +18,4 @@ sample.set=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
 
 saveRDS(sample.set,"citymodels_houston_group_quarters.RDS")
 stopCluster(cl)
+
