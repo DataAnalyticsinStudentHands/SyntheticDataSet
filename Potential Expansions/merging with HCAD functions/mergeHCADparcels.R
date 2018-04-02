@@ -73,6 +73,12 @@ for (tract in tracts){
 #105 mixed res,com res structure, 106 Condo, 
 #107 Townhome, 108 Single Wide Residential home 109 Double wide residential home 125 Farm, 8354 Townhouse Inside Unit 8351 Single Family Residence
 
+#Codes not used from residential files
+#8309 church, 8471 Lt. Commercial Utility Build. 8454 Shell Industrial, 8353 retail store, 8378 stable, 8150 Single Wide Commercial Mobile Home
+#8494 	Industrials, Light Mftg. 8490 Kennels #8428 Horse arena
+
+#110 Unsound Residential Structure :(
+
 
 #Ask if commercial mobile homes should be populated
 

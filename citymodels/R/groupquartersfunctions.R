@@ -27,8 +27,8 @@ getnumberofvehiclesforgroupquarters <- function(state, county, tract,syntheticda
   female_number_of_vehicles=Census_data[c("female0cars","female1car","female2cars","female3cars","female4cars","female5cars")]
   colnames(female_number_of_vehicles)=paste0(0:5)
 
-  number.of.vehicles=ifelse(syntheticdataset$sex=="Male",sample(colnames(male_number_of_vehicles),1,prob=male_number_of_vehicles/sum(male_number_of_vehicles)),
-                            ifelse(syntheticdataset$sex=="Female",sample(colnames(female_number_of_vehicles),1,prob = female_number_of_vehicles/sum(female_number_of_vehicles)),NA))
+  number.of.vehicles=ifelse(syntheticdataset$sex=="Male"&syntheticdataset$employment=="Employed",sample(colnames(male_number_of_vehicles),1,prob=male_number_of_vehicles/sum(male_number_of_vehicles)),
+                            ifelse(syntheticdataset$sex=="Female"&syntheticdataset$employment=="Employed",sample(colnames(female_number_of_vehicles),1,prob = female_number_of_vehicles/sum(female_number_of_vehicles)),NA))
 
   syntheticdataset$number.of.vehicles=number.of.vehicles
 

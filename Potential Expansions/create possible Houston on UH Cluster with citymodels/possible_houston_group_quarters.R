@@ -19,3 +19,9 @@ sample.set=foreach (index=1:length(tracts),.combine='rbind')%dopar%{
 saveRDS(sample.set,"citymodels_houston_group_quarters.RDS")
 stopCluster(cl)
 
+#Why isn't my code working????
+options(error = recover)
+
+for(tract in tracts){
+  sample=group_quarters_simulater(48,201,tract,seed=1,inputdir = "../Inputs/",Census_data)
+}
