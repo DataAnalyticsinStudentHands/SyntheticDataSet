@@ -2,4 +2,4 @@
 
 ## By Adelle Flores
 
-This app will look at the effect of lack of health insurance on preventive care.
+This app will look at the effect of lack of health insurance on preventive care. It is still on progress.
