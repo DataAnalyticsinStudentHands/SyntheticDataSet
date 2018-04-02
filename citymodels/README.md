@@ -1,6 +1,3 @@
-# Synthetic Data Set
-
-This repository is the main development repo for the Synthetic Dataset project. The aim of this project is to build code and examples that help emulating certain aspects of mostly health realated data questions. Examples have been created to illustrate the approach and they are based on the City of Houston where the [DASH](http://dash.hnet.uh.edu/DASH/) team at the [University of Houston](http://www.uh.edu/) is located. 
 
 ## citymodels package
 
@@ -8,15 +5,29 @@ Citymodels is an R package made to build models of city populations to use in in
 
 ### Install
 
-The source package is included as citymodel_0.1.0.tar.gz and can be downloaded and installed into R using the install.packages function with the type option set to "source". 
+The source package is included as citymodel_0.1.0.tar.gz in the parent SyntheticDataSet folder and can be downloaded and installed into R using the install.packages function with the type option set to "source". 
 
 ```R
 install.packages("citymodels_0.1.0.tar.gz", repos = NULL, type = "source")
 ```
-## Potential Expansions
+## Mining Census data
 
-In the Potential Expansions folder is an example case use of this package in modeling Houston, as well as some folders for possible expansions of the project with modules to add health data from the Center for Disease Control and better geospacial resolution using spacial files from the Harris County Appraisal District. Some of these will eventually be incorporated in the Citymodels package.
+As citymodels builds it's models based off of U.S. Census information, it includes code to mine the appropriate data. This code is included in the scripts map_variables_from_Census_Table.R and getcensusdata.R. The script map_variables_from_Census_Table.R declares variables used in the simulations with the values specifying the appropriate heading in the U.S. Census. This script may need to be updated if the Census headings change. The script getcensusdata.R includes a function to mine these variables and create a dataframe for the simulations, it is called with the base_url, fips code for the state, and key needed to use the API. The base_url specifies what year to mine for and to use the American Community Survey 5 year survey detail tables, the base_url can be found here https://www.census.gov/data/developers/data-sets/acs-5year.2014.html as the API call under Detail Tables, after selecting for the year. The FIPS code for the state can be looked up here under FIPS code for the States and District of Columbia https://www.census.gov/geo/reference/ansi_statetables.html. The key is used to access the API, and can be applied for here https://www.census.gov/developers/ by clicking on "Request a Key" found on the left side of the page.  
 
-Possible questions this kind of model could be used to investigate are in the Shiny Apps folder. Asthma App and Diabetes App are demonstrations of using the model to extrapolate some of the effects of public health interventions. Tiffany App, Nick App, and Adelle App are apps from our Modeling Metabolism students who were interested inpublic health health questions that may be modeled further at a later time.
+```R
+census_data_for_model=census_data_API(base_url='http://api.census.gov/data/2014/acs5?',state=48,key="your_key_here")
+```
 
-Inputs is a folder of csv files created from the U.S. Census API that were previously used to generate a Houston model. How the data is mined and organized has since changed in building the models, but as some of the use case apps still rely on the old structure of census data to compare the model to raw data, they will remain here untill the apps have been updated.
+## Modeling Populations
+
+The U.S. Census includes data on people living in households and people living in group quarters which can include dormitories, assisted living facilities, and other non-household structures. The citymodels package models these populations somewhat differently as group quarters populations don't have the same kind of household characteristics. Households are simulated using the household_generator function which calls functions in the household_functions.R and individual_functions.R scripts to sample characteristics for households and individuals in each household using the Census data for each tract. It is called with the state, county and tract of interest as well as the seed to use for sampling, and the Census data object the user wants used. Below is an example for a tract of interest in Houston.
+
+```R
+Houston_tract_312100=household_generator(state=48,county=201,tract=312100,seed=1,Census_data=census_data_for_model)
+```
+
+The function group_quarters_simulater is similar to the household_generator function except for household characteristics it calls functions from the group_quarters_functionr.R script to sample similar characteristics and specify that it is for group quarters. It is also called with the state, county and tract of interest as well as the seed to use for sampling, and the Census data object the user wants used. Below is an example for a tract of interest in Houston.
+
+```R
+Houston_tract_312100=group_quarters_simulater(state=48,county=201,tract=312100,seed=1,Census_data=census_data_for_model)
+```
