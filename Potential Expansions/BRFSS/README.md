@@ -7,3 +7,11 @@ new_diabetes_simulation_prep_for_opuntia.R is a use case for these functions. It
 
 organize_BRFSS_and_asthma_survey.R cleans and merges the Childhood Asthma Call Back Survey and the Behavioral Risk Factor Surveillance System data for use in the simulate_asthma.R functions. These functions first subset households with children, match for characteristics to simulate asthma diagnosis, then match and simulate further characteristics from the Childhood Asthma Call Back Survey. This was also used in a Houston use case demonstrated in an app here: http://dash.hnet.uh.edu:3838/cmupchur/asthma_app/ with code available here: https://github.com/DataAnalyticsinStudentHands/SyntheticDataSet/tree/master/Shiny%20Apps/asthma%20app
 
+The primary function used for the merge can just be called with the model created from citymodels and a seed for sampling.
+
+```R
+merged_model=getBRFSSdata(current_model,seed=1)
+```
+
+The app specific scripts should just be sourced with the model that has already been merged with HCAD using the functions in https://github.com/DataAnalyticsinStudentHands/SyntheticDataSet/tree/master/Potential%20Expansions/merging%20with%20HCAD%20functions to create the outputs specif to apps in https://github.com/DataAnalyticsinStudentHands/SyntheticDataSet/tree/master/Shiny%20Apps .
+
