@@ -64,3 +64,33 @@ validparceldataframe3=as.data.frame(validparcel3)
 #csv is a bad idea because of geometry column
 
 saveRDS(validparceldataframe3,"validparceldataframe3forgroupquarters.RDS")
+
+#Building Style Codes of Interest
+#8351 Single Family Residence
+#8150 Single Wide Commercial Home
+#101 Residential 1 Family
+#102 Residential 2 Family
+#103 Residential 3 Family
+#104 Residential 4 Family or More
+#108 Single Wide Residential Mobile Home
+#109 Double ide Reidential Mobile Home
+#125 Farm with Dwelling
+#8300 Apartment
+#8321 Dormitory
+#8324 Frat House
+#8338 Loft
+#8352 Multiple Res (Low Rise)
+#8424 Group Care Home
+#8451 Multiple Res (en. Citizen)
+#8459 Mixed Retail with Resid. Units
+#8587 Shell Multiple Res
+#8589 Elderly Assist Multi Res
+#8596 Shell, Apartment
+#8710 Retirement Community Complex
+
+#
+vp1=readRDS("validparcelsforhouseholds.RDS")
+vp2=readRDS("validparcelsforgroupquartersmaybe.RDS")
+library(plyr)
+fullvalidparcelsweneed=rbind.fill(vp1,vp2)
+saveRDS(fullvalidparcelsweneed,"valid_parcels_for_simulation.RDS")

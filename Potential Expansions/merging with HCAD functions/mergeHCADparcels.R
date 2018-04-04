@@ -8,10 +8,16 @@ sample.set$ACCOUNT=NA
 
 for (tract in tracts){
   tracthouses=subset(validparceldataframe2,validparceldataframe2$TRACT==tract)
-  householdIDs=unique(subset(sample.set,sample.set$tract==tract)$householdID)
+  group_quartersIDs=unique(subset(sample.set,sample.set$tract==tract&sample.set$household.type=="Group Quarters")$householdID)
+  householdIDs=unique(subset(sample.set,sample.set$tract==tract&sample.set$household.type!="Group Quarters")$householdID)
   
+  #populate group quarters
+  groupquartersplaces=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589")))
   #populate single family houses
-  singlefamilyhouses=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE"=="101"|tracthouses$"BUILDING_STYLE_CODE"=="107"|tracthouses$"BUILDING_STYLE_CODE"=="108"|tracthouses$"BUILDING_STYLE_CODE"=="109"|tracthouses$"BUILDING_STYLE_CODE"=="125"|tracthouses$"BUILDING_STYLE_CODE"=="8351"|tracthouses$"BUILDING_STYLE_CODE"=="8354"))
+  singlefamilyhouses=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE"=="101"|tracthouses$"BUILDING_STYLE_CODE"=="107"|tracthouses$"BUILDING_STYLE_CODE"=="108"|tracthouses$"BUILDING_STYLE_CODE"=="109"|tracthouses$"BUILDING_STYLE_CODE"=="125"|
+                                           tracthouses$"BUILDING_STYLE_CODE"=="8177"|tracthouses$"BUILDING_STYLE_CODE"=="8178"|tracthouses$"BUILDING_STYLE_CODE"=="8179"|tracthouses$"BUILDING_STYLE_CODE"=="8338"|tracthouses$"BUILDING_STYLE_CODE"=="8351"|tracthouses$"BUILDING_STYLE_CODE"=="8354"|
+                                           tracthouses$"BUILDING_STYLE_CODE"=="8401"|tracthouses$"BUILDING_STYLE_CODE"=="8548"|tracthouses$"BUILDING_STYLE_CODE"=="8549"|tracthouses$"BUILDING_STYLE_CODE"=="8550"|tracthouses$"Building_Style_Code"=="8986"
+                                         |tracthouses$"Building_Style_Code"=="8988"))
   Account=singlefamilyhouses$"ACCOUNT"
   
   randomizedsinglefamilyhouseholdIDs=ifelse(length(Account)<length(householdIDs),sample(householdIDs,nrow(singlefamilyhouses),replace=FALSE,prob=NULL),sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL))
@@ -61,7 +67,8 @@ for (tract in tracts){
   
   #put everyone else in condos and mixed residential commercial structures
   
-  condos=subset(tracthouses,(tracthouses$"Building_Style_Code"=="106"|tracthouses$"Building_Style_Code"=="105"))
+  condos=subset(tracthouses,(tracthouses$"Building_Style_Code"=="105"|tracthouses$"Building_Style_Code"=="8300"|tracthouses$"Building_Style_Code"=="8352"|tracthouses$"BUILDING_STYLE_CODE"=="8338"|
+                               tracthouses$"Building_Style_Code"=="8459"|tracthouses$"Building_Style_Code"=="8493"|tracthouses$"Building_Style_Code"=="8546"|tracthouses$"Building_Style_Code"=="8547"|tracthouses$"Building_Style_Code"=="8596"|tracthouses$"Building_Style_Code"=="8984"|tracthouses$"Building_Style_Code"=="8987"|tracthouses$"Building_Style_Code"=="8989"))
   Account=ifelse((nrow(condos)>0),sample((condos$"ACCOUNT"),length(householdIDs),replace=TRUE),rep(NA,length(householdIDs)))
   
   for (index in 1:length(householdIDs)){
