@@ -27,6 +27,14 @@ getnumberofvehiclesforgroupquarters <- function(state, county, tract,syntheticda
   female_number_of_vehicles=Census_data[c("female0cars","female1car","female2cars","female3cars","female4cars","female5cars")]
   colnames(female_number_of_vehicles)=paste0(0:5)
 
+  if(sum(male_number_of_vehicles)<=0){
+    male_number_of_vehicles=data.frame(number_of_cars_available_by_gender_not_available_for_this_Census_Tract=1)
+  }
+  if(sum(female_number_of_vehicles)<=0){
+    female_number_of_vehicles=data.frame(number_of_cars_available_by_gender_not_available_for_this_Census_Tract=1)
+
+  }
+
   number.of.vehicles=ifelse(syntheticdataset$sex=="Male"&syntheticdataset$employment=="Employed",sample(colnames(male_number_of_vehicles),1,prob=male_number_of_vehicles/sum(male_number_of_vehicles)),
                             ifelse(syntheticdataset$sex=="Female"&syntheticdataset$employment=="Employed",sample(colnames(female_number_of_vehicles),1,prob = female_number_of_vehicles/sum(female_number_of_vehicles)),NA))
 
@@ -71,6 +79,9 @@ getincomeforgroupquarters <- function(state, county, tract,syntheticdataset,seed
   #Give variable colnames
   colnames(income)=c("No income","less than 10,000","10,000 to 14,999","15,000 to 24,999","25,000 to 34,999","35,000 to 49,999","50,000 to 64,999","65,000 to 74,999","Over 75,000")
 
+  if(sum(income)>=0){
+    income=data.frame(income_not_available_for_this_Census_Tract=1)
+  }
   #Sample
   household.income=paste0("individual_income:",sample(colnames(income),1,prob=income/sum(income)))
 
@@ -113,21 +124,34 @@ gethealthinsuranceforgroupquarters <- function(state, county, tract,syntheticdat
   without_disability_over_65=Census_data[c("without.disability.over65.private.insurance","without.disability.over65.public.insurance","without.disability.over65.no.insurance")]
 
   code=c("private insurance","public insurance","no insurance")
+  warning_message="health_insurance_not_available_by_age_and_disability_for_this_Census_Tract"
 
-  health.insurance=ifelse((syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
+  health.insurance=ifelse(sum(with_disability_under_18)>0&(syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
                              syntheticdataset$age %in% c("Under 5","5 to 9","10 to 14","15 to 17")),sample(code,1,prob=with_disability_under_18/sum(with_disability_under_18)),
-                          ifelse((syntheticdataset$disability=="No Disabilities"&
+                          ifelse(sum(with_disability_under_18)<=0&(syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
+                                    syntheticdataset$age %in% c("Under 5","5 to 9","10 to 14","15 to 17")),warning_message,
+                          ifelse(sum(without_disability_under_18)>0&(syntheticdataset$disability=="No Disabilities"&
                              syntheticdataset$age %in% c("Under 5","5 to 9","10 to 14","15 to 17")),sample(code,1,prob=without_disability_under_18/sum(without_disability_under_18)),
-                             ifelse((syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
+                             ifelse(sum(without_disability_under_18)>0&(syntheticdataset$disability=="No Disabilities"&
+                                                                          syntheticdataset$age %in% c("Under 5","5 to 9","10 to 14","15 to 17")),warning_message,
+                             ifelse(sum(with_disability_18_to_64)>0&(syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
                                        syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),sample(code,1,prob=with_disability_18_to_64/sum(with_disability_18_to_64)),
-                                    ifelse((syntheticdataset$disability=="No Disabilities"&
+                                    ifelse(sum(with_disability_18_to_64)<=0&(syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
+                                                                              syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),warning_message,
+                                    ifelse(sum(without_disability_18_to_64)>0&(syntheticdataset$disability=="No Disabilities"&
                                               syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),sample(code,1,prob=without_disability_18_to_64/sum(without_disability_18_to_64)),
-                                           ifelse((syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
+                                           ifelse(sum(without_disability_18_to_64)<=0&(syntheticdataset$disability=="No Disabilities"&
+                                                                                        syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),warning_message,
+                                           ifelse(sum(with_disability_over_65)>0&(syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
                                                      syntheticdataset$age %in% c("65 to 74","75 to 84","Over 85")),sample(code,1,prob=with_disability_over_65/sum(with_disability_over_65)),
-                                                  ifelse((syntheticdataset$disability=="No Disabilities"&
+                                                  ifelse(sum(with_disability_over_65)<=0&(syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
+                                                                                           syntheticdataset$age %in% c("65 to 74","75 to 84","Over 85")),warning_message,
+                                                  ifelse(sum(without_disability_over_65)>0&(syntheticdataset$disability=="No Disabilities"&
                                                             syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),sample(code,1,prob=without_disability_over_65/sum(without_disability_over_65)),
+                                                         ifelse(sum(without_disability_over_65)<=0&(syntheticdataset$disability=="No Disabilities"&
+                                                                                                     syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),warning_message,
 
-                            NA))))))
+                            NA))))))))))))
 
   syntheticdataset$health.insurance=health.insurance
 
