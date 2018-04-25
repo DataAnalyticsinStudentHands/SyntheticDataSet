@@ -10,21 +10,37 @@ sample.set$ACCOUNT=NA
 
 tracts=unique(sample.set$tract)
 
-for (tract in tracts){
-  tracthouses=subset(validparceldataframe2,validparceldataframe2$TRACT==tract)
-  group_quartersIDs=unique(subset(sample.set,sample.set$tract==tract&sample.set$household.type=="Group Quarters")$householdID)
-  householdIDs=unique(subset(sample.set,sample.set$tract==tract&sample.set$household.type!="Group Quarters")$householdID)
+
+#Set Up to run in Parallel
+library(doParallel)
+library(foreach)
+cl<-makeCluster(10)
+registerDoParallel(cl)
+tell_me_why_arent_you_working_or_at_least_what_tract_is_failing=c("what_tracts_have_run","tracts")
+
+foreach (index1=1:length(tracts))%dopar%{
+  tracthouses=subset(validparceldataframe2,validparceldataframe2$TRACT==tracts[index1])
+  
+  tract_thats_running=paste(tracts[index1])
+  tell_me_why_arent_you_working_or_at_least_what_tract_is_failing=c(tell_me_why_arent_you_working_or_at_least_what_tract_is_failing,tract_thats_running)
+  saveRDS(tell_me_why_arent_you_working_or_at_least_what_tract_is_failing,"tracts_that_ran_or_were_running")
+  
+  group_quartersIDs=unique(subset(sample.set,sample.set$tract==tracts[index1]&sample.set$household.type=="Group Quarters")$householdID)
+  householdIDs=unique(subset(sample.set,sample.set$tract==tracts[index1]&sample.set$household.type!="Group Quarters")$householdID)
   
   #populate group quarters
   groupquartersplaces=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589")))
   #populate single family houses
-  singlefamilyhouses=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE"=="101"|tracthouses$"BUILDING_STYLE_CODE"=="107"|tracthouses$"BUILDING_STYLE_CODE"=="108"|tracthouses$"BUILDING_STYLE_CODE"=="109"|tracthouses$"BUILDING_STYLE_CODE"=="125"|
-                                           tracthouses$"BUILDING_STYLE_CODE"=="8177"|tracthouses$"BUILDING_STYLE_CODE"=="8178"|tracthouses$"BUILDING_STYLE_CODE"=="8179"|tracthouses$"BUILDING_STYLE_CODE"=="8338"|tracthouses$"BUILDING_STYLE_CODE"=="8351"|tracthouses$"BUILDING_STYLE_CODE"=="8354"|
-                                           tracthouses$"BUILDING_STYLE_CODE"=="8401"|tracthouses$"BUILDING_STYLE_CODE"=="8548"|tracthouses$"BUILDING_STYLE_CODE"=="8549"|tracthouses$"BUILDING_STYLE_CODE"=="8550"|tracthouses$"Building_Style_Code"=="8986"
-                                         |tracthouses$"Building_Style_Code"=="8988"))
+  singlefamilyhouses=subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("101","107","108","109","125","8177","8178","8179","8338","8351","8354","8401","8548","8549","8550","8986","8988"))
+
   Account=singlefamilyhouses$"ACCOUNT"
   
-  randomizedsinglefamilyhouseholdIDs=ifelse(length(Account)<length(householdIDs),sample(householdIDs,nrow(singlefamilyhouses),replace=FALSE,prob=NULL),sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL))
+  if(length(Account)<length(householdIDs)){
+    randomizedsinglefamilyhouseholdIDs=sample(householdIDs,nrow(singlefamilyhouses),replace=FALSE,prob=NULL)
+  }
+  if(length(Account)>=length(householdIDs)){
+    randomizedsinglefamilyhouseholdIDs=sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL)
+  }
   
   for (index in 1:length(randomizedsinglefamilyhouseholdIDs)){
     sample.set=within.data.frame(sample.set,ACCOUNT[householdID==randomizedsinglefamilyhouseholdIDs[index]]<-Account[index])
@@ -36,7 +52,12 @@ for (tract in tracts){
   twofamilyhouses=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE"=="102"))
   Account=rep(twofamilyhouses$"ACCOUNT",2)
   
-  randomizedtwofamilyhouseholdIDs=ifelse(length(Account)<length(householdIDs),sample(householdIDs,nrow(twofamilyhouses),replace=FALSE,prob=NULL),sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL))
+  if(length(Account)<length(householdIDs)){
+    randomizedtwofamilyhouseholdIDs=sample(householdIDs,nrow(twofamilyhouses),replace=FALSE,prob=NULL)
+  }
+  if(length(Account)>=length(householdIDs)){
+    randomizedtwofamilyhouseholdIDs=sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL)
+  }
   
   for (index in 1:length(randomizedtwofamilyhouseholdIDs)){
     sample.set=within.data.frame(sample.set,ACCOUNT[householdID==randomizedtwofamilyhouseholdIDs[index]]<-Account[index])
@@ -49,7 +70,12 @@ for (tract in tracts){
   threefamilyhouses=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE"=="103"))
   Account=rep(threefamilyhouses$"ACCOUNT",3)
   
-  randomizedthreefamilyhouseholdIDs=ifelse(length(Account)<length(householdIDs),sample(householdIDs,nrow(threefamilyhouses),replace=FALSE,prob=NULL),sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL))
+  if(length(Account)<length(householdIDs)){
+    randomizedthreefamilyhouseholdIDs=sample(householdIDs,nrow(threefamilyhouses),replace=FALSE,prob=NULL)
+  }
+  if(length(Account)>=length(householdIDs)){
+    randomizedthreefamilyhouseholdIDs=sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL)
+  }
   
   for (index in 1:length(randomizedthreefamilyhouseholdIDs)){
     sample.set=within.data.frame(sample.set,ACCOUNT[householdID==randomizedthreefamilyhouseholdIDs[index]]<-Account[index])
@@ -61,7 +87,12 @@ for (tract in tracts){
   fourfamilyhouses=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE"=="104"))
   Account=rep(threefamilyhouses$"ACCOUNT",4)
   
-  randomizedfourfamilyhouseholdIDs=ifelse(length(Account)<length(householdIDs),sample(householdIDs,nrow(fourfamilyhouses),replace=FALSE,prob=NULL),sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL))
+  if(length(Account)<length(householdIDs)){
+    randomizedfourfamilyhouseholdIDs=sample(householdIDs,nrow(fourfamilyhouses),replace=FALSE,prob=NULL)
+  }
+  if(length(Account)>=length(householdIDs)){
+    randomizedfourfamilyhouseholdIDs=sample(householdIDs,length(householdIDs),replace=FALSE,prob=NULL)
+  }
   
   for (index in 1:length(randomizedfourfamilyhouseholdIDs)){
     sample.set=within.data.frame(sample.set,ACCOUNT[householdID==randomizedfourfamilyhouseholdIDs[index]]<-Account[index])
@@ -71,13 +102,21 @@ for (tract in tracts){
   
   #put everyone else in condos and mixed residential commercial structures
   
-  condos=subset(tracthouses,(tracthouses$"Building_Style_Code"=="105"|tracthouses$"Building_Style_Code"=="8300"|tracthouses$"Building_Style_Code"=="8352"|tracthouses$"BUILDING_STYLE_CODE"=="8338"|
-                               tracthouses$"Building_Style_Code"=="8459"|tracthouses$"Building_Style_Code"=="8493"|tracthouses$"Building_Style_Code"=="8546"|tracthouses$"Building_Style_Code"=="8547"|tracthouses$"Building_Style_Code"=="8596"|tracthouses$"Building_Style_Code"=="8984"|tracthouses$"Building_Style_Code"=="8987"|tracthouses$"Building_Style_Code"=="8989"))
+  condos=subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("105","8300","8352","8338","8459","8493","8546","8547","8596","8984","8987","8989"))
+
   Account=ifelse((nrow(condos)>0),sample((condos$"ACCOUNT"),length(householdIDs),replace=TRUE),rep(NA,length(householdIDs)))
   
   for (index in 1:length(householdIDs)){
     sample.set=within.data.frame(sample.set,ACCOUNT[householdID==householdIDs[index]]<-Account[index])
   }
+  
+  Account=sample(groupquartersplaces$ACCOUNT,length(group_quartersIDs),replace = TRUE,prob=NULL)
+  
+  for (index in 1:length(group_quartersIDs)){
+    sample.set=within.data.frame(sample.set,ACCOUNT[householdID==group_quartersIDs[index]]<-Account[index])
+  }
+  
+  saveRDS(sample.set,paste0("tract_that_has_ACCOUNT_numbers_",tracts[index1]))
 }
 
 #101 Single Family 102 2 Family 103 3 Family 104 4 Family or more, 

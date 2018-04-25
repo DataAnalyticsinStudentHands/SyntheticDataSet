@@ -48,3 +48,10 @@ validparcelsagain=geo_join(validparcels,land_stuff,by="HCAD_NUM",how="inner")
 maybe_this_is_what_youre_asking_for=subset(validparcelsagain,validparcelsagain$LAND_USE_CODE %in% c("1000","1002","2000","2002","7000","9999"))
 saveRDS(places_people_live,"places_people_live_that_have_occupancy_rates.RDS")
 saveRDS(maybe_this_is_what_youre_asking_for,"vacant_land_by_land_use_code.RDS")
+
+maybe_this_is_what_youre_asking_for=readRDS("vacant_land_by_land_use_code.RDS")
+maybe_this_is_what_youre_asking_for$Duplicated_HCAD_NUM=duplicated(maybe_this_is_what_youre_asking_for$HCAD_NUM)
+
+look_at_duplicated_accounts=subset(maybe_this_is_what_youre_asking_for,maybe_this_is_what_youre_asking_for$Duplicated_HCAD_NUM==TRUE)
+
+look_at_1_account=subset(maybe_this_is_what_youre_asking_for,maybe_this_is_what_youre_asking_for$HCAD_NUM=="0200730000016")
