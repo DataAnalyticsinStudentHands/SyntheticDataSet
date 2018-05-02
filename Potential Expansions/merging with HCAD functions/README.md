@@ -31,6 +31,14 @@ Two households were placed in the following building style code
 Three households were placed in the following building style code
 + 103- Residential 3 Family
 
+Group quarters populations were randomly placed in buildings with the following building style codes
++ 660- Fire Station (Staff)
++ 8321- Dormitory
++ 8324- Fraternity House
++ 8393- Labor Dormitory
++ 8424- Group Care Home
++ 8451- Multiple Res. (Sen. Citizen)
++ 8589- Elderly Assist. Multi. Res.
 Four households were placed in the following building style code
 + 104- Residential 4 Family
 
