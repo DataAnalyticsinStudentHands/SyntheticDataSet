@@ -8,20 +8,20 @@ The script mergeHCADparcels.R should be sourced with the model and outputs of th
 The merge matches households and group quarters populations into geographical locations of sructures based on the harris county appraisal district building style code. A list of the codes is available here: http://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-building-style-codes/ .
 
 Single households were placed in the following building style codes
-101- Residential 1 Family
-107- Townhome with Common Element
-108- Single Wide Residential Mobile Home
-109- Double Wide Residential Mobile Home
-125- Farm with Dwelling
-8177- Townhouse, High-rise- End Unit
-8178- Townhouse, High-rise- Inside Unit
-8179- Townhouse, High-rise- Detached
-8338- Loft
-8351- Single-Family Residence
-8354- Townhouse, Inside Unit
-8401- Townhouse, End Unit
-8548-	Urban Row House, Detached
-8549-	Urban Row House, End Unit
-8550-	Urban Row House, Inside Unit
-8986- Int. Space, Townhouse, Inside Unit
-8988- Int. Space, Townhouse, End Unit
++ 101- Residential 1 Family
++ 107- Townhome with Common Element
++ 108- Single Wide Residential Mobile Home
++ 109- Double Wide Residential Mobile Home
++ 125- Farm with Dwelling
++ 8177- Townhouse, High-rise- End Unit
++ 8178- Townhouse, High-rise- Inside Unit
++ 8179- Townhouse, High-rise- Detached
++ 8338- Loft
++ 8351- Single-Family Residence
++ 8354- Townhouse, Inside Unit
++ 8401- Townhouse, End Unit
++ 8548-	Urban Row House, Detached
++ 8549-	Urban Row House, End Unit
++ 8550-	Urban Row House, Inside Unit
++ 8986- Int. Space, Townhouse, Inside Unit
++ 8988- Int. Space, Townhouse, End Unit
