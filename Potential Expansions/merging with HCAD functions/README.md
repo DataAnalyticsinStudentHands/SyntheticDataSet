@@ -16,7 +16,6 @@ Single households were placed in the following building style codes
 + 8177- Townhouse, High-rise- End Unit
 + 8178- Townhouse, High-rise- Inside Unit
 + 8179- Townhouse, High-rise- Detached
-+ 8338- Loft
 + 8351- Single-Family Residence
 + 8354- Townhouse, Inside Unit
 + 8401- Townhouse, End Unit
@@ -25,3 +24,26 @@ Single households were placed in the following building style codes
 + 8550-	Urban Row House, Inside Unit
 + 8986- Int. Space, Townhouse, Inside Unit
 + 8988- Int. Space, Townhouse, End Unit
+
+Two households were placed in the following building style code
++ 102- Residential 2 Family
+
+Three households were placed in the following building style code
++ 103- Residential 3 Family
+
+Four households were placed in the following building style code
++ 104- Residential 4 Family
+
+All remaining simulated households were placed randomly into buildings with the following building style codes, sometimes multiple households per building
++ 105- Mixed Res/Com, Res Structure
++ 8300- Apartment
++ 8352- Multiple Res (Low Rise)
++ 8338- Loft
++ 8459- Mixed Retail w/ Resid. Units
++ 8493- Flathouse
++ 8546- Senior Citizen Townhouse, End Unit
++ 8547- Senior Citizen Townhouse, Inside Unit
++ 8596- Shell, Apartment
++ 8984- Luxury Apartment
++ 8987- Int. Space, Multiple Resid.
++ 8989- Int. Space, Apartment
