@@ -130,3 +130,5 @@ well_then=subset(census_data_error,census_data$tract=="312100")
 Census_Data=readRDS("Census_data_2014.RDS")
 lets_look_at_this_more=subset(Census_Data,Census_Data$tract=="312100")
 employment_specifically=lets_look_at_this_more[377:473]
+
+last_data_set=readRDS("complete_sample_set.RDS")
