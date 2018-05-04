@@ -6,6 +6,7 @@ sample.set=rbind(group_quarters,households)
 validparceldataframe2=readRDS("valid_parcels_for_simulation.RDS")
 validparceldataframe2$ACCOUNT=paste0(validparceldataframe2$ACCOUNT,"_",validparceldataframe2$BUILDING_NUMBER)
 validparceldataframe2=validparceldataframe2[!duplicated(validparceldataframe2$ACCOUNT), ]
+
 #Merge households with houses
 sample.set$ACCOUNT=NA
 
@@ -111,10 +112,18 @@ foreach (index1=1:length(tracts))%dopar%{
     sample.set=within.data.frame(sample.set,ACCOUNT[householdID==householdIDs[index]]<-Account[index])
   }
   
-  Account=sample(groupquartersplaces$ACCOUNT,length(group_quartersIDs),replace = TRUE,prob=NULL)
   
-  for (index in 1:length(group_quartersIDs)){
-    sample.set=within.data.frame(sample.set,ACCOUNT[householdID==group_quartersIDs[index]]<-Account[index])
+  if(length(groupquartersplaces$ACCOUNT)==0 & length(group_quartersIDs)>0){
+    saveRDS(group_quartersIDs,paste0("group_quarters_IDs_without_locations",tracts[index1]))
+  }
+  
+  if(length(groupquartersplaces$ACCOUNT)>0 & length(group_quartersIDs)>0){
+    
+    Account=sample(groupquartersplaces$ACCOUNT,length(group_quartersIDs),replace = TRUE,prob=NULL)
+    
+    for (index in 1:length(group_quartersIDs)){
+      sample.set=within.data.frame(sample.set,ACCOUNT[householdID==group_quartersIDs[index]]<-Account[index])
+    }
   }
   
   tract_sample_set=subset(sample.set,sample.set$tract==tracts[index1])
