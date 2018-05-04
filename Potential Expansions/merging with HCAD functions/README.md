@@ -42,6 +42,24 @@ Group quarters populations were randomly placed in buildings with the following 
 + 8424- Group Care Home
 + 8451- Multiple Res. (Sen. Citizen)
 + 8589- Elderly Assist. Multi. Res.
++ 8313- Convalescent Hospital
++ 8322- Fire Station (Staff)
++ 8330- Home For The Elderly
++ 8335- Jail- Correctional Facility
++ 8348- Rectory
++ 8394- Transcient Labor Cabin
++ 8156- Alternative School
++ 8551- Rooming House
++ 8588- Extended Stay Motel
++ 8710- Retirement Community Complex
++ 8331- Hospital
++ 8343- Motel
++ 8309- Church
++ 8489- Jail- Police Station
++ 8311- Clubhouse
++ 8327- Governmental Building
++ 8491- Community Service Building
++ 8514- Community Center
 
 All remaining simulated households were placed randomly into buildings with the following building style codes, sometimes multiple households per building
 + 105- Mixed Res/Com, Res Structure
