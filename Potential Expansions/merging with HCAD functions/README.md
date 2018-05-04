@@ -3,9 +3,7 @@ This folder contains scripts for cleaning and subsetting the Harris County Appra
 
 The script prepare_HCAD_parcels.R should be sourced first with the shapefiles and accompanying txt files from HCAD available here: http://pdata.hcad.org/download/index.html. Text files of interest include Building_res.txt, Building_res.txt, and Structural_elem1.txt. The shapefiles for tracts should also be included in the working directory. The script will filter and write 2 RDS files with valid geographical parcels of structures that people should be able to live in for both households and group quarters.
 
-The script mergeHCADparcels.R should be sourced with the model and outputs of the script prepare_HCAD_parcels.R to place simulated households into physical structures. As this script takes too long to run it was made to run in parallel with mergeHCADparcelsparallel.R
-
-The merge matches households and group quarters populations into geographical locations of sructures based on the harris county appraisal district building style code. A list of the codes is available here: http://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-building-style-codes/ .
+The script mergeHCADparcelsparallel.R should be sourced with the model and outputs of the script prepare_HCAD_parcels.R to place simulated households into physical structures. It should be modified for the resources the user has available. The merge matches households and group quarters populations into geographical locations of sructures based on the harris county appraisal district building style code. A list of the codes is available here: http://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-building-style-codes/ .
 
 Single households were placed in the following building style codes
 + 101- Residential 1 Family
@@ -74,3 +72,11 @@ All remaining simulated households were placed randomly into buildings with the 
 + 8984- Luxury Apartment
 + 8987- Int. Space, Multiple Resid.
 + 8989- Int. Space, Apartment
+
+It writes a complete file for the entire sample set, as well as individual tract files with account numbers. If there were simulated group quarters populations and no group quarters building style codes in a tract, a separate file for the group quarters IDs in that tract will be written. If there were too many households for the number of residencies available and no buildings in the category for more than 4 households, then another file will be written for the household IDs in that tract.
+
+# Bandaids
+
+If mergeHCADparcelsparallel.R fails to complete due to lack of computational resources, the user can try running bandaid.R with the previously written tract files and inputs for mergeHCADparcelsparallel.R in the same folder. bandaid.R will join the previously written tracts together, run for the remaining tracts and then join the 2 sets together.
+
+If the user wants to rerun for tracts with not enough buildings, they can use morecomplicatedbandaid.R which will join previously written files without secondary files of IDs that failed to merge, then rerun the remaining tracts and join the two sets.
