@@ -12,6 +12,7 @@
 synthetic_data_set=readRDS("tract554403toworkwith.RDS")
 synthetic_data_set$state=48
 
+library(Hmisc)
 #load following year information
 Census_data_following_year=readRDS("Census_data_2015.RDS")
 
@@ -51,6 +52,12 @@ state=48
 county=201
 tract=554403
 
+#http://stla.github.io/stlapblog/posts/Numextract.html for function below to make my life easier
+library(stringr)
+numextract <- function(string){ 
+  str_extract(string, "\\-*\\d+\\.*\\d*")
+} 
+
 ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synthetic_data_set,seed,Census_data_following_year){
   
   #subset part of synthetic data set to work with
@@ -73,7 +80,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Start looking at differences and begin aging
   differences=Census_data_following_year[c("state","county","tract")]
-  differences$over_75=Census_data_following_year$Over_85+Census_data_following_year$`75_to_84`-Census_data_following_year$new_people_65_to_69-Census_data_following_year$new_people_70_to_74-old_ages_dataframe$Over_85-old_ages_dataframe$`75_to_84`
+  differences$over_75=Census_data_following_year$same.house.over.75-old_ages_dataframe$Over_85-old_ages_dataframe$`75_to_84`
   #make indexes of people that can age up
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="65 to 74")
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
@@ -104,7 +111,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`65_to_74`=Census_data_following_year$`65_to_74`-Census_data_following_year$new_people_70_to_74-Census_data_following_year$new_people_65_to_69+differences$over_75_aged-old_ages_dataframe$`65_to_74`
+  differences$`65_to_74`=Census_data_following_year$same.house.70.to.74+Census_data_following_year$same.house.65.to.69+differences$over_75_aged-old_ages_dataframe$`65_to_74`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="55 to 64")
@@ -135,7 +142,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`55_to_64`=Census_data_following_year$`55_to_64`-Census_data_following_year$new_people_60_to_64-Census_data_following_year$new_people_55_to_59+differences$`65_to_74_aged`-old_ages_dataframe$`55_to_64`
+  differences$`55_to_64`=Census_data_following_year$same.house.60.to.64+Census_data_following_year$same.house.55.to.59+differences$`65_to_74_aged`-old_ages_dataframe$`55_to_64`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="45 to 54")
@@ -166,7 +173,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`45_to_54`=Census_data_following_year$`45_to_54`-Census_data_following_year$new_people_50_to_54-Census_data_following_year$new_people_45_to_49+differences$`55_to_64_aged`-old_ages_dataframe$`45_to_54`
+  differences$`45_to_54`=Census_data_following_year$same.house.50.to.54+Census_data_following_year$same.house.45.to.49+differences$`55_to_64_aged`-old_ages_dataframe$`45_to_54`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="35 to 44")
@@ -197,7 +204,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`35_to_44`=Census_data_following_year$`35_to_44`-Census_data_following_year$new_people_40_to_44-Census_data_following_year$new_people_35_to_39+differences$`45_to_54_aged`-old_ages_dataframe$`35_to_44`
+  differences$`35_to_44`=Census_data_following_year$same.house.40.to.44+Census_data_following_year$same.house.35.to.39+differences$`45_to_54_aged`-old_ages_dataframe$`35_to_44`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="30 to 34")
@@ -229,7 +236,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`30_to_34`=Census_data_following_year$`30_to_34`-Census_data_following_year$new_people_30_to_34+differences$`35_to_44_aged`-old_ages_dataframe$`30_to_34`
+  differences$`30_to_34`=Census_data_following_year$same.house.30.to.34+differences$`35_to_44_aged`-old_ages_dataframe$`30_to_34`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="25 to 29")
@@ -261,7 +268,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`25_to_29`=Census_data_following_year$`25_to_29`-Census_data_following_year$new_people_25_to_29+differences$`30_to_34_aged`-old_ages_dataframe$`25_to_29`
+  differences$`25_to_29`=Census_data_following_year$same.house.25.to.29+differences$`30_to_34_aged`-old_ages_dataframe$`25_to_29`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="20 to 24")
@@ -292,7 +299,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`20_to_24`=Census_data_following_year$`20_to_24`-Census_data_following_year$new_people_20_to_24+differences$`25_to_29_aged`-old_ages_dataframe$`20_to_24`
+  differences$`20_to_24`=Census_data_following_year$same.house.20.to.24+differences$`25_to_29_aged`-old_ages_dataframe$`20_to_24`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="18 to 19")
@@ -325,7 +332,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`18_to_19`=Census_data_following_year$`18_to_19`-Census_data_following_year$new_people_18_to_19+differences$`20_to_24_aged`-old_ages_dataframe$`18_to_19`
+  differences$`18_to_19`=Census_data_following_year$same.house.18.to.19+differences$`20_to_24_aged`-old_ages_dataframe$`18_to_19`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="15 to 17")
@@ -362,7 +369,7 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   
   #Next Age Set
   
-  differences$`5_to_17`=Census_data_following_year$`15_to_17`+Census_data_following_year$`10_to_14`+Census_data_following_year$`5_to_9`-Census_data_following_year$new_people_5_to_17+differences$`18_to_19_aged`-old_ages_dataframe$`15_to_17`-old_ages_dataframe$`10_to_14`-old_ages_dataframe$`5_to_9`
+  differences$`5_to_17`=Census_data_following_year$same.house.5.to.17+differences$`18_to_19_aged`-old_ages_dataframe$`15_to_17`-old_ages_dataframe$`10_to_14`-old_ages_dataframe$`5_to_9`
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   #make indexes
   indexes_of_potential_age_ups <- which(synthetic_data_set$age=="Under 5")
@@ -397,9 +404,184 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
   if(differences$`under_5` > 0){
     number_of_babies=differences$'under_5'
+    
+    #figure out what race most should be
+    #what race are our current babies
+    current_babies=subset(synthetic_data_set,synthetic_data_set$new_age=="Under 5")
+    current_babies$race_sex=paste0(current_babies$race,current_babies$sex)
+    current_babies_race_sex=ftable(synthetic_data_set$race_sex)
+    current_babies_race_sex_dataframe=as.data.frame.matrix(current_babies_race_sex)
+    colnames(current_babies_race_sex_dataframe)=gsub("Male",".boys.under.5",unlist(attr(current_babies_race_sex, "col.vars")))
+    colnames(current_babies_race_sex_dataframe)=gsub("Female",".girls.under.5",colnames(current_babies_race_sex_dataframe))
+    colnames(current_babies_race_sex_dataframe)=gsub("Black or African American","black",colnames(current_babies_race_sex_dataframe))
+    colnames(current_babies_race_sex_dataframe)=gsub("American Indian or Alaskan Native","amer.indian.alaskan",colnames(current_babies_race_sex_dataframe))
+    colnames(current_babies_race_sex_dataframe)=gsub("Asian","asian",colnames(current_babies_race_sex_dataframe))
+    colnames(current_babies_race_sex_dataframe)=gsub("Native Hawaiian or Other Pacific Islander","islander",colnames(current_babies_race_sex_dataframe))
+    colnames(current_babies_race_sex_dataframe)=gsub("Some Other Race","other",colnames(current_babies_race_sex_dataframe))
+    colnames(current_babies_race_sex_dataframe)=gsub("Two or More Races","multiracial",colnames(current_babies_race_sex_dataframe))
+    colnames(current_babies_race_sex_dataframe)=gsub("White","white",colnames(current_babies_race_sex_dataframe))
+    colnames(current_babies_race_sex_dataframe)=gsub("Hispanic or Latino","hispanic",colnames(current_babies_race_sex_dataframe))
+    colnames_needed=c("black.boys.under.5","black.girls.under.5","amer.indian.alaskan.boys.under.5","amer.indian.alaskan.girls.under.5","asian.boys.under.5","asian.girls.under.5","islander.boys.under.5","islander.girls.under.5","other.race.boys.under.5","other.race.girls.under.5","multiracial.boys.under.5","multiracial.girls.under.5","white.boys.under.5","white.girls.under.5","hispanic.boys.under.5","hispanic.girls.under.5")
+    
+    for (col in colnames_needed){
+      if(!(paste0(col) %in% colnames(current_babies_race_sex_dataframe))){
+        current_babies_race_sex_dataframe[(paste0(col))]=0
+      }
+    }
+    
+    #Finally now we can make a probability vector to sample babies race and find appropriate households for them to be born in
+    baby_probability_vector=Census_data_following_year[colnames_needed]-current_babies_race_sex_dataframe[colnames_needed]
+    #make negative numbers 0
+    baby_probability_vector[baby_probability_vector<0]<-0
+    
+    #And finally make babies
+    babies=data.frame()
+    for(baby in 1:number_of_babies){
+      baby=sample(colnames(baby_probability_vector),1,prob=baby_probability_vector)
+      
+      if(baby %in% c("black.boys.under.5","black.girls.under.5")){
+        find_women=subset(synthetic_data_set,(synthetic_data_set$race=="Black or African American" & synthetic_data_set$sex=="Female" & !synthetic_data_set$age %in% c("under 5", "5 to 9", "10 to 14", "15 to 17") & synthetic_data_set$household.type!="Group Quarters"))
+        babys_moms_number=sample(1:nrow(find_women),1)
+        babys_household_id=find_women$householdID[babys_moms_number]
+        #update household
+        synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]<-synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]+1
+        #create row for baby
+        babys_sex=ifelse(grepl("boys",baby),"Male",
+                         ifelse(grepl("girls",baby),"Female",
+                                "Something Went Wrong"))
+        
+        babys_row=data.frame(householdID=paste0(babys_household_id),race="Black or African American",sex=babys_sex,member="Child")
+        babys_household_variables=find_women[babys_moms_number,c("ACCOUNT","household.type","size","number.of.vehicles","county","state","tract","household.income","health.insurance")]
+        babys_row=cbind(babys_row,babys_household_variables)
+        babies=rbind(babies,babys_row)
+      }
+      
+      if(baby %in% c("amer.indian.alaskan.boys.under.5","amer.indian,alaskan.girls.under.5")){
+        find_women=subset(synthetic_data_set,(synthetic_data_set$race=="American Indian or Alaskan Native" & synthetic_data_set$sex=="Female" & !synthetic_data_set$age %in% c("under 5", "5 to 9", "10 to 14", "15 to 17") & synthetic_data_set$household.type!="Group Quarters"))
+        babys_moms_number=sample(1:nrow(find_women),1)
+        babys_household_id=find_women$householdID[babys_moms_number]
+        #update household
+        synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]<-synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]+1
+        #create row for baby
+        babys_sex=ifelse(grepl("boys",baby),"Male",
+                         ifelse(grepl("girls",baby),"Female",
+                                "Something Went Wrong"))
+        
+        babys_row=data.frame(householdID=paste0(babys_household_id),race="American Indian or Alaskan Native",sex=babys_sex,member="Child")
+        babys_household_variables=find_women[babys_moms_number,c("ACCOUNT","household.type","size","number.of.vehicles","county","state","tract","household.income","health.insurance")]
+        babys_row=cbind(babys_row,babys_household_variables)
+        babies=rbind(babies,babys_row)
+      }
+      if(baby %in% c("asian.boys.under.5","asian.girls.under.5")){
+        find_women=subset(synthetic_data_set,(synthetic_data_set$race=="Asian" & synthetic_data_set$sex=="Female" & !synthetic_data_set$age %in% c("under 5", "5 to 9", "10 to 14", "15 to 17") & synthetic_data_set$household.type!="Group Quarters"))
+        babys_moms_number=sample(1:nrow(find_women),1)
+        babys_household_id=find_women$householdID[babys_moms_number]
+        #update household
+        synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]<-synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]+1
+        #create row for baby
+        babys_sex=ifelse(grepl("boys",baby),"Male",
+                         ifelse(grepl("girls",baby),"Female",
+                                "Something Went Wrong"))
+        
+        babys_row=data.frame(householdID=paste0(babys_household_id),race="Asian",sex=babys_sex,member="Child")
+        babys_household_variables=find_women[babys_moms_number,c("ACCOUNT","household.type","size","number.of.vehicles","county","state","tract","household.income","health.insurance")]
+        babys_row=cbind(babys_row,babys_household_variables)
+        babies=rbind(babies,babys_row)
+      }
+      if(baby %in% c("islander.boys.under.5","islander.girls.under.5")){
+        find_women=subset(synthetic_data_set,(synthetic_data_set$race=="Native Hawaiian or Other Pacific Islander" & synthetic_data_set$sex=="Female" & !synthetic_data_set$age %in% c("under 5", "5 to 9", "10 to 14", "15 to 17") & synthetic_data_set$household.type!="Group Quarters"))
+        babys_moms_number=sample(1:nrow(find_women),1)
+        babys_household_id=find_women$householdID[babys_moms_number]
+        #update household
+        synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]<-synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]+1
+        #create row for baby
+        babys_sex=ifelse(grepl("boys",baby),"Male",
+                         ifelse(grepl("girls",baby),"Female",
+                                "Something Went Wrong"))
+        
+        babys_row=data.frame(householdID=paste0(babys_household_id),race="Some Other Race",sex=babys_sex,member="Child")
+        babys_household_variables=find_women[babys_moms_number,c("ACCOUNT","household.type","size","number.of.vehicles","county","state","tract","household.income","health.insurance")]
+        babys_row=cbind(babys_row,babys_household_variables)
+        babies=rbind(babies,babys_row)
+      }
+      if(baby %in% c("other.boys.under.5","other.girls.under.5")){
+        find_women=subset(synthetic_data_set,(synthetic_data_set$race=="Native Hawaiian or Other Pacific Islander" & synthetic_data_set$sex=="Female" & !synthetic_data_set$age %in% c("under 5", "5 to 9", "10 to 14", "15 to 17") & synthetic_data_set$household.type!="Group Quarters"))
+        babys_moms_number=sample(1:nrow(find_women),1)
+        babys_household_id=find_women$householdID[babys_moms_number]
+        #update household
+        synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]<-synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]+1
+        #create row for baby
+        babys_sex=ifelse(grepl("boys",baby),"Male",
+                         ifelse(grepl("girls",baby),"Female",
+                                "Something Went Wrong"))
+        
+        babys_row=data.frame(householdID=paste0(babys_household_id),race="Some Other Race",sex=babys_sex,member="Child")
+        babys_household_variables=find_women[babys_moms_number,c("ACCOUNT","household.type","size","number.of.vehicles","county","state","tract","household.income","health.insurance")]
+        babys_row=cbind(babys_row,babys_household_variables)
+        babies=rbind(babies,babys_row)
+      }
+      if(baby %in% c("white.boys.under.5","white.girls.under.5")){
+        find_women=subset(synthetic_data_set,(synthetic_data_set$race=="White" & synthetic_data_set$sex=="Female" & !synthetic_data_set$age %in% c("under 5", "5 to 9", "10 to 14", "15 to 17") & synthetic_data_set$household.type!="Group Quarters"))
+        babys_moms_number=sample(1:nrow(find_women),1)
+        babys_household_id=find_women$householdID[babys_moms_number]
+        #update household
+        synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]<-synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]+1
+        #create row for baby
+        babys_sex=ifelse(grepl("boys",baby),"Male",
+                         ifelse(grepl("girls",baby),"Female",
+                                "Something Went Wrong"))
+        
+        babys_row=data.frame(householdID=paste0(babys_household_id),race="White",sex=babys_sex,member="Child")
+        babys_household_variables=find_women[babys_moms_number,c("ACCOUNT","household.type","size","number.of.vehicles","county","state","tract","household.income","health.insurance")]
+        babys_row=cbind(babys_row,babys_household_variables)
+        babies=rbind(babies,babys_row)
+      }
+      if(baby %in% c("hispanic.boys.under.5","hispanic.girls.under.5")){
+        find_women=subset(synthetic_data_set,(synthetic_data_set$race=="Hispanic or Latino" & synthetic_data_set$sex=="Female" & !synthetic_data_set$age %in% c("under 5", "5 to 9", "10 to 14", "15 to 17") & synthetic_data_set$household.type!="Group Quarters"))
+        babys_moms_number=sample(1:nrow(find_women),1)
+        babys_household_id=find_women$householdID[babys_moms_number]
+        #update household
+        synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]<-synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]+1
+        #create row for baby
+        babys_sex=ifelse(grepl("boys",baby),"Male",
+                         ifelse(grepl("girls",baby),"Female",
+                                "Something Went Wrong"))
+        
+        babys_row=data.frame(householdID=paste0(babys_household_id),race="Hispanic or Latino",sex=babys_sex,member="Child")
+        babys_household_variables=find_women[babys_moms_number,c("ACCOUNT","household.type","size","number.of.vehicles","county","state","tract","household.income","health.insurance")]
+        babys_row=cbind(babys_row,babys_household_variables)
+        babies=rbind(babies,babys_row)
+      }
+      if(baby %in% c("multiracial.under.5","multiracial.girls.under.5")){
+        find_women=subset(synthetic_data_set,(synthetic_data_set$sex=="Female" & !synthetic_data_set$age %in% c("under 5", "5 to 9", "10 to 14", "15 to 17") & synthetic_data_set$household.type!="Group Quarters"))
+        babys_moms_number=sample(1:nrow(find_women),1)
+        babys_household_id=find_women$householdID[babys_moms_number]
+        #update household
+        synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]<-synthetic_data_set$size[synthetic_data_set$householdID==paste0(babys_household_id)]+1
+        #create row for baby
+        babys_sex=ifelse(grepl("boys",baby),"Male",
+                         ifelse(grepl("girls",baby),"Female",
+                                "Something Went Wrong"))
+        
+        babys_row=data.frame(householdID=paste0(babys_household_id),race="Two or More Races",sex=babys_sex,member="Child")
+        babys_household_variables=find_women[babys_moms_number,c("ACCOUNT","household.type","size","number.of.vehicles","county","state","tract","household.income","health.insurance")]
+        babys_row=cbind(babys_row,babys_household_variables)
+        babies=rbind(babies,babys_row)
+      }
+    }
   }
   
   #synthetic_data_set$new_age[(is.na(synthetic_data_set$new_age))]=synthetic_data_set$age[(is.na(synthetic_data_set$new_age))]
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   #Time to start sorting houeholds
   
@@ -416,6 +598,9 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
   old_households_table=ftable(synthetic_data_set$household_and_size)
   old_households_dataframe=as.data.frame.matrix(old_households_table)
   colnames(old_households_dataframe)=unlist(attr(old_households_table, "col.vars"))
+  sizes=as.numeric(numextract(colnames(old_households_dataframe)))
+  sizes[is.na(sizes)]=1
+  old_households_dataframe=old_households_dataframe/sizes
   
   colnames_needed=c(paste0("family.",2:7,".person.household"),paste0("nonfamily.",1:7,".person.household"),"group.quarters.population")
   
@@ -424,36 +609,92 @@ ageoverpeopleandbeginsimulatingmovinginpeople<-function(state,county,tract,synth
       old_households_dataframe[(paste0(col))]=0
     }
   }
-    
-  differences_in_households=Census_data_following_year[c(paste0("family.",2:7,".person.household"),paste0("nonfamily.",1:7,".person.household"),"group.quarters.population")]-old_households_dataframe
+  
+  Census_households=Census_data_following_year[c(paste0("family.",2:7,".person.household"),paste0("nonfamily.",1:7,".person.household"),"group.quarters.population")]
+  households=c("nonfamily.7.person.household","family.7.person.household","nonfamily.6.person.household","family.6.person.household","nonfamily.5.person.household","family.5.person.household","nonfamily.4.person.household","family.4.person.household","nonfamily.3.person.household","family.3.person.household","nonfamily.2.person.household","family.2.person.household")
+  
+  differences_in_households=Census_households[households]-old_households_dataframe[households]
   
   #Remove or shrink households
   #starting with bigger households and moving down
-  households=c("nonfamily.7.person.household","family.7.person.household","nonfamily.6.person.household","family.6.person.household","nonfamily.5.person.household","family.5.person.household","nonfamily.4.person.household","family.4.person.household","nonfamily.3.person.household","family.3.person.household","nonfamily.2.person.household","family.2.person.household")
-  
-  #http://stla.github.io/stlapblog/posts/Numextract.html for function below to make my life easier
-  library(stringr)
-  numextract <- function(string){ 
-    str_extract(string, "\\-*\\d+\\.*\\d*")
-  } 
+  synthetic_data_set$left_population=NA
   
   for(hh in households){
+    
     if(differences_in_households[paste0(hh)]<0){
       #Try to remove a household first because it's harder
-      eligible_households=subset(synthetic_data_set,synthetic_data_set$size==as.numeric(numextract(hh)))
+      eligible_households=subset(synthetic_data_set,synthetic_data_set$household_and_size==hh)
       hhIDs=unique(eligible_households$householdID)
-      for (hhID in hhIDS){
+      
+      for (hhID in hhIDs){
+        #break as soon as we've removed enough households
+        if(differences_in_households[paste0(hh)]==0){
+          break
+        }
+        
+        #see if houses have ages eligible to be removed from population
         a_household=subset(eligible_households,eligible_households$householdID==paste0(hhID))
         eligible_ages_to_move=colnames(differences[, colSums(differences < 0) > 0]) 
         eligible_ages_to_move=gsub("_"," ",eligible_ages_to_move)
         eligible_ages_to_move=gsub("under","Under",eligible_ages_to_move)
         eligible_ages_to_move=gsub("over","Over",eligible_ages_to_move)
         
-        
+        if( all(a_household$new_age %in% eligible_ages_to_move) ){
+          #that household leaves
+          synthetic_data_set$left_population[synthetic_data_set$householdID==a_household$householdID[1]]="left population"
+          #eligible ages has to be updated
+          for(update in unique(a_household$new_age)){
+            update_by=sum(a_household$new_age==update)
+            update_name=gsub(" ","_",update)
+            update_name=gsub("Under","under",update_name)
+            update_name=gsub("Over","over",update_name)
+            differences[paste0(update_name)]=differences[paste0(update_name)]+update_by
+          }
+          #As well as number of households
+          differences_in_households[paste0(hh)]=differences_in_households[paste0(hh)]+1
+        }
       }
       
+      #If we can't remove enough households remove individual people from households so households are smaller
+      for (hhID in hhIDs){
+        #break as soon as we've removed enough
+        if(differences_in_households[paste0(hh)]==0){
+          break
+        }
+        
+        #see if houses have ages eligible to be removed from population
+        a_household=subset(eligible_households,eligible_households$householdID==paste0(hhID))
+        eligible_ages_to_move=colnames(differences[, colSums(differences < 0) > 0]) 
+        eligible_ages_to_move=gsub("_"," ",eligible_ages_to_move)
+        eligible_ages_to_move=gsub("under","Under",eligible_ages_to_move)
+        eligible_ages_to_move=gsub("over","Over",eligible_ages_to_move)
+        
+        if( any(a_household$new_age %in% eligible_ages_to_move) ){
+          #someone should leave
+          who_can_leave=subset(a_household,a_household$new_age %in% eligible_ages_to_move)
+          who_is_moving=sample(1:nrow(who_can_leave),1)
+          who_is_moving=who_can_leave[who_is_moving,]
+          synthetic_data_set$left_population[row.match(who_is_moving,synthetic_data_set)]="left population"
+          #eligible ages has to be updated
+          update_name=who_is_moving$new_age
+          update_name=gsub(" ","_",update_name)
+          update_name=gsub("Under","under",update_name)
+          update_name=gsub("Over","over",update_name)
+          differences[paste0(update_name)]=differences[paste0(update_name)]+1
+          #As well as number of households
+          differences_in_households[paste0(hh)]=differences_in_households[paste0(hh)]+1
+          hh_number=as.numeric(numextract(paste0(hh)))
+          other_household=gsub(paste0(hh_number),paste0(hh_number+1),paste0(hh))
+          differences_in_households[paste0(other_household)]=differences_in_households[paste0(other_household)]-1
+          
+        }
+      }
     }
   }
+  
+  #Begin moving people in
+  
+  
 
 
 }    
