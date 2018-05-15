@@ -1,5 +1,6 @@
 group_quarters=readRDS("citymodels_houston_group_quarters.RDS")
 households=readRDS("citymodels_houston_households.RDS")
+households$size=as.character(households$size)
 sample.set=rbind(group_quarters,households)
 
 #Read in HCAD parcels
@@ -26,7 +27,7 @@ complete_sample_set=foreach (index1=1:length(tracts),.combine='rbind')%dopar%{
   householdIDs=unique(subset(sample.set,sample.set$tract==tracts[index1]&sample.set$household.type!="Group Quarters")$householdID)
   
   #populate group quarters
-  groupquartersplaces=subset(buildings_in_tracts_with_messy_group_quarters,(buildings_in_tracts_with_messy_group_quarters$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8343","8309","8489","8311","8327","8491","8514")))
+  groupquartersplaces=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8343","8309","8489","8311","8327","8491","8514")))
   #populate single family houses
   singlefamilyhouses=subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("101","107","108","109","125","8177","8178","8179","8351","8354","8401","8548","8549","8550","8986","8988"))
 
