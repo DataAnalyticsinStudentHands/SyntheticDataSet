@@ -110,8 +110,6 @@ vecToChunk <- function(x, max=50){
 }
 
 
-#api link for housing data
-acs5_2014_api <- 'http://api.census.gov/data/2014/acs5?'
 #variables used
 source('map_variables_from_Census_Table.R')
 #Household size and number of vehicles
@@ -896,7 +894,7 @@ vars <- c(c(group.quarters.population,
             out.of.nation.70.to.74,
             out.of.nation.over.75))
 # Get data for all census tracts in TX
-census_data <- getCensusApi(acs5_2014_api, key=key, vars, region=paste0("for=tract:*&in=state:",state))
+census_data <- getCensusApi(base_url, key=key, vars, region=paste0("for=tract:*&in=state:",state))
 
 colnames(census_data)<-c("state","county","tract","group.quarters.population","family.2.person.household",
                          "family.3.person.household",

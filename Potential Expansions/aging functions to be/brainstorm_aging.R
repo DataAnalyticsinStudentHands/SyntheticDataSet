@@ -701,13 +701,70 @@ numextract <- function(string){
     Census_data_following_year$new_people_55_to_59+Census_data_following_year$new_people_50_to_54+Census_data_following_year$new_people_45_to_49+Census_data_following_year$new_people_40_to_44+Census_data_following_year$new_people_35_to_39+
     Census_data_following_year$new_people_30_to_34+Census_data_following_year$new_people_25_to_29+Census_data_following_year$new_people_20_to_24+Census_data_following_year$new_people_18_to_19+Census_data_following_year$new_people_5_to_17+Census_data_following_year$new_people_Under_5
   
-  #Begin moving people in
-  #if(differences_in_households$family.2.person.household>0){
-    
-   # family_HH_sz2_seeds=sample(1:100000000,Census_data$family.2.person.household,replace = FALSE)
-    
-  #}
   
+  
+  
+  
+  
+  
+  
+  
+  
+  current_household_vars_dataframe=synthetic_data_set[c("household.type","size","number.of.vehicles","household.income","health.insurance","householdID")]
+  current_household_vars_dataframe <- current_household_vars_dataframe[!duplicated(current_household_vars_dataframe), ]
+  current_household_vars_dataframe <- subset(current_household_vars_dataframe,current_household_vars_dataframe$household.type!="Group Quarters")
+  
+  #initialize moving in data frame
+  people_moving_in=data.frame()
+  
+  #table current household variables
+  old_households_household_type=ftable(current_household_vars_dataframe$household.type)
+  old_household_type_dataframe=as.data.frame.matrix(old_households_household_type)
+  colnames(old_household_type_dataframe)=unlist(attr(old_households_household_type, "col.vars"))
+  
+  colnames_needed=c("Married-couple family", "Male householder- no wife present","Female householder- no husband present")
+  
+  for (col in colnames_needed){
+    if(!(paste0(col) %in% colnames(old_households_dataframe))){
+      old_household_type_dataframe[(paste0(col))]=0
+    }
+  }
+  
+  Census_household_type=Census_data_following_year[c("married.couple.families","male.householders.no.wife","female.householders.no.husband")]
+  colnames(Census_household_type)<-colnames_needed
+  
+  familyHHtypes=Census_household_type[colnames_needed]-old_household_type_dataframe[colnames_needed]
+  familyHHtypes[familyHHtypes<0]<-0
 
+  #Create 2 family households
+  #Make Sure there are 2 family households
+  if(differences_in_households$family.2.person.household>0){
+    #make a seed for each household
+    family_HH_sz2_seeds=sample(1:100000000,Census_data$family.2.person.household,replace = FALSE)
+    
+    for(seedy in family_HH_sz2_seeds){ #for each seed create a household
+      #set seed
+      set.seed(seedy)
+      #sample Household Type
+      HHtype=sample(colnames(familyHHtypes),size=1,prob=familyHHtypes)
+      
+      #Create initial data frame
+      if(HHtype=="Married-couple family"){
+        partofset=data.frame(household.type=rep(HHtype,2),member=c("Husband","Wife"),size=rep(2,2))
+      }
+      
+      if(HHtype=="Male householder- no wife present"){
+        partofset=data.frame(household.type=rep(HHtype,2),member=c("Male Householder","NA"),size=rep(2,2))
+      }
+      
+      if(HHtype=="Female householder- no husband present"){
+        partofset=data.frame(household.type=rep(HHtype,2),member=c("Female Householder","NA"),size=rep(2,2))
+      }
+      
+      
+      #Save new household with any previous households
+      people_moving_in=rbind(people_moving_in,partofset)
+    }
+  }
 
 #}    
