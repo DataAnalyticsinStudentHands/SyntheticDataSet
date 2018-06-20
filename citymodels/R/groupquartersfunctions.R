@@ -132,7 +132,7 @@ gethealthinsuranceforgroupquarters <- function(state, county, tract,syntheticdat
                                     syntheticdataset$age %in% c("Under 5","5 to 9","10 to 14","15 to 17")),warning_message,
                           ifelse(sum(without_disability_under_18)>0&(syntheticdataset$disability=="No Disabilities"&
                              syntheticdataset$age %in% c("Under 5","5 to 9","10 to 14","15 to 17")),sample(code,1,prob=without_disability_under_18/sum(without_disability_under_18)),
-                             ifelse(sum(without_disability_under_18)>0&(syntheticdataset$disability=="No Disabilities"&
+                             ifelse(sum(without_disability_under_18)<=0&(syntheticdataset$disability=="No Disabilities"&
                                                                           syntheticdataset$age %in% c("Under 5","5 to 9","10 to 14","15 to 17")),warning_message,
                              ifelse(sum(with_disability_18_to_64)>0&(syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
                                        syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),sample(code,1,prob=with_disability_18_to_64/sum(with_disability_18_to_64)),

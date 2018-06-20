@@ -47,6 +47,8 @@ get_age_from_brackets<-function(seed,age_bracket){
 #Apply to set
 sample_set$real_age=mapply(get_age_from_brackets,c(1:nrow(sample_set)),sample_set$age)
 
+#Everyone got a year older
+sample_set$real_age=sample_set$real_age+1
 
 #Move people out
 sample_set$Moved_Out=NA
@@ -66,10 +68,6 @@ people_still_living_in_the_tract=subset(a_tract_to_play_with,is.na(a_tract_to_pl
 #Read in current data
 current_data_for_update=readRDS("Census_data_2015.RDS")
 current_data_for_update=subset(current_data_for_update,current_data_for_update$county=="201"&current_data_for_update$tract=="555702")
-
-#Everyone got a year older
-people_still_living_in_the_tract$real_age=people_still_living_in_the_tract$real_age+1
-people_that_moved_out$real_age=people_that_moved_out$real_age+1
 
 #Are our numbers reasonablish
 our_people=data.frame(county=201,tract=555702)
