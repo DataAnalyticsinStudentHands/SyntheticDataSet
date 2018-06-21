@@ -96,7 +96,7 @@ complete_sample_set=foreach (index1=1:length(tracts),.combine='rbind')%dopar%{
     tract.sample.set=within.data.frame(tract.sample.set,ACCOUNT[householdID==randomizedfourfamilyhouseholdIDs[index]]<-Account[index])
   }
   
-  householdIDs=householdIDs[! householdIDs %in% randomizedthreefamilyhouseholdIDs]
+  householdIDs=householdIDs[! householdIDs %in% randomizedfourfamilyhouseholdIDs]
 
   #put everyother household in condos and mixed residential commercial structure
   
@@ -107,7 +107,7 @@ complete_sample_set=foreach (index1=1:length(tracts),.combine='rbind')%dopar%{
   }
   
   if(length(condos$ACCOUNT)>0 & length(householdIDs)>0){
-    Account=ifelse((nrow(condos)>0),sample((condos$"ACCOUNT"),length(householdIDs),replace=TRUE),rep(NA,length(householdIDs)))
+    Account=sample((condos$"ACCOUNT"),length(householdIDs),replace=TRUE)
     
     for (index in 1:length(householdIDs)){
       tract.sample.set=within.data.frame(tract.sample.set,ACCOUNT[householdID==householdIDs[index]]<-Account[index])
