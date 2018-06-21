@@ -154,8 +154,7 @@ gethealthinsuranceforgroupquarters <- function(state, county, tract,syntheticdat
                             NA))))))))))))
 
   syntheticdataset$health.insurance=health.insurance
-  assign("test1", syntheticdataset$health.insurance, envir = .GlobalEnv)
-
+ 
   return(syntheticdataset=syntheticdataset)
 }
 
