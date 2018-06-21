@@ -16,7 +16,7 @@
 household_generator <- function(state, county, tract, seed, inputdir = "../Inputs/", Census_data){
 
   # initialize data frame
-  fullset=data.frame()
+  fullset = data.frame()
 
   # set seed
   set.seed(seed)
@@ -35,18 +35,17 @@ household_generator <- function(state, county, tract, seed, inputdir = "../Input
 
   # load and organize 500 Cities project data
 
-  # Create family  and nonfamily households
+  # Create family and nonfamily households
   HHs = Census_data[c("family.2.person.household","family.3.person.household","family.4.person.household","family.5.person.household","family.6.person.household","family.7.person.household",
-                            "nonfamily.1.person.household","nonfamily.2.person.household","nonfamily.3.person.household","nonfamily.4.person.household","nonfamily.5.person.household","nonfamily.6.person.household","nonfamily.7.person.household")]
+                      "nonfamily.1.person.household","nonfamily.2.person.household","nonfamily.3.person.household","nonfamily.4.person.household","nonfamily.5.person.household","nonfamily.6.person.household","nonfamily.7.person.household")]
 
-  for(x in 1:13){
-    partialset <- create_household(state, county, tract, seed, Census_data, HHs[x], familyHHtypes, x + 1)
+  for(x in 2:14){
+    partialset <- create_household(state, county, tract, seed, Census_data, HHs[x-1], familyHHtypes, x)
     fullset = rbind(fullset, partialset)
   }
-
+  
   # return data.frame with all households built
   return(fullset)
-
 }
 
 create_household <- function(state, county, tract, seed, Census_data, census_col, family_type, family_size){
@@ -59,34 +58,39 @@ create_household <- function(state, county, tract, seed, Census_data, census_col
     for(seedy in family_HH_seeds){ # for each seed create a household
       # set seed
       set.seed(seedy)
+      
       # sample Household Type
-      HHtype = sample(colnames(family_type), size = 1, prob = family_type)
-
-      # Create initial data frame
-      if(HHtype == "Married-couple family" & family_size < 8){
-        partofset = data.frame(household.type = rep(HHtype, family_size), member = c("Husband","Wife", rep("NA", family_size - 2)), size = rep(family_size, family_size))
+      if(family_size < 8){
+        HHtype = sample(colnames(family_type), size = 1, prob = family_type)
+        
+        # Create initial data frame
+        if(HHtype == "Married-couple family"){
+          partofset = data.frame(household.type = rep(HHtype, family_size), member = c("Husband","Wife", rep("NA", family_size - 2)), size = rep(family_size, family_size))
+        }
+        else if(HHtype == "Male householder- no wife present"){
+          partofset = data.frame(household.type = rep(HHtype, family_size), member = c("Male Householder", rep("NA", family_size - 1)), size = rep(family_size, family_size))
+        }
+        else if(HHtype == "Female householder- no husband present"){
+          partofset = data.frame(household.type = rep(HHtype, family_size), member = c("Female Householder", rep("NA", family_size - 1)), size = rep(family_size, family_size))
+        }
       }
-      else if(HHtype == "Male householder- no wife present" & family_size < 8){
-        partofset = data.frame(household.type = rep(HHtype, family_size), member = c("Male Householder", rep("NA", family_size - 1)), size = rep(family_size, family_size))
+      else{
+        if(family_size == 8){
+          partofset = data.frame(household.type = "Alone", member = "Householder", size = 1)
+        }
+        else if(family_size > 8){
+          partofset = data.frame(household.type = rep("Non-family", family_size - 7), member = c("Householder", rep("NA",(family_size - 8))), size = rep(family_size - 7, family_size -7))
+        }
       }
-      else if(HHtype == "Female householder- no husband present" & family_size < 8){
-        partofset = data.frame(household.type = rep(HHtype, family_size), member = c("Female Householder", rep("NA", family_size - 1)), size = rep(family_size, family_size))
-      }
-      else if(family_size == 8){
-        partofset = data.frame(household.type = "Alone", member = "Householder", size = 1)
-      }
-      else if(family_size > 8){
-        partofset = data.frame(household.type = rep("Non-family", family_size - 7), member = c("Householder", rep("NA",(family_size - 8))), size = rep(family_size - 7, family_size -7))
-      }
-
+      
       # Begin sampling characteristics of household (functions stored in other scripts)
       # The functions must be called in this order as some characteristics have different probability distributions based on other characteristics
 
 
       # Build using Census Data
       # partofset=gethouseholdtypeandrace(state,county,tract,seedy,Census_data)#not dependent on anything gets type and race
-      partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
-       partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
+      # partofset=getnumberofvehiclesforhouseholds(state,county,tract,partofset,seedy,Census_data)#only dependent on size
+      #  partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)#only dependent on race
       # partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
       # partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
       # partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
@@ -96,8 +100,8 @@ create_household <- function(state, county, tract, seed, Census_data, census_col
       # partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
       # partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
       # partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-      partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-      partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
+      # partofset=gethouseholdincome(state,county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
+      # partofset=gethouseholdhealthinsurance(state,county,tract,partofset,seedy,Census_data)#dependent on income
       partofset$state=rep(state,nrow(partofset))
       partofset$county=rep(county,nrow(partofset))
       partofset$tract=rep(tract,nrow(partofset))
