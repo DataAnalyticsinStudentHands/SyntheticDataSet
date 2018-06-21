@@ -1,3 +1,6 @@
+# The broman package must be installed/attcahed for the switch function in the health insurance section to work
+library(broman)
+
 #' Simulate number of vehicles for people in group quarters
 #'
 #' This function uses data from the U.S. Census to sample the number of vehicles for people living in group quarters.
@@ -35,7 +38,7 @@ getnumberofvehiclesforgroupquarters <- function(state, county, tract, syntheticd
   }
 
   number.of.vehicles = ifelse(syntheticdataset$sex == "Male" & syntheticdataset$employment == "Employed", sample(colnames(male_number_of_vehicles), 1, prob = male_number_of_vehicles/sum(male_number_of_vehicles)),
-                            ifelse(syntheticdataset$sex == "Female"&syntheticdataset$employment == "Employed", sample(colnames(female_number_of_vehicles), 1, prob = female_number_of_vehicles/sum(female_number_of_vehicles)), NA))
+                            ifelse(syntheticdataset$sex == "Female" & syntheticdataset$employment == "Employed", sample(colnames(female_number_of_vehicles), 1, prob = female_number_of_vehicles/sum(female_number_of_vehicles)), NA))
 
   syntheticdataset$number.of.vehicles = number.of.vehicles
 
@@ -125,17 +128,15 @@ gethealthinsuranceforgroupquarters <- function(state, county, tract, syntheticda
   code = c("private insurance","public insurance","no insurance")
   warning_message = "health_insurance_not_available_by_age_and_disability_for_this_Census_Tract"
 
-  health.insurance = sapply(syntheticdataset$disability, function(val1) switch(val1,
-                                                                               "With One Type of Disability"=, "With Two or More Types of Disabilities" = sapply(syntheticdataset$age, function(val2) switch(val2,
-                                                                                                                                                                                                             "Under 5"=, "5 to 9"=, "10 to 14"=, "15 to 17" = ifelse(sum(with_disability_under_18) > 0, sample(code, 1, prob = with_disability_under_18/sum(with_disability_under_18)), warning_message),
-                                                                                                                                                                                                             "18 to 19"=, "20 to 24"=, "25 to 29"=, "30 to 34"=, "35 to 44"=, "45 to 54"=, "55 to 64" = ifelse(sum(with_disability_18_to_64) > 0, sample(code, 1, prob = with_disability_18_to_64/sum(with_disability_18_to_64)), warning_message),
-                                                                                                                                                                                                             "65 to 74"=, "75 to 84"=, "Over 85" = ifelse(sum(with_disability_over_65) > 0, sample(code, 1, prob = with_disability_over_65/sum(with_disability_over_65)), warning_message))),
-                                                                               "No Disabilities" = sapply(syntheticdataset$age, function(val2) switch(val2,
-                                                                                                                                                      "Under 5"=, "5 to 9"=, "10 to 14"=, "15 to 17" = ifelse(sum(without_disability_under_18) > 0, sample(code, 1, prob = without_disability_under_18/sum(without_disability_under_18)), warning_message),
-                                                                                                                                                      "18 to 19"=, "20 to 24"=, "25 to 29"=, "30 to 34"=, "35 to 44"=, "45 to 54"=, "55 to 64" = ifelse(sum(without_disability_18_to_64) > 0, sample(code, 1, prob = without_disability_18_to_64/sum(without_disability_18_to_64)), warning_message),
-                                                                                                                                                      "65 to 74"=, "75 to 84"=, "Over 85" = ifelse(sum(without_disability_over_65) > 0, sample(code, 1, prob = without_disability_over_65/sum(without_disability_over_65)), warning_message)))
-
-  ))
+  health.insurance = switchv(syntheticdataset$disability,
+                             "With One Type of Disability"=, "With Two or More Types of Disabilities" = switchv(syntheticdataset$age,
+                                                                                                                "Under 5"=, "5 to 9"=, "10 to 14"=, "15 to 17" = ifelse(sum(with_disability_under_18) > 0, sample(code, 1, prob = with_disability_under_18/sum(with_disability_under_18)), warning_message),
+                                                                                                                "18 to 19"=, "20 to 24"=, "25 to 29"=, "30 to 34"=, "35 to 44"=, "45 to 54"=, "55 to 64" = ifelse(sum(with_disability_18_to_64) > 0, sample(code, 1, prob = with_disability_18_to_64/sum(with_disability_18_to_64)), warning_message),
+                                                                                                                "65 to 74"=, "75 to 84"=, "Over 85" = ifelse(sum(with_disability_over_65) > 0, sample(code, 1, prob = with_disability_over_65/sum(with_disability_over_65)), warning_message)),
+                              "No Disabilities" = switchv(syntheticdataset$age,
+                                                          "Under 5"=, "5 to 9"=, "10 to 14"=, "15 to 17" = ifelse(sum(without_disability_under_18) > 0, sample(code, 1, prob = without_disability_under_18/sum(without_disability_under_18)), warning_message),
+                                                          "18 to 19"=, "20 to 24"=, "25 to 29"=, "30 to 34"=, "35 to 44"=, "45 to 54"=, "55 to 64" = ifelse(sum(without_disability_18_to_64) > 0, sample(code, 1, prob = without_disability_18_to_64/sum(without_disability_18_to_64)), warning_message),
+                                                          "65 to 74"=, "75 to 84"=, "Over 85" = ifelse(sum(without_disability_over_65) > 0, sample(code, 1, prob = without_disability_over_65/sum(without_disability_over_65)), warning_message)))
 
   syntheticdataset$health.insurance = health.insurance
 
