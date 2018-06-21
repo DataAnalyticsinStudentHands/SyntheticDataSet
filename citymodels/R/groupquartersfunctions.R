@@ -147,13 +147,14 @@ gethealthinsuranceforgroupquarters <- function(state, county, tract,syntheticdat
                                                   ifelse(sum(with_disability_over_65)<=0&(syntheticdataset$disability %in% c("With One Type of Disability","With Two or More Types of Disabilities")&
                                                                                            syntheticdataset$age %in% c("65 to 74","75 to 84","Over 85")),warning_message,
                                                   ifelse(sum(without_disability_over_65)>0&(syntheticdataset$disability=="No Disabilities"&
-                                                            syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),sample(code,1,prob=without_disability_over_65/sum(without_disability_over_65)),
+                                                            syntheticdataset$age %in% c("65 to 74","75 to 84","Over 85")),sample(code,1,prob=without_disability_over_65/sum(without_disability_over_65)),
                                                          ifelse(sum(without_disability_over_65)<=0&(syntheticdataset$disability=="No Disabilities"&
-                                                                                                     syntheticdataset$age %in% c("18 to 19","20 to 24","25 to 29","30 to 34","35 to 44","45 to 54","55 to 64")),warning_message,
+                                                                                                     syntheticdataset$age %in% c("65 to 74","75 to 84","Over 85")),warning_message,
 
                             NA))))))))))))
 
   syntheticdataset$health.insurance=health.insurance
+  assign("test1", syntheticdataset$health.insurance, envir = .GlobalEnv)
 
   return(syntheticdataset=syntheticdataset)
 }
