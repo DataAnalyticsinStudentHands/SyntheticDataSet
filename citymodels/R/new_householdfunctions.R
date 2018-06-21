@@ -1,3 +1,6 @@
+# The broman package must be installed/attcahed for the switch function in the health insurance section to work
+library(broman)
+
 #' Simulate number of vehicles for households
 #'
 #' This function uses data from the U.S. Census to sample the number of vehicles a household would have based on its size.
@@ -51,7 +54,7 @@ getnumberofvehiclessample <- function(syntheticdataset, Census_data){
   number.of.vehicles <- rep(a, nrow(syntheticdataset))
   syntheticdataset$number.of.vehicles = number.of.vehicles
 
-  return(syntheticdataset = syntheticdataset)
+    return(syntheticdataset = syntheticdataset)
 }
 
 #' Simulate Household Income
@@ -117,14 +120,15 @@ gethouseholdhealthinsurance <- function(state, county, tract, syntheticdataset, 
   code = c("private insurance","public insurance","no insurance")
   warningMessage = "Health Insurance Status By Income Not Available for this Census Tract"
 
-  health.insurance = sapply(syntheticdataset$household.income, function(val) switch(val,
-                            "less than 10,000"=, "10,000 to 14,999"=, "15,000 to 19,999"=, "20,000 to 24,999"= ifelse(sum(under25000) > 0, sample(code, 1, prob = under25000/sum(under25000)), warningMessage),
-                            "25,000 to 29,999"=, "30,000 to 34,999"=, "35,000 to 39,999"=, "40,000 to 44,999"=, "45,000 to 49,99"= ifelse(sum(between25to49) > 0, sample(code, 1, prob = between25to49/sum(between25to49)), warningMessage),
-                            "50,000 to 59,999"=, "60,000 to 74,999" = ifelse(sum(between50to75) > 0, sample(code, 1, prob = between50to75/sum(between50to75)), warningMessage),
-                            "75,000 to 99,999" = ifelse(sum(between75to100) > 0, sample(code, 1, prob = between75to100/sum(between75to100)), warningMessage),
-                            "100,000 to 124,999"=, "125,000 to 149,999"=, "150,000 to 199,999"=, "200,000 or more" = ifelse(sum(over100) > 0, sample(code, 1, prob = over100/sum(over100)), warningMessage)
-  ))
+  health.insurance = switchv(syntheticdataset$household.income,
+                             "less than 10,000"=, "10,000 to 14,999"=, "15,000 to 19,999"=, "20,000 to 24,999"= ifelse(sum(under25000) > 0, sample(code, 1, prob = under25000/sum(under25000)), warningMessage),
+                              "25,000 to 29,999"=, "30,000 to 34,999"=, "35,000 to 39,999"=, "40,000 to 44,999"=, "45,000 to 49,999"= ifelse(sum(between25to49) > 0, sample(code, 1, prob = between25to49/sum(between25to49)), warningMessage),
+                              "50,000 to 59,999"=, "60,000 to 74,999" = ifelse(sum(between50to75) > 0, sample(code, 1, prob = between50to75/sum(between50to75)), warningMessage),
+                              "75,000 to 99,999" = ifelse(sum(between75to100) > 0, sample(code, 1, prob = between75to100/sum(between75to100)), warningMessage),
+                              "100,000 to 124,999"=, "125,000 to 149,999"=, "150,000 to 199,999"=, "200,000 or more" = ifelse(sum(over100) > 0, sample(code, 1, prob = over100/sum(over100)), warningMessage) )
+
 
   syntheticdataset$health.insurance = health.insurance
+
   return(syntheticdataset)
 }
