@@ -1,5 +1,6 @@
 #If we prioritized the Census data we have on people moving in
 
+Census_data_following_year=current_data_for_update
 #Put them in household sizes that will make the model move toward the tabled household sizes
 library(stringr)
 numextract <- function(string){ 
@@ -115,3 +116,84 @@ if(Census_data_following_year$out.of.nation.total>0){
   }
 }
 
+#Find households that match numbers for within county to move in
+householdIDs=unique(people_that_moved_out$householdID)
+
+#Make age brackets to match with move
+get_brackets_from_age<-function(real_age){
+  age_bracket=ifelse(real_age<5,"Under 5",
+             ifelse(real_age>=5&real_age<18,"5 to 17",
+                    ifelse(real_age>=18&real_age<=19,"18 to 19",
+                           ifelse(real_age>=20&real_age<=24,"20 to 24",
+                                  ifelse(real_age>=25&real_age<=29,"25 to 29",
+                                         ifelse(real_age>=30&real_age<=34,"30 to 34",
+                                                ifelse(real_age>=35&real_age<=39,"35 to 39",
+                                                       ifelse(real_age>=40&real_age<=44,"40 to 44",
+                                                              ifelse(real_age>=45&real_age<=49,"45 to 49",
+                                                                     ifelse(real_age>=50&real_age<=54,"50 to 54",
+                                                                            ifelse(real_age>=55&real_age<=59,"55 to 59",
+                                                                                   ifelse(real_age>=60&real_age<=64,"60 to 64",
+                                                                                          ifelse(real_age>=65&real_age<=69,"65 to 69",
+                                                                                          ifelse(real_age>=70&real_age<=74,"70 to 74",
+                                                                                                 ifelse(real_age>=75,"Over 75",
+                                                                                                        NA)))))))))))))))
+
+  return(age_bracket)
+}
+
+people_that_moved_out$moving_bracket_age=get_brackets_from_age(people_that_moved_out$real_age)
+
+
+sex=Census_data_following_year[c("moved.within.county.men","moved.within.county.women")]
+colnames(sex)=c("Male","Female")
+age=Census_data_following_year[c("moved.within.county.under.5","moved.within.county.5.to.17","moved.within.county.18.to.19",
+                                 "moved.within.county.20.to.24","moved.within.county.25.to.29","moved.within.county.30.to.34",
+                                 "moved.within.county.35.to.39","moved.within.county.40.to.44","moved.within.county.45.to.49",
+                                 "moved.within.county.50.to.54","moved.within.county.55.to.59","moved.within.county.60.to.64",
+                                 "moved.within.county.65.to.69","moved.within.county.70.to.74","moved.within.county.over.75")]
+colnames(age)=c("Under 5","5 to 17","18 to 19","20 to 24","25 to 29","30 to 34","35 to 39","40 to 44","45 to 49",
+           "50 to 54","55 to 59","60 to 64","65 to 69","70 to 74","Over 75")
+race=Census_data_following_year[c("moved.within.county.black","moved.within.county.amer.indian.alaskan","moved.within.county.asian","moved.within.county.islander","moved.within.county.other","moved.within.county.multiracial","moved.within.county.white","moved.within.county.hispanic")]
+colnames(race)=c("Black or African American","American Indian or Alaskan Native","Asian","Native Hawaiian or Other Pacific Islander","Some Other Race","Two or More Races","White","Hispanic or Latino")
+
+total_movers_from_county=Census_data_for_following_year$moved.within.county.total
+
+#I screwed up on a prior dataset that Im working with now so I'm using this line which should no longer be necessary with the new one
+people_that_moved_out=subset(people_that_moved_out,!is.na(people_that_moved_out$sex)&!is.na(people_that_moved_out$race)&!is.na(people_that_moved_out$age))
+
+people_moved_within_county=data.frame()
+for(hh in householdIDs){
+ household=subset(people_that_moved_out,people_that_moved_out$householdID==hh)
+ 
+ #Table sex, age and race
+ household_sex_table=ftable(household$sex)
+ household_sex_dataframe=as.data.frame.matrix(household_sex_table)
+ colnames(household_sex_dataframe)=unlist(attr(household_sex_table, "col.vars"))
+ 
+ household_race_table=ftable(household$race)
+ household_race_dataframe=as.data.frame.matrix(household_race_table)
+ colnames(household_race_dataframe)=unlist(attr(household_race_table, "col.vars"))
+ 
+ household_age_table=ftable(household$moving_bracket_age)
+ household_age_dataframe=as.data.frame.matrix(household_age_table)
+ colnames(household_age_dataframe)=unlist(attr(household_age_table, "col.vars"))
+ 
+ #Check if a household could move into the tract
+ if(all(sex[colnames(household_sex_dataframe)]-household_sex_dataframe>0)&
+    all(race[colnames(household_race_dataframe)]-household_race_dataframe>0)&
+    all(age[colnames(household_age_dataframe)]-household_age_dataframe>0)
+ ){
+   #Move into the tract
+   people_moved_within_county=rbind(people_moved_within_county,household)
+   #Remove as option from households
+   householdIDs=householdIDs[!householdIDs==hh]
+   #update total
+   total_movers_from_county=total_movers_from_county-nrow(household)
+   #update criteria
+   sex[colnames(household_sex_dataframe)]=sex[colnames(household_sex_dataframe)]-household_sex_dataframe
+   race[colnames(household_race_dataframe)]=race[colnames(household_race_dataframe)]-household_race_dataframe
+   age[colnames(household_age_dataframe)]=age[colnames(household_age_dataframe)]-household_age_dataframe
+ }
+ 
+ if(total_movers_from_county<=0){break()} 
+}
