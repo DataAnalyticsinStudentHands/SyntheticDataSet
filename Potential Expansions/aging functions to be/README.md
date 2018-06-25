@@ -14,4 +14,7 @@ The 2014 model created from the citymodels package lists ages in Census data def
 # find_ACCOUNT_numbers_that_moved_out.R
 This function takes two sets of shapefiles already merged and cleaned appropriately with the prepareHCADparcels.R script in the merging with HCAD functions folder and looks for either discontinued account numbers or changes in ownership to determine the first set of families to move out.
 
+# move_out_by_tract.R
+If not enough people are moved out by find_ACCOUNT_numbers_that_moved_out.R than it is likely that many renters or parts of families moved out that didn't cause a change in ownership for the HCAD files. The move_out_by_tract function moves more people out by age if the total number of people living in the same house as last year in a Census tract is less than the number still in that tract for the model.
+
 
