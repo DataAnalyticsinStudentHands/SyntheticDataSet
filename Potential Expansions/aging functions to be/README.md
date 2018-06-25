@@ -11,3 +11,7 @@ This script is meant to age a model created of Houston from 2014 HCAD and Census
 # get_age_from_brackets.R
 The 2014 model created from the citymodels package lists ages in Census data defined brackets to make things easier and keep better continuity over multiple years this is converted to a numerical age with the get_age_from_brackets function.
 
+# find_ACCOUNT_numbers_that_moved_out.R
+This function takes two sets of shapefiles already merged and cleaned appropriately with the prepareHCADparcels.R script in the merging with HCAD functions folder and looks for either discontinued account numbers or changes in ownership to determine the first set of families to move out.
+
+
