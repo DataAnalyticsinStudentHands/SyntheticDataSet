@@ -10,7 +10,7 @@ current_data_for_update=subset(current_data_for_update,current_data_for_update$t
 people_still_living_in_the_tract$size=as.numeric(as.character(people_still_living_in_the_tract$size))
 babies=data.frame()
 #if this number is positive age people from the age bracket below, if the number is negative leave alone for now
-if(differences$same.house.under.5 > 0 & sum(differences)>0){
+if(differences$same.house.under.5 > 0){
   number_of_babies=differences$same.house.under.5
   
   #figure out what race most should be

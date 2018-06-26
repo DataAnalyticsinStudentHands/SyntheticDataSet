@@ -17,7 +17,7 @@ rm(parcels_2014,parcels_2015)
 
 #Load sample set
 sample_set=readRDS("complete_sample_set2018-05-29.RDS")
-sample_set$geometry=NULL
+sample_set=sample_set[,c(1:26,43:45)]
 
 #If the age is still in brackets as created in citymodels, an individual numeric age may need to be sampled
 source("get_age_from_brackets.R")
@@ -46,8 +46,21 @@ tracts=tracts[1:5]
 people_that_moved_out=data.frame()
 people_still_living_in_the_tract=data.frame()
 for(tract in tracts){
-  sort_people=move_out_by_tract(sample_set,current_data_for_update,48,201,tract,1)
+  sort_people=move_out_by_tract(sample_set,current_data_for_update,tract,1)
   
   people_that_moved_out=rbind(people_that_moved_out,sort_people$people_that_moved_out)
   people_still_living_in_the_tract=rbind(people_still_living_in_the_tract,sort_people$people_still_living_in_the_tract)
+}
+
+#Create Babies born to people still living in the tract
+source("create_babies.R")
+babies=data.frame()
+#create readjusted people still living in the tract to account for changes in family size
+people_still_living_in_the_tract2=data.frame()
+
+for(tract in tracts){
+  babies_and_families=create_babies(people_still_living_in_the_tract,current_data_for_update,tract,1)
+  
+  babies=rbind(babies,babies_and_families$babies)
+  people_still_living_in_the_tract2=rbind(people_still_living_in_the_tract2,babies_and_families$people_still_living_in_the_tract)
 }
