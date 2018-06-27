@@ -46,6 +46,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       #Move someone out
       who_moves_out=sample(indexes_potential_75_year_olds_to_move,size=1)
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #update differences
       differences$same.house.over.75=differences$same.house.over.75+1
       #change seed
@@ -58,6 +64,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.70.to.74=differences$same.house.70.to.74+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -68,6 +80,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.65.to.69=differences$same.house.65.to.69+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -78,6 +96,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.60.to.64=differences$same.house.60.to.64+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -88,6 +112,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.55.to.59=differences$same.house.55.to.59+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -98,6 +128,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.50.to.54=differences$same.house.50.to.54+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -108,6 +144,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.45.to.49=differences$same.house.45.to.49+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -118,6 +160,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.40.to.44=differences$same.house.40.to.44+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -128,6 +176,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.35.to.39=differences$same.house.35.to.39+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -138,6 +192,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.30.to.34=differences$same.house.30.to.34+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -148,6 +208,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.25.to.29=differences$same.house.25.to.29+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -158,6 +224,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.20.to.24=differences$same.house.20.to.24+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -168,6 +240,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.18.to.19=differences$same.house.18.to.19+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -178,6 +256,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.5.to.17=differences$same.house.5.to.17+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
@@ -188,6 +272,12 @@ move_out_by_tract<-function(sample_set,Census_data,tract,seed){
       people_still_living_in_the_tract$Moved_Out[who_moves_out]="Moved Out"
       #update differences
       differences$same.house.under.5=differences$same.house.under.5+1
+      #update household size if not group quarters
+      if(people_still_living_in_the_tract$household.type[who_moves_out]!="Group Quarters"){
+        hhID=people_still_living_in_the_tract$householdID[who_moves_out]
+        size=as.numeric(people_still_living_in_the_tract$size[who_moves_out])+1
+        people_still_living_in_the_tract$size[people_still_living_in_the_tract$householdID==hhID]=size
+      }
       #change seed
       seed=seed+1
     }
