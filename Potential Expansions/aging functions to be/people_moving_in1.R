@@ -4,9 +4,7 @@
 #Later there will extra parameters to subset for specific tracts
 library(stringr)
 peoplemovingin <-function(current_data_for_update, people_that_moved_out, people_still_living_in_the_tract, babies){
-  Census_data_following_year=current_data_for_update
-  #Don't forget to subset for an actual tract. Right now it just uses the first row
-  Census_data_following_year=slice(Census_data_following_year,1)
+  Census_data_following_year=Census_data[Census_data$county==201&Census_data$tract==tract&Census_data$state==48,]
   
   to_get_households=rbind(babies[c("householdID","size","household.type","age")],people_still_living_in_the_tract[c("householdID","size","household.type","age")])
   to_get_households$household_and_size=mapply(make_easier,to_get_households$household.type,to_get_households$size)
