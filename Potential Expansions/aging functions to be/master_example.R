@@ -64,3 +64,11 @@ for(tract in tracts){
   babies=rbind(babies,babies_and_families$babies)
   people_still_living_in_the_tract2=rbind(people_still_living_in_the_tract2,babies_and_families$people_still_living_in_the_tract)
 }
+
+#Find the number of people moving into a tract
+source("people_moving_in1.R")
+
+for(tract in tracts){
+  people_moved_in = peoplemovingin(current_data_for_update, tract, people_that_moved_out, people_still_living_in_the_tract, babies)
+}
+
