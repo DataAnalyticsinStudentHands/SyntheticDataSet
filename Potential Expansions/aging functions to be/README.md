@@ -19,3 +19,6 @@ If not enough people are moved out by find_ACCOUNT_numbers_that_moved_out.R than
 
 # create_babies.R
 This function simulates babies born to mothers still living in the tract after enough people have been moved out. The number of babies born in the tract is determined by the difference between the Census data on number of children under 5 that have been living in the same house as last year and the number of children under 5 living in the tract after everyone has been moved out and before simulating people moving in. The babies race and gender is simulated by creating a probability vector based off of the difference between the race and gender of children under 5 in the Census data and in the model. After the baby's race has been simulated, a possible mother is sampled from the adult women still living in the tract of a similar racial background. The baby inherits the householdID of the mother and the household size for that household is increased by 1.
+
+# people_moving_in1.R
+The purpose of this function is to simulate the number of people moving into a tract. A list of four dataframes is returned, with each dataframe containing some information (such as sex, age, and race) and the number of people who moved in from one of four areas. The four areas are from within the state, from out of state, from out of the nation, and from within the county. 
