@@ -476,7 +476,7 @@ MaxTable <- function(x){
   dd[which.max(tabulate(match(x,dd)))]
 }
 
-people_moved_in=data.frame()
+people_moved_in_from_out_of_county=data.frame()
 seed=1
 while(nrow(total_people_made)>0 & total_households>0){
   #use the largest group of people first
@@ -490,9 +490,12 @@ while(nrow(total_people_made)>0 & total_households>0){
   #Sample people to make up household
   new_household=sample(use_me$identifier,size=number_of_people_for_household)
   new_household=total_people_made[total_people_made$identifier %in% new_household,]
+  new_household$householdID=rep(
+    paste("201",tract,colnames(differences_in_households[which.max(differences_in_households)]),seed,"year",2015,sep="."),
+    nrow(new_household))
   #make sure there is at least one adult
   if(!all(new_household$real_age<18)){
-    people_moved_in_from_out_of_county=rbind(people_moved_in,new_household)
+    people_moved_in_from_out_of_county=rbind(people_moved_in_from_out_of_county,new_household)
     #update number of households
     differences_in_households[which.max(differences_in_households)]=differences_in_households[which.max(differences_in_households)]-1
     #remove them from people made
