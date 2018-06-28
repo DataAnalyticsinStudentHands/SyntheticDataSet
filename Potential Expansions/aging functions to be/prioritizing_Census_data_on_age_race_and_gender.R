@@ -461,9 +461,43 @@ out_of_nation$age=getage(out_of_nation)
 out_of_nation$race=getrace(out_of_nation)
 
 #Now we need to put people in households
-total_people_made=nrow(moved_within_state)+nrow(out_of_state)+nrow(out_of_nation)
-total_households=sum(differences_in_households>0)
+total_people_made=rbind(moved_within_state,out_of_state,out_of_nation)
+#give them an identifier to index them later
+total_people_made$identifier=c(1:nrow(total_people_made))
+#Give them real ages
+source("get_age_from_brackets.R")
+total_people_made$real_age=mapply(get_age_from_brackets,c(1:nrow(total_people_made)),total_people_made$age)
+#Get total households
+total_households=sum(differences_in_households[differences_in_households>0])
 
-while(total_people_made>0 & total_households>0){
-  
+#function I found on line
+MaxTable <- function(x){
+  dd <- unique(x)
+  dd[which.max(tabulate(match(x,dd)))]
+}
+
+people_moved_in=data.frame()
+seed=1
+while(nrow(total_people_made)>0 & total_households>0){
+  #use the largest group of people first
+  which_group_of_people_to_use=MaxTable(total_people_made$moved_from)
+  use_me=total_people_made[total_people_made$moved_from==which_group_of_people_to_use,]
+  #create households we're missing the most first
+  #decide the size
+  number_of_people_for_household=as.numeric(numextract(colnames(differences_in_households[which.max(differences_in_households)])))
+  #set seed for sampling
+  set.seed(seed)
+  #Sample people to make up household
+  new_household=sample(use_me$identifier,size=number_of_people_for_household)
+  new_household=total_people_made[total_people_made$identifier %in% new_household,]
+  #make sure there is at least one adult
+  if(!all(new_household$real_age<18)){
+    people_moved_in_from_out_of_county=rbind(people_moved_in,new_household)
+    #update number of households
+    differences_in_households[which.max(differences_in_households)]=differences_in_households[which.max(differences_in_households)]-1
+    #remove them from people made
+    total_people_made=total_people_made[!(total_people_made$identifier %in% new_household$identifier), ]
+  }
+  #increment seed
+  seed=seed+1
 }
