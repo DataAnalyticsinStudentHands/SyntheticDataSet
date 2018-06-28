@@ -69,3 +69,16 @@ for(tract in tracts){
   babies=rbind(babies,babies_and_families$babies)
   people_still_living_in_the_tract2=rbind(people_still_living_in_the_tract2,babies_and_families$people_still_living_in_the_tract)
 }
+
+#Move people in
+source("people_moving_in2.R")
+
+people_moved_within_county=data.frame()
+people_moved_in_from_out_of_county=data.frame()
+  
+for(tract in tracts){
+  new_neighbors=move_people_in2(current_data_for_update,people_still_living_in_the_tract2,babies,people_that_moved_out,tract,1)
+  
+  people_moved_within_county=new_neighbors$people_moved_within_county
+  people_moved_in_from_out_of_county=new_neighbors$people_moved_in_from_out_of_county
+}
