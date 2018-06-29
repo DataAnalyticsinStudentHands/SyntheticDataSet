@@ -23,6 +23,8 @@ Single households were placed in the following building style codes
 + 8550-	Urban Row House, Inside Unit
 + 8986- Int. Space, Townhouse, Inside Unit
 + 8988- Int. Space, Townhouse, End Unit
++ 8774	Shell, Townhouse, End Unit
++ 8775	Shell, Townhouse, Inside Unit
 
 Two households were placed in the following building style code
 + 102- Residential 2 Family
@@ -78,6 +80,7 @@ All remaining simulated households were placed randomly into buildings with the 
 + 8987- Int. Space, Multiple Resid.
 + 8989- Int. Space, Apartment
 + 8451 Multiple Res. (Sen. Citizen)
++ 8985 Senior Center
 
 The following codes were not used
 + 106 Condominium (Common Element) (these are usually resources available to an entire living community, not usually a residence)
@@ -310,6 +313,101 @@ The following codes were not used
 + 8488	Bookstore (School)
 + 8489	Jail - Police Station
 + 8490	Kennels
++ 8492	Shell, Office
++ 8494	Industrials, Light Mftg.
++ 8495	Industrials, Heavy Mftg.
++ 8496	Laboratory
++ 8497	Computer Center
++ 8498	Broadcasting Facility
++ 8499	Dry Cleaners-Laundry
++ 8508	Car Wash - Canopy
++ 8511	Drug Store
++ 8512	Luxury Boutique
++ 8513	Regional Discount Shopping Center
++ 8515	Casino
++ 8516	Fellowship Hall
++ 8517	Narthex/Foyer
++ 8518	Greenhouse, Lath Shade House
++ 8519	Greenhouse, Shade Shelter
++ 8520	Greenhouse, Modified Hoop (Obsolete)
++ 8521	Greenhouse, Hoop, Arch-Rib (Obsolete)
++ 8522	Greenhouse, Straight-Wall (Obsolete)
++ 8523	Golf Cart Storage Building
++ 8524	Corn Crib
++ 8525	Mini Warehouse, High-Rise
++ 8526	Service Garage Shed
++ 8527	Municipal Service Garage
++ 8528	Service Repair Garage
++ 8529	Snack Bar
++ 8530	Cafeteria
++ 8531	Mini-Mart Convenience Store
++ 8532	Florist Shop
++ 8533	Warehouse Food Store
++ 8534	Warehouse Showroom Store
++ 8537	Lodge
++ 8538	Guest Cottage
++ 8539	Bed and Breakfast Inn
++ 8540	Motel Room, 2 Sty., Dbl. Row
++ 8541	Motel Room, 2 Sty., Sgl. Row
++ 8542	Motel Room, 1 Sty., Dbl. Row
++ 8543	Motel Room, 1 Sty., Sgl. Row
++ 8544	Motel, Office-Apartment
++ 8552	Recreational Enclosure
++ 8554	Shed Office Structure
++ 8555	Lt. Commercial Arch-rib, Quon
++ 8556	Bulk Oil Storage
++ 8557	Farm Utility Arch-rib, Quon.
++ 8558	Farm Implement Arch-rib, Quon
++ 8559	Stable, High-value
++ 8560	Equestrian Lean-To
++ 8561	Feeder Barn
++ 8562	Farm Commodity Storage Shed
++ 8563	Bag Fertilizer Storage
++ 8564	Dehydrator Building
++ 8565	Farm Utility Shelter
++ 8566	Farm Sun Shade Shelter
++ 8567	Poultry House - Cage, 2 Sty.
++ 8568	Poultry House-Cage, 2 Sty.,El
++ 8569	Poultry House - Cage, 3 Sty.
++ 8570	Poultry House-Cage, 1 Sty, El
++ 8571	Passenger Terminal
++ 8573	Arcade Building
++ 8574	Visitor Center
++ 8575	Dining Atrium
++ 8576	Atrium
++ 8577	Parking Level
++ 8578	Mini-Bank
++ 8580	Truck Stop
++ 8581	Post Office, Main
++ 8582	Post Office, Branch
++ 8583	Mail Processing Facility
++ 8584	Mega Warehouse
++ 8585	Mechanical Penthouse
++ 8586	Roadside Market
++ 8587	Shell, Multiple Residence
++ 8588	Extended Stay Motel
++ 8594	Hotel, Full Service
++ 8595	Hotel, Limited Service
++ 8596	Shell, Apartment
++ 8597	Mixed Retail w/ Office Units
++ 8598	Relocatable Classroom
++ 8599	Relocatable Office
++ 8600	Administrative Office
++ 8700	Mall Anchor Department Store
++ 8710	Retirement Community Complex
++ 8718	Banquet Hall
++ 8719	Modular Restaurant
++ 8720	Mega Warehouse Discount Store
++ 8990	Int. Space, Neigh. Shop Ctr
++ 8991	Int. Space, Commun. Shop Ctr
++ 8992	Int. Space, Region. Shop Ctr
++ 8993	Interior Space, Office
++ 8994	Int. Space, Industrial
++ 9100	TEST - Manufacturing, Light
++ 9122	TEST - Office, Low-Rise, Interior Space
++ 9200	TEST - Warehouse, Light
++ 9215	TEST - Warehouse, Mega
++ 9220	TEST - Warehouse, Cold Storage
 
 It writes a complete file for the entire sample set, as well as individual tract files with account numbers. If there were simulated group quarters populations and no group quarters building style codes in a tract, a separate file for the group quarters IDs in that tract will be written. If there were too many households for the number of residencies available and no buildings in the category for more than 4 households, then another file will be written for the household IDs in that tract.
 
