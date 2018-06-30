@@ -27,9 +27,9 @@ complete_sample_set=foreach (index1=1:length(tracts),.combine='rbind')%dopar%{
   householdIDs=unique(subset(sample.set,sample.set$tract==tracts[index1]&sample.set$household.type!="Group Quarters")$householdID)
   
   #populate group quarters
-  groupquartersplaces=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8343","8309","8489","8311","8327","8491","8514")))
+  groupquartersplaces=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE" %in% c("8985","8308","620","640","660","685","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8343","8309","8489","8311","8327","8491","8514")))
   #populate single family houses
-  singlefamilyhouses=subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("101","107","108","109","125","8177","8178","8179","8351","8354","8401","8548","8549","8550","8986","8988"))
+  singlefamilyhouses=subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("8774","8775","101","107","108","109","110","125","8177","8178","8179","8351","8354","8401","8548","8549","8550","8986","8988"))
 
   Account=singlefamilyhouses$"ACCOUNT"
   
@@ -100,7 +100,7 @@ complete_sample_set=foreach (index1=1:length(tracts),.combine='rbind')%dopar%{
 
   #put everyother household in condos and mixed residential commercial structure
   
-  condos=subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("105","8300","8352","8338","8459","8493","8546","8547","8596","8984","8987","8989"))
+  condos=subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("8451","105","8300","8352","8338","8459","8493","8546","8547","8596","8984","8987","8989"))
   
   if(length(condos$ACCOUNT)==0 & length(householdIDs)>0){
     saveRDS(householdIDs,paste0("without_locations_householdIDs",tracts[index1]))
