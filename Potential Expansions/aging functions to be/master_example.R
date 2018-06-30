@@ -65,18 +65,15 @@ for(tract in tracts){
   people_still_living_in_the_tract2=rbind(people_still_living_in_the_tract2,babies_and_families$people_still_living_in_the_tract)
 }
 
-#Find the number of people moving into a tract
+#Move people into a tract
 source("people_moving_in1.R")
-people_moved_within_state = data.frame()
-people_moved_out_of_state = data.frame()
-people_moved_out_of_nation = data.frame()
+
 people_moved_within_county = data.frame()
+people_moved_in_from_out_of_county = data.frame()
 
 for(tract in tracts){
-  moved_in = peoplemovingin(current_data_for_update, tract, people_that_moved_out, people_still_living_in_the_tract, babies)
+  new_neighbors = peoplemovingin(current_data_for_update, tract, people_that_moved_out, people_still_living_in_the_tract, babies,1)
   
-  people_moved_within_state = rbind(people_moved_within_state, moved_in$people_moved_within_state)
-  people_moved_out_of_state = rbind(people_moved_out_of_state, moved_in$people_moved_out_of_state)
-  people_moved_out_of_nation = rbind(people_moved_out_of_state, moved_in$people_moved_out_of_nation)
-  people_moved_within_county = rbind(people_moved_within_county, moved_in$people_moved_within_county)
+  people_moved_within_county = rbind(people_moved_within_county, new_neighbors$people_moved_within_county)
+  people_moved_in_from_out_of_county = rbind(people_moved_in_from_out_of_county, new_neighbors$people_moved_in_from_out_of_county)
 }
