@@ -260,54 +260,62 @@ get_age_from_moving_brackets<-function(seed,age_bracket){
 }
 
 place_in_houses <- function(people_moved_within_state, people_moved_out_of_state, people_moved_out_of_nation, differences_in_households, seed){
-#Now we need to put people in households
-
-total_people_made=rbind(people_moved_within_state,people_moved_out_of_state,people_moved_out_of_nation)
-#give them an identifier to index them later
-total_people_made$identifier=c(1:nrow(total_people_made))
-#Give them real ages
-
-total_people_made$real_age=mapply(get_age_from_moving_brackets,c(1:nrow(total_people_made)),total_people_made$age)
-#Get total households
-total_households=sum(differences_in_households[differences_in_households>0])
-
-#function I found on line
-MaxTable <- function(x){
-  dd <- unique(x)
-  dd[which.max(tabulate(match(x,dd)))]
-}
-
-people_moved_in_from_out_of_county=data.frame()
-while(nrow(total_people_made)>0 & total_households>0){
-  #use the largest group of people first
-  which_group_of_people_to_use=MaxTable(total_people_made$moved_from)
-  use_me=total_people_made[total_people_made$moved_from==which_group_of_people_to_use,]
-  #create households we're missing the most first
-  #decide the size
-  number_of_people_for_household=as.numeric(numextract(colnames(differences_in_households[which.max(differences_in_households)])))
-  if(is.na(number_of_people_for_household)){
-    #then its a group quarters person
-    number_of_people_for_household=1
+  #Now we need to put people in households
+  
+  total_people_made=rbind(people_moved_within_state,people_moved_out_of_state,people_moved_out_of_nation)
+  #give them an identifier to index them later
+  total_people_made$identifier=c(1:nrow(total_people_made))
+  #Give them real ages
+  
+  total_people_made$real_age=mapply(get_age_from_moving_brackets,c(1:nrow(total_people_made)),total_people_made$age)
+  #Get total households
+  total_households=sum(differences_in_households[differences_in_households>0])
+  
+  #function I found online
+  MaxTable <- function(x){
+    dd <- unique(x)
+    dd[which.max(tabulate(match(x,dd)))]
   }
-  #set seed for sampling
-  set.seed(seed)
-  #Sample people to make up household
-  new_household=sample(use_me$identifier,size=number_of_people_for_household)
-  new_household=total_people_made[total_people_made$identifier %in% new_household,]
-  new_household$householdID=rep(
-    paste("201",tract,colnames(differences_in_households[which.max(differences_in_households)]),seed,"year",2015,sep="."),
-    nrow(new_household))
-  #make sure there is at least one adult
-  if(!all(new_household$real_age<18)){
-    people_moved_in_from_out_of_county=rbind(people_moved_in_from_out_of_county,new_household)
-    #update number of households
-    differences_in_households[which.max(differences_in_households)]=differences_in_households[which.max(differences_in_households)]-1
-    #remove them from people made
-    total_people_made=total_people_made[!(total_people_made$identifier %in% new_household$identifier), ]
-    total_households=total_households-1
+  
+  people_moved_in_from_out_of_county=data.frame()
+  while(nrow(total_people_made)>0 & total_households>0){
+    #use the largest group of people first
+    which_group_of_people_to_use=MaxTable(total_people_made$moved_from)
+    use_me=total_people_made[total_people_made$moved_from==which_group_of_people_to_use,]
+    
+    if(all(use_me$real_age < 18)){
+      total_people_made = total_people_made[!(total_people_made$moved_from %in% use_me$moved_from),]
+    }
+    else{
+      #create households we're missing the most first
+      #decide the size
+      number_of_people_for_household=as.numeric(numextract(colnames(differences_in_households[which.max(differences_in_households)])))
+      if(is.na(number_of_people_for_household)){
+        #then its a group quarters person
+        number_of_people_for_household=1
+      }
+      #set seed for sampling
+      set.seed(seed)
+      #Sample people to make up household
+      new_household=sample(use_me$identifier,size=number_of_people_for_household)
+      new_household=total_people_made[total_people_made$identifier %in% new_household,]
+      new_household$householdID=rep(
+        paste("201",tract,colnames(differences_in_households[which.max(differences_in_households)]),seed,"year",2015,sep="."),
+        nrow(new_household))
+      
+      #make sure there is at least one adult
+      if(!all(new_household$real_age<18)){
+        people_moved_in_from_out_of_county=rbind(people_moved_in_from_out_of_county,new_household)
+        #update number of households
+        differences_in_households[which.max(differences_in_households)]=differences_in_households[which.max(differences_in_households)]-1
+        #remove them from people made
+        total_people_made=total_people_made[!(total_people_made$identifier %in% new_household$identifier), ]
+        total_households=total_households-1
+      }
+      
+      #increment seed
+      seed=seed+1
+    }
   }
-  #increment seed
-  seed=seed+1
-}
-return(people_moved_in_from_out_of_county)
+  return(people_moved_in_from_out_of_county)
 }
