@@ -283,10 +283,8 @@ place_in_houses <- function(people_moved_within_state, people_moved_out_of_state
     which_group_of_people_to_use=MaxTable(total_people_made$moved_from)
     use_me=total_people_made[total_people_made$moved_from==which_group_of_people_to_use,]
     
-    if(all(use_me$real_age < 18)){
-      total_people_made = total_people_made[!(total_people_made$moved_from %in% use_me$moved_from),]
-    }
-    else{
+    if(!(nrow(use_me)<number_of_people_for_household) & !all(use_me$real_age < 18)){
+      
       #create households we're missing the most first
       #decide the size
       number_of_people_for_household=as.numeric(numextract(colnames(differences_in_households[which.max(differences_in_households)])))
@@ -315,6 +313,9 @@ place_in_houses <- function(people_moved_within_state, people_moved_out_of_state
       
       #increment seed
       seed=seed+1
+    }
+    else{
+      total_people_made = total_people_made[!(total_people_made$moved_from %in% use_me$moved_from),]
     }
   }
   return(people_moved_in_from_out_of_county)
