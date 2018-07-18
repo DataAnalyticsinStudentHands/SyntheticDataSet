@@ -79,7 +79,7 @@ getincomeforgroupquarters <- function(state, county, tract, syntheticdataset, se
                        "individual.65000.74999",
                        "individual.over75000")]
   #Give variable colnames
-  colnames(income) = c("No income","less than 10,000","10,000 to 14,999","15,000 to 24,999","25,000 to 34,999","35,000 to 49,999","50,000 to 64,999","65,000 to 74,999","Over 75,000")
+  colnames(income) = c("No income","less than 10,000","10,000 to 14,999","15,000 to 19,999","20,000 to 24,999", "25,000 to 34,999","35,000 to 49,999","50,000 to 64,999","65,000 to 74,999","Over 75,000")
 
   if(sum(income) <= 0){
     income = data.frame(income_not_available_for_this_Census_Tract = 1)
