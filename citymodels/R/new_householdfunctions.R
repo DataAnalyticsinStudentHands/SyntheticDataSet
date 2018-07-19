@@ -74,24 +74,30 @@ gethouseholdincome <- function(state, county, tract, syntheticdataset, seed, Cen
 
   Census_data = Census_data[(Census_data$state == state) & (Census_data$county == county) & (Census_data$tract == tract),]
 
-  income = Census_data[c("income.less.10000","income.10000.14999","income.15000.19999","income.20000.24999","income.25000.29999",
-                       "income.30000.34999","income.35000.39999","income.40000.44999","income.45000.49999","income.50000.59999",
-                       "income.60000.74999","income.75000.99999","income.100000.124999","income.125000.149999","income.150000.199999","income.over.200000")]
+  #rename columns for income processing
+  
+  income <- select(Census_data, starts_with("income"))
+  
+  colnames(income)[1]<-"income.0.10000"
+  colnames(income)[length(income)]<-"income.200000.500000"
 
-  code = c("less than 10,000","10,000 to 14,999","15,000 to 19,999","20,000 to 24,999","25,000 to 29,999","30,000 to 34,999","35,000 to 39,999","40,000 to 44,999","45,000 to 49,999","50,000 to 59,999","60,000 to 74,999","75,000 to 99,999","100,000 to 124,999","125,000 to 149,999","150,000 to 199,999","200,000 or more")
+  # if(sum(income) <= 0){
+  #   income = 1
+  #   code = "household income not available in this Census Tract"
+  # }
 
-  if(sum(income) <= 0){
-    income = 1
-    code = "household income not available in this Census Tract"
-  }
-
-  household.income = sample(code, size = 1, prob = c(income/sum(income)))
+  household.income = sample(colnames(income), size = 1, prob = c(income/sum(income)))
   household.income = rep(household.income, nrow(syntheticdataset))
+ 
+  twonumbers <- strsplit(gsub("income*.", "", household.income), "\\.")
+  numbers <- as.numeric(twonumbers[[1]])
+  
+  real.household.income = sample(c(numbers[1]:numbers[2]),1)
+  
   syntheticdataset$household.income = household.income
-
+  syntheticdataset$real.household.income = real.household.income
   return(syntheticdataset)
 }
-
 #' Simulate Household Health Insurance
 #'
 #' This function uses data from the U.S. Census on the tract level to build a probability vector for health insurance status based on the presimulated household income. It then samples with the user inputed seed. Household income can be simulated with the function gethouseholdincome.
