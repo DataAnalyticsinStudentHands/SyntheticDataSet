@@ -12,7 +12,6 @@
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset A dataframe of simulated people living in group quarters.
 
-
 group_quarters_simulater <- function(state, county, tract, seed, inputdir = "../Inputs/", Census_data){
   #Set seed so sampling will be repeatable
   set.seed(seed)
@@ -20,6 +19,7 @@ group_quarters_simulater <- function(state, county, tract, seed, inputdir = "../
 
   #subset data for correct Census tract
   Census_data = Census_data[(Census_data$state == state) & (Census_data$tract == tract) & (Census_data$county == county),]
+  column_names = colnames(Census_data)
 
   number.of.people = Census_data$group.quarters.population
 
@@ -36,26 +36,12 @@ group_quarters_simulater <- function(state, county, tract, seed, inputdir = "../
         #The functions must be called in this order as some characteristics have different probability distributions based on other characteristics
 
         #Build using Census Data
-        #partofset=gethouseholdtypeandrace(county,tract,seedy,Census_data)#not dependent on anything gets type
-        partofset=data.frame(household.type="Group Quarters",member="NA",size="Group Quarters")
-        #####partofset=getnumberofvehicles(county,tract,partofset,seedy,Census_data)#only dependent on size
-        #####partofset$number.of.vehicles=rep(NA,nrow(partofset))#leave as NA for now
-        partofset=getsexraceandage(state,county,tract,partofset,seedy,Census_data)
-        partofset=getschoolenrollment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two were cross tabulated together
-        partofset=geteducationattainment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are cross tabulated together
-         partofset=getemployment(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which is fine because those two are tabulated together
-        partofset=getnumberofvehiclesforgroupquarters(state,county,tract,partofset,seedy,Census_data)#by sex and only available for workers
-        partofset=getdisability(state,county,tract,partofset,seedy,Census_data)#dependent on age
-        partofset=getlangandnativity(state,county,tract,partofset,seedy,Census_data)#dependent on race
-        partofset=getcitizenandlang(state,county,tract,partofset,seedy,Census_data)#dependent on age,english, and nativity, age and nativity are not directly correlated this one needs to go, so this function had to be reworked
-        partofset=getvets(state,county,tract,partofset,seedy,Census_data)#dependent on sex and age which are cross tabulated
-        partofset=gettransport(state,county,tract,partofset,seedy,Census_data)#dependent on number of vehicles but also is inheritently dependent on employment because it's transportation to work so it has to be changed to dependent on gender instead of vehicles available
-        partofset=gettraveltime(state,county,tract,partofset,seedy,Census_data)#dependent on travel method
-        # #####partofset=getincome(county,tract,partofset,seedy,Census_data)#this was previously dependent on a cross tabulation for race, but since race is no longer sampled with household it's no done just by the census tract
-        # #####partofset$household.income=rep(NA,nrow(partofset))#leave as NA for now
-        partofset=getincomeforgroupquarters(state,county,tract,partofset,seedy,Census_data)
-        partofset=gethealthinsuranceforgroupquarters(state,county,tract,partofset,seedy,Census_data)#dependent on income
-        #####partofset$health.insurance=rep(NA,nrow(partofset))#leave as NA for now
+        partofset=data.frame(household.type="Group Quarters",members="NA",size="Group Quarters") #create initial data frame
+        partofset = getindividualcharacteristics(partofset, seedy, Census_data) #simulates sex, race, age, school.enrollment, education.attainment, employment, disability, nativity, citizenship, language, veteran.status, transport.method, travel.time
+        partofset$number.of.vehicles = getnumberofvehiclesforgroupquarters(Census_data, seedy, partofset, column_names) #depends on sex and employment
+        partofset$household.income = getincomeforgroupquarters(Census_data, seedy, partofset) #independent  -- samples are directly from census data
+        partofset$health.insurance = gethealthinsuranceforgroupquarters(Census_data, seedy, partofset) #depends on disability and age
+        partofset$bracket.age=NULL #this column is no longer needed
 
         #Build Using 500 Cities Project Data
         #partofset=get65menuptodate(county,tract,partofset,seedy)
