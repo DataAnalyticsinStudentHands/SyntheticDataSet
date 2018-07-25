@@ -227,8 +227,8 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
                         "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = sample(disability_code, 1, prob = from18.64/sum(from18.64)),
                         "65.to.74"=, "75.to.84"=, "85.to.100" = sample(disability_code, 1, prob = over65/sum(over65)))
 
-    # codelangnat is dependent on bracket.age and race and returns a string stating the race, nativity and english spaeking skill
-    codelangnat = switch(bracket.age,
+    # langandnat is dependent on bracket.age and race and returns a string stating the race, nativity and english speaking skills
+    langandnat = switch(bracket.age,
                          "0.to.5" = NA,
                          switch(race,
                                 "black" =sample(colnames(languageblack),1,prob=languageblack/sum(languageblack)),
@@ -240,19 +240,22 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
                                 "white" = sample(colnames(languagewhite),1,prob=languagewhite/sum(languagewhite)),
                                 "hispanic" = sample(colnames(languagehispanic),1,prob=languagehispanic/sum(languagehispanic))))
 
-    nativity = switch(as.character(codelangnat == "NA"),
-                      "FALSE" = switch(as.character(codelangnat %in% c("black.native.only.english","black.native.other.language.english.well","black.native.other.language.english.bad","amer.indian.alaskan.native.only.english","amer.indian.alaskan.native.other.language.english.well","amer.indian.alaskan.native.other.language.english.bad","asian.native.only.english","asian.native.other.language.english.well","asian.native.other.language.english.bad",
+    # nativity depends on codelangnat
+    nativity = switch(as.character(langandnat == "NA"),
+                      "FALSE" = switch(as.character(langandnat %in% c("black.native.only.english","black.native.other.language.english.well","black.native.other.language.english.bad","amer.indian.alaskan.native.only.english","amer.indian.alaskan.native.other.language.english.well","amer.indian.alaskan.native.other.language.english.bad","asian.native.only.english","asian.native.other.language.english.well","asian.native.other.language.english.bad",
                                                                        "islander.native.only.english","islander.native.other.language.english.well","islander.native.other.language.english.bad","other.native.only.english","other.native.other.language.english.well","other.native.other.language.english.bad","multiracial.native.only.english","multiracial.native.other.language.english.well","multiracial.native.other.language.english.bad","white.native.only.english","white.native.other.language.english.well","white.native.other.language.english.bad",
                                                                        "hispanic.native.only.english","hispanic.native.other.language.english.well","hispanic.native.other.language.english.bad")),
                                        "TRUE" = "Native",
                                        "Foreign"),
                       NA)
 
-    English.speaking.skills = ifelse(codelangnat %in% c("hispanic.native.only.english","other.native.only.english","white.native.only.english","multiracial.native.only.english","islander.native.only.english","asian.native.only.english","amer.indian.alaskan.native.only.english","black.native.only.english","hispanic.foreign.only.english","white.foreign.only.english","multiracial.foreign.only.english","islander.foreign.only.english","asian.foreign.only.english","amer.indian.alaskan.foreign.only.english","black.foreign.only.english","other.foreign.only.english"),"Speaks Only English",
-                                     ifelse(codelangnat %in% c("other.native.other.language.english.well","other.foreign.other.language.english.well","hispanic.foreign.other.language.english.well","white.foreign.other.language.english.well","multiracial.foreign.other.language.english.well","islander.foreign.other.language.english.well","asian.foreign.other.language.english.well","amer.indian.alaskan.foreign.other.language.english.well","black.foreign.other.language.english.well","hispanic.native.other.language.english.well","white.native.other.language.english.well","multiracial.native.other.language.english.well","islander.native.other.language.english.well","asian.native.other.language.english.well","amer.indian.alaskan.native.other.language.english.well","black.native.other.language.english.well"),"Speaks English Very Well",
-                                            ifelse(codelangnat %in% c("other.native.other.language.english.bad","other.foreign.other.language.english.bad","hispanic.foreign.other.language.english.bad","white.foreign.other.language.english.bad","multiracial.foreign.other.language.english.bad","islander.foreign.other.language.english.bad","asian.foreign.other.language.english.bad","amer.indian.alaskan.foreign.other.language.english.bad","black.foreign.other.language.english.bad","hispanic.native.other.language.english.bad","white.native.other.language.english.bad","multiracial.native.other.language.english.bad","islander.native.other.language.english.bad","asian.native.other.language.english.bad","amer.indian.alaskan.native.other.language.english.bad","black.native.other.language.english.bad"),"Speaks English less than well",NA)))
+    # English.speaking.skills depends on codelangnat
+    English.speaking.skills = ifelse(langandnat %in% c("hispanic.native.only.english","other.native.only.english","white.native.only.english","multiracial.native.only.english","islander.native.only.english","asian.native.only.english","amer.indian.alaskan.native.only.english","black.native.only.english","hispanic.foreign.only.english","white.foreign.only.english","multiracial.foreign.only.english","islander.foreign.only.english","asian.foreign.only.english","amer.indian.alaskan.foreign.only.english","black.foreign.only.english","other.foreign.only.english"),"Speaks Only English",
+                                     ifelse(langandnat %in% c("other.native.other.language.english.well","other.foreign.other.language.english.well","hispanic.foreign.other.language.english.well","white.foreign.other.language.english.well","multiracial.foreign.other.language.english.well","islander.foreign.other.language.english.well","asian.foreign.other.language.english.well","amer.indian.alaskan.foreign.other.language.english.well","black.foreign.other.language.english.well","hispanic.native.other.language.english.well","white.native.other.language.english.well","multiracial.native.other.language.english.well","islander.native.other.language.english.well","asian.native.other.language.english.well","amer.indian.alaskan.native.other.language.english.well","black.native.other.language.english.well"),"Speaks English Very Well",
+                                            ifelse(langandnat %in% c("other.native.other.language.english.bad","other.foreign.other.language.english.bad","hispanic.foreign.other.language.english.bad","white.foreign.other.language.english.bad","multiracial.foreign.other.language.english.bad","islander.foreign.other.language.english.bad","asian.foreign.other.language.english.bad","amer.indian.alaskan.foreign.other.language.english.bad","black.foreign.other.language.english.bad","hispanic.native.other.language.english.bad","white.native.other.language.english.bad","multiracial.native.other.language.english.bad","islander.native.other.language.english.bad","asian.native.other.language.english.bad","amer.indian.alaskan.native.other.language.english.bad","black.native.other.language.english.bad"),"Speaks English less than well",NA)))
 
-    acode = switch(nativity,
+    # citizenandlang is dependent on nativity and english speaking skills and returns a string stating the citizenship and language
+    citizenandlang = switch(nativity,
                    "Native" = switch(English.speaking.skills,
                                      "Speaks English Very Well" = sample(colnames(cbind(native.5.17.english.well, native.over18.english.well)), 1, prob = cbind(native.5.17.english.well/sum(native.5.17.english.well, native.over18.english.well), native.over18.english.well/sum(native.5.17.english.well, native.over18.english.well))),
                                      "Speaks English less than well" = sample(colnames(cbind(native.5.17.english.bad, native.over18.english.bad)), 1, prob = cbind(native.5.17.english.bad/sum(native.5.17.english.bad, native.over18.english.bad), native.over18.english.bad/sum(native.over18.english.bad, native.5.17.english.bad))),
@@ -264,14 +267,17 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
                                       NA),
                    NA)
 
+    # citizenship depends on citizenandlang
     citizenship = ifelse(nativity == "Native", "Citizen",
-                         ifelse(acode %in% c("english.foreign.5.17.naturalized","spanish.foreign.5.17.naturalized.english.well","other.lang.foreign.5.17.naturalized.english.well","spanish.foreign.5.17.naturalized.english.bad","other.lang.foreign.5.17.naturalized.english.bad","english.foreign.over18.naturalized","spanish.foreign.18.naturalized.english.well","other.lang.foreign.18.naturalized.english.well","spanish.foreign.18.naturalized.english.bad","other.lang.foreign.18.naturalized.english.bad"), "Naturalized Citizen",
-                                ifelse(grepl("not.citizen", acode), "Not a U.S. Citizen", NA)))
+                         ifelse(citizenandlang %in% c("english.foreign.5.17.naturalized","spanish.foreign.5.17.naturalized.english.well","other.lang.foreign.5.17.naturalized.english.well","spanish.foreign.5.17.naturalized.english.bad","other.lang.foreign.5.17.naturalized.english.bad","english.foreign.over18.naturalized","spanish.foreign.18.naturalized.english.well","other.lang.foreign.18.naturalized.english.well","spanish.foreign.18.naturalized.english.bad","other.lang.foreign.18.naturalized.english.bad"), "Naturalized Citizen",
+                                ifelse(grepl("not.citizen", citizenandlang), "Not a U.S. Citizen", NA)))
 
+    # Language.at.home depends on citizenandlang
     Language.at.home = ifelse(English.speaking.skills == "Speaks Only English", "English",
-                              ifelse(grepl("spanish", acode), "Speaks Spanish",
-                                     ifelse(grepl("other.lang", acode), "Speaks Other Languages", NA)))
+                              ifelse(grepl("spanish", citizenandlang), "Speaks Spanish",
+                                     ifelse(grepl("other.lang", citizenandlang), "Speaks Other Languages", NA)))
 
+    # veteran.status depends on employment, sex, and bracket.age
     veteran.status = switch(as.character(employment),
                             "In Armed Forces" = "Nonveteran",
                             switch(sex,
@@ -289,13 +295,16 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
                                                      "65.to.74"=sample(c("Veteran","Nonveteran"),1,prob=vets.women.65.74/sum(vets.women.65.74)),
                                                      "75.to.84"=, "85.to.100" =  sample(c("Veteran","Nonveteran"),1,prob=vets.women.over75/sum(vets.women.over75)),
                                                      "Nonveteran")))
-
+ 
+    # means.of.transportation.to.work depends on employment and sex
     means.of.transportation.to.work = switch(as.character(employment),
                                              "Employed" = switch(sex,
                                                                  "Male" = sample(transport_code,1,prob=men/sum(men)),
                                                                  sample(transport_code,1,prob=women/sum(women))),
                                              NA)
 
+    # travel.time.to.work depends on means.of.transportation.to.work and returns a string with the time range
+    # The numbers from the string are extracted and used to assign a real number between that range to travel.time.to.work
     travel.time.to.work = switch(as.character(means.of.transportation.to.work),
                                  "drove alone" = sample(travel_code,1,prob=drove.alone/sum(drove.alone)),
                                  "carpooled" = sample(travel_code,1,prob=carpooled/sum(carpooled)),
