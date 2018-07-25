@@ -20,14 +20,9 @@ getnumberofvehiclesforhouseholds <- function(Census_data, seed, syntheticdataset
     house_size = 4
   }
 
-  # Use appropriate Census Subheadings
+  # Use appropriate Census Subheadings and create probability distribution
   houseof_ = Census_data[startsWith(names(Census_data),paste0("households.of.", as.character(house_size)))]
   colnames(houseof_) = c(0,1,2,3,4)
-
-  # Create probability Distribution
-  if(sum(houseof_) <= 0){
-    houseof_ = data.frame(assign(paste0("number_of_vehicles_available_for_households_of_", as.character(house_size), "_not_available_for_this_Census_Tract"), 1))
-  }
 
   return(sample(colnames(houseof_), size = 1, prob = c(houseof_/sum(houseof_))))
 }
@@ -46,10 +41,6 @@ gethouseholdincome <- function(Census_data, seed, syntheticdataset){
 
   #samples for income
   income <- Census_data[startsWith(names(Census_data), "income")]
-
-  if(sum(income) <= 0){
-    income = data.frame(household_income_not_available_in_this_Census_Tract = 1)
-  }
 
   # bracket.household.income is a string that gives the income range (Ex: "income.10000.14999"). This is added to the dataset so it will be easier to find health.insurance, and then it will be removed.
   syntheticdataset$bracket.household.income = sample(colnames(income), size = 1, prob = c(income/sum(income)))
@@ -80,14 +71,13 @@ gethouseholdhealthinsurance<-function(Census_data, seed, bracket.household.incom
   sapply(income_group, function(group) assign(paste0("between",group), Census_data[endsWith(names(Census_data), group)], envir = parent.frame(3)))
 
   insurance_code = c("private insurance","public insurance","no insurance")
-  warningMessage = "Health Insurance Status By Income Not Available for this Census Tract"
-
+  
   health.insurance = switch(bracket.household.income,
-                            "income.0.10000"=, "income.10000.14999"=, "income.15000.19999"=, "income.20000.24999"= ifelse(sum(between0.25) > 0, sample(insurance_code, 1, prob = between0.25/sum(between0.25)), warningMessage),
-                            "income.25000.29999"=, "income.30000.34999"=, "income.35000.39999"=, "income.40000.44999"=, "income.45000.49999"= ifelse(sum(between25.49) > 0, sample(insurance_code, 1, prob = between25.49/sum(between25.49)), warningMessage),
-                            "income.50000.59999"=, "income.60000.74999" = ifelse(sum(between50.75) > 0, sample(insurance_code, 1, prob = between50.75/sum(between50.75)), warningMessage),
-                            "income.75000.99999" = ifelse(sum(between75.100) > 0, sample(insurance_code, 1, prob = between75.100/sum(between75.100)), warningMessage),
-                            "income.100000.124999"=, "income.125000.149999"=, "income.150000.199999"=, "income.200000.500000" = ifelse(sum(between100.500) > 0, sample(insurance_code, 1, prob = between100.500/sum(between100.500)), warningMessage))
+                            "income.0.10000"=, "income.10000.14999"=, "income.15000.19999"=, "income.20000.24999"= sample(insurance_code, 1, prob = between0.25/sum(between0.25)),
+                            "income.25000.29999"=, "income.30000.34999"=, "income.35000.39999"=, "income.40000.44999"=, "income.45000.49999"= sample(insurance_code, 1, prob = between25.49/sum(between25.49)),
+                            "income.50000.59999"=, "income.60000.74999" = sample(insurance_code, 1, prob = between50.75/sum(between50.75)),
+                            "income.75000.99999" = sample(insurance_code, 1, prob = between75.100/sum(between75.100)),
+                            "income.100000.124999"=, "income.125000.149999"=, "income.150000.199999"=, "income.200000.500000" = sample(insurance_code, 1, prob = between100.500/sum(between100.500)))
 
   return(health.insurance)
 }
