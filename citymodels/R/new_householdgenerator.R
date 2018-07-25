@@ -27,12 +27,8 @@ household_generator <- function(state, county, tract, seed, inputdir = "../Input
   # Get a probability vector for their type
   familyHHtypes = Census_data[18:20]
   colnames(familyHHtypes) <- c("Married-couple family", "Male householder- no wife present", "Female householder- no husband present")
-
   familyHHtypes = familyHHtypes/rowSums(familyHHtypes)
-  if(sum(familyHHtypes) <= 0){
-    familyHHtypes = data.frame(household_type_not_available_this_tract_wont_run = 1)
-  }
-
+  
   # load and organize 500 Cities project data
 
   # Create family and nonfamily households
