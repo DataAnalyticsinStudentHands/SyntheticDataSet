@@ -1,5 +1,3 @@
-#takes 17 seconds without getallhouseholdcharacteristics
-
 #' Household Generator
 #'
 #' This function simulates people living in households.
@@ -25,10 +23,9 @@ household_generator <- function(state, county, tract, seed, inputdir = "../Input
 
   # subset data for correct Census tract
   Census_data = Census_data[(Census_data$state == state) & (Census_data$tract == tract) & (Census_data$county == county),]
-  column_names = colnames(Census_data)
 
   # Get a probability vector for their type
-  familyHHtypes = Census_data[column_names[18:20]]
+  familyHHtypes = Census_data[18:20]
   colnames(familyHHtypes) <- c("Married-couple family", "Male householder- no wife present", "Female householder- no husband present")
 
   familyHHtypes = familyHHtypes/rowSums(familyHHtypes)
@@ -39,17 +36,17 @@ household_generator <- function(state, county, tract, seed, inputdir = "../Input
   # load and organize 500 Cities project data
 
   # Create family and nonfamily households
-   HHs = Census_data[column_names[5:17]]
+  HHs = Census_data[endsWith(names(Census_data), "household")]
 
   fullset = do.call(rbind,sapply(2:14, function(x){
-    create_household(state, county, tract, Census_data, HHs[x-1], familyHHtypes, x, column_names)
+    create_household(state, county, tract, Census_data, HHs[x-1], familyHHtypes, x)
   }))
 
   # return data.frame with all households built
   return(fullset)
 }
 
-create_household <- function(state, county, tract, Census_data, census_col, family_type, family_size, column_names){
+create_household <- function(state, county, tract, Census_data, census_col, family_type, family_size){
   if(census_col > 0){
     house_set = data.frame()
 
