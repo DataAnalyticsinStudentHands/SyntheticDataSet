@@ -1,6 +1,3 @@
-# The broman package must be installed/attcahed for the switch function in the health insurance section to work
-library(broman)
-
 #' Simulate number of vehicles for households
 #'
 #' This function uses data from the U.S. Census to sample the number of vehicles a household would have based on its size.
@@ -8,133 +5,89 @@ library(broman)
 #' The function uses the data from the U.S. Census on the tract level to build a probability vector from the number of households of the inputed size with either no vehicles, 1 vehicle, 2 vehicles, 3 vehicles or 4 or more vehicles.
 #' It then samples using the user inputed seed.
 #'
-#' @param state The state the user is simulating
-#' @param county The county the user is simulating
-#' @param tract The tract the user is simulating
 #' @param syntheticdataset The household simulated.
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
-#' @return syntheticdataset The simulated household with the added variable for number of vehicles.
+#' @return sample The number of vehicles for the household
 
-getnumberofvehiclesforhouseholds <- function(state, county, tract, syntheticdataset, seed, Census_data){
-  #Generates number of vehicles per household
-
-  #Set seed so sampling is random but repeatable
+getnumberofvehiclesforhouseholds <- function(Census_data, seed, syntheticdataset){
   set.seed(seed)
 
-  #Read in data for sampling distribution
-  Census_data = Census_data[(Census_data$tract == tract) & (Census_data$county == county) & (Census_data$state == state),]
-
-  syntheticdataset = getnumberofvehiclessample(syntheticdataset, Census_data)
-
-  return(syntheticdataset)
-}
-
-getnumberofvehiclessample <- function(syntheticdataset, Census_data){
-  house_size = (nrow(syntheticdataset))
+  #samples for vehicles
+  house_size = nrow(syntheticdataset)
 
   if(house_size > 4){
     house_size = 4
   }
 
   # Use appropriate Census Subheadings
-  houseof_ = Census_data[c( paste0("households.of.", as.character(house_size), ".no.vehicle"), paste0("households.of.", as.character(house_size), ".1.vehicle"), paste0("households.of.", as.character(house_size), ".2.vehicles"), paste0("households.of.", as.character(house_size), ".3.vehicles"), paste0("households.of.", as.character(house_size), ".4.vehicles"))]
+  houseof_ = Census_data[startsWith(names(Census_data),paste0("households.of.", as.character(house_size)))]
+  colnames(houseof_) = c(0,1,2,3,4)
 
   # Create probability Distribution
-  total = sum(houseof_[1,1:5])
-  prob1 = (houseof_[1,1:5])/total
-  colnames(prob1) = c(0,1,2,3,4)
-  if(sum(total) <= 0){
-    prob2 = data.frame(assign(paste0("number_of_vehicles_available_for_households_of_", as.character(house_size), "_not_available_for_this_Census_Tract"), 1))
+  if(sum(houseof_) <= 0){
+    houseof_ = data.frame(assign(paste0("number_of_vehicles_available_for_households_of_", as.character(house_size), "_not_available_for_this_Census_Tract"), 1))
   }
 
-  # Samples
-  a = sample(colnames(prob1), size = 1, prob = prob1)
-  # add number of cars to each person in household in data frame
-  number.of.vehicles <- rep(a, nrow(syntheticdataset))
-  syntheticdataset$number.of.vehicles = number.of.vehicles
-
-    return(syntheticdataset = syntheticdataset)
+  return(sample(colnames(houseof_), size = 1, prob = c(houseof_/sum(houseof_))))
 }
 
 #' Simulate Household Income
 #'
 #' This function uses data from the U.S. Census on the tract level to build a probability vector for different household incomes and sample with the user inputed seed.
 #'
-#' @param state The state the user is simulating
-#' @param county The county the user is simulating
-#' @param tract The tract the user is simulating
 #' @param syntheticdataset The household simulated.
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
-#' @return syntheticdataset The simulated household with the added variable of household income.
+#' @return syntheticdataset The simulated household with the added variable of bracket household income and household income.
 
-gethouseholdincome <- function(state, county, tract, syntheticdataset, seed, Census_data){
+gethouseholdincome <- function(Census_data, seed, syntheticdataset){
   set.seed(seed)
 
-  Census_data = Census_data[(Census_data$state == state) & (Census_data$county == county) & (Census_data$tract == tract),]
+  #samples for income
+  income <- Census_data[startsWith(names(Census_data), "income")]
 
-  #rename columns for income processing
-  
-  income <- select(Census_data, starts_with("income"))
-  
-  colnames(income)[1]<-"income.0.10000"
-  colnames(income)[length(income)]<-"income.200000.500000"
+  if(sum(income) <= 0){
+    income = data.frame(household_income_not_available_in_this_Census_Tract = 1)
+  }
 
-  # if(sum(income) <= 0){
-  #   income = 1
-  #   code = "household income not available in this Census Tract"
-  # }
+  # bracket.household.income is a string that gives the income range (Ex: "income.10000.14999"). This is added to the dataset so it will be easier to find health.insurance, and then it will be removed.
+  syntheticdataset$bracket.household.income = sample(colnames(income), size = 1, prob = c(income/sum(income)))
 
-  household.income = sample(colnames(income), size = 1, prob = c(income/sum(income)))
-  household.income = rep(household.income, nrow(syntheticdataset))
- 
-  twonumbers <- strsplit(gsub("income*.", "", household.income), "\\.")
-  numbers <- as.numeric(twonumbers[[1]])
-  
-  real.household.income = sample(c(numbers[1]:numbers[2]),1)
-  
-  syntheticdataset$household.income = household.income
-  syntheticdataset$real.household.income = real.household.income
+  twonumbers <- strsplit(gsub("income.", "", syntheticdataset$bracket.household.income), "\\.")
+  income_range <- as.numeric(twonumbers[[1]])
+
+  # household.income is an actual number from the income range stated in bracket.household.income
+  syntheticdataset$household.income = sample(c(income_range[1]:income_range[2]),1)
+
   return(syntheticdataset)
 }
+
 #' Simulate Household Health Insurance
 #'
 #' This function uses data from the U.S. Census on the tract level to build a probability vector for health insurance status based on the presimulated household income. It then samples with the user inputed seed. Household income can be simulated with the function gethouseholdincome.
 #'
-#' @param state The state the user is simulating
-#' @param county The county the user is simulating
-#' @param tract The tract the user is simulating
-#' @param syntheticdataset The household simulated.
+#' @param bracket.household.income A string stating the income range (Ex: "income.10000.14999").
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
-#' @return syntheticdataset The simulated household with the added variable of health insurance status.
+#' @return health.insurance The health insurance status for the household.
 
-gethouseholdhealthinsurance <- function(state, county, tract, syntheticdataset, seed, Census_data){
+gethouseholdhealthinsurance<-function(Census_data, seed, bracket.household.income){
   set.seed(seed)
 
-  Census_data = Census_data[(Census_data$state == state) & (Census_data$county == county) & (Census_data$tract == tract),]
+  #samples for insurance
+  income_group = c("0.25", "25.49", "50.75", "75.100", "100.500")
+  sapply(income_group, function(group) assign(paste0("between",group), Census_data[endsWith(names(Census_data), group)], envir = parent.frame(3)))
 
-  #Organize Data Set by row
-  under25000 = Census_data[c("private.insurance.under25000","public.insurance.under25000","no.insurance.under25000")]
-  between25to49 = Census_data[c("private.insurance.25.49","public.insurance.25.49","no.insurance.25.49")]
-  between50to75 = Census_data[c("private.insurance.50.75","public.insurance.50.75","no.insurance.50.75")]
-  between75to100 = Census_data[c("private.insurance.75.100","public.insurance.75.100","no.insurance.75.100")]
-  over100 = Census_data[c("private.insurance.over100","public.insurance.over100","no.insurance.over100")]
-
-
-  code = c("private insurance","public insurance","no insurance")
+  insurance_code = c("private insurance","public insurance","no insurance")
   warningMessage = "Health Insurance Status By Income Not Available for this Census Tract"
 
-  health.insurance = switchv(syntheticdataset$household.income,
-                             "less than 10,000"=, "10,000 to 14,999"=, "15,000 to 19,999"=, "20,000 to 24,999"= ifelse(sum(under25000) > 0, sample(code, 1, prob = under25000/sum(under25000)), warningMessage),
-                              "25,000 to 29,999"=, "30,000 to 34,999"=, "35,000 to 39,999"=, "40,000 to 44,999"=, "45,000 to 49,999"= ifelse(sum(between25to49) > 0, sample(code, 1, prob = between25to49/sum(between25to49)), warningMessage),
-                              "50,000 to 59,999"=, "60,000 to 74,999" = ifelse(sum(between50to75) > 0, sample(code, 1, prob = between50to75/sum(between50to75)), warningMessage),
-                              "75,000 to 99,999" = ifelse(sum(between75to100) > 0, sample(code, 1, prob = between75to100/sum(between75to100)), warningMessage),
-                              "100,000 to 124,999"=, "125,000 to 149,999"=, "150,000 to 199,999"=, "200,000 or more" = ifelse(sum(over100) > 0, sample(code, 1, prob = over100/sum(over100)), warningMessage) )
+  health.insurance = switch(bracket.household.income,
+                            "income.0.10000"=, "income.10000.14999"=, "income.15000.19999"=, "income.20000.24999"= ifelse(sum(between0.25) > 0, sample(insurance_code, 1, prob = between0.25/sum(between0.25)), warningMessage),
+                            "income.25000.29999"=, "income.30000.34999"=, "income.35000.39999"=, "income.40000.44999"=, "income.45000.49999"= ifelse(sum(between25.49) > 0, sample(insurance_code, 1, prob = between25.49/sum(between25.49)), warningMessage),
+                            "income.50000.59999"=, "income.60000.74999" = ifelse(sum(between50.75) > 0, sample(insurance_code, 1, prob = between50.75/sum(between50.75)), warningMessage),
+                            "income.75000.99999" = ifelse(sum(between75.100) > 0, sample(insurance_code, 1, prob = between75.100/sum(between75.100)), warningMessage),
+                            "income.100000.124999"=, "income.125000.149999"=, "income.150000.199999"=, "income.200000.500000" = ifelse(sum(between100.500) > 0, sample(insurance_code, 1, prob = between100.500/sum(between100.500)), warningMessage))
 
-
-  syntheticdataset$health.insurance = health.insurance
-
-  return(syntheticdataset)
+  return(health.insurance)
 }
