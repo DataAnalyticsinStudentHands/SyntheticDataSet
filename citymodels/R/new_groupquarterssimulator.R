@@ -19,8 +19,7 @@ group_quarters_simulater <- function(state, county, tract, seed, inputdir = "../
 
   #subset data for correct Census tract
   Census_data = Census_data[(Census_data$state == state) & (Census_data$tract == tract) & (Census_data$county == county),]
-  column_names = colnames(Census_data)
-
+  
   number.of.people = Census_data$group.quarters.population
 
   if(number.of.people > 0){
@@ -38,7 +37,7 @@ group_quarters_simulater <- function(state, county, tract, seed, inputdir = "../
         #Build using Census Data
         partofset=data.frame(household.type="Group Quarters",members="NA",size="Group Quarters") #create initial data frame
         partofset = getindividualcharacteristics(partofset, seedy, Census_data) #simulates sex, race, age, school.enrollment, education.attainment, employment, disability, nativity, citizenship, language, veteran.status, transport.method, travel.time
-        partofset$number.of.vehicles = getnumberofvehiclesforgroupquarters(Census_data, seedy, partofset, column_names) #depends on sex and employment
+        partofset$number.of.vehicles = getnumberofvehiclesforgroupquarters(Census_data, seedy, partofset) #depends on sex and employment
         partofset$household.income = getincomeforgroupquarters(Census_data, seedy, partofset) #independent  -- samples are directly from census data
         partofset$health.insurance = gethealthinsuranceforgroupquarters(Census_data, seedy, partofset) #depends on disability and age
         partofset$bracket.age=NULL #this column is no longer needed
