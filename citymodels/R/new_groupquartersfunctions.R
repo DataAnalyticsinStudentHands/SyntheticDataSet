@@ -9,7 +9,7 @@
 #' @param syntheticdataset The individual simulated.
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
-#' @return number.of.vehicles The number.of.vehicles for the individual.
+#' @return syntheticdataset The simulated household with the added variable of number of vehicles.
 
 getnumberofvehiclesforgroupquarters <- function(syntheticdataset, seed, Census_data){
   #Set seed so sampling is random but repeatable
@@ -36,7 +36,7 @@ getnumberofvehiclesforgroupquarters <- function(syntheticdataset, seed, Census_d
 #' @param syntheticdataset The individual simulated.
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
-#' @return household.income The income for the individual.
+#' @return syntheticdataset The simulated household with the added variable of household income.
 
 getincomeforgroupquarters <- function(syntheticdataset, seed, Census_data){
   #Set seed so sampling is random but repeatable
@@ -67,7 +67,7 @@ getincomeforgroupquarters <- function(syntheticdataset, seed, Census_data){
 #' @param syntheticdataset The individual simulated must include age and disability status.
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
-#' @return health.insurance The health insurance for the individual.
+#' @return syntheticdataset The simulated household with the added variable of health insurance.
 
 gethealthinsuranceforgroupquarters <- function(syntheticdataset, seed, Census_data){
   #Set seed so sampling is random but repeatable
