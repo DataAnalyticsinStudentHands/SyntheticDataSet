@@ -94,13 +94,13 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
   gender = c("men", "women")
   sapply(gender, function(g) assign(g, Census_data[startsWith(names(Census_data), g)], envir = parent.frame(3)))
 
-  transport_code = c("drove alone","carpooled","public transportation","bicycle","walked","motorcycle taxicab or other","worked at home")
+  transport_code = c("drove alone","carpooled","public transportation","bicycle","walked","other","worked at home")
 
   # Samples for travel time to work
-  transportation = c("drove.alone", "carpooled", "public.transport", "walked", "other")
+  transportation = c("drove.alone", "carpooled", "public.transport", "walked", "other.transport")
   sapply(transportation, function(transport) assign(transport, Census_data[startsWith(names(Census_data), transport)], envir = parent.frame(3)))
 
-  travel_code = c("0 to 10 minutes","10 to 14 minutes","15 to 19 minutes","20 to 24 minutes","25 to 29 minutes","30 to 34 minutes","35 to 44 minutes","45 to 59 minutes","60 to 100 minutes")
+  travel_code = c("1 to 10 minutes","10 to 14 minutes","15 to 19 minutes","20 to 24 minutes","25 to 29 minutes","30 to 34 minutes","35 to 44 minutes","45 to 59 minutes","60 to 100 minutes")
 
   # These are all the characteristics that will be simulated and added to the data set
   member = character()
@@ -302,9 +302,9 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
     travel.time.to.work = switch(as.character(means.of.transportation.to.work),
                                  "drove alone" = sample(travel_code,1,prob=drove.alone/sum(drove.alone)),
                                  "carpooled" = sample(travel_code,1,prob=carpooled/sum(carpooled)),
-                                 "public transport" = sample(travel_code,1,prob=public.transport/sum(public.transport)),
+                                 "public transportation" = sample(travel_code,1,prob=public.transport/sum(public.transport)),
                                  "walked" = sample(travel_code,1,prob=walked/sum(walked)),
-                                 "taxi, motorcycle, bike or other" = sample(travel_code,1,prob=other/sum(other)),
+                                 "bicycle"=, "other" = sample(travel_code,1,prob=other.transport/sum(other.transport)),
                                  NA)
 
     if(!is.na(travel.time.to.work)){
