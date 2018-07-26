@@ -33,12 +33,12 @@ group_quarters_simulater <- function(state, county, tract, seed, inputdir = "../
        #The functions must be called in this order as some characteristics have different probability distributions based on other characteristics
 
        #Build using Census Data
-       partofset=data.frame(household.type="Group Quarters",members="NA",size="Group Quarters") #create initial data frame
+       partofset = data.frame(household.type="Group Quarters",members="NA",size="Group Quarters") #create initial data frame
        partofset = getindividualcharacteristics(partofset, seedy, Census_data) #simulates sex, race, age, school.enrollment, education.attainment, employment, disability, nativity, citizenship, language, veteran.status, transport.method, travel.time
-       partofset$number.of.vehicles = getnumberofvehiclesforgroupquarters(Census_data, seedy, partofset) #depends on sex and employment
-       partofset$household.income = getincomeforgroupquarters(Census_data, seedy, partofset) #independent  -- samples are directly from census data
-       partofset$health.insurance = gethealthinsuranceforgroupquarters(Census_data, seedy, partofset) #depends on disability and age
-       partofset$bracket.age=NULL #this column is no longer needed
+       partofset = getnumberofvehiclesforgroupquarters(partofset, seedy, Census_data) #depends on sex and employment
+       partofset = getincomeforgroupquarters(partofset, seedy, Census_data) #independent  -- samples are directly from census data
+       partofset = gethealthinsuranceforgroupquarters(partofset, seedy, Census_data) #depends on disability and age
+       partofset$bracket.age = NULL #this column is no longer needed
 
        #Build Using 500 Cities Project Data
        #partofset=get65menuptodate(county,tract,partofset,seedy)
