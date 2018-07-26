@@ -37,7 +37,7 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
 
   sapply(age_groups, function(group) assign(paste0("enrollment", group), Census_data[endsWith(names(Census_data), paste0("school", group))], envir = parent.frame(3)))
 
-  # Samples for education attainment
+  # Samples for educational attainment
   age_groups = c(".women.18.24", ".women.25.34", ".women.35.44", ".women.45.64", ".women.over.65",
                  ".men.18.24", ".men.25.34", ".men.35.44", ".men.45.64", ".men.over.65")
 
@@ -109,7 +109,7 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
   age = character()
   race = character()
   school.enrollment = character()
-  education.attainment = character()
+  educational.attainment = character()
   employment = character()
   disability = character()
   nativity=character()
@@ -178,7 +178,7 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
                                                NA))
 
     # education.attainment is dependent on sex and bracket.age
-    education.attainment = switch(sex,
+    educational.attainment = switch(sex,
                                   "Male" = switch(bracket.age,
                                                   "18.to.19"=, "20.to.24" = sample(attainment_code, 1, prob = attainment.men.18.24/sum(attainment.men.18.24)),
                                                   "25.to.29"=, "30.to.34" = sample(attainment_code, 1, prob = attainment.men.25.34/sum(attainment.men.25.34)),
@@ -313,7 +313,7 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
       travel.time.to.work = sample(c(time_range[1]:time_range[2]), 1)
     }
 
-    partialset = cbind(member, sex, bracket.age, age, race, school.enrollment, education.attainment, employment, disability, nativity, English.speaking.skills, citizenship, Language.at.home, veteran.status, means.of.transportation.to.work, travel.time.to.work)
+    partialset = cbind(member, sex, bracket.age, age, race, school.enrollment, educational.attainment, employment, disability, nativity, English.speaking.skills, citizenship, Language.at.home, veteran.status, means.of.transportation.to.work, travel.time.to.work)
 
     return(partialset)
   })), stringsAsFactors = F))
