@@ -75,7 +75,7 @@ gethouseholdhealthinsurance<-function(syntheticdataset, seed, Census_data){
   insurance_code = c("private insurance","public insurance","no insurance")
   
   syntheticdataset$health.insurance = switch(syntheticdataset[1,]$bracket.household.income,
-                            "income.0.10000"=, "income.10000.14999"=, "income.15000.19999"=, "income.20000.24999"= sample(insurance_code, 1, prob = between0.25/sum(between0.25)),
+                            "income.0.9999"=, "income.10000.14999"=, "income.15000.19999"=, "income.20000.24999"= sample(insurance_code, 1, prob = between0.25/sum(between0.25)),
                             "income.25000.29999"=, "income.30000.34999"=, "income.35000.39999"=, "income.40000.44999"=, "income.45000.49999"= sample(insurance_code, 1, prob = between25.49/sum(between25.49)),
                             "income.50000.59999"=, "income.60000.74999" = sample(insurance_code, 1, prob = between50.75/sum(between50.75)),
                             "income.75000.99999" = sample(insurance_code, 1, prob = between75.100/sum(between75.100)),
