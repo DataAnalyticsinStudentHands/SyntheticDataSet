@@ -8,9 +8,9 @@
 #' @param syntheticdataset The household simulated.
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
-#' @return sample The number of vehicles for the household
+#' @return syntheticdataset The simulated household with the added variable of number of vehicles.
 
-getnumberofvehiclesforhouseholds <- function(Census_data, seed, syntheticdataset){
+getnumberofvehiclesforhouseholds <- function(syntheticdataset, seed, Census_data){
   set.seed(seed)
 
   #samples for vehicles
@@ -23,8 +23,10 @@ getnumberofvehiclesforhouseholds <- function(Census_data, seed, syntheticdataset
   # Use appropriate Census Subheadings and create probability distribution
   houseof_ = Census_data[startsWith(names(Census_data),paste0("households.of.", as.character(house_size)))]
   colnames(houseof_) = c(0,1,2,3,4)
+  
+  syntheticdataset$number.of.vehicles = sample(colnames(houseof_), size = 1, prob = c(houseof_/sum(houseof_)))
 
-  return(sample(colnames(houseof_), size = 1, prob = c(houseof_/sum(houseof_))))
+  return(syntheticdataset)
 }
 
 #' Simulate Household Income
@@ -36,7 +38,7 @@ getnumberofvehiclesforhouseholds <- function(Census_data, seed, syntheticdataset
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return syntheticdataset The simulated household with the added variable of bracket household income and household income.
 
-gethouseholdincome <- function(Census_data, seed, syntheticdataset){
+gethouseholdincome <- function(syntheticdataset, seed, Census_data){
   set.seed(seed)
 
   #samples for income
@@ -58,12 +60,12 @@ gethouseholdincome <- function(Census_data, seed, syntheticdataset){
 #'
 #' This function uses data from the U.S. Census on the tract level to build a probability vector for health insurance status based on the presimulated household income. It then samples with the user inputed seed. Household income can be simulated with the function gethouseholdincome.
 #'
-#' @param bracket.household.income A string stating the income range (Ex: "income.10000.14999").
+#' @param syntheticdataset The household simulated.
 #' @param seed The seed to use for sampling.
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
-#' @return health.insurance The health insurance status for the household.
+#' @return syntheticdataset The simulated household with the added variable of health insurance.
 
-gethouseholdhealthinsurance<-function(Census_data, seed, bracket.household.income){
+gethouseholdhealthinsurance<-function(syntheticdataset, seed, Census_data){
   set.seed(seed)
 
   #samples for insurance
@@ -72,12 +74,12 @@ gethouseholdhealthinsurance<-function(Census_data, seed, bracket.household.incom
 
   insurance_code = c("private insurance","public insurance","no insurance")
   
-  health.insurance = switch(bracket.household.income,
+  syntheticdataset$health.insurance = switch(syntheticdataset[1,]$bracket.household.income,
                             "income.0.10000"=, "income.10000.14999"=, "income.15000.19999"=, "income.20000.24999"= sample(insurance_code, 1, prob = between0.25/sum(between0.25)),
                             "income.25000.29999"=, "income.30000.34999"=, "income.35000.39999"=, "income.40000.44999"=, "income.45000.49999"= sample(insurance_code, 1, prob = between25.49/sum(between25.49)),
                             "income.50000.59999"=, "income.60000.74999" = sample(insurance_code, 1, prob = between50.75/sum(between50.75)),
                             "income.75000.99999" = sample(insurance_code, 1, prob = between75.100/sum(between75.100)),
                             "income.100000.124999"=, "income.125000.149999"=, "income.150000.199999"=, "income.200000.500000" = sample(insurance_code, 1, prob = between100.500/sum(between100.500)))
 
-  return(health.insurance)
+  return(syntheticdataset)
 }
