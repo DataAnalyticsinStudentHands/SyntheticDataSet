@@ -81,15 +81,15 @@ create_household <- function(state, county, tract, Census_data, census_col, fami
       # The functions must be called in this order as some characteristics have different probability distributions based on other characteristics
 
       # Build using Census Data
-      partofset$number.of.vehicles = getnumberofvehiclesforhouseholds(Census_data, seedy, partofset) #only dependent on size
+      partofset = getnumberofvehiclesforhouseholds(partofset, seedy, Census_data) #only dependent on size
       partofset = getindividualcharacteristics(partofset, seedy, Census_data)  #simulates sex, race, age, school.enrollment, education.attainment, employment, disability, nativity, citizenship, language, veteran.status, transport.method, travel.time
-      partofset = gethouseholdincome(Census_data, seedy, partofset) #independent -- samples are directly from census data
-      partofset$health.insurance = gethouseholdhealthinsurance(Census_data, seedy, partofset[1,]$bracket.household.income) # dependent on income
-      partofset$bracket.age=NULL #this column is no longer necessary
-      partofset$bracket.household.income=NULL #this column is no longer necessary
-      partofset$state=rep(state,nrow(partofset))
-      partofset$county=rep(county,nrow(partofset))
-      partofset$tract=rep(tract,nrow(partofset))
+      partofset = gethouseholdincome(partofset, seedy, Census_data) #independent -- samples are directly from census data
+      partofset = gethouseholdhealthinsurance(partofset, seedy, Census_data) #dependent on income
+      partofset$bracket.age = NULL #this column is no longer necessary
+      partofset$bracket.household.income = NULL #this column is no longer necessary
+      partofset$state = rep(state,nrow(partofset))
+      partofset$county = rep(county,nrow(partofset))
+      partofset$tract = rep(tract,nrow(partofset))
 
       # Build Using 500 Cities Project Data
       #partofset=get65menuptodate(state,county,tract,partofset,seedy)
@@ -120,9 +120,9 @@ create_household <- function(state, county, tract, Census_data, census_col, fami
       #partofset=getteeth(state,county,tract,partofset,seedy)
 
       if(family_size < 8)
-        partofset$householdID=rep(paste(state, county, tract, seedy, paste0("family.", as.character(family_size), ".person.household"), sep=".",collapse="."),nrow(partofset))
+        partofset$householdID = rep(paste(state, county, tract, seedy, paste0("family.", as.character(family_size), ".person.household"), sep=".",collapse="."),nrow(partofset))
       else
-        partofset$householdID=rep(paste(state, county, tract, seedy, "nonfamily", sep=".", collapse="."), nrow(partofset))
+        partofset$householdID = rep(paste(state, county, tract, seedy, "nonfamily", sep=".", collapse="."), nrow(partofset))
 
       # Save new household with any previous households
       return(partofset)
