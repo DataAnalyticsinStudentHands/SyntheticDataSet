@@ -11,7 +11,7 @@
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return number.of.vehicles The number.of.vehicles for the individual.
 
-getnumberofvehiclesforgroupquarters <- function(Census_data, seed, syntheticdataset){
+getnumberofvehiclesforgroupquarters <- function(syntheticdataset, seed, Census_data){
   #Set seed so sampling is random but repeatable
   set.seed(seed)
 
@@ -20,10 +20,10 @@ getnumberofvehiclesforgroupquarters <- function(Census_data, seed, syntheticdata
   female_number_of_vehicles = Census_data[676:681]
   colnames(female_number_of_vehicles) = paste0(0:5)
 
-  number.of.vehicles = ifelse(syntheticdataset$sex == "Male" & syntheticdataset$employment == "Employed", sample(colnames(male_number_of_vehicles), 1, prob = male_number_of_vehicles/sum(male_number_of_vehicles)),
+  syntheticdataset$number.of.vehicles = ifelse(syntheticdataset$sex == "Male" & syntheticdataset$employment == "Employed", sample(colnames(male_number_of_vehicles), 1, prob = male_number_of_vehicles/sum(male_number_of_vehicles)),
                               ifelse(syntheticdataset$sex == "Female" & syntheticdataset$employment == "Employed", sample(colnames(female_number_of_vehicles), 1, prob = female_number_of_vehicles/sum(female_number_of_vehicles)), NA))
 
-  return(number.of.vehicles)
+  return(syntheticdataset)
 }
 
 #' Simulate income for people in group quarters
@@ -38,7 +38,7 @@ getnumberofvehiclesforgroupquarters <- function(Census_data, seed, syntheticdata
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return household.income The income for the individual.
 
-getincomeforgroupquarters <- function(Census_data, seed, syntheticdataset){
+getincomeforgroupquarters <- function(syntheticdataset, seed, Census_data){
   #Set seed so sampling is random but repeatable
   set.seed(seed)
 
@@ -51,9 +51,9 @@ getincomeforgroupquarters <- function(Census_data, seed, syntheticdataset){
   income_range <- as.numeric(twonumbers[[1]])
 
   # household.income is a number between the range stated in bracket.household.income
-  household.income = sample(c(income_range[1]:income_range[2]),1)
+  syntheticdataset$household.income = sample(c(income_range[1]:income_range[2]),1)
 
-  return(household.income)
+  return(syntheticdataset)
 }
 
 #' Simulate health insurance for people in group quarters
@@ -69,7 +69,7 @@ getincomeforgroupquarters <- function(Census_data, seed, syntheticdataset){
 #' @param Census_data Census data to use for the simulation. Can be mined from the function census_data_API
 #' @return health.insurance The health insurance for the individual.
 
-gethealthinsuranceforgroupquarters <- function(Census_data, seed, syntheticdataset){
+gethealthinsuranceforgroupquarters <- function(syntheticdataset, seed, Census_data){
   #Set seed so sampling is random but repeatable
   set.seed(seed)
 
@@ -79,7 +79,7 @@ gethealthinsuranceforgroupquarters <- function(Census_data, seed, syntheticdatas
 
   code = c("private insurance","public insurance","no insurance")
  
- health.insurance = switch(syntheticdataset$disability,
+ syntheticdataset$health.insurance = switch(syntheticdataset$disability,
                             "With One Type of Disability"=, "With Two or More Types of Disabilities" = switch(syntheticdataset$bracket.age,
                                                                                                               "0.to.5"=, "5.to.9"=, "10.to.14"=, "15.to.17" = sample(code, 1, prob = with.disability.under18/sum(with.disability.under18)),
                                                                                                               "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = sample(code, 1, prob = with.disability.18.64/sum(with.disability.18.64)),
@@ -89,5 +89,5 @@ gethealthinsuranceforgroupquarters <- function(Census_data, seed, syntheticdatas
                                                        "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = sample(code, 1, prob = without.disability.18.64/sum(without.disability.18.64)),
                                                        "65.to.74"=, "75.to.84"=, "85.to.100" = sample(code, 1, prob = without.disability.over65/sum(without.disability.over65))))
 
-  return(health.insurance)
+  return(syntheticdataset)
 }
