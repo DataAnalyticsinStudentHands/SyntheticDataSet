@@ -104,6 +104,7 @@ complete_sample_set=foreach (index1=1:length(tracts),.combine='rbind')%dopar%{
   
   if(length(condos$ACCOUNT)==0 & length(householdIDs)>0){
     saveRDS(householdIDs,paste0("without_locations_householdIDs",tracts[index1]))
+    tract.sample.set=tract.sample.set[!(tract.sample.set$householdID %in% householdIDs),]
   }
   
   if(length(condos$ACCOUNT)>0 & length(householdIDs)>0){
@@ -117,6 +118,7 @@ complete_sample_set=foreach (index1=1:length(tracts),.combine='rbind')%dopar%{
   
   if(length(groupquartersplaces$ACCOUNT)==0 & length(group_quartersIDs)>0){
     saveRDS(group_quartersIDs,paste0("without_locations_group_quarters_IDs",tracts[index1]))
+    tract.sample.set=tract.sample.set[!(tract.sample.set$householdID %in% group_quartersIDs),]
   }
   
   if(length(groupquartersplaces$ACCOUNT)>0 & length(group_quartersIDs)>0){
