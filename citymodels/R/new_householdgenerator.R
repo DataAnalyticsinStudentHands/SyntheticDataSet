@@ -1,3 +1,4 @@
+
 #' Household Generator
 #'
 #' This function simulates people living in households.
@@ -28,15 +29,20 @@ household_generator <- function(state, county, tract, seed, inputdir = "../Input
   familyHHtypes = Census_data[18:20]
   colnames(familyHHtypes) <- c("Married-couple family", "Male householder- no wife present", "Female householder- no husband present")
   familyHHtypes = familyHHtypes/rowSums(familyHHtypes)
-  
+
   # load and organize 500 Cities project data
 
   # Create family and nonfamily households
-  HHs = Census_data[endsWith(names(Census_data), "household")]
+  HHs = Census_data[5:17]
 
-  fullset = do.call(rbind,sapply(2:14, function(x){
-    create_household(state, county, tract, Census_data, HHs[x-1], familyHHtypes, x)
-  }))
+  if(sum(HHs) > 0){
+    fullset = do.call(rbind,sapply(2:14, function(x){
+      create_household(state, county, tract, Census_data, HHs[x-1], familyHHtypes, x)
+    }))
+
+    fullset$individualID = format(as.numeric(sapply(1:nrow(fullset), function(i) paste((9999+i), fullset[i,]$individualID, sep="",collapse=""))), digits =22)
+  }
+
 
   # return data.frame with all households built
   return(fullset)
@@ -47,7 +53,7 @@ create_household <- function(state, county, tract, Census_data, census_col, fami
     house_set = data.frame()
 
     # make a seed for each household
-    family_HH_seeds = sample(1:100000000, as.numeric(census_col), replace = FALSE)
+    family_HH_seeds = sample(1000000:6000000, as.numeric(census_col), replace = FALSE)
 
     house_set = as.data.frame(do.call(rbind, lapply(family_HH_seeds, function(seedy){ # for each seed create a household
       # set seed
@@ -91,38 +97,12 @@ create_household <- function(state, county, tract, Census_data, census_col, fami
       partofset$county = rep(county,nrow(partofset))
       partofset$tract = rep(tract,nrow(partofset))
 
-      # Build Using 500 Cities Project Data
-      #partofset=get65menuptodate(state,county,tract,partofset,seedy)
-      #partofset=get65womenuptodate(state,county,tract,partofset,seedy)
-      #partofset=getadultasthma(state,county,tract,partofset,seedy)
-      #partofset=getarthritis(state,county,tract,partofset,seedy)
-      #partofset=getbingedrinking(state,county,tract,partofset,seedy)
-      #partofset=getcancer(state,county,tract,partofset,seedy)
-      #partofset=getcholesterolscreening(state,county,tract,partofset,seedy)
-      #partofset=getchronicobspulmonarydisease(state,county,tract,partofset,seedy)
-      #partofset=getcolonoscopy(state,county,tract,partofset,seedy)
-      #partofset=getcoronaryheartdisease(state,county,tract,partofset,seedy)
-      #partofset=getdiabetes(state,county,tract,partofset,seedy)
-      #partofset=gethighbloodpressure(state,county,tract,partofset,seedy)
-      #partofset=gethbpmedications(state,county,tract,partofset,seedy)
-      #partofset=gethighcholesterol(state,county,tract,partofset,seedy)
-      #partofset=getkidneydisease(state,county,tract,partofset,seedy)
-      #partofset=getmammographyuse(state,county,tract,partofset,seedy)
-      #partofset=getmentalhealth(state,county,tract,partofset,seedy)
-      #partofset=getnoleisuretime(state,county,tract,partofset,seedy)
-      #partofset=getobesity(state,county,tract,partofset,seedy)
-      #partofset=getpapsmear(state,county,tract,partofset,seedy)
-      #partofset=getphysicalhealth(state,county,tract,partofset,seedy)
-      #partofset=getroutinecheckups(state,county,tract,partofset,seedy)
-      #partofset=getsleep(state,county,tract,partofset,seedy)
-      #partofset=getsmokers(state,county,tract,partofset,seedy)
-      #partofset=getstroke(state,county,tract,partofset,seedy)
-      #partofset=getteeth(state,county,tract,partofset,seedy)
+      partofset$number.of.vehicles = as.numeric(partofset$number.of.vehicles)
+      partofset$age=as.numeric(partofset$age)
+      partofset$travel.time.to.work=as.numeric(partofset$travel.time.to.work)
+      partofset$household.income=as.numeric(partofset$household.income)
 
-      if(family_size < 8)
-        partofset$householdID = rep(paste(state, county, tract, seedy, paste0("family.", as.character(family_size), ".person.household"), sep=".",collapse="."),nrow(partofset))
-      else
-        partofset$householdID = rep(paste(state, county, tract, seedy, "nonfamily", sep=".", collapse="."), nrow(partofset))
+      partofset$individualID = as.numeric(rep(paste(tract, seedy, sep="",collapse=""), nrow(partofset)))
 
       # Save new household with any previous households
       return(partofset)
