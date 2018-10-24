@@ -70,11 +70,14 @@ group_quarters_simulater <- function(state, county, tract, seed, inputdir = "../
        partofset$state = rep(state,nrow(partofset))
        partofset$county = rep(county,nrow(partofset))
        partofset$tract = rep(tract,nrow(partofset))
-       partofset$householdID = rep(paste("group_quarters", county, tract, seedy, sep=".", collapse="."), nrow(partofset))
-
+       
+       partofset$householdID = as.numeric(rep(paste(2, tract, seedy, sep="",collapse=""), nrow(partofset)))
+       partofset$individualID = as.numeric(rep(paste(tract, seedy, sep="", collapse=""), nrow(partofset)))
+      
        #Save everyone together
        return(partofset)
     })))
+    fullset$individualID = as.numeric(sapply(1:nrow(fullset), function(i) paste((19999+i), fullset[i,]$individualID, sep="",collapse="")))
   }
 
   #return data.frame with all households built
