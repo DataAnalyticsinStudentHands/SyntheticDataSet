@@ -91,8 +91,6 @@ create_household <- function(state, county, tract, Census_data, census_col, fami
       partofset = getindividualcharacteristics(partofset, seedy, Census_data)  #simulates sex, race, age, school.enrollment, education.attainment, employment, disability, nativity, citizenship, language, veteran.status, transport.method, travel.time
       partofset = gethouseholdincome(partofset, seedy, Census_data) #independent -- samples are directly from census data
       partofset = gethouseholdhealthinsurance(partofset, seedy, Census_data) #dependent on income
-      partofset$bracket.age = NULL #this column is no longer necessary
-      partofset$bracket.household.income = NULL #this column is no longer necessary
       partofset$state = rep(state,nrow(partofset))
       partofset$county = rep(county,nrow(partofset))
       partofset$tract = rep(tract,nrow(partofset))
@@ -102,6 +100,7 @@ create_household <- function(state, county, tract, Census_data, census_col, fami
       partofset$travel.time.to.work=as.numeric(partofset$travel.time.to.work)
       partofset$household.income=as.numeric(partofset$household.income)
 
+      partofset$householdID = as.numeric(rep(paste(1, tract, seedy, sep="",collapse=""), nrow(partofset)))
       partofset$individualID = as.numeric(rep(paste(tract, seedy, sep="",collapse=""), nrow(partofset)))
 
       # Save new household with any previous households
