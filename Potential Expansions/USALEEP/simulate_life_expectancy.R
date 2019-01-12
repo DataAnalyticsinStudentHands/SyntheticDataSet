@@ -1,3 +1,6 @@
+# The following package must be installed and loaded for this function to work
+library(broman)
+
 # Function to simulate life expectancy based on age
   # Inputs: tract number, Sam City (must at least have everyone's age already simulated), life expectancy data
   # Output: Sam City with life.expectancy column
