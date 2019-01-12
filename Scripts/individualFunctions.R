@@ -106,20 +106,21 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
   member = character()
   sex = character()
   bracket.age = character()
-  age = character()
+  age = numeric()
   race = character()
   school.enrollment = character()
   educational.attainment = character()
   employment = character()
   disability = character()
-  nativity=character()
-  English.speaking.skills=character()
+  nativity = character()
+  English.speaking.skills = character()
   citizenship = character()
   Language.at.home = character()
   veteran.status = character()
   means.of.transportation.to.work = character()
-  travel.time.to.work = character()
-
+  bracket.travel.time.to.work = character()
+  travel.time.to.work = numeric()
+         
   # The characterisitics for each individual in a household are simulated in this loop using all of the above varaiables
   syntheticdataset = cbind(syntheticdataset, as.data.frame(do.call(rbind, lapply(1:nrow(syntheticdataset), function(i){
     partialset = data.frame()
@@ -297,9 +298,9 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
                                                                  sample(transport_code,1,prob=women/sum(women))),
                                              NA)
 
-    # travel.time.to.work depends on means.of.transportation.to.work and returns a string with the time range
+    # bracket.travel.time.to.work depends on means.of.transportation.to.work and returns a string with the time range
     # The numbers from the string are extracted and used to assign a real number between that range to travel.time.to.work
-    travel.time.to.work = switch(as.character(means.of.transportation.to.work),
+    bracket.travel.time.to.work = switch(as.character(means.of.transportation.to.work),
                                  "drove alone" = sample(travel_code,1,prob=drove.alone/sum(drove.alone)),
                                  "carpooled" = sample(travel_code,1,prob=carpooled/sum(carpooled)),
                                  "public transportation" = sample(travel_code,1,prob=public.transport/sum(public.transport)),
@@ -307,13 +308,16 @@ getindividualcharacteristics <- function(syntheticdataset, seed, Census_data){
                                  "bicycle"=, "other" = sample(travel_code,1,prob=other.transport/sum(other.transport)),
                                  NA)
 
-    if(!is.na(travel.time.to.work)){
-      twonumbers <- strsplit(gsub("[^0-9]+", ".", travel.time.to.work), "\\.")
+    if(!is.na(bracket.travel.time.to.work)){
+      twonumbers <- strsplit(gsub("[^0-9]+", ".", bracket.travel.time.to.work), "\\.")
       time_range <- as.numeric(twonumbers[[1]])
-      travel.time.to.work = sample(c(time_range[1]:time_range[2]), 1)
+      travel.time.to.work = as.numeric(sample(c(time_range[1]:time_range[2]), 1))
+    }
+    else{
+      travel.time.to.work = NA
     }
 
-    partialset = cbind(member, sex, bracket.age, age, race, school.enrollment, educational.attainment, employment, disability, nativity, English.speaking.skills, citizenship, Language.at.home, veteran.status, means.of.transportation.to.work, travel.time.to.work)
+    partialset = cbind(member, sex, bracket.age, age, race, school.enrollment, educational.attainment, employment, disability, nativity, English.speaking.skills, citizenship, Language.at.home, veteran.status, means.of.transportation.to.work, bracket.travel.time.to.work, travel.time.to.work)
 
     return(partialset)
   })), stringsAsFactors = F))
