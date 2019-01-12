@@ -10,3 +10,5 @@ a life expectancy variable to Sam City.
 The following is an example of calling the function:
 
 Sam_City = getLifeExpectancy(tract, Sam_City, Life_Expectancy_Data)
+
+The package broman must be installed and loaded for the function to work.
