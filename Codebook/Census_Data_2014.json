@@ -3465,14 +3465,9 @@
 			"description": "estimate of the number of adults making between 10000 and 14999 annually"
           },
 		  {
-            "name": "individual.15000.19999",
+            "name": "individual.15000.24999",
             "type": "integer",
-			"description": "estimate of the number of adults making between 15000 and 19999 annually"
-          },
-		  {
-            "name": "individual.20000.24999",
-            "type": "integer",
-			"description": "estimate of the number of adults making between 20000 and 24999 annually"
+			"description": "estimate of the number of adults making between 15000 and 24999 annually"
           },
 		  {
             "name": "individual.25000.34999",
