@@ -820,10 +820,9 @@ female5cars="B08014_021E"
 
 #individual income (used for group quarters)
 individual.no.income="B06010_002E"
-individual.less.10000="B06010_003E"
-individual.10000.14999="B06010_004E"
-individual.15000.19999="B06010_005E"
-individual.20000.24999="B06010_006E"
+individual.less.10000="B06010_004E"
+individual.10000.14999="B06010_005E"
+individual.15000.24999="B06010_006E"
 individual.25000.34999="B06010_007E"
 individual.35000.49999="B06010_008E"
 individual.50000.64999="B06010_009E"
