@@ -170,7 +170,7 @@ na = naTest(complete_sample_set)
 saveRDS(na, "naCheck.RDS")
 
 source("one_of.R")
-# This adds a column to the model that indexes it based on factors of ten
+# This numbers the rows in the model by powers of ten
 complete_sample_set = one_of(complete_sample_set)
 
 source("add_lat_long_sam.R")
