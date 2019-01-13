@@ -23,26 +23,40 @@ library(doParallel)
 cl<-makeCluster(10)
 registerDoParallel(cl)
 
-source("householdGenerator.R")
+source("householdsGenerator.R")
 source("groupquartersFunctions.R")
 source("individualFunctions.R")
 source("householdFunctions.R")
 
-# The index can be adjusted
-complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
-  # First simulate all the households in a tract
-  sample.set=households_generator(48,201,tracts[index],seed=1,inputdir = "../Inputs/",Census_data)
-  
-  # Now the simulated households will be assigned a location the tract
+# The indices can be adjusted
+
+# The citymodel functions are used to simulate all the people living in Houston
+sample.set=foreach (index = 1:786,.combine='rbind')%dopar%{
+  sample.set = households_generator(48,201,tracts[index],seed=1,inputdir = "../Inputs/",Census_data)
+
   sample.set$ACCOUNT=NA
 
+  return(sample.set)
+}
+
+source("proportionCheck.R")
+# This tests the proportions in the model and compares them with the Census Data to check for accuracy. The resulting data frame is saved
+prop = foreach (index = 1:786,.combine='rbind')%dopar%{
+  propByTract= prop_Check(sample.set, Census_data, tracts[index])
+  return(propByTract)
+}
+saveRDS(prop, "proportionCheck.R")
+
+# Now the people from the simulated model will be placed in households in the HCAD data
+complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
   tracthouses = subset(validparceldataframe2,validparceldataframe2$TRACT==tracts[index])
   tract.sample.set = subset(sample.set,sample.set$tract==tracts[index])
 
+  # store groupquarters and household IDs from the simulated model
   group_quartersIDs = unique(subset(sample.set,sample.set$tract==tracts[index]&sample.set$household.type=="Group Quarters")$householdID)
   householdIDs = unique(subset(sample.set,sample.set$tract==tracts[index]&sample.set$household.type!="Group Quarters")$householdID)
 
-  #populate group quarters
+  #store all group quarters from the HCAD data
   groupquartersplaces = subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8343","8309","8489","8311","8327","8491","8514")))
  
  #populate single family houses
@@ -114,12 +128,10 @@ complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
   householdIDs=householdIDs[! householdIDs %in% randomizedfourfamilyhouseholdIDs]
 
   #put every other household in condos and mixed residential commercial structure
-
   condos=subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("105","8300","8352","8338","8459","8493","8546","8547","8596","8984","8987","8989"))
 
   if(length(condos$ACCOUNT)==0 & length(householdIDs)>0){
     tract.sample.set=tract.sample.set[!(tract.sample.set$householdID %in% householdIDs),]
-    #saveRDS(householdIDs,paste0("without_locations_householdIDs",tracts[index], ".RDS"))
   }
 
   if(length(condos$ACCOUNT)>0 & length(householdIDs)>0){
@@ -133,7 +145,6 @@ complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
   #put Group Quarters People in Places
   if(length(groupquartersplaces$ACCOUNT)==0 & length(group_quartersIDs)>0){
     tract.sample.set=tract.sample.set[!(tract.sample.set$householdID %in% group_quartersIDs),]
-    #saveRDS(group_quartersIDs,paste0("without_locations_group_quarters_IDs",tracts[index], ".RDS"))
   }
 
   if(length(groupquartersplaces$ACCOUNT)>0 & length(group_quartersIDs)>0){
@@ -147,10 +158,27 @@ complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
 
   tract.sample.set = merge(tract.sample.set, validparceldataframe2,by="ACCOUNT",all.x=TRUE)
   tract.sample.set = tract.sample.set[tract.sample.set$geometry != "NA",]
-  tract.sample.set$tract=as.numeric(tract.sample.set$tract)
  
   return(tract.sample.set)
 }
 
 stopCluster(cl)
+
+source("naCheck.R")
+# This tests if there are too many NAs in the model than expected. The resulting data frame is saved.
+na = naTest(complete_sample_set)
+saveRDS(na, "naCheck.RDS")
+
+source("one_of.R")
+# This adds a column to the model that indexes it based on factors of ten
+complete_sample_set = one_of(complete_sample_set)
+
+source("add_lat_long_sam.R")
+# This adds cooordinates to the model based on the geometry column
+complete_sample_set = add_lat_long(complete_sample_set)
+
+source("typeCheck.R")
+# This converts all the columns in to the model to the appropriate class (either character or numeric)
+complete_sample_set = typeCheck(complete_sample_set)
+
 saveRDS(complete_sample_set,paste0("complete_sample_set",Sys.Date(),".RDS"))
