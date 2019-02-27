@@ -6,7 +6,7 @@ getHCADParcels <- function(){
   validparcels=subset(parcels,parcels$valid=="Valid Geometry")
 
   #Read in Texas Census Tract Files
-  TXCensusTracts <- st_read("../TexasCensusTractShapefiles/gz_2010_48_140_00_500k.shp")
+  TXCensusTracts <- st_read("/Data/gz_2010_48_140_00_500k.shp")
   #Put them in same CRS as Parcels
   TXCensusTracts <- st_transform(TXCensusTracts,st_crs(validparcels))
 
