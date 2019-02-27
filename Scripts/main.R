@@ -1,6 +1,6 @@
 # Get the needed Census Data
-  # This can be done by either importing the already saved RDS file for Harris County, whihc is easier:
-  Census_data = readRDS("updated_Census_Data.RDS")
+  # This can be done by either importing the already saved RDS file for Harris County, whi is easier:
+  Census_data = readRDS("/Data/Census_data.RDS")
 
   # Or by calling the census_data_API() function. This option allows the user to change which state's data is retrieved. The default is Texas:
   source("getcensusdata.R")
