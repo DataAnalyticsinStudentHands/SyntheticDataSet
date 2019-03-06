@@ -125,12 +125,12 @@
 		{	
 		    "name": "householdID",
             "type": "integer",
-			"description": "a unique ID assigned to each household or group quarters individual, generated randomly with the household type to prevent repeating an ID"
+			"description": "A unique 13 number ID assigned to each household or group quarters individual. The first 6 numbers are the tract number and the last 7 numbers are the randomly generated seed for the household"
           },
 		{	
 		    "name": "individualID",
             "type": "integer",
-			"description": "a unique ID assigned to each individual, generated randomly with the household type to prevent repeating an ID"
+			"description": "A unique 18 number ID assigned to each individual. The first 5 numbers represent the individual's number starting from 10000. The next 6 numbers are the tract number, and the last 7 numbers are the randomly generated seed for the individual's household"
           },
         ]
       }
