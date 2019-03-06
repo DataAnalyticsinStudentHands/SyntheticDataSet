@@ -59,7 +59,7 @@ complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
   householdIDs = unique(subset(sample.set,sample.set$tract==tracts[index]&sample.set$household.type!="Group Quarters")$householdID)
 
   # From the buildings in the tract, subset for only the ones with living spaces
-  potential_buildings = subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("101","102", "103", "104", "107","108","109","125","8177","8178","8179","8351","8354","8401","8548","8549","8550","8986","8988","105","8300","8352","8338","8459","8493","8546","8547","8596","8984","8987","8989", "660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8343","8309","8489","8311","8327","8491","8514"))
+  potential_buildings = subset(tracthouses,tracthouses$"BUILDING_STYLE_CODE" %in% c("101","102", "103", "104", "107","108","109","125","8177","8178","8179","8351","8354","8401","8548","8549","8550","8986","8988","105","8300","8352","8338","8459","8493","8546","8547","8596","8984","8987","8989", "660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8309","8489","8311","8327","8491","8514"))
   
   # Find the average number of units the multiple-residence buildings have. Replace units that are blank or have letters with the average. Replace units that are NA or fractions with 1.
   avg_units = round(mean(as.integer(potential_buildings[!potential_buildings$UNITS %in% c("", "A", "B", "C", "D", "1/2", "1/1"),]$UNITS), na.rm = T))
