@@ -9,7 +9,6 @@
 #' @param key The key needed to use the API. Can be requested
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
-
 census_data_API <- function(base_url = 'http://api.census.gov/data/2014/acs5?', state = 48, key = "6ee9b8141913fdd7763ff46af20c20d0e9a5bc68"){
   # Code created using
   # http://rstudio-pubs-static.s3.amazonaws.com/19337_2e7f827190514c569ea136db788ce850.html
