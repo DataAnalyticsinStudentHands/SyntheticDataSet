@@ -97,7 +97,7 @@ complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
   }
   
    # From the potential buildings, subset for only buildings used for group quarters
-  groupquartersplaces=subset(potential_houses,(potential_houses$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8343","8309","8489","8311","8327","8491","8514")))
+  groupquartersplaces=subset(potential_buildings,(potential_buildings$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8309","8489","8311","8327","8491","8514")))
  
   # Repeat the same steps as before but with groupquartersplaces and group_quartersIDs
   if(length(groupquartersplaces$ACCOUNT) == 0 & length(group_quartersIDs) > 0){
