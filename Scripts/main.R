@@ -7,6 +7,7 @@
   Census_data = census_data_API()
   
 # Get the needed HCAD Parcels. It's recommended to save the RDS file of all of the valid parcels for future use because running the following script takes a long time. The needed RDS file should be automatically saved after running the script once:
+# Make sure the required files downlaoded and in the proper directory before running the script. Check the script for more details.
 source("getHCADParcels.R")
 validparceldataframe2 = getHCADParcels()
 validparceldataframe2$ACCOUNT = paste0(validparceldataframe2$ACCOUNT, "_", validparceldataframe2$BUILDING_NUMBER)
