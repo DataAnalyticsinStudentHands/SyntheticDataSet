@@ -79,7 +79,7 @@ gethealthinsuranceforgroupquarters <- function(syntheticdataset, seed, Census_da
 
   code = c("private insurance","public insurance","no insurance")
  
- syntheticdataset$health.insurance = switch(syntheticdataset$disability,
+  syntheticdataset$health.insurance = switch(syntheticdataset$disability,
                             "With One Type of Disability"=, "With Two or More Types of Disabilities" = switch(syntheticdataset$bracket.age,
                                                                                                               "0.to.4"=, "5.to.9"=, "10.to.14"=, "15.to.17" = sample(code, 1, prob = with.disability.under18/sum(with.disability.under18)),
                                                                                                               "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = sample(code, 1, prob = with.disability.18.64/sum(with.disability.18.64)),
