@@ -75,19 +75,19 @@ gethealthinsuranceforgroupquarters <- function(syntheticdataset, seed, Census_da
 
   #divide out appropriately
   disability_group = c("with.disability.under18", "without.disability.under18", "with.disability.18.64", "without.disability.18.64", "with.disability.over65", "without.disability.over65")
-  sapply(disability_group, function(group) assign(group, Census_data[startsWith(names(Census_data), group)], envir = parent.frame(3)))
-
+  sapply(disability_group, function(group) assign(group, Census_data[c(paste0(group,".private.insurance"),paste0(group,".public.insurance"),paste0(group,".no.insurance"))], envir = parent.frame(3)))
+  
   code = c("private insurance","public insurance","no insurance")
- 
+  
   syntheticdataset$health.insurance = switch(syntheticdataset$disability,
-                            "With One Type of Disability"=, "With Two or More Types of Disabilities" = switch(syntheticdataset$bracket.age,
-                                                                                                              "0.to.4"=, "5.to.9"=, "10.to.14"=, "15.to.17" = sample(code, 1, prob = with.disability.under18/sum(with.disability.under18)),
-                                                                                                              "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = sample(code, 1, prob = with.disability.18.64/sum(with.disability.18.64)),
-                                                                                                              "65.to.74"=, "75.to.84"=, "85.to.100" = sample(code, 1, prob = with.disability.over65/sum(with.disability.over65))),
-                            "No Disabilities" = switch(syntheticdataset$bracket.age,
-                                                       "0.to.4"=, "5.to.9"=, "10.to.14"=, "15.to.17" = sample(code, 1, prob = without.disability.under18/sum(without.disability.under18)),
-                                                       "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = sample(code, 1, prob = without.disability.18.64/sum(without.disability.18.64)),
-                                                       "65.to.74"=, "75.to.84"=, "85.to.100" = sample(code, 1, prob = without.disability.over65/sum(without.disability.over65))))
-
+                                             "With One Type of Disability"=, "With Two or More Types of Disabilities" = switch(syntheticdataset$bracket.age,
+                                                                                                                               "0.to.4"=, "5.to.9"=, "10.to.14"=, "15.to.17" = ifelse(sum(with.disability.under18) > 0, sample(code, 1, prob = with.disability.under18/sum(with.disability.under18)), NA),
+                                                                                                                               "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = ifelse(sum(with.disability.18.64) > 0, sample(code, 1, prob = with.disability.18.64/sum(with.disability.18.64)), NA),
+                                                                                                                               "65.to.74"=, "75.to.84"=, "85.to.100" = ifelse(sum(with.disability.over65) > 0, sample(code, 1, prob = with.disability.over65/sum(with.disability.over65)), NA)),
+                                             "No Disabilities" = switch(syntheticdataset$bracket.age,
+                                                                        "0.to.4"=, "5.to.9"=, "10.to.14"=, "15.to.17" = ifelse(sum(without.disability.under18) > 0, sample(code, 1, prob = without.disability.under18/sum(without.disability.under18)), NA),
+                                                                        "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = ifelse(sum(without.disability.18.64) > 0, sample(code, 1, prob = without.disability.18.64/sum(without.disability.18.64)), NA),
+                                                                        "65.to.74"=, "75.to.84"=, "85.to.100" = ifelse(sum(without.disability.over65) > 0, sample(code, 1, prob = without.disability.over65/sum(without.disability.over65)), NA)))
+  
   return(syntheticdataset)
 }
