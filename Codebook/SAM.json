@@ -10,17 +10,22 @@
 		  {
             "name": "household.type",
             "type": "string",
-			"description": "This refers to the type of household with reference to the household owner. Optional answers were married couple, female householder no husband present, male householder no wife present and living alone. This variable was available in the U.S. Census American Community 5 year survey table B11001. This was used to make a probability vector and sampled accordingly. Automatically set as 'Group Quarters' for people living in Group Quarters"
+			"description": "This refers to the type of household with reference to the household owner. Optional answers were 'Married-couple', 'Female householder- no husband present', 'Male householder- no wife present', 'Alone', 'Non-family', 'Group Quarters'. This variable was available in the U.S. Census American Community 5 year survey table B11001. This was used to make a probability vector and sampled accordingly. Automatically set as 'Group Quarters' for people living in Group Quarters"
           },
 		  {
             "name": "member",
             "type": "string",
-			"description": "For each household some assumptions were made regarding age and sex regarding at least one member of the household based off the household type. If the household type was 'Married Couple,' one member of the household was labeled the 'Husband' and another the 'Wife', as same sex marriage was not legalized in all of Texas until 2016. If the household type was 'Female Householder no husband present' or 'Male Householder, no wife present' one member was labeled 'Female Householder' or 'Male Householder' respectively. Households of 'Living Alone' had only one member labeled 'Householder.' People not defined as living in households are labeled as 'Group Quarters'. All other members 'Adult' or 'Child' were determined through sampling from data established in sex and age."
+			"description": "For each household some assumptions were made regarding age and sex regarding at least one member of the household based off the household type. If the household type was 'Married-Couple,' one member of the household was labeled the 'Husband' and another the 'Wife', as same sex marriage was not legalized in all of Texas until 2016. If the household type was 'Female householder- no husband present' or 'Male householder- no wife present' one member was labeled 'Female Householder' or 'Male Householder' respectively. Households of 'Alone' or 'Non-family' had only one member labeled 'Householder'. People not defined as living in households are labeled as 'Group Quarters'. All other members 'Adult' or 'Child' were determined through sampling from data established in sex and age."
+          },
+		{
+            "name": "householder",
+            "type": "string",
+			"description": "For each household, the first member was listed as the 'Householder' and all other members were listed as 'Non-householder'."
           },
 		  {
             "name": "size",
             "type": "integer",
-			"description": "Simulated size of a household- Automatically 1 for group quarters people who are not considered living in households. Household size was cross tabulated by household type and available in the U.S. Census American Community 5 year survey table B11016. This was used to create a probability vector and sampled accordingly."
+			"description": "Simulated size of a household- Automatically 1 for group quarters people who are not considered living in households. Household size was cross tabulated by household type and available in the U.S. Census American Community 5 year survey table B11016. This was used to create a probability vector and sampled accordingly. Options range from 1 to 7."
           },
 		  {
             "name": "number.of.vehicles",
@@ -30,12 +35,12 @@
 		  {
             "name": "sex",
             "type": "string",
-			"description": "Variable options were either 'Male' or 'Female.' If the member was labeled either 'Wife' or 'Female Householder' the gender was assumed to be 'Female.' If the member was labeled 'Male Householder' or 'Husband' the gender was assumed to be 'Male.'The gender of all other members was sampled through data cross tabulated by race, age and gender available in U.S. Census American Community 5 year survey table B01001 of the U.S. Census. As sex was assumed for householders, householders were taken out of the population when sampling for age and sex."
+			"description": "Variable options were either 'Male' or 'Female'. If the member was labeled either 'Wife' or 'Female Householder' the gender was assumed to be 'Female'. If the member was labeled 'Male Householder' or 'Husband' the gender was assumed to be 'Male'. The gender of all other members was sampled through data cross tabulated by race, age and gender available in U.S. Census American Community 5 year survey table B01001 of the U.S. Census. As sex was assumed for householders, householders were taken out of the population when sampling for age and sex."
           },
 		  {
             "name": "bracket.age",
             "type": "string",
-			"description": "Age was broken in to the following intervals: '0.to.5', '5.to.9', '10.to.14', '15.to.17','18.to.19', '20.to.24',  '25.to.29', '30.to.34', '35.to.44', '45.to.54', '55.to.64', '65.to.74', '75.to.84', '85.to.100'. It was sampled from appropriate intervals of the U.S. Census American Community 5 year survey table B01001 from the U.S. Census cross U.S. Census American Community 5 year survey tabled by sex and race. Sex race and age were sampled simultaneously Householders were assumed to be over the age of 18 and sampled from the appropriate intervals. The householder population was removed from the total amount of adults when sampling ages for all other members"
+			"description": "Age was broken in to the following intervals: '0.to.4', '5.to.9', '10.to.14', '15.to.17','18.to.19', '20.to.24',  '25.to.29', '30.to.34', '35.to.44', '45.to.54', '55.to.64', '65.to.74', '75.to.84', '85.to.100'. It was sampled from appropriate intervals of the U.S. Census American Community 5 year survey table B01001 from the U.S. Census cross U.S. Census American Community 5 year survey tabled by sex and race. Sex race and age were sampled simultaneously Householders were assumed to be over the age of 18 and sampled from the appropriate intervals. The householder population was removed from the total amount of adults when sampling ages for all other members"
           },
  {
             "name": "age",
