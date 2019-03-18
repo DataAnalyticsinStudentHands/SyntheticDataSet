@@ -56,7 +56,7 @@ prop = foreach (index = 1:786,.combine='rbind')%dopar%{
   propByTract= prop_Check(sample.set, Census_data, tracts[index])
   return(propByTract)
 }
-saveRDS(prop, "proportionCheck.R")
+saveRDS(prop, "proportionCheck.RDS")
 
 # Now the people from the simulated model will be placed in households in the HCAD data
 complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
