@@ -69,17 +69,20 @@ gethouseholdhealthinsurance<-function(syntheticdataset, seed, Census_data){
   set.seed(seed)
 
   #samples for insurance
-  income_group = c("0.25", "25.49", "50.75", "75.100", "100.500")
-  sapply(income_group, function(group) assign(paste0("between",group), Census_data[endsWith(names(Census_data), group)], envir = parent.frame(3)))
-
-  insurance_code = c("private insurance","public insurance","no insurance")
+  disability_group = c("with.disability.under18", "without.disability.under18", "with.disability.18.64", "without.disability.18.64", "with.disability.over65", "without.disability.over65")
+  sapply(disability_group, function(group) assign(group, Census_data[c(paste0(group,".private.insurance"),paste0(group,".public.insurance"),paste0(group,".no.insurance"))], envir = parent.frame(3)))
   
-  syntheticdataset$health.insurance = switch(syntheticdataset[1,]$bracket.household.income,
-                            "income.0.9999"=, "income.10000.14999"=, "income.15000.19999"=, "income.20000.24999"= sample(insurance_code, 1, prob = between0.25/sum(between0.25)),
-                            "income.25000.29999"=, "income.30000.34999"=, "income.35000.39999"=, "income.40000.44999"=, "income.45000.49999"= sample(insurance_code, 1, prob = between25.49/sum(between25.49)),
-                            "income.50000.59999"=, "income.60000.74999" = sample(insurance_code, 1, prob = between50.75/sum(between50.75)),
-                            "income.75000.99999" = sample(insurance_code, 1, prob = between75.100/sum(between75.100)),
-                            "income.100000.124999"=, "income.125000.149999"=, "income.150000.199999"=, "income.200000.500000" = sample(insurance_code, 1, prob = between100.500/sum(between100.500)))
-
+  code = c("private insurance","public insurance","no insurance")
+  
+  syntheticdataset$health.insurance = switch(syntheticdataset[1,]$disability,
+                                             "With One Type of Disability" =, "With Two or More Types of Disabilities" = switch(syntheticdataset[1,]$bracket.age,
+                                                                                                                               "0.to.4"=, "5.to.9"=, "10.to.14"=, "15.to.17" = ifelse(sum(with.disability.under18) > 0, sample(code, 1, prob = with.disability.under18/sum(with.disability.under18)), NA),
+                                                                                                                               "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = ifelse(sum(with.disability.18.64) > 0, sample(code, 1, prob = with.disability.18.64/sum(with.disability.18.64)), NA),
+                                                                                                                               "65.to.74"=, "75.to.84"=, "85.to.100" = ifelse(sum(with.disability.over65) > 0, sample(code, 1, prob = with.disability.over65/sum(with.disability.over65)), NA)),
+                                             "No Disabilities" = switch(syntheticdataset[1,]$bracket.age,
+                                                                        "0.to.4"=, "5.to.9"=, "10.to.14"=, "15.to.17" = ifelse(sum(without.disability.under18) > 0, sample(code, 1, prob = without.disability.under18/sum(without.disability.under18)), NA),
+                                                                        "18.to.19"=, "20.to.24"=, "25.to.29"=, "30.to.34"=, "35.to.44"=, "45.to.54"=, "55.to.64" = ifelse(sum(without.disability.18.64) > 0, sample(code, 1, prob = without.disability.18.64/sum(without.disability.18.64)), NA),
+                                                                        "65.to.74"=, "75.to.84"=, "85.to.100" = ifelse(sum(without.disability.over65) > 0, sample(code, 1, prob = without.disability.over65/sum(without.disability.over65)), NA)))
+ 
   return(syntheticdataset)
 }
