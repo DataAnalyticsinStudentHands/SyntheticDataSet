@@ -1,0 +1,36 @@
+{
+  "name": "Harris_County_Appraisal_District",
+  # here we list the data files in this dataset
+  "description": "Description of the variables in the data from HCAD, with information on the sources."
+  "resources": [
+  {
+    "path": "valid_parcels_for_simulation.RDS",
+      "description": "Data obtained from the HCAD Real & Personal Property Database which can be found at http://pdata.hcad.org/download/2014.html",
+    "schema": {
+      "fields": [
+        {
+          "name": "HCAD_NUM",
+          "type": "integer",
+            "description": "A 13 digit account number for the buildings."
+        },
+        {
+          "name": "BLK_NUM",
+          "type": "integer",
+            "description": "No description available"
+        },
+        {
+          "name": "LOT_NUM",
+          "type": "integer",
+            "description": "No description available"
+        },
+        {
+          "name": "CONDO_FLAG",
+          "type": "integer",
+            "description": "No description available"
+        },
+        
+      ]
+    }
+  }
+  ]
+}
