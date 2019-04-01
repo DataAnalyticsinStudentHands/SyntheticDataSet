@@ -11,297 +11,292 @@
         {
           "name": "HCAD_NUM",
           "type": "integer",
-            "description": "A unique 13 digit account number. Source: Parcels.shp"
+            "description": "Used. A unique 13 digit account number. Source: Parcels.shp"
         },
         {
           "name": "BLK_NUM",
           "type": "integer",
-            "description": "No description available Source: Parcels.shp."
+            "description": "Not Used. No description available Source: Parcels.shp."
         },
         {
           "name": "LOT_NUM",
           "type": "integer",
-            "description": "No description available. Source: Parcels.shp"
+            "description": "Not Used. No description available. Source: Parcels.shp"
         },
         {
           "name": "CONDO_FLAG",
           "type": "integer",
-            "description": "Indicates if the parcel is stacked. A value of 1 means stacked, and a value of 0 means it's not stacked. Stacked parcels are used for condos, undivided interest accounts, and pure accounts. Source: Parcels.shp"
+            "description": "Not Used. Indicates if the parcel is stacked. A value of 1 means stacked, and a value of 0 means it's not stacked. Stacked parcels are used for condos, undivided interest accounts, and pure accounts. Source: Parcels.shp"
         },
         {
           "name": "parcel_typ",
           "type": "integer",
-            "description": "No description available. Source: Parcels.shp"
+            "description": "Not Used. No description available. Source: Parcels.shp"
         },
         {
           "name": "CurrOwner",
           "type": "string",
-            "description": "Name of the property's current owner. Source: Parcels.shp"
+            "description": "Not Used. Name of the property's current owner. Source: Parcels.shp"
         },
         {
           "name": "LocAddr",
           "type": "string",
-            "description": "The street address of the property. Source: Parcels.shp"
+            "description": "Not Used. The street address of the property. Source: Parcels.shp"
         },
         {
           "name": "city",
           "type": "string",
-            "description": "The city the property is located in. Source: Parcels.shp"
+            "description": "Not Used. The city the property is located in. Source: Parcels.shp"
         },
         {
           "name": "zip",
           "type": "integer",
-            "description": "The 4 digit zip code of the property. Source: Parcels.shp"
+            "description": "Not Used. The 4 digit zip code of the property. Source: Parcels.shp"
         },
         {
           "name": "LocNum",
           "type": "integer",
-            "description": "The number from the property's street address. Source: Parcels.shp"
+            "description": "Not Used. The number from the property's street address. Source: Parcels.shp"
         },
         {
           "name": "LocName",
           "type": "string",
-            "description": "Name of the street the property is located on. Source: Parcels.shp"
-        },
-        {
-          "name": "LOT_NUM",
-          "type": "integer",
-            "description": "No description available."
+            "description": "Not Used. Name of the street the property is located on. Source: Parcels.shp"
         },
         {
           "name": "Shape_area",
           "type": "integer",
-            "description": "No description available."
+            "description": "Not Used. No description available."
         },
         {
           "name": "Shape_len",
           "type": "integer",
-            "description": "No description available."
+            "description": "Not Used. No description available."
         },
         {
           "name": "valid",
           "type": "string",
-            "description": "If the property's geometry is valid then 'Valid Geometry' is stated. Source: Parcels.shp"
+            "description": "Used. If the property's geometry is valid then 'Valid Geometry' is stated. Source: Parcels.shp"
         },
         {
           "name": "COUNTY",
           "type": "integer",
-            "description": "The county the property is located in. Source: Parcels.shp"
+            "description": "Used. The county the property is located in. Source: Parcels.shp"
         },
         {
           "name": "TRACT",
           "type": "integer",
-            "description": "The tract the property is located in. Source: Parcels.shp"
+            "description": "Used. The tract the property is located in. Source: Parcels.shp"
         },
         {
           "name": "ACCOUNT",
           "type": "integer",
-            "description": "A unique 13 digit account number. Source: building_other.txt and building_res.txt"
+            "description": "Used. A unique 13 digit account number. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "USE_CODE",
           "type": "string",
-            "description": "A description of the property's use. A list of use codes can be found at http://pdata.hcad.org/Desc/2018/code_desc_real.txt under State Class. Source: building_other.txt and building_res.txt"
+            "description": "Used. A description of the property's use. A list of use codes can be found at http://pdata.hcad.org/Desc/2018/code_desc_real.txt under State Class. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "BUILDING_NUMBER",
           "type": "integer",
-            "description": "Indicates the building number associated with the account because accounts can be applied to multiple buildings. Source: building_other.txt and building_res.txt"
+            "description": "Used. Indicates the building number associated with the account because accounts can be applied to multiple buildings. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "IMPRV_TYPE",
           "type": "integer",
-            "description": "A description of the type of building. A list of codes can be found at http://pdata.hcad.org/Desc/2018/code_desc_real.txt under Building Type Code (Improv_tp). Source: building_other.txt and building_res.txt"
+            "description": "Not Used. A description of the type of building. A list of codes can be found at http://pdata.hcad.org/Desc/2018/code_desc_real.txt under Building Type Code (Improv_tp). Source: building_other.txt and building_res.txt"
         },
         {
           "name": "BUILDING_STYLE_CODE",
           "type": "integer",
-            "description": "A description of the building's style. A list of codes can be found at http://pdata.hcad.org/Desc/2018/code_desc_real.txt under Building Style. Source: building_other.txt and building_res.txt"
+            "description": "Used. A description of the building's style. A list of codes can be found at http://pdata.hcad.org/Desc/2018/code_desc_real.txt under Building Style. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "CLASS_STRUCTURE",
           "type": "string",
-            "description": "A description of the general building type. Options include 'A', 'B', 'C', 'D', 'M', 'R', and 'S'. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. A description of the general building type. Options include 'A', 'B', 'C', 'D', 'M', 'R', and 'S'. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "CLASS_STRUC_DESCRIPTION",
           "type": "string",
-            "description": "A description of the CLASS_STRUCTURE codes. Options include 'Fireproofed Steel', Reinforced Concrete', 'Masonry Bearing', 'Wood or Light Steel', 'Mobile Home', 'Residential', 'Open Steel Skeleton'. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. A description of the CLASS_STRUCTURE codes. Options include 'Fireproofed Steel', Reinforced Concrete', 'Masonry Bearing', 'Wood or Light Steel', 'Mobile Home', 'Residential', 'Open Steel Skeleton'. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "DEPRECIATION_VALUE",
           "type": "integer",
-            "description": "The amount the property's value has declined. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. The amount the property's value has declined. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "CAMA_REPLACEMENT_COST",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. No description available. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "ACCRUED_DEPR_PCT",
           "type": "integer",
-            "description": "Accumulated depreciation percent. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Accumulated depreciation percent. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "QUALITY",
           "type": "string",
-            "description": "A description of the building's quality. Options include 'A', 'B', 'C', 'D', 'E', 'F', 'X'. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. A description of the building's quality. Options include 'A', 'B', 'C', 'D', 'E', 'F', 'X'. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "QUALITY_DESCRIPTION",
           "type": "string",
-            "description": "A description of the QUALITY codes. Options include 'Excellent', 'Good', 'Average', 'Low', 'Very Low', 'Poor', and 'Superior'. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. A description of the QUALITY codes. Options include 'Excellent', 'Good', 'Average', 'Low', 'Very Low', 'Poor', and 'Superior'. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "DATE_ERECTED",
           "type": "integer",
-            "description": "Year the building was made. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Year the building was made. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "EFFECTIVE_DATE",
           "type": "integer",
-            "description": "Year buiding was first used. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Year buiding was first used. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "YR_REMODEL",
           "type": "integer",
-            "description": "Year the building was remodeled. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Year the building was remodeled. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "YR_ROLL",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. No description available. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "APPRAISED_BY",
           "type": "string",
-            "description": "No description available. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. No description available. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "APPRAISED_DATE",
           "type": "string",
-            "description": "Date the building was appraised. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Date the building was appraised. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "NOTE",
           "type": "string",
-            "description": "Any extra descriptions or information about the building. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Any extra descriptions or information about the building. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "IMPR_SQ_FT",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. No description available. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "ACTUAL_AREA",
           "type": "integer",
-            "description": "Base area of residential buildings. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Base area of residential buildings. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "HEAT_AREA",
           "type": "integer",
-            "description": "Living area of residential buildings. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Living area of residential buildings. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "GROSS_AREA",
           "type": "integer",
-            "description": "Usually the same as ACTUAL_AREA except for 1 and 1/2 story houses. Commercial properties do not use GROSS_AREA. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Usually the same as ACTUAL_AREA except for 1 and 1/2 story houses. Commercial properties do not use GROSS_AREA. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "EFFECTIVE_AREA",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. No description available. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "BASE_AREA",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. No description available. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "PERIMETER",
           "type": "integer",
-            "description": "Perimeter of building. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. Perimeter of building. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "PERCENT_COMPLETE",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt and building_res.txt"
+            "description": "Not Used. No description available. Source: building_other.txt and building_res.txt"
         },
         {
           "name": "NBHD_FACTOR",
           "type": "integer",
-            "description": "No description available. Source: building_res.txt"
+            "description": "Not Used. No description available. Source: building_res.txt"
         },
         {
           "name": "RCNLD",
           "type": "integer",
-            "description": "No description available. Source: building_res.txt"
+            "description": "Not Used. No description available. Source: building_res.txt"
         },
         {
           "name": "SIZE_INDEX",
           "type": "integer",
-            "description": "No description available. Source: building_res.txt"
+            "description": "Not Used. No description available. Source: building_res.txt"
         },
         {
           "name": "LUMP_SUM_ADJ",
           "type": "integer",
-            "description": "No description available. Source: building_res.txt"
+            "description": "Not Used. No description available. Source: building_res.txt"
         },
         {
           "name": "geometry",
           "type": "integer",
-            "description": "The parcel's geometry. Source: Parcels.shp"
+            "description": "Used. The parcel's geometry. Source: Parcels.shp"
         },
         {
           "name": "NOTICED_DEPR_VALUE",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt"
+            "description": "Not Used. No description available. Source: building_other.txt"
         },
         {
           "name": "MS_REPLACEMENT_COST",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt"
+            "description": "Not Used. No description available. Source: building_other.txt"
         },
         {
           "name": "CATEGORY",
           "type": "integer",
-            "description": "A description of the building's use. Options include NA, blanks, 04-12, 16-26, and 28. Source: building_other.txt"
+            "description": "Not Used. A description of the building's use. Options include NA, blanks, 04-12, 16-26, and 28. Source: building_other.txt"
         },
         {
           "name": "CATEGORY_DESCRIPTION",
           "type": "string",
-            "description": "A description of the CATEGORY codes. Options include 'Office', 'Rtl-Community Shopping Ctr', 'Warehouse - Distribution', 'Warehouse - Office', 'Warehouse - Mini', 'Rtl - Strip Shopping Ctr', 'Rtl - Nghbrhood Shopping Ctr', 'Medical', 'Rtl - Power Centers', 'Apartments - High Rise', 'Apartments - Garden Style', 'Apartments - Tax Credit Housing', 'Apartments - Subsidized Housing', 'Rtl - Multi Occupancy', 'Warehouse - Service Ctr/Flex', 'Malls', 'Hotels, Full Service', 'Motels\\Limited Service Hotels', 'Parking Garages', 'Department Stores', 'Extended Stay Hotel-Motel'. Source: building_other.txt"
+            "description": "Not Used. A description of the CATEGORY codes. Options include 'Office', 'Rtl-Community Shopping Ctr', 'Warehouse - Distribution', 'Warehouse - Office', 'Warehouse - Mini', 'Rtl - Strip Shopping Ctr', 'Rtl - Nghbrhood Shopping Ctr', 'Medical', 'Rtl - Power Centers', 'Apartments - High Rise', 'Apartments - Garden Style', 'Apartments - Tax Credit Housing', 'Apartments - Subsidized Housing', 'Rtl - Multi Occupancy', 'Warehouse - Service Ctr/Flex', 'Malls', 'Hotels, Full Service', 'Motels\\Limited Service Hotels', 'Parking Garages', 'Department Stores', 'Extended Stay Hotel-Motel'. Source: building_other.txt"
         },
         {
           "name": "PROPERTY_NAME",
           "type": "string",
-            "description": "Name of the property. Source: building_other.txt"
+            "description": "Not Used. Name of the property. Source: building_other.txt"
         },
         {
           "name": "UNITS",
           "type": "integer",
-            "description": "The number of living units available in the building. Source: building_other.txt"
+            "description": "Used. The number of living units available in the building. Source: building_other.txt"
         },
         {
           "name": "NET_RENT_AREA",
           "type": "integer",
-            "description": "No description available. Source: building_other.txt"
+            "description": "Not Used. No description available. Source: building_other.txt"
         },
         {
           "name": "LEASE_RATE",
           "type": "integer",
-            "description": "The cost to rent. Source: building_other.txt"
+            "description": "Not Used. The cost to rent. Source: building_other.txt"
         },
         {
           "name": "OCCUPANCY",
           "type": "integer",
-            "description": "Ratio of rented spaces to total available spaces. Source: building_other.txt"
+            "description": "Not Used. Ratio of rented spaces to total available spaces. Source: building_other.txt"
         },
         {
           "name": "TOTAL_INCOME",
           "type": "integer",
-            "description": "Total income obtained from the occupants' rent. Source: building_other.txt"
+            "description": "Not Used. Total income obtained from the occupants' rent. Source: building_other.txt"
         },        
       ]
     }
