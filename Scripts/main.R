@@ -1,6 +1,6 @@
 # Get the needed Census Data
   # This can be done by either importing the already saved RDS file for Harris County, which is easier:
-  Census_data = readRDS("/Data/Census_data.RDS")
+  Census_data = readRDS("Data/Census_data.RDS")
 
   # Or by calling the census_data_API() function. This option allows the user to change which state's data is retrieved or which year is used. The default is 2014 data for Texas:
   source("getcensusdata.R")
@@ -44,9 +44,7 @@ source("householdFunctions.R")
 # The citymodel functions are used to simulate all the people living in Houston
 sample.set=foreach (index = 1:786,.combine='rbind')%dopar%{
   sample.set = households_generator(48,201,tracts[index],seed=1,inputdir = "../Inputs/",Census_data)
-
   sample.set$ACCOUNT=NA
-
   return(sample.set)
 }
 
@@ -59,72 +57,9 @@ prop = foreach (index = 1:786,.combine='rbind')%dopar%{
 saveRDS(prop, "proportionCheck.RDS")
 
 # Now the people from the simulated model will be placed in households in the HCAD data
+source("mergeWithHCAD.R")
 complete_sample_set=foreach (index = 1:786,.combine='rbind')%dopar%{
-  # Subset for the proper buildings and individuals based on tract
-  tracthouses=subset(potential_buildings, potential_buildings$TRACT == tracts[index])
-  tract.sample.set = subset(sample.set, sample.set$tract == tracts[index])
-
-  # store groupquarters and household IDs from the simulated model
-  group_quartersIDs = unique(subset(sample.set,sample.set$tract==tracts[index]&sample.set$household.type=="Group Quarters")$householdID)
-  householdIDs = unique(subset(sample.set,sample.set$tract==tracts[index]&sample.set$household.type!="Group Quarters")$householdID)
-
-  # From the potential buildings in the tract, subset for only buildings not used for group quarters
-  houses = tracthouses[tracthouses$BUILDING_STYLE_CODE %in% c("101","102", "103", "104", "107","108","109","125","8177","8178","8179","8351","8354","8401","8548","8549","8550","8986","8988","105","8300","8352","8338","8459","8493","8546","8547","8596","8984","8987","8989" ),]
-  
-  # If there are no households available in this tract then remove the household IDs from the tract. Otherwise place people in houses until there are either no more locations or no more individuals
-  if(length(houses$ACCOUNT) == 0 & length(householdIDs) > 0){
-    tract.sample.set = tract.sample.set[!(tract.sample.set$householdID %in% householdIDs),]
-  }else{
-    # Building accounts can be repeated if they have have more than 1 units available
-    all.accounts = unlist(lapply(houses$ACCOUNT, function(x){
-      rep(x, houses$UNITS[which(houses$ACCOUNT == x)])
-    }))
-
-    # Temporarily add a unique number to the end of the accounts to differentiate between any repeated accounts. This is done so that the accounts can be properly sampled from.
-    all.accounts = paste0(all.accounts, "-", c(1:length(all.accounts)))
-    
-    # max_length determines how many accounts will be chosen when sampling based on whether there are more buildings available or more individuals in the tract
-    max_length = ifelse(length(all.accounts) < length(householdIDs), length(all.accounts), length(householdIDs))
-    
-    # Sample from the list of available building accounts until 
-    Account = sample((all.accounts), max_length, replace = FALSE)
-    
-    # Remove the unique number that was added to the end of the accounts so they are in their original formats. This is done so that the HCAD data will properly merge with the model
-    Account = gsub("-.*", "", Account)
-
-    # Assign all the building accounts to individuals in the tract
-    for (index1 in 1:max_length){
-      tract.sample.set = within.data.frame(tract.sample.set,ACCOUNT[householdID == householdIDs[index1]] <- Account[index1])
-    }
-  }
-  
-  # From the potential buildings, subset for only buildings used for group quarters
-  groupquartersplaces=subset(tracthouses,(tracthouses$"BUILDING_STYLE_CODE" %in% c("660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8309","8489","8311","8491","8514")))
- 
-  # Repeat the same steps as before but with groupquartersplaces and group_quartersIDs
-  if(length(groupquartersplaces$ACCOUNT) == 0 & length(group_quartersIDs) > 0){
-    tract.sample.set=tract.sample.set[!(tract.sample.set$householdID %in% group_quartersIDs),]
-  }else{
-
-    all.accounts = unlist(lapply(groupquartersplaces$ACCOUNT, function(x){
-      rep(x, groupquartersplaces$UNITS[which(groupquartersplaces$ACCOUNT == x)])
-    }))
-
-    all.accounts = paste0(all.accounts, "-", c(1:length(all.accounts)))
-    max_length = ifelse(length(all.accounts) < length(group_quartersIDs), length(all.accounts), length(group_quartersIDs))
-
-    Account=sample((all.accounts),(max_length),replace=FALSE)
-
-    Account = gsub("-.*", "", Account)
-
-    for (index1 in 1:max_length){
-      tract.sample.set=within.data.frame(tract.sample.set,ACCOUNT[householdID==group_quartersIDs[index1]]<-Account[index1])
-    }
-  }
-  
-  tract.sample.set = merge(tract.sample.set, validparceldataframe2,by="ACCOUNT",all.x=TRUE)
-  tract.sample.set = tract.sample.set[tract.sample.set$geometry != "NA",]
- 
+  tract.sample.set = mergeWithHCAD(tracts[index], potential_houses, sample.set)
   return(tract.sample.set)
 }
 
