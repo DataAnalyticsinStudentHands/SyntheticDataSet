@@ -13,7 +13,7 @@
 mergeWithHCAD<-function(tract, availableBuildings, Sam){
   # Subset for the proper buildings and individuals based on tract
   tracthouses = subset(availableBuildings, availableBuildings$TRACT == tract)
-  tract.sample.set = subset(Sam, Sam$tract == tract)
+  tract.sample.set = Sam[Sam$tract == tract,]
 
   # store groupquarters and household IDs from the simulated model
   group_quartersIDs = unique(subset(tract.sample.set, tract.sample.set$household.type == "Group Quarters")$householdID)
@@ -24,21 +24,21 @@ mergeWithHCAD<-function(tract, availableBuildings, Sam){
   groupquartersCodes = c("660","8321","8324","8393","8424","8451","8589","8313","8322","8330","8335","8348","8394","8156","8551","8588","8710","8331","8309","8489","8311","8491","8514")
 
   # Call assignAccounts to place people in buildings
-  tract.sample.set = assignAccounts(householdsCodes, householdIDs, tract.sample.set, 1)
-  tract.sample.set = assignAccounts(groupquartersCodes, group_quartersIDs, tract.sample.set, 1)
+  tract.sample.set = assignAccounts(householdsCodes, householdIDs, tracthouses, tract.sample.set, 1)
+  tract.sample.set = assignAccounts(groupquartersCodes, group_quartersIDs, tracthouses, tract.sample.set, 1)
   
-  tract.sample.set = merge(tract.sample.set, availableBuildings, by="ACCOUNT", all.x=TRUE)
+  tract.sample.set = merge(tract.sample.set, tracthouses, by="ACCOUNT", all.x=TRUE)
   tract.sample.set = tract.sample.set[tract.sample.set$geometry != "NA",]
  
   return(tract.sample.set)
 }
 
-assignAccounts<-function(buildingType, idType, sampleSet, seed){
+assignAccounts<-function(buildingType, idType, buildings, sampleSet, seed){
   # Set the seed so that the results are always reproducible
   set.seed(seed)
   
   # From the potential buildings in the tract, subset for only the buildings in buildingType
-  homes = potential_houses[potential_houses$BUILDING_STYLE_CODE %in% buildingType,]
+  homes = buildings[buildings$BUILDING_STYLE_CODE %in% buildingType,]
 
   # If there are no households available in this tract then remove the household IDs from the tract
   # Otherwise place people in houses until there are either no more locations or no more individuals
