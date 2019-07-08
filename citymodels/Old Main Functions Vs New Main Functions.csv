@@ -1,5 +1,0 @@
-Function Name,Old Size (bytes),New Size (bytes),Difference In Size,Min Old Time (sec),Max Old Time (sec),Mean Old Time (sec),Min New Time (sec),Max New Time (sec),Mean New Time (sec),Difference In Mean Time
-census_data_API(),337320,333592,3728,13.33379,17.0296,14.21346,13.49559,17.32974,14.12021,0.09325
-household_generator(),497152,133296,363856,42.20728,58.96739,45.61813,40.15746,55.6417,42.24362,3.37451
-group_quarters_simulator(),66928,65808,1120,27.24584,34.64319,28.58513,25.51202,31.99706,26.12682,2.45831
-TOTAL,901400,532696,368704,82.78691,110.64018,88.41672,79.16507,104.9685,82.49065,5.92607
