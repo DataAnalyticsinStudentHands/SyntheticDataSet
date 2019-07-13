@@ -1,6 +1,5 @@
 {
   "name": "US_Census_data",
-  # here we list the data files in this dataset
   "resources": [
     {
       "path": "Census_data.RDS",
