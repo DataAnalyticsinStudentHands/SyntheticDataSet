@@ -23,25 +23,4 @@ _RData.gz*
 *.xls
 *.spdf
 *.csv
-*.txt
-firstharveymaps/Harvey Flooding/residential_HCAD_parcels.prj
-firstharveymaps/
-Nick app/other data/
-BRSSR data/LLCP2014.XPT
-HUD/Parcels.prj
-HUD/Parcels.sbn
-HUD/Parcels.sbx
-HUD/Parcels.shp.xml
-hcadparcelstuff/TexasCensusTractShapefiles/gz_2010_48_140_00_500k.xml
-hcadparcelstuff/Parcels/Parcels.shp.xml
-tiffany app/other data - Copy/original land survey tx/otls14-bay-tract_tx.sbx
-tiffany app/other data - Copy/original land survey tx/otls14-bay-tract_tx.shp.xml
-tiffany app/other data - Copy/original land survey tx/otls14-faq_tx.html
-tiffany app/other data - Copy/US_FIPS_Codes.xls
-tiffany app/other data - Copy/groceries.xls
-hcadparcelstuff/Parcels/Parcels.sbx
-Nick app/Traffic/Texas_NonAttainment_Areas/Texas_NonAttainment_Areas.xml
-Nick app/Traffic/TxDOT_AADT/TxDOT_AADT.xml
-Nick app/Traffic/TxDOT_City_Boundaries/TxDOT_City_Boundaries.xml
-Nick app/Traffic/TxDOT_Texas_Highway_Freight_Network/TxDOT_Texas_Highway_Freight_Network.xml
-tiffany app/other data - Copy/original land survey tx/otls14-survey_tx.shp.xml
+.Rproj.user
