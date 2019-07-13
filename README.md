@@ -22,6 +22,10 @@ In another step more variables (see Potential Expansions) can be added to the da
 
 Inputs for the base simulations are mostly controlled through mappings which can be found inside the Mappings folder.
 
+### Sanity checks for simulated data
+
+The folder TestScriots contains a couple fo scripts to test teh validity of the data.
+
 ## Potential Expansions
 
 Those are scripts for possible expansions of the project  to add health data variables for instance from the Center for Disease Control.
