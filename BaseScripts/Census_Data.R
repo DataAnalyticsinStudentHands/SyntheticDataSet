@@ -1,8 +1,6 @@
 #' Census Data via API
 #'
-#' This function mines the data needed for the simulations from the US Census
-#'
-#' It calls other functions in the citymodels package in order to simulate characteristics for households and for each individual
+#' This function creates the data needed for the simulations from the US Census
 #'
 #' @param base_url The base_url for the API
 #' @param state The state the user is simulating
