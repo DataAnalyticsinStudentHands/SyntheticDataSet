@@ -4,12 +4,12 @@ This repository is the main development repo for the Synthetic Dataset project. 
 
 ## How to get started
 
-The main.R file controls the flow for the simulation.
+The workflow.R file controls the flow for the simulation.
 
 First the input data:
 
 a) Census data (loaded either from existing RDS data files or generated through the Census API)
-b) Housing stock data (loaded either from existing RDS files using Harris County Appraisal District data or generated through other sources)
+b) Housing stock data (loaded either from existing RDS files using Harris County Appraisal District data or generated through other sources) for both residential housing and other housing stock
 
 is loaded and prepared for merging so that households can be formed. We simulate individuals with certain characterics from the census data information. Those individuals are forming households.
 The housig stock data will provide locations where those households can be placed.
@@ -24,11 +24,11 @@ Inputs for the base simulations are mostly controlled through mappings which can
 
 ### Sanity checks for simulated data
 
-The folder TestScriots contains a couple fo scripts to test teh validity of the data.
+The folder TestScriots contains a couple fo scripts to test the validity of the data and do some plots for parcles to visually check.
 
-## Potential Expansions
+## Potential Extensions
 
-Those are scripts for possible expansions of the project  to add health data variables for instance from the Center for Disease Control.
+ExtensionScripts for possible expansions of the project  to add health data variables for instance from the Center for Disease Control.
 
 
 
