@@ -22,7 +22,7 @@ source("TestScripts/proportionCheck.R")
 #' @param housingStockFromRDS determines whether to read preprcocessed housing stock data from an RDS file
 #' @param censusAPIKey The key needed to use the Census API (if data has to be generated)
 #' @return sam A dataframe of the simulated individuals in a city
-createBaseSAM <- function(censusdir, housingdir, censusFromRDS = TRUE, HCAD_parcelsFromRDS = TRUE, censusAPIKey, numberOfCores = 1) {
+createBaseSAM <- function(censusdir, housingdir, censusFromRDS = TRUE, HCAD_parcelsFromRDS = TRUE, numberOfCores = 1) {
   
   #get census data
   if (censusFromRDS) {
@@ -32,7 +32,8 @@ createBaseSAM <- function(censusdir, housingdir, censusFromRDS = TRUE, HCAD_parc
     print(sprintf("Done opening census RDS from %s", census_data_file))
   } else {
     # use the census API
-    census_data <- census_data_viaAPI(base_url = 'http://api.census.gov/data/2014/acs5?', state = 48, censusAPIKey)
+    censusAPIKey <- readLines(paste0(censusdir, "key"))
+    census_data <- censusDataViaAPI(censusdir = censusdir, base_url = 'http://api.census.gov/data/2014/acs5?', state = 48, censusAPIKey)
     print("Done retrieving census data from API.")
   }
   

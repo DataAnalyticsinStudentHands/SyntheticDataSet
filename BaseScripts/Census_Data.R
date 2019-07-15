@@ -1,3 +1,5 @@
+library(jsonlite)
+
 #' Census Data via API
 #'
 #' This function creates the data needed for the simulations from the US Census
@@ -7,22 +9,22 @@
 #' @param key The key needed to use the API. Can be requested
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
-census_data_via_API <- function(base_url = 'http://api.census.gov/data/2014/acs5?', state = 48, key) {
+censusDataViaAPI <- function(censusdir, base_url, state, key) {
  
   # variables from mappings file
   vars <- unlist(read_json("Mappings/Census_TablesVariables.json"))
-  
-  vars <- unname(unlist(read_json("Mappings/Test_TablesVariables.json")))
-  
-  key <- "6ee9b8141913fdd7763ff46af20c20d0e9a5bc68"
-  census_api_key(key)
+  vars <- unname(unlist(read_json("Mappings/Census_TablesVariables.json")))
 
-  # Get data for all census tracts by state (48 is Texas)
+  # Get data for all census tracts by state
   census_data <- getCensusApi(base_url, key, vars, region = paste0("for=tract:*&in=state:", state))
 
   #format the column names
   colnames(census_data) <- names(unlist(read_json("Mappings/Test_TablesVariables.json")))
-
+  
+  print("Writing Census RDS file ...")
+  saveRDS(census_data,paste0(censusDataDir, "Census_data.RDS"))
+  print("Done.")
+  
   return(census_data)
 }
 

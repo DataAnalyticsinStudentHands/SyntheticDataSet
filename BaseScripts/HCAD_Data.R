@@ -43,7 +43,7 @@ getHCADParcels <- function(hcadDataDir){
   # prepare parcels
   HCAD_parcels <- HCAD_parcels %>% select(-BLK_NUM,-LOT_NUM,-CONDO_FLAG,-parcel_typ,-CurrOwner)
   # save as RDS
-  print("Writing HCD RDS file ...")
+  print("Writing HCAD RDS file ...")
   saveRDS(HCAD_parcels,paste0(hcadDataDir, "PreprocessedRDS/HCAD_parcels.RDS"))
   print("Done.")
   
