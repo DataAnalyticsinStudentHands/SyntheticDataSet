@@ -5,11 +5,20 @@ source("BaseScripts/basesam.R")
 housingDataDirectory <- "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/HCAD/2015/"
 censusDataDirectory <- "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/Census/2014/"
 
-sam <- createBaseSAM(housingdir = housingDataDirectory, 
-                     censusdir = censusDataDirectory, 
-                     censusFromRDS = TRUE, 
-                     HCAD_parcelsFromRDS = TRUE, 
-                     numberOfCores = 1)
+housingdir = housingDataDirectory 
+censusdir = censusDataDirectory
+vintage = 2017
+censusFromRDS = TRUE 
+HCAD_parcelsFromRDS = TRUE 
+numberOfCores = 1
+censuskey = "6ee9b8141913fdd7763ff46af20c20d0e9a5bc68"
+
+sam <- createBaseSAM(housingdir, 
+                     censusdir,
+                     vintage,
+                     censusFromRDS, 
+                     HCAD_parcelsFromRDS, 
+                     numberOfCores)
 
 # do some sanity checks and more columns
 if (sanityChecks(sam)) {
