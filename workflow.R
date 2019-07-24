@@ -1,24 +1,21 @@
 # Workflow controller for SAM creation
 source("BaseScripts/basesam.R")
 
-#set working directory to where all the data folders can be found
-housingDataDirectory <- "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/HCAD/2015/"
-censusDataDirectory <- "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/Census/2014/"
-
-housingdir = housingDataDirectory 
-censusdir = censusDataDirectory
+# before we get started, setup directories and parameters
+housingdir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/HCAD/" 
+censusdir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/Census/"
 vintage = 2017
-censusFromRDS = TRUE 
-HCAD_parcelsFromRDS = TRUE 
+citizensFromRDS = FALSE
+housingStockFromRDS = TRUE 
 numberOfCores = 1
-censuskey = "6ee9b8141913fdd7763ff46af20c20d0e9a5bc68"
+state = 48
+county = 201
+tracts = "*"
 
-sam <- createBaseSAM(housingdir, 
-                     censusdir,
-                     vintage,
-                     censusFromRDS, 
-                     HCAD_parcelsFromRDS, 
-                     numberOfCores)
+#let's create SAM
+sam <- createBaseSAM(censusdir, housingdir, vintage, 
+                     citizensFromRDS, housingStockFromRDS, 
+                     numberOfCores = numberOfCores, state = state, county = county, tract = tract)
 
 # do some sanity checks and more columns
 if (sanityChecks(sam)) {

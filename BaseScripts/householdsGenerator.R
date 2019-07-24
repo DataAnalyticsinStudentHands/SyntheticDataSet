@@ -1,3 +1,80 @@
+library(tidyr)
+
+#' createIndividuals
+#'
+#' This function simulates individual people living in census tracts.
+#'
+#' @return citizens A dataframe of simulated people.
+createIndividuals <- function() {
+  
+  #get the census key
+  censuskey <- readLines(paste0(censusdir, vintage, "/key"))
+  
+  #Create or read in individual citizens
+  if(citizensFromRDS) {
+    # import saved citzens from RDS file
+    citizens_data_file <- paste0(censusdir, vintage,"/Citizen_data.RDS")
+    citizens <- readRDS(citizens_data_file)
+    print(sprintf("Done reading citizens RDS from %s", citizens_data_file))
+  } else {
+    #setup race codes
+    acs_race_codes <- c("H","B","C","D","E","F","G","I","_") #according to census
+    #gather information from census data
+    #group B01001 will give us gender, race, age
+    raw_census_data <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, groupname = "B01001")
+    
+    #clean up label before processing
+    raw_census_data$label <- str_remove_all(raw_census_data$label,"Estimate!!Total!!")  #total rows will remain, as Estimate!!Total
+    
+    #reshape using tidyr "gather" - want long df
+    census_data <- raw_census_data %>%
+      #first, cut out some of the rows that we won't want, then gather
+      filter(substr(name,7,7) %in% acs_race_codes) %>% # underscores are not in acs_race_codes, and would be totals
+      mutate(race = substr(name,7,7)) %>%
+      gather(tract,number_sams,4:ncol(raw_census_data))   %>%
+      filter(number_sams!=0) %>%
+      separate(label, c("sex","age_range"), sep = "!!", remove = TRUE, convert = FALSE) %>%  #NA in rows with only one
+      rename(census_group_name = name) %>%
+      select(-concept) %>%  #might be able to use summarize to get totals - these are by race
+      #want to use the totals for testing
+      mutate(tract_2r_total = if_else(sex == "Estimate" & race == "G", as.integer(number_sams), as.integer(0)),
+             tract_total = if_else(sex == "Estimate" & race == "_", as.integer(number_sams), as.integer(0)))%>%
+      group_by(tract) %>%
+      mutate(r2_total = sum(tract_2r_total),
+             trac_total = sum(tract_total),
+             new_numbers_sam = as.integer(number_sams * (1 - 2*(r2_total/(trac_total))))) %>%
+      select(-number_sams) %>%
+      rename(number_sams = new_numbers_sam)
+    
+    
+    
+    
+    census_d <- census_data %>% 
+      filter(!is.na(age_range) & sex!="Estimate" & race != "_" & number_sams!=0)
+    
+    #now expand on each row that doesn't have a total
+    citizen_data <- data.frame(census_d[rep(seq_len(dim(census_d)[1]),
+                                            census_d$number_sams),
+                                        
+                                        1:dim(census_d)[2], drop = FALSE],
+                               row.names = NULL)  
+    
+    #add individual ids
+    citizens <- citizen_data %>%
+      group_by(tract) %>%
+      mutate(
+        individual_id = paste0(tract,'_',rep(1:n())+1000000)
+      )
+    
+    #saveRDS(citizen_data,paste0(censusDataDirectory,"citizen_data_7-25.RDS"))  #4,693,483 (4,653,000 official)
+  }
+  
+  return(citizens)
+}
+
+
+
+
 
 #' Household Generator
 #'

@@ -12,33 +12,24 @@ source("TestScripts/proportionCheck.R")
 
 #' createBaseSAM function
 #'
-#' This function controls the flow for simulating the base data (from census and hosuing stock)
+#' This function controls the flow for simulating the base data (from census and housing stock)
 #'
 #' It calls other functions in the BaseScripts in order to simulate characteristics for households and for each individual
 #'
 #' @param censusdir the census data directory 
-#' @param housingdir the main data directory, has to have a folder called Census and HCAD
-#' @param censusFromRDS determines wheter to read preprocessed census data from an RDS file
+#' @param housingdir the main housing stock data directory
+#' @param vintage the year from which the data will be modeled for (a folder with that year must exists inside census data directory and housing stock directory)
+#' @param citizensFromRDS determines wheter to read preprocessed citizens from an RDS file
 #' @param housingStockFromRDS determines whether to read preprcocessed housing stock data from an RDS file
-#' @param censusAPIKey The key needed to use the Census API (if data has to be generated)
-#' @return sam A dataframe of the simulated individuals in a city
-createBaseSAM <- function(censusdir, housingdir, censusFromRDS = TRUE, vintage, HCAD_parcelsFromRDS = TRUE, numberOfCores = 1) {
+#' @return sam A dataframe of the simulated individuals in a city living in housing stock
+createBaseSAM <- function(censusdir, housingdir, vintage, citizensFromRDS = TRUE, housingStockFromRDS = TRUE, numberOfCores = 1, state, county, tract) {
+   
+  #get citizens    
+  citizens <- createIndividuals()
   
-  #get census data
-  if (censusFromRDS) {
-    # import saved RDS file
-    census_data_file <- paste0(censusdir, vintage,"/Census_data.RDS")
-    census_data <- readRDS(census_data_file)
-    print(sprintf("Done opening census RDS from %s", census_data_file))
-  } else {
-    # use the census API
-    censusAPIKey <- readLines(paste0(censusdir, "key"))
-    census_data <- censusDataViaAPI(censusdir = censusdir, base_url = 'https://api.census.gov/data/2013/acs1?', state = 48, censusAPIKey)
-    print("Done retrieving census data from API.")
-  }
   
   #get prepared complete housing parcels (with tract, county information), for Houston this data is provided by HCAD
-  if (HCAD_parcelsFromRDS) {
+  if (housingStockFromRDS) {
     HCAD_parcels_file <- paste0(housingdir, "PreprocessedRDS/HCAD_parcels.RDS")
     HCAD_parcels <- readRDS(HCAD_parcels_file)
     print(sprintf("Done opening census RDS from %s", HCAD_parcels_file))
