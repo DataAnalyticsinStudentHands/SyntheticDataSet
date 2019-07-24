@@ -81,14 +81,18 @@ createIndividuals <- function() {
       ifelse(str_sub(x,1,1)=="M" | str_sub(x,1,1)=="S" | str_sub(x,1,1)=="O", NA, x)
     )
     marital_status_data$age_range <- as.character(marital_status_data$age_range)
+    marital_status_data$race <- lapply(marital_status_data$name, function(x)
+      ifelse(str_sub(x,1,1)=="M" | str_sub(x,1,1)=="S" | str_sub(x,1,1)=="O", NA, x)
+    )
     
     married_data <- marital_status_data %>%
       filter(substr(name,7,7) %in% acs_race_codes) %>% 
       mutate(race = substr(name,7,7)) %>%
       gather(tract,number_married_sams,4:ncol(raw_census_data))   %>%
-      filter(number_married_sams!=0) 
+      filter(number_married_sams!=0 & race != "_") 
     
-   test2 <- left_join(census_data,married_data,by=c("tract","sex","age_range"))
+   #test2 <- left_join(census_data,married_data,by=c("tract","sex","race","age_range"))
+    #have to walk the rows in the full_expanded sam, and sample based on these same matches - that should be generalizable, though
       
     #saveRDS(citizen_data,paste0(censusDataDirectory,"citizen_data_7-25.RDS"))  #4,693,483 (4,653,000 official)
   }
