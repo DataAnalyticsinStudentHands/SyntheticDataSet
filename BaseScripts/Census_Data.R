@@ -15,7 +15,7 @@ library(data.table)
 #' @param county The county for which the data is being pulled
 #' @param groupname the variable groupname we are pulling the data for
 #' @return census_data A dataframe of the Census data used for simulations in this package
-censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county, tract, groupname) {
+censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county, tract, censuskey, groupname) {
   
   #check whether file for the requested group data already exists
   file_path <- paste0(censusdir, vintage, "/downloaded/", state, "_", county, "_", groupname, ".csv")

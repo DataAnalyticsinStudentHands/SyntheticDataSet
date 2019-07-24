@@ -10,6 +10,8 @@ createIndividuals <- function() {
   #get the census key
   censuskey <- readLines(paste0(censusdir, vintage, "/key"))
   
+  raw_census_data <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26101")
+  
   #Create or read in individual citizens
   if(citizensFromRDS) {
     # import saved citzens from RDS file
@@ -67,6 +69,8 @@ createIndividuals <- function() {
       )
     
     #saveRDS(citizen_data,paste0(censusDataDirectory,"citizen_data_7-25.RDS"))  #4,693,483 (4,653,000 official)
+    
+    raw_census_data <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, groupname = "B26101")
   }
   
   return(citizens)

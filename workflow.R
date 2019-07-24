@@ -10,7 +10,7 @@ housingStockFromRDS = TRUE
 numberOfCores = 1
 state = 48
 county = 201
-tracts = "*"
+tract = "*"
 
 #let's create SAM
 sam <- createBaseSAM(censusdir, housingdir, vintage, 
