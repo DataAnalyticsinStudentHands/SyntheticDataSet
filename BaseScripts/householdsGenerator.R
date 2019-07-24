@@ -1,4 +1,6 @@
 library(tidyr)
+library(dplyr)
+library(stringr)
 
 #' createIndividuals
 #'
@@ -42,12 +44,9 @@ createIndividuals <- function() {
       group_by(tract) %>%
       mutate(r2_total = sum(tract_2r_total),
              trac_total = sum(tract_total),
-             new_numbers_sam = as.integer(number_sams * (1 - 2*(r2_total/(trac_total))))) %>%
+             new_numbers_sam = as.integer(number_sams * (1 - 3*(r2_total/(trac_total))))) %>%
       select(-number_sams) %>%
       rename(number_sams = new_numbers_sam)
-    
-    
-    
     
     census_d <- census_data %>% 
       filter(!is.na(age_range) & sex!="Estimate" & race != "_" & number_sams!=0)
@@ -55,7 +54,6 @@ createIndividuals <- function() {
     #now expand on each row that doesn't have a total
     citizen_data <- data.frame(census_d[rep(seq_len(dim(census_d)[1]),
                                             census_d$number_sams),
-                                        
                                         1:dim(census_d)[2], drop = FALSE],
                                row.names = NULL)  
     
