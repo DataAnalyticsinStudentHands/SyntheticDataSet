@@ -64,6 +64,32 @@ createIndividuals <- function() {
         individual_id = paste0(tract,'_',rep(1:n())+1000000)
       )
     
+    #get marriage data
+    marital_status_data <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, groupname = "B12002")
+    marital_status_data$sex <- lapply(marital_status_data$label, function(x) 
+      str_split(x,"!!",simplify = TRUE)[3]) #NA for full total
+    marital_status_data$sex <- as.character(marital_status_data$sex)
+    marital_status_data$marital_status <- lapply(marital_status_data$label, function(x)
+      ifelse(length(str_split(x,"!!",simplify = TRUE)) > 3, str_split(x,"!!",simplify = TRUE)[4],NA)
+    )
+    marital_status_data$age_range <- lapply(marital_status_data$label, function(x)
+      ifelse(length(str_split(x,"!!",simplify = TRUE)) == 5, str_split(x,"!!",simplify = TRUE)[5],
+             ifelse(length(str_split(x,"!!",simplify = TRUE)) == 6, str_split(x,"!!",simplify = TRUE)[6],
+                    ifelse(length(str_split(x,"!!",simplify = TRUE)) == 7, str_split(x,"!!",simplify = TRUE)[7],NA)))
+    )
+    marital_status_data$age_range <- lapply(marital_status_data$age_range, function(x)
+      ifelse(str_sub(x,1,1)=="M" | str_sub(x,1,1)=="S" | str_sub(x,1,1)=="O", NA, x)
+    )
+    marital_status_data$age_range <- as.character(marital_status_data$age_range)
+    
+    married_data <- marital_status_data %>%
+      filter(substr(name,7,7) %in% acs_race_codes) %>% 
+      mutate(race = substr(name,7,7)) %>%
+      gather(tract,number_married_sams,4:ncol(raw_census_data))   %>%
+      filter(number_married_sams!=0) 
+    
+   test2 <- left_join(census_data,married_data,by=c("tract","sex","age_range"))
+      
     #saveRDS(citizen_data,paste0(censusDataDirectory,"citizen_data_7-25.RDS"))  #4,693,483 (4,653,000 official)
   }
   
