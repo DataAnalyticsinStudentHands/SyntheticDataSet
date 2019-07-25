@@ -9,11 +9,6 @@ library(stringr)
 #' @return citizens A dataframe of simulated people.
 createIndividuals <- function() {
   
-  #get the census key
-  censuskey <- readLines(paste0(censusdir, vintage, "/key"))
-  
-  raw_census_data <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26101")
-  
   #Create or read in individual citizens
   if(citizensFromRDS) {
     # import saved citzens from RDS file
@@ -21,18 +16,20 @@ createIndividuals <- function() {
     citizens <- readRDS(citizens_data_file)
     print(sprintf("Done reading citizens RDS from %s", citizens_data_file))
   } else {
+    
+    #get the census key
+    censuskey <- readLines(paste0(censusdir, vintage, "/key"))
+    
     #setup race codes
     acs_race_codes <- c("H","B","C","D","E","F","G","I","_") #according to census
+    
     #gather information from census data
     #group B01001 will give us gender, race, age
-    raw_census_data <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, groupname = "B01001")
+    raw_census_data <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")
     
-    #clean up label before processing
-    raw_census_data$label <- str_remove_all(raw_census_data$label,"Estimate!!Total!!")  #total rows will remain, as Estimate!!Total
-    
-    #reshape using tidyr "gather" - want long df
+    #use information in label to create subgroups 
     census_data <- raw_census_data %>%
-      #first, cut out some of the rows that we won't want, then gather
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% #clean up label 
       filter(substr(name,7,7) %in% acs_race_codes) %>% # underscores are not in acs_race_codes, and would be totals
       mutate(race = substr(name,7,7)) %>%
       gather(tract,number_sams,4:ncol(raw_census_data))   %>%
@@ -97,8 +94,7 @@ createIndividuals <- function() {
     #have to walk the rows in the full_expanded sam, and sample based on these same matches - that should be generalizable, though
       
     #saveRDS(citizen_data,paste0(censusDataDirectory,"citizen_data_7-25.RDS"))  #4,693,483 (4,653,000 official)
-    
-    raw_census_data <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, groupname = "B26101")
+
   }
   
   return(citizens)

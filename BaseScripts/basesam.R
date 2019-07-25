@@ -27,29 +27,31 @@ createBaseSAM <- function(censusdir, housingdir, vintage, citizensFromRDS = TRUE
   #get citizens    
   citizens <- createIndividuals()
   
+  complete_sample_set <- citizens
+  
   
   #get prepared complete housing parcels (with tract, county information), for Houston this data is provided by HCAD
-  if (housingStockFromRDS) {
-    HCAD_parcels_file <- paste0(housingdir, "PreprocessedRDS/HCAD_parcels.RDS")
-    HCAD_parcels <- readRDS(HCAD_parcels_file)
-    print(sprintf("Done opening census RDS from %s", HCAD_parcels_file))
-  } else {
-    HCAD_parcels <- getHCADParcels(hcadDataDir = housingdir)
-    print(sprintf("Done preparing HCAD parcels from folder %s", housingdir))
-  }
-  
-  # get building stock information for residential buildings
-  buildingDataDir <- paste0(housingdir,"Real_building_land/")
-  res_housing_stock <- getResBuildings(buildingDataDir = buildingDataDir,
-                                       HCAD_parcels = HCAD_parcels)
-  print(sprintf("Done preparing residential housing parcels fro folder %s", buildingDataDir))
-  # get other building stock information
-  realhousing_stock <- getRealBuildings(buildingDataDir = buildingDataDir,
-                                        HCAD_parcels = HCAD_parcels)
-  print(sprintf("Done preparing other housing parcels %s", buildingDataDir))
-  
-  
-  
+  # if (housingStockFromRDS) {
+  #   HCAD_parcels_file <- paste0(housingdir, "PreprocessedRDS/HCAD_parcels.RDS")
+  #   HCAD_parcels <- readRDS(HCAD_parcels_file)
+  #   print(sprintf("Done opening census RDS from %s", HCAD_parcels_file))
+  # } else {
+  #   HCAD_parcels <- getHCADParcels(hcadDataDir = housingdir)
+  #   print(sprintf("Done preparing HCAD parcels from folder %s", housingdir))
+  # }
+  # 
+  # # get building stock information for residential buildings
+  # buildingDataDir <- paste0(housingdir,"Real_building_land/")
+  # res_housing_stock <- getResBuildings(buildingDataDir = buildingDataDir,
+  #                                      HCAD_parcels = HCAD_parcels)
+  # print(sprintf("Done preparing residential housing parcels fro folder %s", buildingDataDir))
+  # # get other building stock information
+  # realhousing_stock <- getRealBuildings(buildingDataDir = buildingDataDir,
+  #                                       HCAD_parcels = HCAD_parcels)
+  # print(sprintf("Done preparing other housing parcels %s", buildingDataDir))
+  # 
+  # 
+  # 
   #########TO DO: REWRITE OF CODE NOT DONE FOR BELOW
   
   #set up for parallel processing
@@ -74,7 +76,7 @@ createBaseSAM <- function(censusdir, housingdir, vintage, citizensFromRDS = TRUE
   # 
   # stopCluster(cl)
   # 
-  # return(complete_sample_set)
+  return(complete_sample_set)
   
   #########REWRITE OF CODE NOT DONE FOR ABOVE
 }

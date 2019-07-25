@@ -21,7 +21,7 @@ censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county, tra
   file_path <- paste0(censusdir, vintage, "/downloaded/", state, "_", county, "_", groupname, ".csv")
   if (file.exists(file_path)) {
     print(sprintf("Reading file from %s", file_path))
-    result <- read_csv(file_path)
+    result <- read_csv(file_path, col_types = cols())
   } else {
     # get census variables from variables metadata file for a group
     acs_variables <- read_json(paste0(censusdir, vintage, "/Variables_MetaData.json")) %>%
