@@ -101,12 +101,15 @@ createIndividuals <- function() {
              ) %>%
       select(-ends_with("_total"),-ends_with("_tract")) %>%
       gather(race_m,new_numbers_sam,c("B","C","D","E","F","G","H","I")) %>% 
-      ungroup() %>%
       select(-number_sams, -race) %>%
       rename(number_sams = new_numbers_sam,race = race_m) %>%
       filter(!is.na(age_range) & sex!="Estimate" & number_sams!=0)
       
-    #join with sexXage and then expand??
+    base_married <- sex_by_age_race_data %>%
+      #tidyr - expand for spouse_present and marital status == now married
+      #create columns with values matching by matches on tract, sex, race, age_range
+      #gather to make each extra column added into a new row (each one should become 5)
+      #assign by percentage for each, with same sum trick, new gather, etc.
     
     #now expand on each row that doesn't have a total
     citizen_ready <- data.frame(census_data[rep(seq_len(dim(census_data)[1]),
