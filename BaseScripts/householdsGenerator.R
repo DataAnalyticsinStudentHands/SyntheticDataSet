@@ -57,36 +57,56 @@ createIndividuals <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(substr(name,7,7) %in% acs_race_codes) %>%
       mutate(race = substr(name,7,7)) %>%
-      gather(tract,number_sams,4:ncol( marital_status_data_from_census)) %>%
+      gather(tract,number_sams,4:ncol(marital_status_data_from_census)) %>%
       filter(number_sams != 0) %>%
       separate(label, into = c("sex","part1", "part2", "part3", "part4"), sep = "!!", remove = F) %>%
       mutate(age_range = case_when(str_detect(part1, "year") ~ part1,
                                    str_detect(part2, "year") ~ part2,
                                    str_detect(part3, "year") ~ part3,
                                    str_detect(part4, "year") ~ part4)) %>%
+      mutate(spouse_present = case_when(str_detect(part1, "spouse") ~ part1,
+                                   str_detect(part2, "spouse") ~ part2,
+                                   str_detect(part3, "spouse") ~ part3,
+                                   str_detect(part4, "spouse") ~ part4)) %>%
       mutate(marital_status = part1) %>%
       rename(census_group_name = name) %>%
       select(-concept, -part1, -part2, -part3, -part4) %>%
-      #want to use the totals for testing
-      mutate(tract_2r_total = if_else(sex == "Estimate" & race == "G", as.integer(number_sams), as.integer(0)),
+      mutate(B_tract = if_else(sex == "Estimate" & race == "B", as.integer(number_sams), as.integer(0)),
+             C_tract = if_else(sex == "Estimate" & race == "C", as.integer(number_sams), as.integer(0)),
+             D_tract = if_else(sex == "Estimate" & race == "E", as.integer(number_sams), as.integer(0)),
+             E_tract = if_else(sex == "Estimate" & race == "E", as.integer(number_sams), as.integer(0)),
+             F_tract = if_else(sex == "Estimate" & race == "F", as.integer(number_sams), as.integer(0)),
+             G_tract = if_else(sex == "Estimate" & race == "G", as.integer(number_sams), as.integer(0)),
+             H_tract = if_else(sex == "Estimate" & race == "H", as.integer(number_sams), as.integer(0)),
+             I_tract = if_else(sex == "Estimate" & race == "I", as.integer(number_sams), as.integer(0)),
              tract_total = if_else(sex == "Estimate" & race == "_", as.integer(number_sams), as.integer(0))) %>%
       group_by(tract) %>%
-      mutate(r2_total = sum(tract_2r_total),
+      mutate(B_total = sum(B_tract),
+             C_total = sum(C_tract),
+             D_total = sum(D_tract),
+             E_total = sum(E_tract),
+             F_total = sum(F_tract),
+             G_total = sum(G_tract),
+             H_total = sum(H_tract),
+             I_total = sum(I_tract),
              trac_total = sum(tract_total),
-             new_numbers_sam = as.integer(number_sams * (1 - 3*(r2_total/(trac_total))))) %>% #fudging here
-      select(-number_sams) %>%
-      rename(number_sams = new_numbers_sam) %>%
+             B = as.integer(number_sams *(B_total/trac_total)),
+             C = as.integer(number_sams *(C_total/trac_total)),
+             D = as.integer(number_sams *(D_total/trac_total)),
+             E = as.integer(number_sams *(E_total/trac_total)),
+             F = as.integer(number_sams *(F_total/trac_total)),
+             G = as.integer(number_sams *(G_total/trac_total)),
+             H = as.integer(number_sams *(H_total/trac_total)),
+             I = as.integer(number_sams *(I_total/trac_total))
+             ) %>%
+      select(-ends_with("_total"),-ends_with("_tract")) %>%
+      gather(race_m,new_numbers_sam,c("B","C","D","E","F","G","H","I")) %>% 
+      ungroup() %>%
+      select(-number_sams, -race) %>%
+      rename(number_sams = new_numbers_sam,race = race_m) %>%
       filter(!is.na(age_range) & sex!="Estimate" & number_sams!=0)
       
-    
-    
-    #some idea for final step expanding
-    married_data <- marital_status_data %>%
-      filter(substr(name,7,7) %in% acs_race_codes) %>% 
-      mutate(race = substr(name,7,7)) %>%
-      gather(tract,number_married_sams,4:ncol(sex_by_age_race_data_from_census))   %>%
-      filter(number_married_sams!=0 & race != "_") 
-    
+    #join with sexXage and then expand??
     
     #now expand on each row that doesn't have a total
     citizen_ready <- data.frame(census_data[rep(seq_len(dim(census_data)[1]),
