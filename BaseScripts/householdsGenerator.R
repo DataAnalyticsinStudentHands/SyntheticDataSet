@@ -30,7 +30,8 @@ createIndividuals <- function() {
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% #clean up label 
       filter(substr(name,7,7) %in% acs_race_codes) %>% 
-      gather(tract,number_sams,4:ncol(sex_by_age_race_data_from_census)) %>%
+  #   gather(tract,number_sams,4:ncol(sex_by_age_race_data_from_census)) #%>%
+      pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       filter(number_sams != 0) %>%
       mutate(race = substr(name,7,7)) %>%
       filter(str_detect(label, "!!")) %>%
@@ -57,7 +58,8 @@ createIndividuals <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(substr(name,7,7) %in% acs_race_codes) %>%
       mutate(race = substr(name,7,7)) %>%
-      gather(tract,number_sams,4:ncol(marital_status_data_from_census)) %>%
+      #gather(tract,number_sams,4:ncol(marital_status_data_from_census)) #%>%
+      pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       filter(number_sams != 0) %>%
       separate(label, into = c("sex","part1", "part2", "part3", "part4"), sep = "!!", remove = F) %>%
       mutate(age_range = case_when(str_detect(part1, "year") ~ part1,
@@ -100,23 +102,26 @@ createIndividuals <- function() {
              I = as.integer(number_sams *(I_total/trac_total))
              ) %>%
       select(-ends_with("_total"),-ends_with("_tract")) %>%
-      gather(race_m,new_numbers_sam,c("B","C","D","E","F","G","H","I")) %>% 
+    #  gather(race_m,new_numbers_sam,c("B","C","D","E","F","G","H","I")) %>% 
+      pivot_longer(c("B","C","D","E","F","G","H","I"),names_to = "race_m",values_to = "new_numbers_sam") %>%
       select(-number_sams, -race) %>%
       rename(number_sams = new_numbers_sam,race = race_m) %>%
       filter(!is.na(age_range) & sex!="Estimate" & number_sams!=0)
-      
-    base_married <- sex_by_age_race_data %>%
+    
+    base_married_join <- full_join(sex_by_age_race_data, marital_status_data,by=c("tract","sex","race","age_range"))  
+    
+    base_married <-  %>%
       #tidyr - expand for spouse_present and marital status == now married
       #create columns with values matching by matches on tract, sex, race, age_range
       #gather to make each extra column added into a new row (each one should become 5)
       #assign by percentage for each, with same sum trick, new gather, etc.
     
     #now expand on each row that doesn't have a total
-    citizen_ready <- data.frame(census_data[rep(seq_len(dim(census_data)[1]),
+    sams_ready <- data.frame(census_data[rep(seq_len(dim(census_data)[1]),
                                                 census_data$number_sams),
                                             1:dim(census_data)[2], drop = FALSE], row.names = NULL)  
     
-    citizen_ready <- gather(census_data, "n")
+
     
     #add individual ids
     citizens <- citizen_ready %>%
