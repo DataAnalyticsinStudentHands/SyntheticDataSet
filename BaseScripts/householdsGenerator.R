@@ -108,9 +108,10 @@ createIndividuals <- function() {
       rename(number_sams = new_numbers_sam,race = race_m) %>%
       filter(!is.na(age_range) & sex!="Estimate" & number_sams!=0)
     
-    base_married_join <- full_join(sex_by_age_race_data, marital_status_data,by=c("tract","sex","race","age_range"))  
+    base_married_join <- full_join(sex_by_age_race_data, marital_status_data,by=c("tract","sex","race","age_range"),suffix = c("_base", "_married"))  
     
-    base_married <-  %>%
+    base_married <- %>% base_married_join %>%
+      #if(is.na(numbers_sam_))
       #tidyr - expand for spouse_present and marital status == now married
       #create columns with values matching by matches on tract, sex, race, age_range
       #gather to make each extra column added into a new row (each one should become 5)
