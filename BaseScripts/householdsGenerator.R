@@ -109,7 +109,7 @@ createIndividuals <- function() {
     base_married_join <- full_join(sex_by_age_race_data, marital_status_data,by=c("tract","sex","race","age_range"),suffix = c("_base", "_married"))  
     
     base_married <- base_married_join %>%
-      mutate(number_sams= if_else(is.na(number_sams_married),number_sams_base,number_sams_married))
+      mutate(number_sams= if_else(is.na(number_sams_married),number_sams_base,number_sams_married)) 
     
 #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
 #very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
@@ -152,57 +152,11 @@ createIndividuals <- function() {
               ) %>%
       filter(number_sams!=0)
 
-      
-  pregnancy_data_race_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
-    
-  pregnancy_data_race <- pregnancy_data_race_marriage_from_census %>%
-    mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(substr(name,7,7) %in% acs_race_codes) %>%
-      mutate(race = substr(name,7,7)) %>%
-      pivot_longer(4:ncol(pregnancy_data_race_marriage_from_census),names_to = "tract", values_to = "number_sams") %>%
-      filter(number_sams != 0 & lengths(str_split(label,"!!"))>1) %>% #still have estimate!!total, but not for did/didn't have birth in last 12months
-      separate(label, into = c("birth","marital_status", "age_range"), sep = "!!", remove = F) %>%
-      rename(census_group_name = name) %>%
-      select(-concept) %>%
-      mutate(B_tract = if_else(birth == "Estimate" & race == "B", as.integer(number_sams), as.integer(0)),
-             C_tract = if_else(birth == "Estimate" & race == "C", as.integer(number_sams), as.integer(0)),
-             D_tract = if_else(birth == "Estimate" & race == "E", as.integer(number_sams), as.integer(0)),
-             E_tract = if_else(birth == "Estimate" & race == "E", as.integer(number_sams), as.integer(0)),
-             F_tract = if_else(birth == "Estimate" & race == "F", as.integer(number_sams), as.integer(0)),
-             G_tract = if_else(birth == "Estimate" & race == "G", as.integer(number_sams), as.integer(0)),
-             H_tract = if_else(birth == "Estimate" & race == "H", as.integer(number_sams), as.integer(0)),
-             I_tract = if_else(birth == "Estimate" & race == "I", as.integer(number_sams), as.integer(0)),
-             tract_total = if_else(birth == "Estimate" & race == "_", as.integer(number_sams), as.integer(0))) %>%
-      group_by(tract) %>%
-      mutate(B_total = sum(B_tract),
-             C_total = sum(C_tract),
-             D_total = sum(D_tract),
-             E_total = sum(E_tract),
-             F_total = sum(F_tract),
-             G_total = sum(G_tract),
-             H_total = sum(H_tract),
-             I_total = sum(I_tract),
-             trac_total = sum(tract_total),
-             B = as.integer(number_sams *(B_total/trac_total)),
-             C = as.integer(number_sams *(C_total/trac_total)),
-             D = as.integer(number_sams *(D_total/trac_total)),
-             E = as.integer(number_sams *(E_total/trac_total)),
-             F = as.integer(number_sams *(F_total/trac_total)),
-             G = as.integer(number_sams *(G_total/trac_total)),
-             H = as.integer(number_sams *(H_total/trac_total)),
-             I = as.integer(number_sams *(I_total/trac_total))
-      ) %>%
-      select(-ends_with("_total"),-ends_with("_tract")) %>%
-      pivot_longer(c("B","C","D","E","F","G","H","I"),names_to = "race_p",values_to = "new_numbers_sam") %>%
-      select(-number_sams, -race) %>%
-      rename(number_sams = new_numbers_sam,race = race_p) %>%
-      filter(!is.na(age_range) & birth!="Estimate" & number_sams!=0) %>%
-      ungroup()
     
     pregnancy_data_age_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
     
-    pregnancy_data_age <- pregnancy_data_age_marriage_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% 
+    pregnancy_data <- pregnancy_data_age_marriage_from_census %>%
+      mutate(sex="Female",label = str_remove_all(label,"Estimate!!Total!!")) %>% 
       filter(substr(name,7,7) %in% acs_race_codes) %>%
       mutate(race = substr(name,7,7)) %>%
       pivot_longer(4:ncol(pregnancy_data_age_marriage_from_census),names_to = "tract", values_to = "number_sams") %>%
@@ -245,12 +199,15 @@ createIndividuals <- function() {
       filter(!is.na(age_range) & birth!="Estimate" & number_sams!=0) %>%
       ungroup()
     
-      
+    base_pregnant_join <- full_join(base_married, pregnancy_data,by=c("tract","sex","race","age_range","marital_status"),suffix = c("_base2", "_pregnant"))  
+    
+    base_pregnant <- base_pregnant_join %>%
+      mutate(number_sams= if_else(is.na(number_sams_pregnant),number_sams_base,number_sams_pregnant))
     
     #now expand on each row that doesn't have a total
     test <- uncount(base_group_quarters_data,base_group_quarters_data$number_sams,.id="ind_id") #have to do below for individual ids to work across all
     test2 <- uncount(base_married,base_married$number_sams,.id="ind_id") #test has 3,627,000 - have to think through a bit more....     
-    
+    test3 <- uncount(base_pregnant,base_pregnant$number_sams[1],.id="ind_id") ##invalid times argument????
     
     #add individual ids
     sam_residents <- sams_ready %>%
@@ -271,6 +228,21 @@ createIndividuals <- function() {
   
   return(citizens)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
