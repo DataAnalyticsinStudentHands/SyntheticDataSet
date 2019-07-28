@@ -204,7 +204,7 @@ createIndividuals <- function() {
     base_pregnant <- base_pregnant_join %>%
       mutate(number_sams= if_else(is.na(number_sams_pregnant),number_sams_base,number_sams_pregnant))
     
-    #now expand on each row that doesn't have a total
+     #now expand on each row that doesn't have a total
     test <- uncount(base_group_quarters_data,base_group_quarters_data$number_sams,.id="ind_id") #have to do below for individual ids to work across all
     test2 <- uncount(base_married,base_married$number_sams,.id="ind_id") #test has 3,627,000 - have to think through a bit more....     
     test3 <- uncount(base_pregnant,base_pregnant$number_sams[1],.id="ind_id") ##invalid times argument????
@@ -229,24 +229,51 @@ createIndividuals <- function() {
   return(citizens)
 }
 
+###should we make households in different function or at end of individuals??
+
+#Household - type by size - tells you if it's a family or non-family household, but 
+household_type_size_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016")
+#Household - multigenerational B11017 all NA
+# poverty - type - number of persons in HH
+household_poverty_people_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17013")
+#above just says how many people below or above poverty, but number of people and type of HH is given - something...
+#  type - relatives -just tells you if they live with additional non-relatives, and gives race
+household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
+#type by age of HH 
+household_age_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17017")
+#type by education of HH B17018
+household_educ_level_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17018")
 
 
 
+#gets per_capita by race per tract
+per_capita_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19301")
 
+#income median by race B19013
+race_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19013")
 
+#AGGREGATE INCOME DEFICIT (DOLLARS) IN THE PAST 12 MONTHS FOR FAMILIES BY FAMILY TYPE -only below poverty... too complicated to unwind and explain
+agg_deficit_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17011")
 
+#by number of children and poverty B17023
+number_children_poverty_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17023")
 
+#by tenure B17019 (whether renter or not)
+household_tenure_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17019")
 
+#family data - family type by employment status B23007
+family_employment_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B23007")
 
+#foodstamps B22005 race of HH
+food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
 
+#unmarried partner household by sex of partner B11009 (2015 - not sure who might be married now)
+unmarried_partner_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009")
 
+#occupation by earnings B24121 /122 is male /123 is female /124 is total? ALL NAs
+occupation_earnings_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B24124")
 
-
-
-
-
-
-
+##need to View occupation_earnings and race_income
 
 #' Household Generator
 #'
