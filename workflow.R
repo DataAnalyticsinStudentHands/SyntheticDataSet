@@ -5,7 +5,6 @@ source("BaseScripts/basesam.R")
 housingdir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/HCAD/" 
 censusdir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/Census/"
 vintage = 2017
-citizensFromRDS = FALSE
 housingStockFromRDS = TRUE 
 numberOfCores = 1
 state = 48
@@ -14,7 +13,7 @@ tract = "*"
 
 #let's create SAM
 sam <- createBaseSAM(censusdir, housingdir, vintage, 
-                     citizensFromRDS, housingStockFromRDS, 
+                     housingStockFromRDS, 
                      numberOfCores = numberOfCores, state = state, county = county, tract = tract)
 
 # do some sanity checks and more columns

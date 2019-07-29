@@ -19,15 +19,14 @@ source("TestScripts/proportionCheck.R")
 #' @param censusdir the census data directory 
 #' @param housingdir the main housing stock data directory
 #' @param vintage the year from which the data will be modeled for (a folder with that year must exists inside census data directory and housing stock directory)
-#' @param citizensFromRDS determines wheter to read preprocessed citizens from an RDS file
 #' @param housingStockFromRDS determines whether to read preprcocessed housing stock data from an RDS file
 #' @return sam A dataframe of the simulated individuals in a city living in housing stock
-createBaseSAM <- function(censusdir, housingdir, vintage, citizensFromRDS = TRUE, housingStockFromRDS = TRUE, numberOfCores = 1, state, county, tract) {
+createBaseSAM <- function(censusdir, housingdir, vintage, housingStockFromRDS = TRUE, numberOfCores = 1, state, county, tract) {
    
-  #get citizens    
-  citizens <- createIndividuals()
+  #get sam residents    
+  sam_residents <- createIndividuals()
   
-  complete_sample_set <- citizens
+  complete_sample_set <- sam_residents
   
   
   #get prepared complete housing parcels (with tract, county information), for Houston this data is provided by HCAD

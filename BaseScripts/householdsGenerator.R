@@ -4,17 +4,18 @@ library(stringr)
 
 #' createIndividuals
 #'
-#' This function simulates individual people based on census data (age, sex, race, maritial status)
+#' This function simulates individual people based on census data (age, sex, race, maritial status).
+#' If simulated data already exists, it will read it from an RDS file.
 #'
-#' @return citizens A dataframe of simulated people.
+#' @return sam_residents A dataframe of simulated people.
 createIndividuals <- function() {
   
-  #Create or read in individual citizens
-  if(citizensFromRDS) {
-    # import saved citzens from RDS file
-    citizens_data_file <- paste0(censusdir, vintage,"/Citizen_data.RDS")
-    citizens <- readRDS(citizens_data_file)
-    print(sprintf("Done reading citizens RDS from %s", citizens_data_file))
+  sam_residents_data_file <- paste0(censusdir, vintage,"/Residents_data.RDS")
+  #Create or read in individual sam residents
+  if(file.exists(sam_residents_data_file)) {
+    # import saved sam residents from RDS file
+    sam_residents <- readRDS(sam_residents_data_file)
+    print(sprintf("Done reading sam residents RDS from %s", sam_residents_data_file ))
   } else {
     
     #get the census key
@@ -118,14 +119,14 @@ createIndividuals <- function() {
              C = as.numeric(C_total/r_trac_total),
              D = as.numeric(D_total/r_trac_total),
              E = as.numeric(E_total/r_trac_total),
-             F = as.numeric(F_total/r_trac_total),
+             F_Race = as.numeric(F_total/r_trac_total),
              G = as.numeric(G_total/r_trac_total), #change to .01 for testing?? then do the r2_total bit?
              H = as.numeric(H_total/r_trac_total),
              I = as.numeric(I_total/r_trac_total)
              ) %>%
   #    filter(number_sams!=0) %>% # & sex!="Estimate" !is.na(age_range) & 
   #    select(-ends_with("_total"),-ends_with("_tract"),-concept, -part2, -part3, -part4) %>%  #-number_sams, -race, 
-      pivot_longer(c("B","C","D","E","F","G","H","I"),names_to = "race_percent",values_to = "percent_race_numbers_sam") %>%  #all zeros????
+      pivot_longer(c("B","C","D","E","F_Race","G","H","I"),names_to = "race_percent",values_to = "percent_race_numbers_sam") %>%  #all zeros????
       pivot_longer(c("Widowed","Married_sp","Married_sa","Divorced","Single"),names_to = "marital_status_percent",values_to = "m_percent_sam") %>%
       mutate(new_numbers_sam = as.integer(number_sams*percent_race_numbers_sam),
              marital_numbers_sam = as.integer(new_numbers_sam*m_percent_sam)) %>%
@@ -271,50 +272,72 @@ createIndividuals <- function() {
 
   }
   
-  return(citizens)
+  return(sam_residents)
 }
 
-###should we make households in different function or at end of individuals??
+#' createHouseholds
+#'
+#' This function forms housholds using the indivials information based on census data.
+#' If simulated data already exists, it will read it from an RDS file.
+#'
+#' @return sam_residents A dataframe of simulated people updated with information about households
+createHouseholds <- function(sam_residents) {
+  
+  #Create or read in individuals with household information
+  if(householdsFromRDS) {
+    # import saved citzens from RDS file
+    households_data_file <- paste0(censusdir, vintage,"/Households_data.RDS")
+    sam_residents <- readRDS(households_data_file)
+    print(sprintf("Done reading individuals with households information RDS from %s", households_data_file))
+  } else {
+    
+    #get the census key
+    censuskey <- readLines(paste0(censusdir, vintage, "/key"))
+    
+    #gather information from census data,
+    #Household - type by size - tells you if it's a family or non-family household, but 
+    household_type_size_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016")
+    #Household - multigenerational B11017 all NA
+    # poverty - type - number of persons in HH
+    household_poverty_people_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17013")
+    #above just says how many people below or above poverty, but number of people and type of HH is given - something...
+    #  type - relatives -just tells you if they live with additional non-relatives, and gives race
+    household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
+    #type by age of HH 
+    household_age_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17017")
+    #type by education of HH B17018
+    household_educ_level_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17018")
+    
+    
+    
+    #gets per_capita by race per tract
+    per_capita_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19301")
+    
+    #income median by race B19013
+    race_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19013")
+    
+    #AGGREGATE INCOME DEFICIT (DOLLARS) IN THE PAST 12 MONTHS FOR FAMILIES BY FAMILY TYPE -only below poverty... too complicated to unwind and explain
+    agg_deficit_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17011")
+    
+    #by number of children and poverty B17023
+    number_children_poverty_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17023")
+    
+    #by tenure B17019 (whether renter or not)
+    household_tenure_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17019")
+    
+    #family data - family type by employment status B23007
+    family_employment_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B23007")
+    
+    #foodstamps B22005 race of HH
+    food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
+    
+    #unmarried partner household by sex of partner B11009 (2015 - not sure who might be married now)
+    unmarried_partner_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009")
+    
+    #occupation by earnings B24121 /122 is male /123 is female /124 is total? ALL NAs
+    occupation_earnings_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B24124")
+  }
+}
 
-#Household - type by size - tells you if it's a family or non-family household, but 
-household_type_size_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016")
-#Household - multigenerational B11017 all NA
-# poverty - type - number of persons in HH
-household_poverty_people_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17013")
-#above just says how many people below or above poverty, but number of people and type of HH is given - something...
-#  type - relatives -just tells you if they live with additional non-relatives, and gives race
-household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
-#type by age of HH 
-household_age_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17017")
-#type by education of HH B17018
-household_educ_level_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17018")
 
-
-
-#gets per_capita by race per tract
-per_capita_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19301")
-
-#income median by race B19013
-race_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19013")
-
-#AGGREGATE INCOME DEFICIT (DOLLARS) IN THE PAST 12 MONTHS FOR FAMILIES BY FAMILY TYPE -only below poverty... too complicated to unwind and explain
-agg_deficit_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17011")
-
-#by number of children and poverty B17023
-number_children_poverty_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17023")
-
-#by tenure B17019 (whether renter or not)
-household_tenure_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17019")
-
-#family data - family type by employment status B23007
-family_employment_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B23007")
-
-#foodstamps B22005 race of HH
-food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
-
-#unmarried partner household by sex of partner B11009 (2015 - not sure who might be married now)
-unmarried_partner_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009")
-
-#occupation by earnings B24121 /122 is male /123 is female /124 is total? ALL NAs
-occupation_earnings_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B24124")
 
