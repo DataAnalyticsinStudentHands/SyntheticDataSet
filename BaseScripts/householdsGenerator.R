@@ -59,7 +59,7 @@ createIndividuals <- function() {
       mutate(race = substr(name,7,7)) %>%
       pivot_longer(4:ncol(marital_status_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       filter(number_sams != 0) %>%
-      separate(label, into = c("sex", "part2", "part3", "part4"), sep = "!!", remove = F) %>%
+      separate(label, into = c("sex", "part2", "part3", "part4"), sep = "!!", remove = T) %>%  #remove = F started throwing errors, but after using it for a long time!!!
       #breaking out the variable we need for calculation, and a few to carry with per line:
       mutate(age_range = case_when(str_detect(part2, "year") ~ part2,
                                    str_detect(part3, "year") ~ part3,
@@ -70,15 +70,18 @@ createIndividuals <- function() {
              marital_status = case_when(str_detect(part2,c("married","Widowed","Divorced")) ~ part2,
                                         str_detect(part3,c("married","Widowed","Divorced")) ~ part3,
                                         str_detect(part4,c("married","Widowed","Divorced")) ~ part4),
-             sp_tract = if_else(!is.na(spouse_present) & spouse_present=="Married spouse present",as.integer(number_sams), as.integer(0)),
-             sp_tract_total = if_else(!is.na(spouse_present) & spouse_present=="Married spouse present" & race == "_",as.integer(number_sams), as.integer(0)),
-             sa_tract = if_else(!is.na(spouse_present) & spouse_present=="Married spouse absent",as.integer(number_sams), as.integer(0)),
-             sp_tract_total = if_else(!is.na(spouse_present) & spouse_present=="Married spouse absent" & race == "_",as.integer(number_sams), as.integer(0)),
+             #sp_tract = if_else(!is.na(spouse_present) & spouse_present=="Married spouse present" & race != "_",as.integer(number_sams), as.integer(0)), #should be total by race
+             sptotal_tract = if_else(!is.na(spouse_present) & spouse_present=="Married spouse present" & race == "_",as.integer(number_sams), as.integer(0)), #should be total, all races
+             #sa_tract = if_else(!is.na(spouse_present) & spouse_present=="Married spouse absent" & race != "_",as.integer(number_sams), as.integer(0)), #shoul be total by race
+             satotal_tract = if_else(!is.na(spouse_present) & spouse_present=="Married spouse absent" & race == "_",as.integer(number_sams), as.integer(0)),
              widow_tract = if_else(!is.na(marital_status) & marital_status=="Widowed",as.integer(number_sams), as.integer(0)),
              divorced_tract = if_else(!is.na(marital_status) & marital_status=="Divorced",as.integer(number_sams), as.integer(0)),
              married_tract = if_else(!is.na(marital_status) & marital_status=="Now married",as.integer(number_sams), as.integer(0)),
              single_tract = if_else(!is.na(marital_status) & marital_status=="Never married",as.integer(number_sams), as.integer(0)),
-             tract_total = if_else(label=="Estimate!!Total",as.integer(number_sams), as.integer(0)),
+             tract_total = if_else(sex=="Estimate" & race == "_" & is.na(marital_status),as.integer(number_sams), as.integer(0)),
+             tract_total_race = if_else(sex == "Estimate" & race == "_", as.integer(number_sams), as.integer(0)), #should be whole adult pop in tract
+             tract_total_male = if_else(sex == "Male" & race == "_", as.integer(number_sams), as.integer(0)),
+             tract_total_female = if_else(sex == "Female" & race == "_", as.integer(number_sams), as.integer(0)),
              B_tract = if_else(sex == "Estimate" & race == "B", as.integer(number_sams), as.integer(0)),  #as.integer(number_sams * (1 - 3*(G_total/(trac_total)))))
              C_tract = if_else(sex == "Estimate" & race == "C", as.integer(number_sams), as.integer(0)),
              D_tract = if_else(sex == "Estimate" & race == "D", as.integer(number_sams), as.integer(0)),
@@ -86,15 +89,12 @@ createIndividuals <- function() {
              F_tract = if_else(sex == "Estimate" & race == "F", as.integer(number_sams), as.integer(0)),
              G_tract = if_else(sex == "Estimate" & race == "G", as.integer(number_sams), as.integer(0)),
              H_tract = if_else(sex == "Estimate" & race == "H", as.integer(number_sams), as.integer(0)),
-             I_tract = if_else(sex == "Estimate" & race == "I", as.integer(number_sams), as.integer(0)),
-             tract_total_race = if_else(sex == "Estimate" & race == "_", as.integer(number_sams), as.integer(0)), #should be whole adult pop in tract
-             tract_total_male = if_else(sex == "Male" & race == "_", as.integer(number_sams), as.integer(0)),
-             tract_total_female = if_else(sex == "Female" & race == "_", as.integer(number_sams), as.integer(0))
+             I_tract = if_else(sex == "Estimate" & race == "I", as.integer(number_sams), as.integer(0))
              ) %>%
       group_by(tract) %>%
       #put the variable for tract on each row
-      mutate(sp_total = sum(sp_tract,na.rm = T), #shouldn't need na.rm anymore, but haven't tested completely.
-             sa_total = sum(sa_tract,na.rm = T),
+      mutate(sp_total = sum(sptotal_tract,na.rm = T), #shouldn't need na.rm anymore, but haven't tested completely.
+             sa_total = sum(satotal_tract,na.rm = T),
              widow_total = sum(widow_tract,na.rm = T),
              divorced_total = sum(divorced_tract,na.rm = T),
              married_total = sum(married_tract,na.rm = T),
@@ -123,17 +123,29 @@ createIndividuals <- function() {
              H = as.numeric(H_total/r_trac_total),
              I = as.numeric(I_total/r_trac_total)
              ) %>%
-      filter(!is.na(age_range) & number_sams!=0) %>% # & sex!="Estimate"
+  #    filter(number_sams!=0) %>% # & sex!="Estimate" !is.na(age_range) & 
   #    select(-ends_with("_total"),-ends_with("_tract"),-concept, -part2, -part3, -part4) %>%  #-number_sams, -race, 
       pivot_longer(c("B","C","D","E","F","G","H","I"),names_to = "race_percent",values_to = "percent_race_numbers_sam") %>%  #all zeros????
-      pivot_longer(c("Widowed","Married_sp","Married_sa","Divorced","Single"),names_to = "marital_status_2",values_to = "m_percent_sam") %>%
+      pivot_longer(c("Widowed","Married_sp","Married_sa","Divorced","Single"),names_to = "marital_status_percent",values_to = "m_percent_sam") %>%
       mutate(new_numbers_sam = as.integer(number_sams*percent_race_numbers_sam),
              marital_numbers_sam = as.integer(new_numbers_sam*m_percent_sam)) %>%
 #      rename(number_sams = new_numbers_sam,marital_group_name = name) %>%
       ungroup()
-    
+    #G is too small and divorce might have two ?? ugh.....
     
     #for-loop to assign people, give percentages on each row...
+    columns <- colnames(marital_status_data)
+    column_tracts <- which(str_detect(columns,'_total'))
+
+    test <- data.frame()
+      
+    for(tract in unique(marital_status_data$tract)){
+      for(col in columns[column_tracts]){
+        #test <- assign(str_split(col,"_")[[1]][1],marital_status_data[tract,col])
+        test[tract,col] <- marital_status_data[tract,col]
+      }
+      #as you sample from each, have to get it to subtract from each part that makes up a total
+    }
     
     
     #not run but for testing - sum(marital_status_data$number_sams, na.rm=T) = 3655799 - this looks like the right number of adults who should have some status
