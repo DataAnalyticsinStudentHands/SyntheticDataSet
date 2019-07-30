@@ -46,14 +46,25 @@ createIndividuals <- function() {
         other_tract_age = if_else(race=="F", as.integer(number_sams),as.integer(0)),
         white_nh_tract_age = if_else(race=="H", as.integer(number_sams),as.integer(0)),
         white_hispanic = sum(white_tract_age)-((sum(white_nh_tract_age)+(sum(other_tract_age)*.9)+(sum(r2_tract_age)/3)+(sum(black_tract_age)*.05))),
-        hispanic_number = case_when(race=="A" & white_hispanic >0 ~ as.integer(white_hispanic),
+        #all very approximate - should be able to use percents of other races  
+        hispanic_number = case_when(race=="A" & white_hispanic > 0 ~ as.integer(white_hispanic),
                                     race=="I" ~ as.integer(number_sams), 
-                                    race=="F" ~ as.integer(number_sams*.9), #all very approximate - should be able to use percents of other races  
+                                    race=="F" ~ as.integer(number_sams*.9), 
                                     race=="B" ~ as.integer(number_sams*.05),  
                                     race=="G" ~ as.integer(number_sams/3),
                                     TRUE ~ as.integer(0))
-      )%>% 
-      ungroup() 
+      ) %>% 
+      ungroup() %>%
+      uncount(2,.id="hispanic_id") %>%
+      filter(race %in% acs_race_codes) %>%
+      select(-ends_with("_tract_age")) %>% 
+      mutate(number_sams = case_when(hispanic_id==1 & hispanic_number > 0 ~ as.integer(number_sams) - as.integer(hispanic_number),
+                                     hispanic_id==2 & hispanic_number > 0 ~ as.integer(hispanic_number),
+                                     hispanic_id==2 & hispanic_number == 0 ~ as.integer(0),
+                                     TRUE ~ as.integer(number_sams))
+             ) %>%
+      filter(number_sams!=0) %>%
+      uncount(number_sams,.id = "individual_id")
     
     #any row with hispanic_number gets doubled, with total-hispanic_number and total; with mutate so that total has hispanic=F 
     #then expand only those in acs_race_codes with uncount
