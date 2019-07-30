@@ -61,11 +61,12 @@ createIndividuals <- function() {
       mutate(number_sams = case_when(hispanic_id==1 & hispanic_number > 0 ~ as.integer(number_sams) - as.integer(hispanic_number),
                                      hispanic_id==2 & hispanic_number > 0 ~ as.integer(hispanic_number),
                                      hispanic_id==2 & hispanic_number == 0 ~ as.integer(0),
-                                     TRUE ~ as.integer(number_sams))
+                                     TRUE ~ as.integer(number_sams)),
+             hispanic = if_else(hispanic_id == 2, TRUE, FALSE)
              ) %>%
-      filter(number_sams!=0) # %>%
-      #uncount(number_sams,.id = "individual_id") # for testing purposes - should equal 4525519 per B10001 row 166 total
-
+      filter(number_sams!=0) %>%
+      uncount(number_sams,.id = "individual_id") # for testing purposes - should equal 4525519 per B10001 row 166 total
+#sum(sex_by_age_race_data$hispanic) = 1549743 - need to compare with excel row; may tweak...
     
     #get marriage data
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
