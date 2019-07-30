@@ -63,14 +63,9 @@ createIndividuals <- function() {
                                      hispanic_id==2 & hispanic_number == 0 ~ as.integer(0),
                                      TRUE ~ as.integer(number_sams))
              ) %>%
-      filter(number_sams!=0) %>%
-      uncount(number_sams,.id = "individual_id")
-    
-    #any row with hispanic_number gets doubled, with total-hispanic_number and total; with mutate so that total has hispanic=F 
-    #then expand only those in acs_race_codes with uncount
+      filter(number_sams!=0) # %>%
+      #uncount(number_sams,.id = "individual_id") # for testing purposes - should equal 4525519 per B10001 row 166 total
 
-    
-#not run, but for quick and easy testing - sum(sex_by_age_race_data$number_sams) = 4586518 target is 4525519 per B10001 row 166 total
     
     #get marriage data
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
