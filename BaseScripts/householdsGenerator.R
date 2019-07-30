@@ -22,7 +22,7 @@ createIndividuals <- function() {
     censuskey <- readLines(paste0(censusdir, vintage, "/key"))
     
     #setup race codes https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
-    acs_race_codes <- c("H","B","C","D","E","F","G","I","_") 
+    acs_race_codes <- c("A","B","C","D","E","F","G") #could collect all - add them up, without H and I, and you get the total! H is white alone, not hispanic and I is hispanic and if you add them up they don't equal white alone
     
     #gather information from census data, group B01001 will give us gender, race, age
     sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")
@@ -30,26 +30,36 @@ createIndividuals <- function() {
     #use information in label and name columns to create subgroups 
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% #clean up label 
-      filter(substr(name,7,7) %in% acs_race_codes) %>% 
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      filter(number_sams != 0) %>%
+#keeping all race - for total,  #   filter(substr(name,7,7) %in% acs_race_codes) gets you the ones that added together would = total pop; ages added together get you total by that race/ethnicity     
       mutate(race = substr(name,7,7)) %>%
-      filter(str_detect(label, "!!")) %>%
       separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%  #NA in rows with only one
       rename(census_group_name = name) %>%
+      filter(number_sams != 0, !is.na(age_range),race!="_",age_range!="Total") %>% 
       select(-concept) %>%
-      #want to use the totals for testing
-      mutate(tract_2r_total = if_else(sex == "Estimate" & race == "G", as.integer(number_sams), as.integer(0)),
-             tract_total = if_else(sex == "Estimate" & race == "_", as.integer(number_sams), as.integer(0)))%>%
-      group_by(tract) %>%
-      mutate(r2_total = sum(tract_2r_total),
-             trac_total = sum(tract_total),
-             new_numbers_sam = as.integer(number_sams * (1 - 3*(r2_total/(trac_total))))) %>% #fudging here
-      select(-number_sams,-tract_2r_total,-tract_total,-r2_total) %>%
-      rename(number_sams = new_numbers_sam,tract_total = trac_total) %>% 
-      filter(!is.na(age_range) & sex!="Estimate" & race != "_" & number_sams!=0) %>%
-      ungroup()
-#not run, but for quick and easy testing - sum(sex_by_age_race_data$number_sams) = 4586518
+      group_by(tract, sex, age_range) %>%
+      mutate(
+        hispanic_tract_age = if_else(race=="I", as.integer(number_sams),as.integer(0)), #number in tract in that age_range who are Hispanic 
+        white_tract_age = if_else(race=="A", as.integer(number_sams),as.integer(0)),
+        black_tract_age = if_else(race=="B", as.integer(number_sams),as.integer(0)),
+        r2_tract_age = if_else(race=="G", as.integer(number_sams),as.integer(0)),
+        other_tract_age = if_else(race=="F", as.integer(number_sams),as.integer(0)),
+        white_nh_tract_age = if_else(race=="H", as.integer(number_sams),as.integer(0)),
+        white_hispanic = sum(white_tract_age)-((sum(white_nh_tract_age)+(sum(other_tract_age)*.9)+(sum(r2_tract_age)/3)+(sum(black_tract_age)*.05))),
+        hispanic_number = case_when(race=="A" & white_hispanic >0 ~ as.integer(white_hispanic),
+                                    race=="I" ~ as.integer(number_sams), 
+                                    race=="F" ~ as.integer(number_sams*.9), #all very approximate - should be able to use percents of other races  
+                                    race=="B" ~ as.integer(number_sams*.05),  
+                                    race=="G" ~ as.integer(number_sams/3),
+                                    TRUE ~ as.integer(0))
+      )%>% 
+      ungroup() 
+    
+    #any row with hispanic_number gets doubled, with total-hispanic_number and total; with mutate so that total has hispanic=F 
+    #then expand only those in acs_race_codes with uncount
+
+    
+#not run, but for quick and easy testing - sum(sex_by_age_race_data$number_sams) = 4586518 target is 4525519 per B10001 row 166 total
     
     #get marriage data
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
