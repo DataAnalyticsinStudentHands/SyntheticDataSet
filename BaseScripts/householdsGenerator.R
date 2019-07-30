@@ -45,13 +45,13 @@ createIndividuals <- function() {
         r2_tract_age = if_else(race=="G", as.integer(number_sams),as.integer(0)),
         other_tract_age = if_else(race=="F", as.integer(number_sams),as.integer(0)),
         white_nh_tract_age = if_else(race=="H", as.integer(number_sams),as.integer(0)),
-        white_hispanic = sum(white_tract_age)-((sum(white_nh_tract_age)+(sum(other_tract_age)*.9)+(sum(r2_tract_age)/3)+(sum(black_tract_age)*.05))),
+        white_hispanic = sum(white_tract_age)-((sum(white_nh_tract_age)+(sum(other_tract_age)*.3)+(sum(r2_tract_age)*.2)+(sum(black_tract_age)*.03))),
         #all very approximate - should be able to use percents of other races  
         hispanic_number = case_when(race=="A" & white_hispanic > 0 ~ as.integer(white_hispanic),
                                     race=="I" ~ as.integer(number_sams), 
-                                    race=="F" ~ as.integer(number_sams*.9), 
-                                    race=="B" ~ as.integer(number_sams*.05),  
-                                    race=="G" ~ as.integer(number_sams/3),
+                                    race=="F" ~ as.integer(number_sams*.92), 
+                                    race=="B" ~ as.integer(number_sams*.2),  
+                                    race=="G" ~ as.integer(number_sams*.75),
                                     TRUE ~ as.integer(0))
       ) %>% 
       ungroup() %>%
@@ -66,7 +66,7 @@ createIndividuals <- function() {
              ) %>%
       filter(number_sams!=0) %>%
       uncount(number_sams,.id = "individual_id") # for testing purposes - should equal 4525519 per B10001 row 166 total
-#sum(sex_by_age_race_data$hispanic) = 1549743 - need to compare with excel row; may tweak...
+#sum(sex_by_age_race_data$hispanic) = 1910672 - need to compare with excel row 222, which has 1910535; did some random tweaks...
     
     #get marriage data
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
