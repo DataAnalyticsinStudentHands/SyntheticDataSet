@@ -65,7 +65,8 @@ createIndividuals <- function() {
                                      TRUE ~ as.integer(number_sams)),
              hispanic = if_else(hispanic_id == 2, TRUE, FALSE)
       ) %>%
-      filter(number_sams!=0) %>%
+      filter(number_sams!=0) # %>%
+    #for testing purposes:
       uncount(number_sams,.id = "individual_id") # for testing purposes - should equal 4525519 per B10001 row 166 total
     #sum(sex_by_age_race_data$hispanic) = 1910672 - need to compare with excel row 222, which has 1910535; did some random tweaks...
     
@@ -77,8 +78,8 @@ createIndividuals <- function() {
       #filter(substr(name,7,7) %in% acs_race_codes) %>%
       mutate(race = substr(name,7,7)) %>%
       pivot_longer(4:ncol(marital_status_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      filter(number_sams != 0) %>%
       separate(label, into = c("sex", "part2", "part3", "part4","part5"), sep = "!!", remove = T) %>%  #remove = F started throwing errors, but after using it for a long time!!!
+      filter(number_sams != 0, sex != "Estimate", race != "_") %>%
       #breaking out the variable we need for calculation, and a few to carry with per line:
       mutate(age_range = case_when(str_detect(part2, "year") ~ part2,
                                    str_detect(part3, "year") ~ part3,
@@ -98,15 +99,23 @@ createIndividuals <- function() {
                                         str_detect(part4,"Divorced") ~ part4
              )
       ) %>% #instead of trying to find places where they give totals, find only ones we want and count ourselves
-      #can we sum by row, and then pivot wide? 
-      pivot_wider(names_from = "age_range",values_from = number_sams) %>%
-      group_by(sex,marital_status,spouse_present) %>%
-      replace(is.na(.), 0) %>%
-      rowwise() %>%
-      mutate(tract_total=sum(.[,18:24])
-      )
-    #distribute by race / number in age_group / total in tract times existing numbers_sam
-    filter(!is.na(age_range)) %>% #get correct number, at 3494885 uncount(marital_status_data,marital_status_data$number_sams,.id="id")
+      filter(!is.na(marital_status)) %>%
+      group_by(tract) %>%
+      mutate(total_tract_pop = sum(number_sams)) %>%
+      ungroup() %>%
+      group_by(tract,race) %>%
+      mutate(total_tract_race = sum(number_sams)) %>%
+      ungroup() %>%
+      group_by(tract,sex,marital_status,spouse_present) %>% 
+      mutate(total_tract_marital = sum(number_sams)) %>% 
+      #pivot_wider(names_from = "age_range",names_prefix = "age_",values_from = total_tract_marital) %>% 
+      pivot_wider(names_from = "race",names_prefix = "race_",values_from = total_tract_race) %>%
+      mutate(new_number_sams_calc = (total_tract_marital/total_tract_pop)*number_sams,
+             new_number_sams = case_when(new_number_sams_calc<1 ~ 1000) #sample(c(0:1),c(1-new_number_sams_calc,new_number_sams_calc))
+             ) %>%
+      pivot_longer(starts_with("race_"),names_to = "race", values_to = "race_number_sams") %>%
+      filter(!is.na(age_range))
+        
       
       #filter(race %in% acs_race_codes,!is.na(marital_status)) # you either get age_range or race - is.na on age_range gets right number, this is 3396192 (100k off) 
       
