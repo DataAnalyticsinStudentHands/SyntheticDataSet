@@ -100,18 +100,30 @@ createIndividuals <- function() {
              )
       ) %>% #instead of trying to find places where they give totals, find only ones we want and count ourselves
       filter(!is.na(marital_status)) %>%
+      select(-starts_with("part"),-concept) %>%
       group_by(tract) %>%
       mutate(total_tract_pop = sum(number_sams)) %>%
       ungroup() %>%
       group_by(tract,race) %>%
-      mutate(tract_race = if_else(is.na(age_range),sum(number_sams),0)) %>%
+      mutate(tract_race = if_else(is.na(age_range),sum(number_sams),0),
+             percent_race = tract_race/total_tract_pop) %>%
       ungroup() %>%
-      group_by(tract,sex,marital_status,spouse_present) %>% 
-      mutate(total_tract_marital = number_sams,
-             percent_race = tract_race/total_tract_pop) %>% #if you use number_sams for pivot_wider, it goes away?
-      pivot_wider(names_from = "age_range",names_prefix = "age_",values_from = "total_tract_marital") %>%
+      group_by(tract,sex,race,marital_status,spouse_present) %>% 
+      mutate(tract_marital = number_sams) %>% # if_else(!is.na(age_range),number_sams,0),
+              #if you use number_sams for pivot_wider, it goes away?
+      mutate(tract_marital_sum = sum(tract_marital,na.rm = T),
+             tract_race_sum = sum(percent_race,na.rm = T)) %>%
+      ungroup() %>%
+      group_by(tract,sex,marital_status,spouse_present,age_range) %>%
+      mutate(percent_tract_age = if_else(race=="_", number_sams/total_tract_pop, 0)) # %>%
+      #mutate(new_age_range = first(age_range)) #%>%
+      #fill(new_age_range,.direction = "up")
+      #mutate(new_age_range = if_else(is.na(age_range),first(.$age_range),age_range)) #%>%
+      pivot_wider(names_from = "age_range",names_prefix = "age_",values_from = "tract_marital") %>%
       pivot_longer(starts_with("age_"),names_to = "age_range_names",values_to = "age_range_number") %>%
-      mutate(number_sams = total_tract_marital *)
+      fill(age_range_number) # %>%
+      filter(race!="_",age_range_names!="age_NA")
+#      mutate(number_sams = total_tract_marital *)
 #      pivot_wider(names_from = "race",names_prefix = "race_",values_from = total_tract_race) %>%
 #      mutate(new_number_sams_calc = (total_tract_marital/total_tract_pop)*number_sams,
 #             new_number_sams = case_when(new_number_sams_calc<1 ~ 1000) #sample(c(0:1),c(1-new_number_sams_calc,new_number_sams_calc))
@@ -119,7 +131,7 @@ createIndividuals <- function() {
 #      pivot_longer(starts_with("race_"),names_to = "race", values_to = "race_number_sams") #%>%
 #THIS GETS RID OF ALL OF THEM      filter(age_range_names != "age_NA")
       filter(!is.na(race_number_sams)) #have to get rid of ones that started without age_range
-        
+      filter(race!="_")
       
       #filter(race %in% acs_race_codes,!is.na(marital_status)) # you either get age_range or race - is.na on age_range gets right number, this is 3396192 (100k off) 
       
