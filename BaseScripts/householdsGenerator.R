@@ -104,17 +104,21 @@ createIndividuals <- function() {
       mutate(total_tract_pop = sum(number_sams)) %>%
       ungroup() %>%
       group_by(tract,race) %>%
-      mutate(total_tract_race = sum(number_sams)) %>%
+      mutate(tract_race = if_else(!is.na(age_range),sum(number_sams),0),
+             total_tract_race = sum(tract_race,na.rm = T)) %>%
       ungroup() %>%
       group_by(tract,sex,marital_status,spouse_present) %>% 
-      mutate(total_tract_marital = sum(number_sams)) %>% 
-      #pivot_wider(names_from = "age_range",names_prefix = "age_",values_from = total_tract_marital) %>% 
+      mutate(total_tract_marital = sum(number_sams,na.rm = T),
+             test_total_tract_marital = number_sams) %>% #if you use number_sams for pivot_wider, it goes away?
+      pivot_wider(names_from = "age_range",names_prefix = "age_",values_from = total_tract_marital) %>%
+      pivot_longer(starts_with("age_"),names_to = "age_range_names",values_to = "age_range_number") %>%
       pivot_wider(names_from = "race",names_prefix = "race_",values_from = total_tract_race) %>%
-      mutate(new_number_sams_calc = (total_tract_marital/total_tract_pop)*number_sams,
-             new_number_sams = case_when(new_number_sams_calc<1 ~ 1000) #sample(c(0:1),c(1-new_number_sams_calc,new_number_sams_calc))
-             ) %>%
+#      mutate(new_number_sams_calc = (total_tract_marital/total_tract_pop)*number_sams,
+#             new_number_sams = case_when(new_number_sams_calc<1 ~ 1000) #sample(c(0:1),c(1-new_number_sams_calc,new_number_sams_calc))
+#             ) %>%
       pivot_longer(starts_with("race_"),names_to = "race", values_to = "race_number_sams") %>%
-      filter(!is.na(age_range))
+#THIS GETS RID OF ALL OF THEM      filter(age_range_names != "age_NA")
+#      filter(!is.na(age_range)) #have to get rid of ones that started without age_range
         
       
       #filter(race %in% acs_race_codes,!is.na(marital_status)) # you either get age_range or race - is.na on age_range gets right number, this is 3396192 (100k off) 
