@@ -5,6 +5,7 @@ source("BaseScripts/basesam.R")
 housingdir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/HCAD/" 
 censusdir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/Census/"
 #censusdir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/Census/" #Dan at home
+#censusdir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/Census/" #Dan at work
 vintage = 2017
 housingStockFromRDS = TRUE 
 numberOfCores = 1
