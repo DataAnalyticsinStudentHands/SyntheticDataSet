@@ -108,22 +108,24 @@ createIndividuals <- function() {
       mutate(tract_race = if_else(is.na(age_range),sum(number_sams),0),
              percent_race = tract_race/total_tract_pop) %>%
       ungroup() %>%
-      group_by(tract,sex,race,marital_status,spouse_present) %>% 
+      group_by(tract,sex,race,marital_status,spouse_present, .drop=T) %>% 
       mutate(tract_marital = number_sams) %>% # if_else(!is.na(age_range),number_sams,0),
               #if you use number_sams for pivot_wider, it goes away?
       mutate(tract_marital_sum = sum(tract_marital,na.rm = T),
              tract_race_sum = sum(percent_race,na.rm = T)) %>%
       ungroup() %>%
-      group_by(tract,sex,marital_status,spouse_present,age_range) %>%
-      mutate(percent_tract_age = if_else(race=="_", number_sams/total_tract_pop, 0)) # %>%
-      #mutate(new_age_range = first(age_range)) #%>%
-      #fill(new_age_range,.direction = "up")
-      #mutate(new_age_range = if_else(is.na(age_range),first(.$age_range),age_range)) #%>%
-      pivot_wider(names_from = "age_range",names_prefix = "age_",values_from = "tract_marital") %>%
-      pivot_longer(starts_with("age_"),names_to = "age_range_names",values_to = "age_range_number") %>%
-      fill(age_range_number) # %>%
+      #group_by(tract,age_range) %>%
+      group_by(tract,sex,age_range,marital_status,spouse_present) %>%
+      mutate(percent_tract_age = if_else(race=="_", number_sams/total_tract_pop, 0),
+             total_percent_tract_age = sum(percent_tract_age, na.rm=T)) # %>%
+            
+      #pivot_wider(names_from = "age_range",names_prefix = "age_",values_from = "percent_tract_age") #%>%
+      #pivot_longer(starts_with("age_"),names_to = "age_range_names",values_to = "age_range_number") #%>%
+      fill(age_range_number) %>%
+      #mutate(percent_tract_age = sum(percent_tract_age,na.rm=T)) %>%
       filter(race!="_",age_range_names!="age_NA")
-#      mutate(number_sams = total_tract_marital *)
+      
+      mutate(number_sams = total_tract_marital *)
 #      pivot_wider(names_from = "race",names_prefix = "race_",values_from = total_tract_race) %>%
 #      mutate(new_number_sams_calc = (total_tract_marital/total_tract_pop)*number_sams,
 #             new_number_sams = case_when(new_number_sams_calc<1 ~ 1000) #sample(c(0:1),c(1-new_number_sams_calc,new_number_sams_calc))
