@@ -3,6 +3,8 @@ source("BaseScripts/basesam.R")
 
 # before we get started, setup directories and parameters
 housingdir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/HCAD/" 
+#housingdir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/HCAD/" #Dan at home
+#housingdir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/HCAD/" #Dan at work
 censusdir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/Census/"
 #censusdir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/Census/" #Dan at home
 #censusdir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/Census/" #Dan at work
