@@ -99,39 +99,33 @@ createIndividuals <- function() {
                                         str_detect(part3,"Divorced") ~ part3,
                                         str_detect(part4,"Divorced") ~ part4
              )
-      ) %>% #instead of trying to find places where they give totals, find only ones we want and count ourselves
+      ) %>% 
       
       filter(!is.na(marital_status)) %>%
       select(-starts_with("part"),-concept) 
     
+    sample(c('allpossibleoptionsforcharacteristics'),totalpop_tract,c(probsforeachpossibleoption))
+    
     marital_status_data <- marital_status_data_named %>%
       group_by(tract,race) %>%
-      mutate(tract_race = if_else(race!="_",sum(number_sams),0)
+      mutate(tract_race = if_else(race!="_",sum(number_sams),0),
+             sum_tract_race = sum(tract_race, na.rm = T)
              ) %>%
       ungroup() %>%
       group_by(tract,sex,race,marital_status,spouse_present, .drop=T) %>% 
       mutate(tract_marital = number_sams) %>% # if_else(!is.na(age_range),number_sams,0),
-              #if you use number_sams for pivot_wider, it goes away?
-      #mutate(tract_marital_sum = sum(tract_marital,na.rm = T),
-      #       tract_race_sum = sum(tract_race,na.rm = T)) %>%
-      #ungroup() %>%
-      #group_by(tract,age_range) %>%
-      #group_by(tract,sex,age_range,marital_status,spouse_present) %>%
-      #mutate(sum = sum(number_sams)) %>%
- #     add_tally(number_sams,name = "new_sam") %>%
-      pivot_wider(names_from = age_range,values_from = number_sams,names_prefix = "age_") %>%
-#      mutate(other_num_sams = case_when(!is.na(starts_with("age_")) ~ number_sams)) %>%
-      pivot_longer(starts_with("age_"),names_to = "ages", values_to = "new_number_sams") %>%
       ungroup() %>%
-      group_by(tract,sex,ages) %>%
-      mutate(tract_age = sum(new_number_sams,na.rm = T),
+      group_by(tract,sex,age_range) %>%
+      mutate(tract_age = sum(number_sams,na.rm = T),
              ) %>%
-      filter(ages!="age_NA",race %in% acs_race_codes) %>%
+ #     filter(race %in% acs_race_codes) %>%
       ungroup() %>%
       group_by(tract) %>%
       mutate(
-             percent_race = tract_race/total_tract_pop,
-             percent_age = tract_age/total_tract_pop,
+             tract_race_sum = sum(tract_race, na.rm = T),
+             tract_age_sum = sum(tract_age, na.rm = T),
+             percent_race = sum_tract_race/total_tract_pop,
+             percent_age = tract_age_sum/total_tract_pop,
              percent_marital = tract_marital/total_tract_pop,
              final_sams = round(percent_age*percent_race*total_tract_pop)
              ) %>%
@@ -191,9 +185,9 @@ base_group_quarters_data <- group_quarters_data_from_census %>%
   filter(number_sams!=0)
 
 
-pregnancy_data_age_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
+pregnancy_data_race_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
 
-pregnancy_data <- pregnancy_data_age_marriage_from_census %>%
+pregnancy_data <- pregnancy_data_race_marriage_from_census %>%
   mutate(sex="Female",label = str_remove_all(label,"Estimate!!Total!!")) %>% 
   filter(substr(name,7,7) %in% acs_race_codes) %>%
   mutate(race = substr(name,7,7)) %>%
