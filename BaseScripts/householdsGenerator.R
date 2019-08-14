@@ -99,7 +99,7 @@ createIndividuals <- function() {
       filter(!is.na(marital_status)) %>%
       select(-starts_with("part"),-concept) 
     
-    marital_status_data <- marital_status_data_named %>%
+    marital_status_data <- test %>% # marital_status_data_named %>%
       
       group_by(tract,race) %>%
       mutate(tract_race = if_else(is.na(age_range),sum(number_sams),0)
@@ -128,12 +128,14 @@ createIndividuals <- function() {
       mutate(total_tract_pop = sum(number_sams),
              percent_race = tract_race/total_tract_pop,
              percent_age = tract_age/total_tract_pop,
+             percent_marital = tract_marital/total_tract_pop,
              final_sams = round(percent_age*percent_race*tract_marital*total_tract_pop)
              ) %>%
       ungroup() # %>%
 #      filter(race %in% acs_race_codes) # %>%
 #      mutate(number_sams = tract_marital) 
     
+  
 # should be: 3494885
 test_total_num <- uncount(marital_status_data,final_sams,.id = "individual_id")
       
