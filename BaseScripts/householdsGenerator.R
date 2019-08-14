@@ -133,7 +133,7 @@ createIndividuals <- function() {
              percent_race = tract_race/total_tract_pop,
              percent_age = tract_age/total_tract_pop,
              percent_marital = tract_marital/total_tract_pop,
-             final_sams = round(percent_age*percent_race*percent_marital*total_tract_pop*tract_marital)
+             final_sams = round(percent_age*percent_race*total_tract_pop)
              ) %>%
       ungroup() # %>%
 #      filter(race %in% acs_race_codes) # %>%
