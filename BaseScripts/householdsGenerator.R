@@ -74,9 +74,13 @@ createIndividuals <- function() {
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
     
     marital_status_data_named <-  marital_status_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      mutate(race = substr(name,7,7)) %>%
+      
       pivot_longer(4:ncol(marital_status_data_from_census),names_to = "tract", values_to = "number_sams") %>%
+      group_by(tract) %>%
+      mutate(race = substr(name,7,7),
+             tract_pop = if_else(race=="_" & label == "Estimate!!Total",number_sams,0),
+             label = str_remove_all(label,"Estimate!!Total!!"),
+             total_tract_pop = sum(tract_pop)) %>%
       separate(label, into = c("sex", "part2", "part3", "part4","part5"), sep = "!!", remove = T) %>%  #remove = F started throwing errors, but after using it for a long time!!!
       mutate(age_range = case_when(str_detect(part2, "year") ~ part2,
                                    str_detect(part3, "year") ~ part3,
@@ -96,26 +100,26 @@ createIndividuals <- function() {
                                         str_detect(part4,"Divorced") ~ part4
              )
       ) %>% #instead of trying to find places where they give totals, find only ones we want and count ourselves
+      
       filter(!is.na(marital_status)) %>%
       select(-starts_with("part"),-concept) 
     
-    marital_status_data <- test %>% # marital_status_data_named %>%
-      
+    marital_status_data <- marital_status_data_named %>%
       group_by(tract,race) %>%
-      mutate(tract_race = if_else(is.na(age_range),sum(number_sams),0)
+      mutate(tract_race = if_else(race!="_",sum(number_sams),0)
              ) %>%
       ungroup() %>%
       group_by(tract,sex,race,marital_status,spouse_present, .drop=T) %>% 
       mutate(tract_marital = number_sams) %>% # if_else(!is.na(age_range),number_sams,0),
               #if you use number_sams for pivot_wider, it goes away?
-      mutate(tract_marital_sum = sum(tract_marital,na.rm = T),
-             tract_race_sum = sum(tract_race,na.rm = T)) %>%
-      ungroup() %>%
+      #mutate(tract_marital_sum = sum(tract_marital,na.rm = T),
+      #       tract_race_sum = sum(tract_race,na.rm = T)) %>%
+      #ungroup() %>%
       #group_by(tract,age_range) %>%
-      group_by(tract,sex,age_range,marital_status,spouse_present) %>%
-      mutate(sum = sum(number_sams)) %>%
+      #group_by(tract,sex,age_range,marital_status,spouse_present) %>%
+      #mutate(sum = sum(number_sams)) %>%
  #     add_tally(number_sams,name = "new_sam") %>%
-      pivot_wider(names_from = age_range,values_from = sum,names_prefix = "age_") %>%
+      pivot_wider(names_from = age_range,values_from = number_sams,names_prefix = "age_") %>%
 #      mutate(other_num_sams = case_when(!is.na(starts_with("age_")) ~ number_sams)) %>%
       pivot_longer(starts_with("age_"),names_to = "ages", values_to = "new_number_sams") %>%
       ungroup() %>%
@@ -125,11 +129,11 @@ createIndividuals <- function() {
       filter(ages!="age_NA",race %in% acs_race_codes) %>%
       ungroup() %>%
       group_by(tract) %>%
-      mutate(total_tract_pop = sum(number_sams),
+      mutate(
              percent_race = tract_race/total_tract_pop,
              percent_age = tract_age/total_tract_pop,
              percent_marital = tract_marital/total_tract_pop,
-             final_sams = round(percent_age*percent_race*tract_marital*total_tract_pop)
+             final_sams = round(percent_age*percent_race*percent_marital*total_tract_pop*tract_marital)
              ) %>%
       ungroup() # %>%
 #      filter(race %in% acs_race_codes) # %>%
