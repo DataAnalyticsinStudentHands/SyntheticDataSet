@@ -67,7 +67,7 @@ createIndividuals <- function() {
       ) %>%
       filter(number_sams!=0) # %>%
     #for testing purposes:
-     test_total_num <- uncount(number_sams,.id = "individual_id") # for testing purposes - should equal 4525519 per B10001 row 166 total
+     test_total_num <- uncount(sex_by_age_race_data,number_sams,.id = "individual_id") # for testing purposes - should equal 4525519 per B10001 row 166 total
     #sum(sex_by_age_race_data$hispanic) = 1910672 - need to compare with excel row 222, which has 1910535; did some random tweaks...
     
     #get marriage data
