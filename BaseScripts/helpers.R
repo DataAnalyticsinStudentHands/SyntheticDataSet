@@ -21,26 +21,36 @@ assign_factors_to_expand <- function(df, factors, factor_name){
 }
 
 df <- marital_status_data_from_census #test throughout... I think the only ones that have 4 factors that aren't race are NA files
+#has to start label with Estimate!!Total - the others aren't counts of individuals and have to be interpreted
 test <- df %>% 
-  separate(concept,into=c('factor1','factor2','factor3','factor4','factor5'),sep = c(" BY | FOR ")) %>%
+  mutate(concept=str_replace(concept,"NUMBER OF","number_of")) %>%
+  separate(concept,into=c('factor1','factor2','factor3','factor4','factor5'),sep = c(" BY | FOR | OF")) %>% #then add back where it says number_of_people? or transform first??
   #  rename_at(.,c('factor2'),list( ~str_replace(tolower(min(unique(.['factor2']))),' ','_'))) #not sure why it's fighting me
   rowwise() %>%
-  mutate(factor1_name=str_replace_all(tolower(min(unique(.$'factor1'),na.rm = T)),' ','_'),
+  mutate(race = case_when(max(nchar(name))==12 ~ substr(name,7,7),
+                          TRUE ~ 'none'),
+         factor1_name=str_replace_all(tolower(min(unique(.$'factor1'),na.rm = T)),' ','_'),
          factor2_name=str_replace_all(tolower(min(unique(.$'factor2'),na.rm = T)),' ','_'),
          factor3_name=str_replace_all(tolower(min(unique(.$'factor3'),na.rm = T)),' ','_'),
          str_length = length(str_split(label,'!!')[[1]]),
+         #if we start with length = 2 and race != 'none' - that's a total; then get race and 2; then get 3 (but check for 4?), etc?
+         level=case_when(
+           str_length == 2 & race == 'none' ~ 'full_total',
+           str_length == 2 & race != 'none' ~ paste0(race,'_total',sep=''),
+           str_length == 3 & is.na(factor2) ~ paste0(factor2,'_total',sep='') #what to do if concept doesn't divide properly
+         )
          str_length2 = if_else(str_length>5,as.numeric(str_length),as.numeric(5)),
          factor1 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2-2]),' ','_'),
          factor2 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2-1]),' ','_'),
          factor3 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2]),' ','_'),
-         race = case_when(max(nchar(name))==12 ~ substr(name,7,7),
-                          TRUE ~ 'none')
+         
          ) # %>%
   
   
 test2 <- df %>%
   separate(concept,into=c('factor1','factor2','factor3','factor4','factor5'),sep = c(" BY | FOR ")) %>%
   rowwise() %>%
+  
   mutate(
     factor5=
       if_else(
