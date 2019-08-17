@@ -24,35 +24,49 @@ df <- marital_status_data_from_census #test throughout... I think the only ones 
 #has to start label with Estimate!!Total - the others aren't counts of individuals and have to be interpreted
 test <- df %>% 
   mutate(concept=str_replace(concept,"NUMBER OF","number_of")) %>%
-  separate(concept,into=c('factor1','factor2','factor3','factor4','factor5'),sep = c(" BY | FOR | OF")) %>% #then add back where it says number_of_people? or transform first??
-  #  rename_at(.,c('factor2'),list( ~str_replace(tolower(min(unique(.['factor2']))),' ','_'))) #not sure why it's fighting me
+  separate(concept,into=c('factor1','factor2','factor3','factor4','factor5'),sep = c(" BY | FOR | OF ")) %>% # | \\(")) %>% #for race names
   rowwise() %>%
   mutate(race = case_when(max(nchar(name))==12 ~ substr(name,7,7),
                           TRUE ~ 'none'),
+         last_col = if_else(
+           !is.na(min(unique(.$factor5),na.rm = T)), #this gives a warning and returns na - which is ugly...
+              min(unique(.$'factor5'),na.rm = T), #str_replace_all(tolower(min(unique(.$'factor5'),na.rm = T)),' ','_'),
+           if_else(
+              !is.na(min(unique(.$factor4),na.rm = T)),
+              min(unique(.$'factor4'),na.rm = T), #str_replace_all(tolower(min(unique(.$'factor4'),na.rm = T)),' ','_'),
+              min(unique(.$'factor3'),na.rm = T)# str_replace_all(tolower(min(unique(.$'factor3'),na.rm = T)),' ','_')
+            )
+         ),
          factor1_name=str_replace_all(tolower(min(unique(.$'factor1'),na.rm = T)),' ','_'),
          factor2_name=str_replace_all(tolower(min(unique(.$'factor2'),na.rm = T)),' ','_'),
          factor3_name=str_replace_all(tolower(min(unique(.$'factor3'),na.rm = T)),' ','_'),
+         factor4_name=if_else(last_col != factor3_name,str_replace_all(tolower(min(unique(.$'factor4'),na.rm = T)),' ','_'),'none'),
+         factor5_name=if_else(last_col != factor4_name,str_replace_all(tolower(min(unique(.$'factor5'),na.rm = T)),' ','_'),'none'),
          str_length = length(str_split(label,'!!')[[1]]),
          #if we start with length = 2 and race != 'none' - that's a total; then get race and 2; then get 3 (but check for 4?), etc?
          level=case_when(
            str_length == 2 & race == 'none' ~ 'full_total',
            str_length == 2 & race != 'none' ~ paste0(race,'_total',sep=''),
-           str_length == 3 & is.na(factor2) ~ paste0(factor2,'_total',sep='') #what to do if concept doesn't divide properly
-         )
+           str_length == 3 & race == 'none' & is.na(factor4) ~ paste0(tolower(factor1),'_full_total',sep=''),
+           str_length == 3 & race != 'none' & is.na(factor4) ~ paste0(tolower(factor1),'_total',sep=''), 
+           str_length == 4 & is.na(factor5) ~ paste0(tolower(factor2),'_total',sep=''),
+           str_length >= 5 ~ paste0(tolower(factor3),'_total',sep='')
+         ),
          str_length2 = if_else(str_length>5,as.numeric(str_length),as.numeric(5)),
-         factor1 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2-2]),' ','_'),
-         factor2 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2-1]),' ','_'),
-         factor3 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2]),' ','_'),
+         factor1_2 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2-2]),' ','_'),
+         factor2_2 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2-1]),' ','_'),
+         factor3_2 = str_replace_all(tolower(str_split(label,'!!')[[1]][str_length2]),' ','_'),
          
          ) # %>%
   
   
 test2 <- df %>%
-  separate(concept,into=c('factor1','factor2','factor3','factor4','factor5'),sep = c(" BY | FOR ")) %>%
+  mutate(concept=str_replace(concept,"NUMBER OF","number_of")) %>% #because they aren't consistent with OF
+  separate(concept,into=c('factor1','factor2','factor3','factor4','factor5'),sep = c(" BY | FOR | OF ")) %>% # | \\(")) %>% #for race names
   rowwise() %>%
   
   mutate(
-    factor5=
+    factor5_val=
       if_else(
         is.na(factor5) & !is.na(str_split(label,'!!')[[1]][7]), str_replace_all(tolower(str_split(label,'!!')[[1]][7]),' ','_'),'no_label'
     ),
@@ -60,7 +74,7 @@ test2 <- df %>%
       if_else(
         is.na(factor5), 'none', str_replace_all(tolower(min(unique(.$'factor5'),na.rm = T)),' ','_')
     ),
-    factor4=
+    factor4_val=
       if_else(
         is.na(factor4) & !is.na(str_split(label,'!!')[[1]][6]), str_replace_all(tolower(str_split(label,'!!')[[1]][6]),' ','_'),
         if_else( #nested on condition neg
