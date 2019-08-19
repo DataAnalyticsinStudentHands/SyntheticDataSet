@@ -161,16 +161,16 @@ createIndividuals <- function() {
     sam_marital_age_race <- left_join(sam_sex_race_age,marital_status_age_race_combinations,by=c("tract","sex","age"),suffix=c("_sam","_marital")) %>%
       filter(tract_marital_sex_race>0 & tract_marital_sex_year>0 & total_tract_pop_race>0)
     
-      test <- sam_marital_age_race %>%
+      test3 <- sam_marital_age_race %>%
       mutate(
         number_sams = if_else(number_sams_age>number_sams_race,number_sams_age,number_sams_race),
         prob = tract_marital_sex_race*tract_marital_sex_year*total_tract_pop_race,
         prob = if_else(prob>1,1,prob),
-        prob3 = age_number_sams*race_number_sams*number_sams_age,
+        prob3 = age_number_sams*race_number_sams*number_sams,
         prob_cut = if_else(1-prob3>0 & 1-prob3<1,1-prob3,0.000000001),
         cull = if_else(prob3>0 & prob3<1 & !is.na(prob3),sample(c("keep","cut"),1,c(prob3,prob_cut),replace = FALSE),"cut")
-        ) %>%
-      filter(cull=="keep")
+        )# %>%
+      #filter(cull=="keep")
       
 
 #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
