@@ -159,7 +159,7 @@ createIndividuals <- function() {
     marital_status_age_race_combinations <- left_join(marital_status_data_age,marital_status_data_race,by=c("tract","sex","age","marital_status","spouse_present"),suffix=c("_age","_race"))
       
     sam_marital_age_race <- left_join(sam_sex_race_age,marital_status_age_race_combinations,by=c("tract","sex","age"),suffix=c("_sam","_marital")) #%>%
-      #filter(tract_marital_sex_race>0 & tract_marital_sex_year>0 & total_tract_pop_race>0)
+      filter(tract_marital_sex_race>0 & tract_marital_sex_year>0 & total_tract_pop_race>0)
     
       test <- sam_marital_age_race %>%
       mutate(
