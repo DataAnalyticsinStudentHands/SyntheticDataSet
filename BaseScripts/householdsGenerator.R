@@ -140,7 +140,7 @@ createIndividuals <- function() {
       mutate(
         tract_marital_sex_age = sum(number_sams/total_tract_pop),
         tract_marital_sex_year = tract_marital_sex_age/age_range_length,
-        age_number_sams <- 1/(number_sams*age_range_length)) %>%
+        age_number_sams = 1/(number_sams*age_range_length)) %>%
       uncount(age_range_length,.id="age_") %>%
 #      uncount(length(acs_race_codes),.id = "race_") %>%
       mutate(age=first_age+age_) %>%
@@ -151,14 +151,14 @@ createIndividuals <- function() {
     marital_status_data_race <- marital_status_data_named %>%
       group_by(tract,sex,race,marital_status,spouse_present, .drop=T) %>% 
       mutate(tract_marital_sex_race = number_sams/total_tract_pop,
-             race_number_sams <- 1/number_sams) %>% # if_else(!is.na(age_range),number_sams,0),
+             race_number_sams = 1/number_sams) %>% # if_else(!is.na(age_range),number_sams,0),
       filter(race %in% acs_race_codes) %>%
       uncount(95,.id = "age") %>%
       ungroup() 
     
     marital_status_age_race_combinations <- left_join(marital_status_data_age,marital_status_data_race,by=c("tract","sex","age","marital_status","spouse_present"),suffix=c("_age","_race"))
       
-    sam_marital_age_race <- left_join(sam_sex_race_age,marital_status_age_race_combinations,by=c("tract","sex","age"),suffix=c("_sam","_marital")) #%>%
+    sam_marital_age_race <- left_join(sam_sex_race_age,marital_status_age_race_combinations,by=c("tract","sex","age"),suffix=c("_sam","_marital")) %>%
       filter(tract_marital_sex_race>0 & tract_marital_sex_year>0 & total_tract_pop_race>0)
     
       test <- sam_marital_age_race %>%
@@ -166,12 +166,11 @@ createIndividuals <- function() {
         number_sams = if_else(number_sams_age>number_sams_race,number_sams_age,number_sams_race),
         prob = tract_marital_sex_race*tract_marital_sex_year*total_tract_pop_race,
         prob = if_else(prob>1,1,prob),
-        prob_cut = if_else(1-prob>0 & 1-prob<1,1-prob,0.000000001),
-        cull = if_else(prob>0 & prob<1 & !is.na(prob),sample(c("keep","cut"),1,c(prob,prob_cut),replace = FALSE),"cut"),
-        prob2 = age_number_sams*number_sams_race*number_sams_age,
-        prob3 = age_number_sams*race_number_sams*number_sams_age
-        ) # %>%
-      #filter(cull=="keep")
+        prob3 = age_number_sams*race_number_sams*number_sams_age,
+        prob_cut = if_else(1-prob3>0 & 1-prob3<1,1-prob3,0.000000001),
+        cull = if_else(prob3>0 & prob3<1 & !is.na(prob3),sample(c("keep","cut"),1,c(prob3,prob_cut),replace = FALSE),"cut")
+        ) %>%
+      filter(cull=="keep")
       
 
 #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
