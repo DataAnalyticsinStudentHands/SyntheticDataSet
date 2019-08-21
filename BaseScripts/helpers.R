@@ -88,6 +88,24 @@ test2 <- df %>%
   )
   #tell if it has a race, get totals by each and then do the separation with the uncount
 
+test <- df %>% 
+  #mutate(concept=str_replace(concept,"NUMBER OF","number_of")) %>%
+  #separate(concept,into=c('factor1','factor2','factor3','factor4','factor5','factor6'),sep = c(" BY | FOR | OF ")) %>% 
+  separate(label,into = c('cat1','cat2','cat3','cat4','cat5','cat6'),sep = "!!") %>%
+#  rowwise() %>%
+  mutate(race = case_when(max(nchar(name))==12 ~ substr(name,7,7),
+                          TRUE ~ '_none')
+  ) %>%
+  #arrange(race,label) %>%
+  filter(!min(unique(.$'cat3'),na.rm = T)==cat3 & min(unique(.$'cat4'),na.rm = T)==cat4)
+
+      
+for(row in 1:nrow(test)){
+  print(test[row])
+}
+
+
+
 
 
 # This function numbers the rows in the model by powers of ten
