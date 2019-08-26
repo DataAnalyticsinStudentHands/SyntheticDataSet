@@ -113,9 +113,12 @@ createIndividuals <- function() {
              spouse_present = case_when(str_detect(part2, "spouse") ~ part2,
                                         str_detect(part3, "spouse") ~ part3,
                                         str_detect(part4, "spouse") ~ part4),
-             marital_status = case_when(str_detect(part2,"married") ~ part2, 
-                                        str_detect(part3,"married") ~ part3,
-                                        str_detect(part4,"married") ~ part4,
+             marital_status = case_when(str_detect(part2,"Never married") ~ part2, 
+                                        str_detect(part3,"Never married") ~ part3,
+                                        str_detect(part4,"Never married") ~ part4,
+                                        part2 == "Now married" ~ part2, 
+                                        part3 == "Now married" ~ part3,
+                                        part4 == "Now married" ~ part4,
                                         str_detect(part2,"Widowed") ~ part2,
                                         str_detect(part3,"Widowed") ~ part3,
                                         str_detect(part4,"Widowed") ~ part4,
@@ -125,10 +128,13 @@ createIndividuals <- function() {
              )
       ) %>% 
       filter(!is.na(marital_status)) %>%
+      filter(race %in% c(acs_race_codes, "_")) %>%
       select(-starts_with("part"),-concept,-tract_pop) 
-
     
-    marital_status_data_age <- marital_status_data_named %>%
+    
+    
+    #create percentages for marital status/spouse present by age
+    marital_status_data_age <- marital_status_data %>%
       filter(!is.na(age_range)) %>%
       mutate(
         age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
@@ -136,32 +142,43 @@ createIndividuals <- function() {
         first_age = as.numeric(substr(age_range,1,2)),
         last_age = as.numeric(substr(age_range,7,8)),
         age_range_length = last_age-first_age+1) %>%
-      group_by(tract,sex,age_range,marital_status,spouse_present, .drop=T) %>%
+        group_by(tract,sex,age_range,marital_status,spouse_present, .drop=T) %>%
       mutate(
-        tract_marital_sex_age = sum(number_sams/total_tract_pop),
-        tract_marital_sex_year = tract_marital_sex_age/age_range_length,
-        age_number_sams = 1/(number_sams*age_range_length)) %>%
-      uncount(age_range_length,.id="age_") %>%
-#      uncount(length(acs_race_codes),.id = "race_") %>%
-      mutate(age=first_age+age_) %>%
-      ungroup() %>%
-      select(-first_age,-last_age,-tract_marital_sex_age, -race, -age_range)
-#for each age, it has: sex, spouse_present, marital_status    
-
-    marital_status_data_race <- marital_status_data_named %>%
-      group_by(tract,sex,race,marital_status,spouse_present, .drop=T) %>% 
-      mutate(tract_marital_sex_race = number_sams/total_tract_pop,
-             race_number_sams = 1/number_sams) %>% # if_else(!is.na(age_range),number_sams,0),
-      filter(race %in% acs_race_codes) %>%
-      uncount(95,.id = "age") %>%
-      ungroup() 
+        tract_marital_sex_age = sum(number_sams/total_tract_pop)) #%>%
+    #  tract_marital_sex_year = tract_marital_sex_age/age_range_length,
+    # age_number_sams = 1/(number_sams*age_range_length))
+    #%>%
+    # uncount(age_range_length,.id="age_") %>%
+    #      uncount(length(acs_race_codes),.id = "race_") %>%
+    # mutate(age=first_age+age_) 
+    #%>%
+    #ungroup() %>%
+    #select(-first_age,-last_age,-tract_marital_sex_age, -race, -age_range)
+    #for each age, it has: sex, spouse_present, marital_status    
     
-    marital_status_age_race_combinations <- left_join(marital_status_data_age,marital_status_data_race,by=c("tract","sex","age","marital_status","spouse_present"),suffix=c("_age","_race"))
+    #create percentages for marital status/spouse present by race
+    marital_status_data_race <- marital_status_data %>%
+      filter(race %in% acs_race_codes) %>%
+      group_by(tract,sex,race,marital_status,spouse_present, .drop=T) %>% 
+      mutate(tract_marital_sex_race = number_sams/total_tract_pop)
+    #      race_number_sams = 1/number_sams) 
+    %>% # if_else(!is.na(age_range),number_sams,0),
+      # filter(race %in% acs_race_codes) %>%
+      #uncount(95,.id = "age") %>%
+      #ungroup() 
       
-    sam_marital_age_race <- left_join(sam_sex_race_age,marital_status_age_race_combinations,by=c("tract","sex","age"),suffix=c("_sam","_marital")) %>%
+      #join for marital status/spouse present by race_age
+      marital_status_age_race_combinations <- marital_status_data_race %>%
+      left_join(marital_status_data_age,by=c("tract","sex", "marital_status"),suffix=c("_race","_age")) 
+    
+    
+    ########Peggy stopped here, need to think about creating age_range_thatfitsmaritaldata column in sam_sex_race_age before moving to next step
+      
+    
+    sam_marital_age_race <- left_join(sam_sex_race_age,marital_status_age_race_combinations,by=c("tract","sex","age_range"),suffix=c("_sam","_marital")) %>%
       filter(tract_marital_sex_race>0 & tract_marital_sex_year>0 & total_tract_pop_race>0)
     
-      test3 <- sam_marital_age_race %>%
+    test3 <- sam_marital_age_race %>%
       mutate(
         number_sams = if_else(number_sams_age>number_sams_race,number_sams_age,number_sams_race),
         prob = tract_marital_sex_race*tract_marital_sex_year*total_tract_pop_race,
@@ -169,123 +186,123 @@ createIndividuals <- function() {
         prob3 = age_number_sams*race_number_sams*number_sams,
         prob_cut = if_else(1-prob3>0 & 1-prob3<1,1-prob3,0.000000001),
         cull = if_else(prob3>0 & prob3<1 & !is.na(prob3),sample(c("keep","cut"),1,c(prob3,prob_cut),replace = FALSE),"cut")
-        )# %>%
-      #filter(cull=="keep")
-      
-
-#make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
-#very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
-#biggest thing to worry about is inmate population; other GC are not large, as far as I can tell
-group_quarters_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26001")
-
-base_group_quarters_data <- group_quarters_data_from_census %>%
-  pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_GQ") %>%
-  full_join(.,base_married,by = "tract") %>%
-  mutate(
-    number_sams_GQ = 
-      case_when(age_range=="18 and 19 years" ~ as.integer(as.integer(number_sams_GQ) * .02), #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-                age_range=="20 to 24 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
-                age_range=="25 to 29 years" ~ as.integer(as.integer(number_sams_GQ) * .13),
-                age_range=="30 to 34 years" ~ as.integer(as.integer(number_sams_GQ) * .18),
-                age_range=="35 to 39 years" ~ as.integer(as.integer(number_sams_GQ) * .19),
-                age_range=="40 to 44 years" ~ as.integer(as.integer(number_sams_GQ) * .18),
-                age_range=="35 to 44 years" ~ as.integer(as.integer(number_sams_GQ) * .18), #not consistent use in marriage; fix by age later
-                age_range=="45 to 49 years" ~ as.integer(as.integer(number_sams_GQ) * .12),
-                age_range=="45 to 54 years" ~ as.integer(as.integer(number_sams_GQ) * .11),
-                age_range=="55 to 59 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
-                age_range=="55 to 64 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
-                age_range=="50 to 54 years" ~ as.integer(as.integer(number_sams_GQ) * .08))
-  ) %>% 
-  mutate(number_sams_GQ = 
-           case_when(sex=="Male" ~ as.integer(number_sams_GQ * .93), #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-                     sex=="Female" ~ as.integer(number_sams_GQ * .07)),
-         percent_GQ = as.integer(number_sams_GQ/tract_total) #almost always 0
-  ) %>%
-  uncount(2,.id="group_quarter") %>%
-  mutate(number_sams = 
-           case_when(
-             group_quarter == 2 & is.na(number_sams_GQ) ~ as.integer(0),
-             group_quarter == 1 & is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_base),
-             group_quarter == 1 & !is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_GQ * (1-percent_GQ)),
-             group_quarter == 1 & !is.na(number_sams_GQ) & !is.na(number_sams_married) ~ as.integer(number_sams_married * (1-percent_GQ)),
-             group_quarter == 2 & !is.na(number_sams_GQ) & !is.na(number_sams_married) ~ as.integer(number_sams_married * percent_GQ),
-             group_quarter == 1 & !is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_GQ *percent_GQ)
-           )
-  ) %>%
-  filter(number_sams!=0)
-
-
-pregnancy_data_race_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
-
-pregnancy_data <- pregnancy_data_race_marriage_from_census %>%
-  mutate(sex="Female",label = str_remove_all(label,"Estimate!!Total!!")) %>% 
-  filter(substr(name,7,7) %in% acs_race_codes) %>%
-  mutate(race = substr(name,7,7)) %>%
-  pivot_longer(4:ncol(pregnancy_data_age_marriage_from_census),names_to = "tract", values_to = "number_sams") %>%
-  filter(number_sams != 0 & lengths(str_split(label,"!!"))>1) %>% #still have estimate!!total, but not for did/didn't have birth in last 12months
-  separate(label, into = c("birth","marital_status", "age_range"), sep = "!!", remove = F) %>%
-  rename(census_group_name = name) %>%
-  select(-concept) %>%
-  mutate(B_tract = if_else(birth == "Estimate" & race == "B", as.integer(number_sams), as.integer(0)),
-         C_tract = if_else(birth == "Estimate" & race == "C", as.integer(number_sams), as.integer(0)),
-         D_tract = if_else(birth == "Estimate" & race == "E", as.integer(number_sams), as.integer(0)),
-         E_tract = if_else(birth == "Estimate" & race == "E", as.integer(number_sams), as.integer(0)),
-         F_tract = if_else(birth == "Estimate" & race == "F", as.integer(number_sams), as.integer(0)),
-         G_tract = if_else(birth == "Estimate" & race == "G", as.integer(number_sams), as.integer(0)),
-         H_tract = if_else(birth == "Estimate" & race == "H", as.integer(number_sams), as.integer(0)),
-         I_tract = if_else(birth == "Estimate" & race == "I", as.integer(number_sams), as.integer(0)),
-         tract_total = if_else(birth == "Estimate" & race == "_", as.integer(number_sams), as.integer(0))) %>%
-  group_by(tract) %>%
-  mutate(B_total = sum(B_tract),
-         C_total = sum(C_tract),
-         D_total = sum(D_tract),
-         E_total = sum(E_tract),
-         F_total = sum(F_tract),
-         G_total = sum(G_tract),
-         H_total = sum(H_tract),
-         I_total = sum(I_tract),
-         trac_total = sum(tract_total),
-         B = as.integer(number_sams *(B_total/trac_total)),
-         C = as.integer(number_sams *(C_total/trac_total)),
-         D = as.integer(number_sams *(D_total/trac_total)),
-         E = as.integer(number_sams *(E_total/trac_total)),
-         F = as.integer(number_sams *(F_total/trac_total)),
-         G = as.integer(number_sams *(G_total/trac_total)),
-         H = as.integer(number_sams *(H_total/trac_total)),
-         I = as.integer(number_sams *(I_total/trac_total))
-  ) %>%
-  select(-ends_with("_total"),-ends_with("_tract")) %>%
-  pivot_longer(c("B","C","D","E","F","G","H","I"),names_to = "race_p",values_to = "new_numbers_sam") %>%
-  select(-number_sams, -race) %>%
-  rename(number_sams = new_numbers_sam,race = race_p) %>%
-  filter(!is.na(age_range) & birth!="Estimate" & number_sams!=0) %>%
-  ungroup()
-
-base_pregnant_join <- full_join(base_married, pregnancy_data,by=c("tract","sex","race","age_range","marital_status"),suffix = c("_base2", "_pregnant"))  
-
-base_pregnant <- base_pregnant_join %>%
-  mutate(number_sams= if_else(is.na(number_sams_pregnant),number_sams_base,number_sams_pregnant))
-
-#now expand on each row that doesn't have a total
-test <- uncount(base_group_quarters_data,base_group_quarters_data$number_sams,.id="ind_id") #have to do below for individual ids to work across all
-test2 <- uncount(base_married,base_married$number_sams,.id="ind_id") #test has 3,627,000 - have to think through a bit more....     
-test3 <- uncount(base_pregnant,base_pregnant$number_sams[1],.id="ind_id") ##invalid times argument????
-
-#add individual ids
-sam_residents <- sams_ready %>%
-  group_by(tract) %>%
-  mutate(
-    individual_id = paste0(tract,'_',rep(1:n())+1000000)
-  ) %>%
-  select(individual_id, everything())
-
-#test2 <- left_join(census_data,married_data,by=c("tract","sex","race","age_range"))
-#have to walk the rows in the full_expanded sam, and sample based on these same matches - that should be generalizable, though
-
-
-
-#saveRDS(citizen_data,paste0(censusDataDirectory,"citizen_data_7-25.RDS"))  #4,693,483 (4,653,000 official)
-
+      )# %>%
+    #filter(cull=="keep")
+    
+    
+    #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
+    #very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
+    #biggest thing to worry about is inmate population; other GC are not large, as far as I can tell
+    group_quarters_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26001")
+    
+    base_group_quarters_data <- group_quarters_data_from_census %>%
+      pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_GQ") %>%
+      full_join(.,base_married,by = "tract") %>%
+      mutate(
+        number_sams_GQ = 
+          case_when(age_range=="18 and 19 years" ~ as.integer(as.integer(number_sams_GQ) * .02), #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
+                    age_range=="20 to 24 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
+                    age_range=="25 to 29 years" ~ as.integer(as.integer(number_sams_GQ) * .13),
+                    age_range=="30 to 34 years" ~ as.integer(as.integer(number_sams_GQ) * .18),
+                    age_range=="35 to 39 years" ~ as.integer(as.integer(number_sams_GQ) * .19),
+                    age_range=="40 to 44 years" ~ as.integer(as.integer(number_sams_GQ) * .18),
+                    age_range=="35 to 44 years" ~ as.integer(as.integer(number_sams_GQ) * .18), #not consistent use in marriage; fix by age later
+                    age_range=="45 to 49 years" ~ as.integer(as.integer(number_sams_GQ) * .12),
+                    age_range=="45 to 54 years" ~ as.integer(as.integer(number_sams_GQ) * .11),
+                    age_range=="55 to 59 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
+                    age_range=="55 to 64 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
+                    age_range=="50 to 54 years" ~ as.integer(as.integer(number_sams_GQ) * .08))
+      ) %>% 
+      mutate(number_sams_GQ = 
+               case_when(sex=="Male" ~ as.integer(number_sams_GQ * .93), #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
+                         sex=="Female" ~ as.integer(number_sams_GQ * .07)),
+             percent_GQ = as.integer(number_sams_GQ/tract_total) #almost always 0
+      ) %>%
+      uncount(2,.id="group_quarter") %>%
+      mutate(number_sams = 
+               case_when(
+                 group_quarter == 2 & is.na(number_sams_GQ) ~ as.integer(0),
+                 group_quarter == 1 & is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_base),
+                 group_quarter == 1 & !is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_GQ * (1-percent_GQ)),
+                 group_quarter == 1 & !is.na(number_sams_GQ) & !is.na(number_sams_married) ~ as.integer(number_sams_married * (1-percent_GQ)),
+                 group_quarter == 2 & !is.na(number_sams_GQ) & !is.na(number_sams_married) ~ as.integer(number_sams_married * percent_GQ),
+                 group_quarter == 1 & !is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_GQ *percent_GQ)
+               )
+      ) %>%
+      filter(number_sams!=0)
+    
+    
+    pregnancy_data_race_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
+    
+    pregnancy_data <- pregnancy_data_race_marriage_from_census %>%
+      mutate(sex="Female",label = str_remove_all(label,"Estimate!!Total!!")) %>% 
+      filter(substr(name,7,7) %in% acs_race_codes) %>%
+      mutate(race = substr(name,7,7)) %>%
+      pivot_longer(4:ncol(pregnancy_data_age_marriage_from_census),names_to = "tract", values_to = "number_sams") %>%
+      filter(number_sams != 0 & lengths(str_split(label,"!!"))>1) %>% #still have estimate!!total, but not for did/didn't have birth in last 12months
+      separate(label, into = c("birth","marital_status", "age_range"), sep = "!!", remove = F) %>%
+      rename(census_group_name = name) %>%
+      select(-concept) %>%
+      mutate(B_tract = if_else(birth == "Estimate" & race == "B", as.integer(number_sams), as.integer(0)),
+             C_tract = if_else(birth == "Estimate" & race == "C", as.integer(number_sams), as.integer(0)),
+             D_tract = if_else(birth == "Estimate" & race == "E", as.integer(number_sams), as.integer(0)),
+             E_tract = if_else(birth == "Estimate" & race == "E", as.integer(number_sams), as.integer(0)),
+             F_tract = if_else(birth == "Estimate" & race == "F", as.integer(number_sams), as.integer(0)),
+             G_tract = if_else(birth == "Estimate" & race == "G", as.integer(number_sams), as.integer(0)),
+             H_tract = if_else(birth == "Estimate" & race == "H", as.integer(number_sams), as.integer(0)),
+             I_tract = if_else(birth == "Estimate" & race == "I", as.integer(number_sams), as.integer(0)),
+             tract_total = if_else(birth == "Estimate" & race == "_", as.integer(number_sams), as.integer(0))) %>%
+      group_by(tract) %>%
+      mutate(B_total = sum(B_tract),
+             C_total = sum(C_tract),
+             D_total = sum(D_tract),
+             E_total = sum(E_tract),
+             F_total = sum(F_tract),
+             G_total = sum(G_tract),
+             H_total = sum(H_tract),
+             I_total = sum(I_tract),
+             trac_total = sum(tract_total),
+             B = as.integer(number_sams *(B_total/trac_total)),
+             C = as.integer(number_sams *(C_total/trac_total)),
+             D = as.integer(number_sams *(D_total/trac_total)),
+             E = as.integer(number_sams *(E_total/trac_total)),
+             F = as.integer(number_sams *(F_total/trac_total)),
+             G = as.integer(number_sams *(G_total/trac_total)),
+             H = as.integer(number_sams *(H_total/trac_total)),
+             I = as.integer(number_sams *(I_total/trac_total))
+      ) %>%
+      select(-ends_with("_total"),-ends_with("_tract")) %>%
+      pivot_longer(c("B","C","D","E","F","G","H","I"),names_to = "race_p",values_to = "new_numbers_sam") %>%
+      select(-number_sams, -race) %>%
+      rename(number_sams = new_numbers_sam,race = race_p) %>%
+      filter(!is.na(age_range) & birth!="Estimate" & number_sams!=0) %>%
+      ungroup()
+    
+    base_pregnant_join <- full_join(base_married, pregnancy_data,by=c("tract","sex","race","age_range","marital_status"),suffix = c("_base2", "_pregnant"))  
+    
+    base_pregnant <- base_pregnant_join %>%
+      mutate(number_sams= if_else(is.na(number_sams_pregnant),number_sams_base,number_sams_pregnant))
+    
+    #now expand on each row that doesn't have a total
+    test <- uncount(base_group_quarters_data,base_group_quarters_data$number_sams,.id="ind_id") #have to do below for individual ids to work across all
+    test2 <- uncount(base_married,base_married$number_sams,.id="ind_id") #test has 3,627,000 - have to think through a bit more....     
+    test3 <- uncount(base_pregnant,base_pregnant$number_sams[1],.id="ind_id") ##invalid times argument????
+    
+    #add individual ids
+    sam_residents <- sams_ready %>%
+      group_by(tract) %>%
+      mutate(
+        individual_id = paste0(tract,'_',rep(1:n())+1000000)
+      ) %>%
+      select(individual_id, everything())
+    
+    #test2 <- left_join(census_data,married_data,by=c("tract","sex","race","age_range"))
+    #have to walk the rows in the full_expanded sam, and sample based on these same matches - that should be generalizable, though
+    
+    
+    
+    #saveRDS(citizen_data,paste0(censusDataDirectory,"citizen_data_7-25.RDS"))  #4,693,483 (4,653,000 official)
+    
   }
   
   return(sam_residents)
