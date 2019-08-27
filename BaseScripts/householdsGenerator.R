@@ -1,6 +1,7 @@
 library(tidyr)
 library(dplyr)
 library(stringr)
+library(data.table)
 
 #' createIndividuals
 #'
@@ -85,10 +86,47 @@ createIndividuals <- function() {
       ) %>%
       filter(number_sams!=0) %>%
       select(-hispanic_id,-hispanic_number,-white_hispanic,-ends_with("_tract_age"))
-    
+      
+      #expand into sam
       sam_sex_race_age <- uncount(sex_by_age_race_data,number_sams,.id = "sams_id") %>% # should equal 4525519 per B10001 row 166 total
         rowwise() %>%
-        mutate(age=as.numeric(sample(as.character(first_age:last_age),1,prob = rep(1/age_range_length,age_range_length),replace = FALSE)))
+        mutate(
+          age=as.numeric(sample(as.character(first_age:last_age),1,prob = rep(1/age_range_length,age_range_length),replace = FALSE))
+        )
+      #add age_range to work for merge with marital data, uses data.table to make this fast
+      sam_sex_race_age_DT <- as.data.table(sam_sex_race_age)
+      sam_sex_race_age_DT[, age_range_marital := c("NA",
+                             "15 to 17 years",
+                            "18 to 19 years",
+                            "20 to 24 years",
+                            "25 to 29 years",
+                            "30 to 34 years",
+                            "35 to 39 years",
+                            "40 to 44 years",
+                            "45 to 49 years",
+                            "50 to 54 years",
+                            "55 to 59 years",
+                            "60 to 64 years",
+                            "65 to 74 years",
+                            "75 to 84 years",
+                            "85 to 94 years")[1 +
+                               1 * (age >= 15 & age <= 17) + 
+                               2 * (age >= 18 & age <= 19) +
+                               3 * (age >= 20 & age <= 24) +
+                               4 * (age >= 25 & age <= 29) +
+                               5 * (age >= 30 & age <= 34) +
+                               6 * (age >= 35 & age <= 39) +
+                               7 * (age >= 40 & age <= 44) +
+                               8 * (age >= 45 & age <= 49) +
+                               9 * (age >= 50 & age <= 54) +
+                              10 * (age >= 55 & age <= 59) +
+                              11 * (age >= 60 & age <= 64) +
+                              12 * (age >= 65 & age <= 74) +
+                              13 * (age >= 75 & age <= 84) +
+                              14 * (age >= 85 & age <= 94) ]
+   ]
+      sam_sex_race_age <- sam_sex_race_age_DT
+
     
     #for other individual characteristics: get age_range to year; get percentages by race and age, sample with tract_race_year multiplied into probability?
      
