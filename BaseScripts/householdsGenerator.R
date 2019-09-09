@@ -131,18 +131,33 @@ createIndividuals <- function() {
     #for other individual characteristics: get age_range to year; get percentages by race and age, sample with tract_race_year multiplied into probability?
      
      
-     
+#could try to get race by age_range from above, then use that for calculating if folks are married??
     
     #get marriage data
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
     
-    marital_status_data_named <-  marital_status_data_from_census %>%
+    marital_status_data <-  marital_status_data_from_census %>%
       pivot_longer(4:ncol(marital_status_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       group_by(tract) %>%
-      mutate(race = substr(name,7,7),  #has age_range or race, not both
-             tract_pop = if_else(race=="_" & label == "Estimate!!Total",number_sams,0),
-             label = str_remove_all(label,"Estimate!!Total!!"),
-             total_tract_pop = sum(tract_pop)) %>%
+      mutate(race = substr(name,7,7),
+             pop_A := if_else(race=='A' & label == "Estimate!!Total",number_sams,0),
+             pop_B := if_else(race=='B' & label == "Estimate!!Total",number_sams,0),
+             pop_C := if_else(race=='C' & label == "Estimate!!Total",number_sams,0),
+             pop_D := if_else(race=='D' & label == "Estimate!!Total",number_sams,0),
+             pop_E := if_else(race=='E' & label == "Estimate!!Total",number_sams,0),
+             pop_F := if_else(race=='F' & label == "Estimate!!Total",number_sams,0),
+             pop_G := if_else(race=='G' & label == "Estimate!!Total",number_sams,0),
+             pop_tract := if_else(race=='_' & label == "Estimate!!Total",number_sams,0),
+             total_tract_pop := sum(pop_tract),
+             A_percent_pop := sum(pop_A)/total_tract_pop,
+             B_percent_pop := sum(pop_B)/total_tract_pop,
+             C_percent_pop := sum(pop_C)/total_tract_pop,
+             D_percent_pop := sum(pop_D)/total_tract_pop,
+             E_percent_pop := sum(pop_E)/total_tract_pop,
+             F_percent_pop := sum(pop_F)/total_tract_pop,
+             G_percent_pop := sum(pop_G)/total_tract_pop,
+             label := str_remove_all(label,"Estimate!!Total!!")
+            ) %>%
       separate(label, into = c("sex", "part2", "part3", "part4","part5"), sep = "!!", remove = T) %>%  
       mutate(age_range = case_when(str_detect(part2, "year") ~ part2,
                                    str_detect(part3, "year") ~ part3,
@@ -165,10 +180,64 @@ createIndividuals <- function() {
                                         str_detect(part4,"Divorced") ~ part4
              )
       ) %>% 
-      filter(!is.na(marital_status)) %>%
-      filter(race %in% c(acs_race_codes, "_")) %>%
-      select(-starts_with("part"),-concept,-tract_pop) 
+      filter(!is.na(age_range)) %>%
+#      pivot_wider(names_from = age_range,values_from = number_sams,names_prefix = "marital_age_") %>%
+#      filter(!is.na(marital_status)) %>%
+#     filter(race %in% c(acs_race_codes, "_")) #%>%
+      select(-starts_with("part"),-concept,-starts_with("pop_"))# %>%
+#      uncount(number_sams)
+      
+      joined_sam <- sam_sex_race_age %>%
+        group_by(tract,age_range_marital) %>%
+        mutate(
+          prob_race := case_when(race == "A" ~ marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital)[1],"A_percent_pop"][[1]],
+                                 race == "B" ~ marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital)[1],"B_percent_pop"][[1]],
+                                 race == "C" ~ marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital)[1],"C_percent_pop"][[1]],
+                                 race == "D" ~ marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital)[1],"D_percent_pop"][[1]],
+                                 race == "E" ~ marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital)[1],"E_percent_pop"][[1]],
+                                 race == "F" ~ marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital)[1],"F_percent_pop"][[1]],
+                                 race == "G" ~ marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital)[1],"G_percent_pop"][[1]]
+                                  ),
+          widowed_by_age := marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital & 
+                                                   marital_status_data$marital_status == "Widowed")[1],"number_sams"][[1]],
+          divorced_by_age := marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital & 
+                                                   marital_status_data$marital_status == "Divorced")[1],"number_sams"][[1]],
+          never_married_by_age := marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital & 
+                                                   marital_status_data$marital_status == "Never married")[1],"number_sams"][[1]],
+          married_sp_by_age := marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital & 
+                                                   marital_status_data$spouse_present == "Married spouse present" &
+                                                   marital_status_data$marital_status == "Now married")[1],"number_sams"][[1]],
+          married_sa_by_age := marital_status_data[which(marital_status_data$tract == tract & 
+                                                   marital_status_data$age_range == age_range_marital & 
+                                                   marital_status_data$spouse_present == "Married spouse absent" &
+                                                   marital_status_data$marital_status == "Now married")[1],"number_sams"][[1]],
+          total := widowed_by_age + divorced_by_age + never_married_by_age + married_sp_by_age + married_sa_by_age,
+          total_by_age_race := total * prob_race,
+          prob_widow := widowed_by_age/total_by_age_race,
+          prob_divorce := divorced_by_age/total_by_age_race,
+          prob_nm := never_married_by_age/total_by_age_race,
+          prob_m_sp:= married_sp_by_age/total_by_age_race,
+          prob_m_sa:= married_sa_by_age/total_by_age_race,
+          marital_status := sample(c("widowed","divorced","never married","married spouse present","married spouse absent","none"), #rep("widowed",widowed_by_age), etc.
+                                      size = 1,replace = TRUE, #size = total, replace = FALSE,
+                                      prob = c(prob_widow,prob_divorce,prob_nm,prob_m_sp,prob_m_sa,
+                                               1-(total_by_age_race/total))
+                                   )
+          )
     
+    
+    ##sample from the number available by that age_range, with the percentages from the race???? 
     
     
     #create percentages for marital status/spouse present by age
