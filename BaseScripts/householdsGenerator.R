@@ -235,7 +235,8 @@ createIndividuals <- function() {
           prob_nm := if_else(is.na(never_married_by_age/total_by_age_race),0,never_married_by_age/total_by_age_race),
           prob_m_sp := if_else(is.na(married_sp_by_age/total_by_age_race),0,married_sp_by_age/total_by_age_race),
           prob_m_sa := if_else(is.na(married_sa_by_age/total_by_age_race),0,married_sa_by_age/total_by_age_race),
-          prob_none := if_else(is.na(1-(total_by_age_race/total)),0,if_else((prob_widow+prob_divorce+prob_nm+prob_m_sp+prob_m_sa)==0,1,1-(total_by_age_race/total)))
+          prob_none := if_else(is.na(1-(total_by_age_race/total)),0,1-(total_by_age_race/total)),
+          prob_none := if_else((prob_widow+prob_divorce+prob_nm+prob_m_sp+prob_m_sa)==0,1,0)
           )
       joined_sam2 <- joined_sam %>%
         mutate(
@@ -245,7 +246,7 @@ createIndividuals <- function() {
                                size = 1,replace = FALSE, #size = total, replace = FALSE,
                                #prob = prob_prob
                                prob = c(rep(prob_widow[1],widowed_by_age[1]),rep(prob_divorce[1],divorced_by_age[1]),rep(prob_nm[1],never_married_by_age[1]),
-                                        rep(prob_m_sp[1],married_sp_by_age[1]),rep(prob_m_sa[1],married_sa_by_age[1]),rep(1/total_n[1],total_n[1]))
+                                        rep(prob_m_sp[1],married_sp_by_age[1]),rep(prob_m_sa[1],married_sa_by_age[1]),rep(prob_none[1],total_n[1]))
           )
       )
     
