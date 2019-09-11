@@ -245,8 +245,8 @@ createIndividuals <- function() {
                                  rep("none",total_n[1])),
                                size = 1,replace = FALSE, #size = total, replace = FALSE,
                                #prob = prob_prob
-                               prob = c(rep(prob_widow[1],widowed_by_age[1]),rep(prob_divorce[1],divorced_by_age[1]),rep(prob_nm[1],never_married_by_age[1]),
-                                        rep(prob_m_sp[1],married_sp_by_age[1]),rep(prob_m_sa[1],married_sa_by_age[1]),rep(prob_none[1],total_n[1]))
+                               prob = c(rep(prob_widow[1]/widowed_by_age[1],widowed_by_age[1]),rep(prob_divorce[1]/divorced_by_age[1],divorced_by_age[1]),rep(prob_nm[1]/never_married_by_age[1],never_married_by_age[1]),
+                                        rep(prob_m_sp[1]/married_sp_by_age[1],married_sp_by_age[1]),rep(prob_m_sa[1]/married_sa_by_age[1],married_sa_by_age[1]),rep(prob_none[1]/total_n[1],total_n[1]))
           )
       )
     
