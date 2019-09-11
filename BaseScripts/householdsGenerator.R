@@ -239,75 +239,16 @@ createIndividuals <- function() {
           )
       joined_sam2 <- joined_sam %>%
         mutate(
-          marital_status := sample(c(rep("widowed",widowed_by_age),rep("divorced",divorced_by_age),rep("never married",never_married_by_age),
-                                 rep("married spouse present",married_sp_by_age),rep("married spouse absent",married_sa_by_age),
-                                 rep("none",total_n)),
+          marital_status := sample(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
+                                 rep("married spouse present",married_sp_by_age[1]),rep("married spouse absent",married_sa_by_age[1]),
+                                 rep("none",total_n[1])),
                                size = 1,replace = FALSE, #size = total, replace = FALSE,
                                #prob = prob_prob
-                               prob = c(prob_widow,prob_divorce,prob_nm,prob_m_sp,prob_m_sa,
-                                        prob_none)
+                               prob = c(rep(prob_widow[1],widowed_by_age[1]),rep(prob_divorce[1],divorced_by_age[1]),rep(prob_nm[1],never_married_by_age[1]),
+                                        rep(prob_m_sp[1],married_sp_by_age[1]),rep(prob_m_sa[1],married_sa_by_age[1]),rep(1/total_n[1],total_n[1]))
           )
       )
     
-    
-    ##sample from the number available by that age_range, with the percentages from the race???? 
-    
-    
-    #create percentages for marital status/spouse present by age
-    marital_status_data_age <- marital_status_data %>%
-      filter(!is.na(age_range)) %>%
-      mutate(
-        age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
-        age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to norm it when calculating...
-        first_age = as.numeric(substr(age_range,1,2)),
-        last_age = as.numeric(substr(age_range,7,8)),
-        age_range_length = last_age-first_age+1) %>%
-        group_by(tract,sex,age_range,marital_status,spouse_present, .drop=T) %>%
-      mutate(
-        tract_marital_sex_age = sum(number_sams/total_tract_pop)) #%>%
-    #  tract_marital_sex_year = tract_marital_sex_age/age_range_length,
-    # age_number_sams = 1/(number_sams*age_range_length))
-    #%>%
-    # uncount(age_range_length,.id="age_") %>%
-    #      uncount(length(acs_race_codes),.id = "race_") %>%
-    # mutate(age=first_age+age_) 
-    #%>%
-    #ungroup() %>%
-    #select(-first_age,-last_age,-tract_marital_sex_age, -race, -age_range)
-    #for each age, it has: sex, spouse_present, marital_status    
-    
-    #create percentages for marital status/spouse present by race
-    marital_status_data_race <- marital_status_data %>%
-      filter(race %in% acs_race_codes) %>%
-      group_by(tract,sex,race,marital_status,spouse_present, .drop=T) %>% 
-      mutate(tract_marital_sex_race = number_sams/total_tract_pop)
-    #      race_number_sams = 1/number_sams) 
-    %>% # if_else(!is.na(age_range),number_sams,0),
-      # filter(race %in% acs_race_codes) %>%
-      #uncount(95,.id = "age") %>%
-      #ungroup() 
-      
-      #join for marital status/spouse present by race_age
-      marital_status_age_race_combinations <- marital_status_data_race %>%
-      left_join(marital_status_data_age,by=c("tract","sex", "marital_status"),suffix=c("_race","_age")) 
-    
-    
-    ########Peggy stopped here, need to think about creating age_range_thatfitsmaritaldata column in sam_sex_race_age before moving to next step
-      
-    
-    sam_marital_age_race <- left_join(sam_sex_race_age,marital_status_age_race_combinations,by=c("tract","sex","age_range"),suffix=c("_sam","_marital")) %>%
-      filter(tract_marital_sex_race>0 & tract_marital_sex_year>0 & total_tract_pop_race>0)
-    
-    test3 <- sam_marital_age_race %>%
-      mutate(
-        number_sams = if_else(number_sams_age>number_sams_race,number_sams_age,number_sams_race),
-        prob = tract_marital_sex_race*tract_marital_sex_year*total_tract_pop_race,
-        prob = if_else(prob>1,1,prob),
-        prob3 = age_number_sams*race_number_sams*number_sams,
-        prob_cut = if_else(1-prob3>0 & 1-prob3<1,1-prob3,0.000000001),
-        cull = if_else(prob3>0 & prob3<1 & !is.na(prob3),sample(c("keep","cut"),1,c(prob3,prob_cut),replace = FALSE),"cut")
-      )# %>%
-    #filter(cull=="keep")
     
     
     #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
