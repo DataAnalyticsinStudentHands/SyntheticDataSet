@@ -239,6 +239,7 @@ createIndividuals <- function() {
           prob_none := if_else((prob_widow+prob_divorce+prob_nm+prob_m_sp+prob_m_sa)==0,1,0)
           )
       joined_sam2 <- joined_sam %>%
+        group_by(tract,age_range_marital) %>%
         mutate(
           marital_status := sample(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
                                  rep("married spouse present",married_sp_by_age[1]),rep("married spouse absent",married_sa_by_age[1]),
