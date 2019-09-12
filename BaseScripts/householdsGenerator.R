@@ -228,7 +228,8 @@ createIndividuals <- function() {
                                                    marital_status_data$marital_status == "Now married")[1],"number_sams"][[1]],
           married_sa_by_age := if_else(is.na(married_sa_by_age),0,married_sa_by_age),
           total := widowed_by_age + divorced_by_age + never_married_by_age + married_sp_by_age + married_sa_by_age,
-          total_n := n(),
+          total_n := n(), #change this to correct bit from census file for total? It doesn't have right total....
+          total_left := total_n - total,
           total_by_age_race := total * prob_race,
           prob_widow := if_else(is.na(widowed_by_age/total_by_age_race),0,widowed_by_age/total_by_age_race),
           prob_divorce := if_else(is.na(divorced_by_age/total_by_age_race),0,divorced_by_age/total_by_age_race),
@@ -241,13 +242,15 @@ createIndividuals <- function() {
       joined_sam2 <- joined_sam %>%
         group_by(tract,age_range_marital) %>%
         mutate(
-          marital_status := sample(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
+         # marital_status := sample(c("widowed","divorced","never married","married spouse present","married spouse absent","none"),
+          #                    size=1,replace = TRUE,
+          marital_status2 := sample(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
                                  rep("married spouse present",married_sp_by_age[1]),rep("married spouse absent",married_sa_by_age[1]),
-                                 rep("none",total_n[1])),
-                               size = 1,replace = FALSE, #size = total, replace = FALSE,
+                                 rep("none",total_left[1])),
+                               size = total_n[1],replace = FALSE, #size = total, replace = FALSE, #total_n[1]-total[1]
                                #prob = prob_prob
                                prob = c(rep(prob_widow[1]/widowed_by_age[1],widowed_by_age[1]),rep(prob_divorce[1]/divorced_by_age[1],divorced_by_age[1]),rep(prob_nm[1]/never_married_by_age[1],never_married_by_age[1]),
-                                        rep(prob_m_sp[1]/married_sp_by_age[1],married_sp_by_age[1]),rep(prob_m_sa[1]/married_sa_by_age[1],married_sa_by_age[1]),rep(prob_none[1]/total_n[1],total_n[1]))
+                                        rep(prob_m_sp[1]/married_sp_by_age[1],married_sp_by_age[1]),rep(prob_m_sa[1]/married_sa_by_age[1],married_sa_by_age[1]),rep(prob_none[1]/total_n[1],total_left[1]))
           )
       )
     
