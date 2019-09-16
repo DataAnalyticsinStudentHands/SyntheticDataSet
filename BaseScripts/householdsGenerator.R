@@ -231,6 +231,7 @@ createIndividuals <- function() {
           total_n := n(), #change this to correct bit from census file for total? It doesn't have right total.... problem might be that we're in subgroups that aren't assigned same way, and need to figure out what original numbers per tract are
           total_left := if_else(total_n - total >= 0,total_n - total,0),
           total_by_age_race := total * prob_race,
+          total_n_by_age_race := total_n * prob_race,
           prob_widow := if_else(is.na(widowed_by_age/total_by_age_race),0,widowed_by_age/total_by_age_race),
           prob_divorce := if_else(is.na(divorced_by_age/total_by_age_race),0,divorced_by_age/total_by_age_race),
           prob_nm := if_else(is.na(never_married_by_age/total_by_age_race),0,never_married_by_age/total_by_age_race),
