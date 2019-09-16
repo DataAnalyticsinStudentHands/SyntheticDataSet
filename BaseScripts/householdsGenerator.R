@@ -95,7 +95,7 @@ createIndividuals <- function() {
         )
       #add age_range to work for merge with marital data, uses data.table to make this fast
       sam_sex_race_age_DT <- as.data.table(sam_sex_race_age)
-      sam_sex_race_age_DT[, age_range_marital := c("NA",
+      sam_sex_race_age_DT[, age_range_marital := c("not of age",
                              "15 to 17 years",
                             "18 to 19 years",
                             "20 to 24 years",
@@ -109,7 +109,7 @@ createIndividuals <- function() {
                             "60 to 64 years",
                             "65 to 74 years",
                             "75 to 84 years",
-                            "85 to 94 years")[1 +
+                            "85 to 104 years")[1 +
                                1 * (age >= 15 & age <= 17) + 
                                2 * (age >= 18 & age <= 19) +
                                3 * (age >= 20 & age <= 24) +
@@ -123,7 +123,7 @@ createIndividuals <- function() {
                               11 * (age >= 60 & age <= 64) +
                               12 * (age >= 65 & age <= 74) +
                               13 * (age >= 75 & age <= 84) +
-                              14 * (age >= 85 & age <= 94) ]
+                              14 * (age >= 85 & age <= 104) ]
    ]
       sam_sex_race_age <- sam_sex_race_age_DT
 
@@ -228,16 +228,16 @@ createIndividuals <- function() {
                                                    marital_status_data$marital_status == "Now married")[1],"number_sams"][[1]],
           married_sa_by_age := if_else(is.na(married_sa_by_age),0,married_sa_by_age),
           total := widowed_by_age + divorced_by_age + never_married_by_age + married_sp_by_age + married_sa_by_age,
-          total_n := n(), #change this to correct bit from census file for total? It doesn't have right total....
-          total_left := total_n - total,
+          total_n := n(), #change this to correct bit from census file for total? It doesn't have right total.... problem might be that we're in subgroups that aren't assigned same way, and need to figure out what original numbers per tract are
+          total_left := if_else(total_n - total >= 0,total_n - total,0),
           total_by_age_race := total * prob_race,
           prob_widow := if_else(is.na(widowed_by_age/total_by_age_race),0,widowed_by_age/total_by_age_race),
           prob_divorce := if_else(is.na(divorced_by_age/total_by_age_race),0,divorced_by_age/total_by_age_race),
           prob_nm := if_else(is.na(never_married_by_age/total_by_age_race),0,never_married_by_age/total_by_age_race),
           prob_m_sp := if_else(is.na(married_sp_by_age/total_by_age_race),0,married_sp_by_age/total_by_age_race),
           prob_m_sa := if_else(is.na(married_sa_by_age/total_by_age_race),0,married_sa_by_age/total_by_age_race),
-          prob_none := if_else(is.na(1-(total_by_age_race/total)),0,1-(total_by_age_race/total)),
-          prob_none := if_else((prob_widow+prob_divorce+prob_nm+prob_m_sp+prob_m_sa)==0,1,0)
+          prob_none_1 := if_else(is.na(1-(total_by_age_race/total)),0,1-(total_by_age_race/total)),
+          prob_none := if_else((prob_widow+prob_divorce+prob_nm+prob_m_sp+prob_m_sa)==0,1,prob_none_1)
           )
       joined_sam2 <- joined_sam %>%
         group_by(tract,age_range_marital) %>%
