@@ -193,58 +193,86 @@ createIndividuals <- function() {
 #      uncount(number_sams)
       
       joined_tract_sam <- sam_sex_race_age %>%
-        group_by(tract) %>%
+        group_by(tract, sex) %>%
         mutate( 
+          sex_by_whole := marital_status_data[which(marital_status_data$sex == sex &
+                                                      is.na(marital_status_data$age_range) &
+                                                      marital_status_data$race == '_' &
+                                                      is.na(marital_status_data$marital_status))[1],"census_whole"][[1]],
           widowed_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
                                                         is.na(marital_status_data$age_range) & 
+                                                        marital_status_data$sex == sex &
+                                                        marital_status_data$race == '_' &
                                                         marital_status_data$marital_status == "Widowed")[1],"number_sams"][[1]],
           widowed_by_tract := if_else(is.na(widowed_by_tract),0,widowed_by_tract),
           widowed_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          is.na(marital_status_data$age_range) & 
+                                                          is.na(marital_status_data$age_range) &  
+                                                          marital_status_data$sex == sex &
+                                                          marital_status_data$race == '_' &
                                                           marital_status_data$marital_status == "Widowed")[1],"census_whole"][[1]],
           widowed_by_whole := if_else(is.na(widowed_by_whole),0,widowed_by_whole),
           divorced_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          is.na(marital_status_data$age_range) & 
+                                                          is.na(marital_status_data$age_range) &  
+                                                           marital_status_data$sex == sex &
+                                                           marital_status_data$race == '_' &
                                                           marital_status_data$marital_status == "Divorced")[1],"number_sams"][[1]],
           divorced_by_tract := if_else(is.na(divorced_by_tract),0,divorced_by_tract),
           divorced_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                           is.na(marital_status_data$age_range) & 
+                                                           is.na(marital_status_data$age_range) &  
+                                                           marital_status_data$sex == sex &
+                                                           marital_status_data$race == '_' &
                                                            marital_status_data$marital_status == "Divorced")[1],"census_whole"][[1]],
           divorced_by_whole := if_else(is.na(divorced_by_whole),0,divorced_by_whole),
           never_married_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                           is.na(marital_status_data$age_range) & 
+                                                           is.na(marital_status_data$age_range) &  
+                                                             marital_status_data$sex == sex &
+                                                             marital_status_data$race == '_' &
                                                            marital_status_data$marital_status == "Never married")[1],"number_sams"][[1]],
           never_married_by_tract := if_else(is.na(never_married_by_tract),0,never_married_by_tract),
           never_married_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                                is.na(marital_status_data$age_range) & 
+                                                                is.na(marital_status_data$age_range) &  
+                                                                marital_status_data$sex == sex &
+                                                                marital_status_data$race == '_' &
                                                                 marital_status_data$marital_status == "Never married")[1],"census_whole"][[1]],
           never_married_by_whole := if_else(is.na(never_married_by_whole),0,never_married_by_whole),
           married_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                                is.na(marital_status_data$age_range) & 
+                                                                is.na(marital_status_data$age_range) &  
+                                                          marital_status_data$sex == sex &
+                                                          marital_status_data$race == '_' &
                                                                 marital_status_data$marital_status == "Now married")[1],"number_sams"][[1]],
           married_by_tract := if_else(is.na(married_by_tract),0,married_by_tract),
           married_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          is.na(marital_status_data$age_range) & 
+                                                          is.na(marital_status_data$age_range) &  
+                                                          marital_status_data$sex == sex &
+                                                          marital_status_data$race == '_' &
                                                           marital_status_data$marital_status == "Now married")[1],"census_whole"][[1]],
           married_by_whole := if_else(is.na(married_by_whole),0,married_by_whole),
           married_sp_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
                                                           marital_status_data$spouse_present == "Married spouse present" &
-                                                          is.na(marital_status_data$age_range) & 
+                                                          is.na(marital_status_data$age_range) &  
+                                                            marital_status_data$sex == sex &
+                                                            marital_status_data$race == '_' &
                                                           marital_status_data$marital_status == "Now married")[1],"number_sams"][[1]],
           married_sp_by_tract := if_else(is.na(married_sp_by_tract),0,married_sp_by_tract),
           married_sp_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
                                                              marital_status_data$spouse_present == "Married spouse present" &
-                                                             is.na(marital_status_data$age_range) & 
+                                                             is.na(marital_status_data$age_range) &  
+                                                             marital_status_data$sex == sex &
+                                                             marital_status_data$race == '_' &
                                                              marital_status_data$marital_status == "Now married")[1],"census_whole"][[1]],
           married_sp_by_whole := if_else(is.na(married_sp_by_whole),0,married_sp_by_whole),
           married_sa_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
                                                              marital_status_data$spouse_present == "Married spouse absent" &
-                                                             is.na(marital_status_data$age_range) & 
+                                                             is.na(marital_status_data$age_range) &  
+                                                             marital_status_data$sex == sex &
+                                                             marital_status_data$race == '_' &
                                                              marital_status_data$marital_status == "Now married")[1],"number_sams"][[1]],
           married_sa_by_tract := if_else(is.na(married_sa_by_tract),0,married_sa_by_tract),
           married_sa_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
                                                              marital_status_data$spouse_present == "Married spouse present" &
-                                                             is.na(marital_status_data$age_range) & 
+                                                             is.na(marital_status_data$age_range) &  
+                                                             marital_status_data$sex == sex &
+                                                             marital_status_data$race == '_' &
                                                              marital_status_data$marital_status == "Now married")[1],"census_whole"][[1]],
           married_sa_by_whole := if_else(is.na(married_sa_by_whole),0,married_sa_by_whole),
           total_tract_by_census := marital_status_data[which(marital_status_data$tract == tract & 
@@ -256,31 +284,36 @@ createIndividuals <- function() {
       
       
       joined_age_married_sam <- joined_tract_sam %>%
-        group_by(tract,age_range_marital) %>%
+        group_by(tract,sex,age_range_marital) %>%
         mutate( 
           widowed_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          marital_status_data$age_range  == age_range_marital & 
+                                                              marital_status_data$sex == sex &
+                                                              marital_status_data$age_range  == age_range_marital & 
                                                           marital_status_data$marital_status == "Widowed")[1],"census_whole"][[1]],
           widowed_by_age_whole := if_else(is.na(widowed_by_age_whole),0,widowed_by_age_whole),
-          widowed_by_age := round(widowed_by_tract * (widowed_by_age_whole/widowed_by_whole)),
           divorced_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                              marital_status_data$age_range  == age_range_marital & 
+                                                               marital_status_data$sex == sex &
+                                                               marital_status_data$age_range  == age_range_marital & 
                                                               marital_status_data$marital_status == "Divorced")[1],"census_whole"][[1]],
           divorced_by_age_whole := if_else(is.na(divorced_by_age_whole),0,divorced_by_age_whole),
           never_married_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                               marital_status_data$age_range  == age_range_marital & 
+                                                                    marital_status_data$sex == sex &
+                                                                    marital_status_data$age_range  == age_range_marital & 
                                                                marital_status_data$marital_status == "Never married")[1],"census_whole"][[1]],
           never_married_by_age_whole := if_else(is.na(never_married_by_age_whole),0,never_married_by_age_whole),
           married_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                                    marital_status_data$age_range  == age_range_marital & 
+                                                              marital_status_data$sex == sex &
+                                                              marital_status_data$age_range  == age_range_marital & 
                                                                     marital_status_data$marital_status == "Now married")[1],"census_whole"][[1]],
           married_by_age_whole := if_else(is.na(married_by_age_whole),0,married_by_age_whole),
           married_sp_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                              marital_status_data$spouse_present == "Married spouse present" &
+                                                                 marital_status_data$sex == sex &
+                                                                 marital_status_data$spouse_present == "Married spouse present" &
                                                               marital_status_data$age_range  == age_range_marital & 
                                                               marital_status_data$marital_status == "Now married")[1],"census_whole"][[1]],
           married_sp_by_age_whole := if_else(is.na(married_sp_by_age_whole),0,married_sp_by_age_whole),
           married_sa_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
+                                                                 marital_status_data$sex == sex &
                                                                  marital_status_data$spouse_present == "Married spouse absent" &
                                                                  marital_status_data$age_range  == age_range_marital & 
                                                                  marital_status_data$marital_status == "Now married")[1],"census_whole"][[1]],
@@ -295,37 +328,46 @@ createIndividuals <- function() {
           total_diff := total_tract_by_census - total,
           total_n := n(), #change this to correct bit from census file for total? It doesn't have right total.... problem might be that we're in subgroups that aren't assigned same way, and need to figure out what original numbers per tract are
           total_left := if_else(total_n - total >= 0,total_n - total,0),
+          #never_married_by_age := if_else(total_left == 0, if_else(total_n-total > never_married_by_age,) ,never_married_by_age)
          # total_by_age_race := total, #total_n,# * prob_race,  #race is handled because the sample already has distinction by race...
          # total_n_by_age_race := total_n * prob_race,
-          prob_widow := if_else(is.na(widowed_by_age/total/widowed_by_age),0,widowed_by_age/total/widowed_by_age),
-          prob_divorce := if_else(is.na(divorced_by_age/total/divorced_by_age),0,divorced_by_age/total/divorced_by_age),
-          prob_nm := if_else(is.na(never_married_by_age/total/never_married_by_age),0,never_married_by_age/total/never_married_by_age),
-          prob_married := if_else(is.na(married_by_age/total/married_by_age),0,married_by_age/total/married_by_age),
-          prob_m_sp := if_else(is.na(married_sp_by_age/total/married_sp_by_age),0,married_sp_by_age/total/married_sp_by_age),
-          prob_m_sa := if_else(is.na(married_sa_by_age/total/married_sa_by_age),0,married_sa_by_age/total/married_sa_by_age),
-          prob_none_1 := if_else(is.na(1-(total_left/total)),0,if_else((total_left/total)>1,0,1-(total_left/total))),
-          prob_none := if_else((prob_widow+prob_divorce+prob_nm+prob_married)==0,1,prob_none_1),
-          prob_total := (prob_widow + prob_divorce + prob_nm + prob_married + prob_none) * total
+  #        prob_widow := if_else(is.na(widowed_by_age/total/widowed_by_age),0,widowed_by_age/total/widowed_by_age),
+  #        prob_divorce := if_else(is.na(divorced_by_age/total/divorced_by_age),0,divorced_by_age/total/divorced_by_age),
+  #        prob_nm := if_else(is.na(never_married_by_age/total/never_married_by_age),0,never_married_by_age/total/never_married_by_age),
+  #       prob_married := if_else(is.na(married_by_age/total/married_by_age),0,married_by_age/total/married_by_age),
+  #        prob_m_sp := if_else(is.na(married_sp_by_age/total/married_sp_by_age),0,married_sp_by_age/total/married_sp_by_age),
+  #        prob_m_sa := if_else(is.na(married_sa_by_age/total/married_sa_by_age),0,married_sa_by_age/total/married_sa_by_age),
+  #        prob_none_1 := if_else(is.na(1-(total_left/total/total_left)),0,if_else((total_left/total/total_left)>1,0,1-(total_left/total/total_left))),
+  #       prob_none := if_else((prob_widow+prob_divorce+prob_nm+prob_married)==0,1,prob_none_1),
+  #       prob_total := (prob_widow + prob_divorce + prob_nm + prob_married + prob_none) * total
           )
       joined_sam_marital <- joined_age_married_sam %>%
-        group_by(tract,age_range_marital) %>%
+        group_by(tract,sex,age_range_marital) %>%
         mutate(
-         # l_marital := length(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
-          #                      rep("married",married_by_age[1]),rep("none",total_left[1]))),
-          #p_marital := length(c(rep(prob_widow[1],widowed_by_age[1]),rep(prob_divorce[1],divorced_by_age[1]),rep(prob_nm[1],never_married_by_age[1]),
-           #       rep(prob_married[1],married_by_age[1]),rep(prob_none[1],total_left[1]))),
-          #doff := l_marital - p_marital
-        #)
+          never_married_by_age := if_else(total_left==0,round(never_married_by_age-((total_n-total)/3)),never_married_by_age), #correct for times that project more than available pop
+          divorced_by_age := if_else(total_left==0,round(divorced_by_age-((total_n-total)/3)),divorced_by_age),
+          married_by_age := if_else(total_left==0,round(married_by_age-((total_n-total)/3)),married_by_age),
+         # widowed_by_age := if_else(prob_widow > 0,widowed_by_age,0),
+        #  divorced_by_age := if_else(prob_divorce > 0,divorced_by_age,0),
+         # never_married_by_age := if_else(prob_nm > 0,never_married_by_age,0),
+        #  married_by_age := if_else(prob_married > 0,married_by_age,0),
+         # total_left := if_else(prob_none > 0,total_left,0),
+          married_sp_by_age := if_else(prob_m_sp > 0,married_sp_by_age,0),
+          married_sa_by_age := if_else(prob_m_sa > 0,married_sa_by_age,0),
+         # factor_list := c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
+          #                 rep("married",married_by_age[1]),rep("none",total_left[1])),
+          l_marital := length(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
+                                rep("married",married_by_age[1]),rep("none",total_left[1]))),
+          diff := l_marital - total_n,
           marital_status := sample(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
                                       rep("married",married_by_age[1]),rep("none",total_left[1])),
-                               size = total_n[1],replace = FALSE, #if replace = TRUE, then it calculates - can't figure out what's missing in the probs, though...
-                               prob = c(rep(prob_widow[1],widowed_by_age[1]),rep(prob_divorce[1],divorced_by_age[1]),rep(prob_nm[1],never_married_by_age[1]),
-                                        rep(prob_married[1],married_by_age[1]),rep(prob_none[1],total_left[1]))
-          ),
-          spouse_present := if_else(marital_status=="married",sample(c(rep("married spouse present",married_sp_by_age[1]),rep("married spouse absent",married_sa_by_age[1])),
-                                        size=married_by_age[1],replace = FALSE,
-                                      prob = c(rep(prob_m_sp[1],married_sp_by_age[1]),rep(prob_m_sa[1],married_sa_by_age[1])))
-                                    ,"no spouse")
+                                   size = total_n[1], replace = FALSE,
+                                   prob = c(rep((1/l_marital[1]),l_marital[1]))
+          )#,
+          #spouse_present := if_else(marital_status=="married",sample(c(rep("married spouse present",married_sp_by_age[1]),rep("married spouse absent",married_sa_by_age[1])),
+           #                             size=married_by_age[1],replace = FALSE,
+            #                          prob = c(rep(1/married_by_age[1],married_by_age[1])))
+             #                       ,"no spouse")
       )
     
     
