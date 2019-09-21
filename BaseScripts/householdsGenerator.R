@@ -288,7 +288,7 @@ createIndividuals <- function() {
                                                              str_detect(marital_status_data$marital_status,"Now married"))[1],"number_sams"][[1]],
           married_sa_by_tract := if_else(is.na(married_sa_by_tract),0,married_sa_by_tract),
           married_sa_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                             marital_status_data$spouse_present == "Married spouse present" &
+                                                             marital_status_data$spouse_present == "Married spouse absent" &
                                                              is.na(marital_status_data$age_range) &  
                                                              marital_status_data$sex == sex &
                                                              marital_status_data$race == '_' &
@@ -345,7 +345,7 @@ createIndividuals <- function() {
           married_by_age_whole := married_by_age_whole + married_sa_by_age_whole + married_sp_by_age_whole,  #there's something weird about the whole count so trying to up the numerator
           widowed_by_age := round(widowed_by_tract * (widowed_by_age_whole/widowed_by_whole)),
           divorced_by_age := round(divorced_by_tract * (divorced_by_age_whole/divorced_by_whole)),
-          separated_by_age := round(separated_by_tract * (separated_by_age_whole/separated_by_whole)),
+#          separated_by_age := round(separated_by_tract * (separated_by_age_whole/separated_by_whole)),
           never_married_by_age := round(never_married_by_tract * (never_married_by_age_whole/never_married_by_whole)),
           married_by_age := round((married_by_tract + married_sa_by_tract) * (married_by_age_whole/married_by_whole)),
           married_sp_by_age := round(married_sp_by_tract * (married_sp_by_age_whole/married_sp_by_whole)),
@@ -381,11 +381,10 @@ createIndividuals <- function() {
                                      rep("married",married_by_age[1]),rep("none",1)),
                                    total_n[1], replace = TRUE, #size = 1, replace = TRUE,  #not size = total_n[1], replace = FALSE
                                    prob = c(rep((1/l_marital[1]),l_marital[1]))
-          )#,
-          #spouse_present := if_else(marital_status=="married",sample(c(rep("married spouse present",married_sp_by_age[1]),rep("married spouse absent",married_sa_by_age[1])),
-           #                             size=married_by_age[1],replace = FALSE,
-            #                          prob = c(rep(1/married_by_age[1],married_by_age[1])))
-             #                       ,"no spouse")
+          ),
+          spouse_present := if_else(marital_status=="married",sample(c("married spouse present","married spouse absent or separate")
+                                                                     ,size=1,replace = TRUE,prob = c(.65,.35)),
+                                    "no spouse")
       )
     
     
