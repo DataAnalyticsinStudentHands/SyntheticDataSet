@@ -140,7 +140,7 @@ createIndividuals <- function() {
       mutate(census_whole := rowSums(.[4:ncol(marital_status_data_from_census)])) %>%
       pivot_longer(4:ncol(marital_status_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       group_by(tract) %>%
-      mutate(race = substr(name,7,7),
+      mutate(race = substr(name,7,7),  #to make race work properly, would have to go by totals - and do the allocation again... there's something weird about the allocation
              pop_A := if_else(race=='A' & label == "Estimate!!Total",number_sams,0),
              pop_B := if_else(race=='B' & label == "Estimate!!Total",number_sams,0),
              pop_C := if_else(race=='C' & label == "Estimate!!Total",number_sams,0),
@@ -387,7 +387,8 @@ createIndividuals <- function() {
                                     "no spouse")
       )
     
-    
+    saveRDS(joined_sam_marital,"joined_sam_marital.RDS") #temp save
+    ##not run
     table(joined_sam_marital$marital_status)
     table(joined_sam_marital$tract, joined_sam_marital$marital_status)
     
@@ -397,40 +398,33 @@ createIndividuals <- function() {
     group_quarters_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26001")
     
     base_group_quarters_data <- group_quarters_data_from_census %>%
-      pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_GQ") %>%
-      full_join(.,base_married,by = "tract") %>%
+      pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_GQ") 
+    
+    joint_sam_GQ <- joined_sam_marital %>%
+      ungroup() %>%
+      mutate(tract_sam := n()) %>%
+      group_by(tract,sex,age_range) %>%
       mutate(
-        number_sams_GQ = 
-          case_when(age_range=="18 and 19 years" ~ as.integer(as.integer(number_sams_GQ) * .02), #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-                    age_range=="20 to 24 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
-                    age_range=="25 to 29 years" ~ as.integer(as.integer(number_sams_GQ) * .13),
-                    age_range=="30 to 34 years" ~ as.integer(as.integer(number_sams_GQ) * .18),
-                    age_range=="35 to 39 years" ~ as.integer(as.integer(number_sams_GQ) * .19),
-                    age_range=="40 to 44 years" ~ as.integer(as.integer(number_sams_GQ) * .18),
-                    age_range=="35 to 44 years" ~ as.integer(as.integer(number_sams_GQ) * .18), #not consistent use in marriage; fix by age later
-                    age_range=="45 to 49 years" ~ as.integer(as.integer(number_sams_GQ) * .12),
-                    age_range=="45 to 54 years" ~ as.integer(as.integer(number_sams_GQ) * .11),
-                    age_range=="55 to 59 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
-                    age_range=="55 to 64 years" ~ as.integer(as.integer(number_sams_GQ) * .05),
-                    age_range=="50 to 54 years" ~ as.integer(as.integer(number_sams_GQ) * .08))
-      ) %>% 
-      mutate(number_sams_GQ = 
-               case_when(sex=="Male" ~ as.integer(number_sams_GQ * .93), #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-                         sex=="Female" ~ as.integer(number_sams_GQ * .07)),
-             percent_GQ = as.integer(number_sams_GQ/tract_total) #almost always 0
-      ) %>%
-      uncount(2,.id="group_quarter") %>%
-      mutate(number_sams = 
-               case_when(
-                 group_quarter == 2 & is.na(number_sams_GQ) ~ as.integer(0),
-                 group_quarter == 1 & is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_base),
-                 group_quarter == 1 & !is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_GQ * (1-percent_GQ)),
-                 group_quarter == 1 & !is.na(number_sams_GQ) & !is.na(number_sams_married) ~ as.integer(number_sams_married * (1-percent_GQ)),
-                 group_quarter == 2 & !is.na(number_sams_GQ) & !is.na(number_sams_married) ~ as.integer(number_sams_married * percent_GQ),
-                 group_quarter == 1 & !is.na(number_sams_GQ) & is.na(number_sams_married) ~ as.integer(number_sams_GQ *percent_GQ)
-               )
-      ) %>%
-      filter(number_sams!=0)
+        number_sams_GQ := base_group_quarters_data[which(base_group_quarters_data$tract == tract)[1],"number_sams_GQ"][[1]],
+        number_sams_GQ_prob :=
+          case_when(sex=="Male" ~ number_sams_GQ * .93, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
+                    sex=="Female" ~ number_sams_GQ * .07),
+        number_sams_GQ_prob := 
+          case_when(age_range=="18 to 19 years" ~ number_sams_GQ/n() * .03, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
+                    age_range=="20 to 24 years" ~ number_sams_GQ/n() * .08,
+                    age_range=="25 to 29 years" ~ number_sams_GQ/n() * .16,
+                    age_range=="30 to 34 years" ~ number_sams_GQ/n() * .25,
+                    age_range=="35 to 44 years" ~ number_sams_GQ/n() * .24, 
+                    age_range=="45 to 54 years" ~ number_sams_GQ/n() * .14,
+                    age_range=="55 to 64 years" ~ number_sams_GQ/n() * .07,
+                    TRUE ~ 0)
+      )
+    joint_sam_GQ <- joint_sam_GQ %>%
+      group_by(tract) %>%
+      mutate(
+        group_quartered := if_else(spouse_present!="married spouse present",sample(c(rep("group quartered",round(number_sams_GQ_prob[1])),rep("not group quartered",round(tract_sam-number_sams_GQ_prob))),
+                                                                                   replace=FALSE,size = n(),prob=c(rep(1/n(),tract_sam[1]))),"not group quartered")
+        )
     
     
     pregnancy_data_race_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
