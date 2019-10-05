@@ -304,6 +304,7 @@ createIndividuals <- function() {
       
       joined_age_married_sam <- joined_tract_sam %>%
         group_by(tract,sex,age_range_marital) %>%
+        #to do this properly, would also have all the possible combinations by race - which didn't seem practical.
         mutate( 
           widowed_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
                                                               marital_status_data$sex == sex &
@@ -388,6 +389,7 @@ createIndividuals <- function() {
       )
     
     saveRDS(joined_sam_marital,"joined_sam_marital.RDS") #temp save
+    joined_sam_marital <- readRDS("joined_sam_marital.RDS")
     ##not run
     table(joined_sam_marital$marital_status)
     table(joined_sam_marital$tract, joined_sam_marital$marital_status)
@@ -395,36 +397,42 @@ createIndividuals <- function() {
     #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
     #very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
     #biggest thing to worry about is inmate population; other GC are not large, as far as I can tell
+    #I don't have great confidence that the census is distributing them correctly - it may be an algorithm meant to hide concentrations.
     group_quarters_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26001")
     
     base_group_quarters_data <- group_quarters_data_from_census %>%
       pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_GQ") 
     
     joint_sam_GQ <- joined_sam_marital %>%
-      ungroup() %>%
+      group_by(tract) %>%
       mutate(tract_sam := n()) %>%
-      group_by(tract,sex,age_range) %>%
+      ungroup() %>%
+      group_by(tract) %>%
       mutate(
         number_sams_GQ := base_group_quarters_data[which(base_group_quarters_data$tract == tract)[1],"number_sams_GQ"][[1]],
         number_sams_GQ_prob :=
           case_when(sex=="Male" ~ number_sams_GQ * .93, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
                     sex=="Female" ~ number_sams_GQ * .07),
         number_sams_GQ_prob := 
-          case_when(age_range=="18 to 19 years" ~ number_sams_GQ/n() * .03, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-                    age_range=="20 to 24 years" ~ number_sams_GQ/n() * .08,
-                    age_range=="25 to 29 years" ~ number_sams_GQ/n() * .16,
-                    age_range=="30 to 34 years" ~ number_sams_GQ/n() * .25,
-                    age_range=="35 to 44 years" ~ number_sams_GQ/n() * .24, 
-                    age_range=="45 to 54 years" ~ number_sams_GQ/n() * .14,
-                    age_range=="55 to 64 years" ~ number_sams_GQ/n() * .07,
-                    TRUE ~ 0)
+          case_when(age_range=="18 to 19 years" ~ number_sams_GQ * .05, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
+                    age_range=="20 to 24 years" ~ number_sams_GQ * .09,
+                    age_range=="25 to 29 years" ~ number_sams_GQ * .16,
+                    age_range=="30 to 34 years" ~ number_sams_GQ * .25,
+                    age_range=="35 to 44 years" ~ number_sams_GQ * .24, 
+                    age_range=="45 to 54 years" ~ number_sams_GQ * .14,
+                    age_range=="55 to 64 years" ~ number_sams_GQ * .07,
+                    TRUE ~ 0),
+        number_sams_GQ_prob := round(number_sams_GQ_prob * 4), #number of age groups?
+        number_sams_not_GQ := (tract_sam - number_sams_GQ_prob)
       )
     joint_sam_GQ <- joint_sam_GQ %>%
-      group_by(tract) %>%
+      group_by(tract,sex,age_range) %>%
       mutate(
-        group_quartered := if_else(spouse_present!="married spouse present",sample(c(rep("group quartered",round(number_sams_GQ_prob[1])),rep("not group quartered",round(tract_sam-number_sams_GQ_prob))),
-                                                                                   replace=FALSE,size = n(),prob=c(rep(1/n(),tract_sam[1]))),"not group quartered")
+        group_quartered := if_else(spouse_present!="married spouse present" & number_sams_GQ_prob > 0 & number_sams_not_GQ > 0,
+                                   sample(c(rep("group quartered",round(number_sams_GQ_prob[1])),rep("not group quartered",number_sams_not_GQ[1])),
+                                                                                   replace=TRUE,size = n(),prob=c(rep(1/tract_sam[1],tract_sam[1]))),"not group quartered")
         )
+    
     
     
     pregnancy_data_race_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
