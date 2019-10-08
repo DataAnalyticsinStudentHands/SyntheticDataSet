@@ -2,6 +2,8 @@ library(tidyr)
 library(dplyr)
 library(stringr)
 library(data.table)
+#library(rio) #may not need here - playing with it
+library(FactoMineR)
 
 #' createIndividuals
 #'
@@ -32,7 +34,15 @@ createIndividuals <- function() {
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% #clean up label 
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%    
-      mutate(race = substr(name,7,7)) %>%
+      mutate(race = substr(name,7,7),
+             white = if_else(race=="A",1,0),  #add these for PCA dimensions
+             black = if_else(race=="B",1,0),
+             american_indian = if_else(race=="C",1,0),
+             asian = if_else(race=="D",1,0),
+             pacific_islander = if_else(race=="E",1,0),
+             other_race = if_else(race=="F",1,0),
+             bi_racial = if_else(race=="G",1,0)
+            ) %>%
       separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%  #NA in rows with only one
       rename(census_group_name = name) %>%
       filter(number_sams != 0, !is.na(age_range),race!="_",age_range!="Total") %>% 
@@ -74,7 +84,7 @@ createIndividuals <- function() {
                                      hispanic_id==2 & hispanic_number > 0 ~ as.integer(hispanic_number),
                                      hispanic_id==2 & hispanic_number == 0 ~ as.integer(0),
                                      TRUE ~ as.integer(number_sams)),
-             hispanic = if_else(hispanic_id == 2, TRUE, FALSE),
+             hispanic = if_else(hispanic_id == 2, 1, 0),
              tract_race_year = case_when( #this is the number per year in that age_range for that tract and that race
                race=="A" ~ A_tract_age/age_range_length, 
                race=="B" ~ B_tract_age/age_range_length,
@@ -126,7 +136,6 @@ createIndividuals <- function() {
                               14 * (age >= 85 & age <= 104) ]
    ]
       sam_sex_race_age <- sam_sex_race_age_DT
-
     
     #for other individual characteristics: get age_range to year; get percentages by race and age, sample with tract_race_year multiplied into probability?
      
@@ -189,12 +198,7 @@ createIndividuals <- function() {
                                         str_detect(part4,"Divorced") ~ part4
              )
       ) %>% 
-#      filter(!is.na(age_range)) %>%  #stop trying for age? no - we need that distribution
-#      pivot_wider(names_from = age_range,values_from = number_sams,names_prefix = "marital_age_") %>%
-#      filter(!is.na(marital_status)) %>%
-#     filter(race %in% c(acs_race_codes, "_")) #%>%
-      select(-starts_with("part"),-concept,-starts_with("pop_"))# %>%
-#      uncount(number_sams)
+      select(-starts_with("part"),-concept,-starts_with("pop_"))
       
       joined_tract_sam <- sam_sex_race_age %>%
         group_by(tract, sex) %>%
@@ -346,7 +350,6 @@ createIndividuals <- function() {
           married_by_age_whole := married_by_age_whole + married_sa_by_age_whole + married_sp_by_age_whole,  #there's something weird about the whole count so trying to up the numerator
           widowed_by_age := round(widowed_by_tract * (widowed_by_age_whole/widowed_by_whole)),
           divorced_by_age := round(divorced_by_tract * (divorced_by_age_whole/divorced_by_whole)),
-#          separated_by_age := round(separated_by_tract * (separated_by_age_whole/separated_by_whole)),
           never_married_by_age := round(never_married_by_tract * (never_married_by_age_whole/never_married_by_whole)),
           married_by_age := round((married_by_tract + married_sa_by_tract) * (married_by_age_whole/married_by_whole)),
           married_sp_by_age := round(married_sp_by_tract * (married_sp_by_age_whole/married_sp_by_whole)),
@@ -354,19 +357,7 @@ createIndividuals <- function() {
           total := widowed_by_age + divorced_by_age + never_married_by_age + married_by_age,
           total_diff := total_tract_by_census - total,
           total_n := n(), #change this to correct bit from census file for total? It doesn't have right total.... problem might be that we're in subgroups that aren't assigned same way, and need to figure out what original numbers per tract are
-          total_left := if_else(total_n - total >= 0,total_n - total,0),
-          #never_married_by_age := if_else(total_left == 0, if_else(total_n-total > never_married_by_age,) ,never_married_by_age)
-         # total_by_age_race := total, #total_n,# * prob_race,  #race is handled because the sample already has distinction by race...
-         # total_n_by_age_race := total_n * prob_race,
-  #        prob_widow := if_else(is.na(widowed_by_age/total/widowed_by_age),0,widowed_by_age/total/widowed_by_age),
-  #        prob_divorce := if_else(is.na(divorced_by_age/total/divorced_by_age),0,divorced_by_age/total/divorced_by_age),
-  #        prob_nm := if_else(is.na(never_married_by_age/total/never_married_by_age),0,never_married_by_age/total/never_married_by_age),
-  #       prob_married := if_else(is.na(married_by_age/total/married_by_age),0,married_by_age/total/married_by_age),
-  #        prob_m_sp := if_else(is.na(married_sp_by_age/total/married_sp_by_age),0,married_sp_by_age/total/married_sp_by_age),
-  #        prob_m_sa := if_else(is.na(married_sa_by_age/total/married_sa_by_age),0,married_sa_by_age/total/married_sa_by_age),
-  #        prob_none_1 := if_else(is.na(1-(total_left/total/total_left)),0,if_else((total_left/total/total_left)>1,0,1-(total_left/total/total_left))),
-  #       prob_none := if_else((prob_widow+prob_divorce+prob_nm+prob_married)==0,1,prob_none_1),
-  #       prob_total := (prob_widow + prob_divorce + prob_nm + prob_married + prob_none) * total
+          total_left := if_else(total_n - total >= 0,total_n - total,0)
           )
       joined_sam_marital <- joined_age_married_sam %>%
         group_by(tract,sex,age_range_marital) %>%
@@ -386,13 +377,35 @@ createIndividuals <- function() {
           spouse_present := if_else(marital_status=="married",sample(c("married spouse present","married spouse absent or separate")
                                                                      ,size=1,replace = TRUE,prob = c(.65,.35)),
                                     "no spouse")
-      )
+        ) %>%
+        select(-starts_with("total"),-ends_with("_whole"),-ends_with("_tract"),-ends_with("by_age"),-ends_with("by_census"),-l_marital,-census_group_name,-label,-tract_race_year)
     
     saveRDS(joined_sam_marital,"joined_sam_marital.RDS") #temp save
     joined_sam_marital <- readRDS("joined_sam_marital.RDS")
     ##not run
     table(joined_sam_marital$marital_status)
     table(joined_sam_marital$tract, joined_sam_marital$marital_status)
+    
+    sam_marital_PCA_res <- PCA(joined_sam_marital[,c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
+    
+    sam_marital <- joined_sam_marital
+    sam_marital[,c('harris_coord1','harris_coord2','harris_coord3')] <- sam_marital_PCA_res$ind$coord[,1:3] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
+    
+    sam_marital_eig3 <- sam_marital2 %>%
+      group_by(tract) %>%
+      mutate(
+        tract_coords1 := 
+          PCA(.[which(tract==tract),c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[1], #var with 3 values
+        tract_coords2 := 
+          PCA(.[which(tract==tract),c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[2], #var with 3 values
+        tract_coords3 := 
+          PCA(.[which(tract==tract),c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[3] #var with 3 values
+      )
+    
+    # or doing the larger set next to each other, then having to compare who is closest, and not forgetting in the sampling that you project down to the individual level - and that that projection is what counts as a hypergraph
+    #then go through sam_marital_eig and find closest ones to match with
+    
+    sam_marital_eig2 <- merge(sam_marital_eig,GQ_sam,by="tract",suffix = c('sam','GQ')) #vector memory exhausted!!!!
     
     #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
     #very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
@@ -403,34 +416,68 @@ createIndividuals <- function() {
     base_group_quarters_data <- group_quarters_data_from_census %>%
       pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_GQ") 
     
+    #make into a PCA based only on the characteristics that are known
+    GQ_sam <- uncount(base_group_quarters_data,number_sams_GQ,.remove = FALSE,.id="GQ_id") %>%
+      group_by(tract) %>%
+      mutate( #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
+        GQ_facility_type := if_else(number_sams_GQ > 400,"correctional","nursing home"),
+        age_range := if_else(GQ_facility_type == "correctional",
+                             sample(c(1,2,3,4,5,6,7), #c("18 to 19 years","20 to 24 years","25 to 29 years","30 to 34 years","35 to 44 years","45 to 54 years","55 to 64 years"),
+                                    replace=TRUE,size = n(),prob=c(.05,.09,.16,.25,.24,.14,.07)),
+                             sample(c(8,9,10), #c("65 to 75 years","75 to 85 years","85 years and over"),
+                                    replace = TRUE,size=n(),prob=c(.1,.4,.5))), # https://www.cdc.gov/nchs/nsltcp/index.htm
+        sex := if_else(GQ_facility_type == "correctional",
+                       sample(c(0,1), #c('male','female'),
+                              replace=TRUE,size = n(),prob=c(.93,.07)),
+                       sample(c(0,1), #c('male','female'),
+                              replace=TRUE,size = n(),prob=c(.33,.67)),
+                       )
+      )
+      
+    #GQ_sam_PCA_res <- PCA(GQ_sam[,c('sex','age_range')],scale.unit=TRUE, ncp=1)  #can we match by tract???
+    
+    
+    
+    
+    
+    
+    
     joint_sam_GQ <- joined_sam_marital %>%
       group_by(tract) %>%
-      mutate(tract_sam := n()) %>%
-      ungroup() %>%
-      group_by(tract) %>%
       mutate(
+        tract_sam := n(),
         number_sams_GQ := base_group_quarters_data[which(base_group_quarters_data$tract == tract)[1],"number_sams_GQ"][[1]],
+        prob_GQ_tract := number_sams_GQ / tract_sam) %>%
+      ungroup() %>%
+      group_by(tract,sex,age_range) %>%
+      mutate(
+        #tract_sam := n(),
+        
+#        prob_GQ_tract := number_sams_GQ / tract_sam,
         number_sams_GQ_prob :=
           case_when(sex=="Male" ~ number_sams_GQ * .93, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
                     sex=="Female" ~ number_sams_GQ * .07),
-        number_sams_GQ_prob := 
-          case_when(age_range=="18 to 19 years" ~ number_sams_GQ * .05, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-                    age_range=="20 to 24 years" ~ number_sams_GQ * .09,
-                    age_range=="25 to 29 years" ~ number_sams_GQ * .16,
-                    age_range=="30 to 34 years" ~ number_sams_GQ * .25,
-                    age_range=="35 to 44 years" ~ number_sams_GQ * .24, 
-                    age_range=="45 to 54 years" ~ number_sams_GQ * .14,
-                    age_range=="55 to 64 years" ~ number_sams_GQ * .07,
-                    TRUE ~ 0),
-        number_sams_GQ_prob := round(number_sams_GQ_prob * 4), #number of age groups?
-        number_sams_not_GQ := (tract_sam - number_sams_GQ_prob)
+        #number_sams_GQ_prob2 := 
+        #  case_when(age_range=="18 to 19 years" ~ number_sams_GQ_prob * .05, 
+               #     age_range=="20 to 24 years" ~ number_sams_GQ_prob * .09,
+              #      age_range=="25 to 29 years" ~ number_sams_GQ_prob * .16,
+             #       age_range=="30 to 34 years" ~ number_sams_GQ_prob * .25,
+            #        age_range=="35 to 44 years" ~ number_sams_GQ_prob * .24, 
+           #         age_range=="45 to 54 years" ~ number_sams_GQ_prob * .14,
+          #          age_range=="55 to 64 years" ~ number_sams_GQ_prob * .07,
+         #           TRUE ~ 0),
+        number_sams_GQ_prob := round(number_sams_GQ_prob), 
+        tract_sam := if_else(!is.na(prob_GQ_tract),round(tract_sam*prob_GQ_tract),tract_sam*1), #multiplying by one seems to make it a double and not an integer...
+        #number_sams_GQ_prob := number_sams_GQ,
+        number_sams_not_GQ := (tract_sam - number_sams_GQ_prob) 
       )
+    
     joint_sam_GQ <- joint_sam_GQ %>%
-      group_by(tract,sex,age_range) %>%
+      group_by(tract) %>%
       mutate(
-        group_quartered := if_else(spouse_present!="married spouse present" & number_sams_GQ_prob > 0 & number_sams_not_GQ > 0,
-                                   sample(c(rep("group quartered",round(number_sams_GQ_prob[1])),rep("not group quartered",number_sams_not_GQ[1])),
-                                                                                   replace=TRUE,size = n(),prob=c(rep(1/tract_sam[1],tract_sam[1]))),"not group quartered")
+        group_quartered := if_else(number_sams_GQ_prob > 0 & number_sams_not_GQ > 0 & spouse_present!="married spouse present", 
+                                   sample(c(rep("group quartered",number_sams_GQ_prob[1]),rep("not group quartered",number_sams_not_GQ[1])),
+                                   replace=FALSE,size = tract_sam[1],prob=c(rep(1/tract_sam[1],tract_sam[1]))),"not group quartered")
         )
     
     
