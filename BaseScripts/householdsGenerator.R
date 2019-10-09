@@ -386,28 +386,13 @@ createIndividuals <- function() {
     table(joined_sam_marital$marital_status)
     table(joined_sam_marital$tract, joined_sam_marital$marital_status)
     
-    sam_marital_PCA_res <- PCA(joined_sam_marital[,c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
+    sam_marital_PCA_res <- PCA(sam_marital_eig[,c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
     
     sam_marital <- joined_sam_marital
-    sam_marital[,c('harris_coord1','harris_coord2','harris_coord3')] <- sam_marital_PCA_res$ind$coord[,1:3] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
+    sam_marital_eig[,c('harris_coord1','harris_coord2','harris_coord3')] <- sam_marital_PCA_res$ind$coord[,1:3] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
     
-    sam_marital_eig3 <- sam_marital2 %>%
-      group_by(tract) %>%
-      mutate(
-        tract_coords1 := 
-          PCA(.[which(tract==tract),c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[1], #var with 3 values
-        tract_coords2 := 
-          PCA(.[which(tract==tract),c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[2], #var with 3 values
-        tract_coords3 := 
-          PCA(.[which(tract==tract),c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[3] #var with 3 values
-      )
-    
-    # or doing the larger set next to each other, then having to compare who is closest, and not forgetting in the sampling that you project down to the individual level - and that that projection is what counts as a hypergraph
-    #then go through sam_marital_eig and find closest ones to match with
-    
-    sam_marital_eig2 <- merge(sam_marital_eig,GQ_sam,by="tract",suffix = c('sam','GQ')) #vector memory exhausted!!!!
-    
-    #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
+        
+        #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
     #very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
     #biggest thing to worry about is inmate population; other GC are not large, as far as I can tell
     #I don't have great confidence that the census is distributing them correctly - it may be an algorithm meant to hide concentrations.
@@ -421,12 +406,12 @@ createIndividuals <- function() {
       group_by(tract) %>%
       mutate( #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
         GQ_facility_type := if_else(number_sams_GQ > 400,"correctional","nursing home"),
-        age_range := if_else(GQ_facility_type == "correctional",
+        age_range_num := if_else(GQ_facility_type == "correctional",
                              sample(c(1,2,3,4,5,6,7), #c("18 to 19 years","20 to 24 years","25 to 29 years","30 to 34 years","35 to 44 years","45 to 54 years","55 to 64 years"),
                                     replace=TRUE,size = n(),prob=c(.05,.09,.16,.25,.24,.14,.07)),
                              sample(c(8,9,10), #c("65 to 75 years","75 to 85 years","85 years and over"),
                                     replace = TRUE,size=n(),prob=c(.1,.4,.5))), # https://www.cdc.gov/nchs/nsltcp/index.htm
-        sex := if_else(GQ_facility_type == "correctional",
+        sex_num := if_else(GQ_facility_type == "correctional",
                        sample(c(0,1), #c('male','female'),
                               replace=TRUE,size = n(),prob=c(.93,.07)),
                        sample(c(0,1), #c('male','female'),
@@ -436,7 +421,31 @@ createIndividuals <- function() {
       
     #GQ_sam_PCA_res <- PCA(GQ_sam[,c('sex','age_range')],scale.unit=TRUE, ncp=1)  #can we match by tract???
     
+    GQ_sam$age_range <- as.character(GQ_sam$age_range) #so bind_rows works
     
+    sam_marital <- sam_marital %>%
+      mutate(
+        sex_num := case_when(sex == "Male" ~ 0, sex == "Female" ~1)
+      )
+    
+    sam_marital2 <- bind_rows(sam_marital,GQ_sam)
+    
+    
+    sam_marital_eig <- sam_marital2 %>%
+      group_by(tract) %>%
+      mutate(
+        tract_coords1 := 
+          PCA(.[which(tract==tract),c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[1], #var with 3 values
+        tract_coords2 := 
+          PCA(.[which(tract==tract),c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[2], #var with 3 values
+        tract_coords3 := 
+          PCA(.[which(tract==tract),c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[3] #var with 3 values
+      )
+    
+    
+    # or doing the larger set next to each other, then having to compare who is closest, and not forgetting in the sampling that you project down to the individual level - and that that projection is what counts as a hypergraph
+    #then go through sam_marital_eig and find closest ones to match with
+      
     
     
     
