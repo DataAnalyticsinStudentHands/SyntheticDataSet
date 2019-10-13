@@ -386,8 +386,8 @@ createIndividuals <- function() {
     table(joined_sam_marital$marital_status)
     table(joined_sam_marital$tract, joined_sam_marital$marital_status)
     
-    sam_marital_PCA_res <- PCA(sam_marital_eig[,c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
-    
+    sam_marital_PCA_res <- PCA(joined_sam_marital[,c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
+    #42,000 rows had NA for Hispanic - which is size of GQ_Sam - filling automatically from the FactoMineR
     sam_marital <- joined_sam_marital
     sam_marital_eig[,c('harris_coord1','harris_coord2','harris_coord3')] <- sam_marital_PCA_res$ind$coord[,1:3] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
     
