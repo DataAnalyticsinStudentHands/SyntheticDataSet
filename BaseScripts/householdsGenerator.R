@@ -386,13 +386,7 @@ createIndividuals <- function() {
     table(joined_sam_marital$marital_status)
     table(joined_sam_marital$tract, joined_sam_marital$marital_status)
     
-    sam_marital_PCA_res <- PCA(joined_sam_marital[,c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
-    #42,000 rows had NA for Hispanic - which is size of GQ_Sam - filling automatically from the FactoMineR
-    sam_marital <- joined_sam_marital
-    sam_marital_eig[,c('harris_coord1','harris_coord2','harris_coord3')] <- sam_marital_PCA_res$ind$coord[,1:3] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
-    
-        
-        #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
+     #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
     #very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
     #biggest thing to worry about is inmate population; other GC are not large, as far as I can tell
     #I don't have great confidence that the census is distributing them correctly - it may be an algorithm meant to hide concentrations.
@@ -419,7 +413,7 @@ createIndividuals <- function() {
                        )
       )
       
-    #GQ_sam_PCA_res <- PCA(GQ_sam[,c('sex','age_range')],scale.unit=TRUE, ncp=1)  #can we match by tract???
+    #GQ_sam_PCA_res <- PCA(GQ_sam[,c('sex','age_range')],scale.unit=TRUE, ncp=1)  #I added them in to sam, then did PCA, then matched, then subtracted
     
     GQ_sam$age_range <- as.character(GQ_sam$age_range) #so bind_rows works
     
@@ -442,30 +436,48 @@ createIndividuals <- function() {
           PCA(.[which(tract==tract),c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[3] #var with 3 values
       )
     
+    #should change names - have to think through adding multiples, too.
+    sam_marital_PCA_res <- PCA(joined_sam_marital[,c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
+    #42,000 rows had NA for Hispanic - which is size of GQ_Sam - filling automatically from the FactoMineR
+    sam_marital <- joined_sam_marital
+    sam_marital_eig[,c('harris_coord1','harris_coord2','harris_coord3')] <- sam_marital_PCA_res$ind$coord[,1:3] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
     
-    # or doing the larger set next to each other, then having to compare who is closest, and not forgetting in the sampling that you project down to the individual level - and that that projection is what counts as a hypergraph
-    #then go through sam_marital_eig and find closest ones to match with
-      
-    
-    
-    
-    
-    
-    joint_sam_GQ <- joined_sam_marital %>%
+    GQ_eig <- sam_marital_eig %>%
       group_by(tract) %>%
-      mutate(
-        tract_sam := n(),
-        number_sams_GQ := base_group_quarters_data[which(base_group_quarters_data$tract == tract)[1],"number_sams_GQ"][[1]],
-        prob_GQ_tract := number_sams_GQ / tract_sam) %>%
-      ungroup() %>%
-      group_by(tract,sex,age_range) %>%
-      mutate(
+      filter(!is.na(GQ_id))
+    
+    sam_eig <- sam_marital_eig %>%
+      group_by(tract) %>%
+      filter(is.na(GQ_id))
+    
+    test_sam <- sam_eig_DT %>%
+      group_by(tract) %>%
+      mutate(n = n()) 
+    
+    test_sam <- test_sam_DT %>%
+      group_by(tract) %>%
+      .[, c('first','second') := list(rep(2,n),rep(3,n))]
+      
+    #do diabetes for Alex? then do a sample, with percentages from GQ-eig vs. sam_eig...
+    
+    
+    
+    
+#    joint_sam_GQ <- joined_sam_marital %>%
+#      group_by(tract) %>%
+#      mutate(
+#        tract_sam := n(),
+#        number_sams_GQ := base_group_quarters_data[which(base_group_quarters_data$tract == tract)[1],"number_sams_GQ"][[1]],
+#        prob_GQ_tract := number_sams_GQ / tract_sam) %>%
+#      ungroup() %>%
+#      group_by(tract,sex,age_range) %>%
+#      mutate(
         #tract_sam := n(),
         
 #        prob_GQ_tract := number_sams_GQ / tract_sam,
-        number_sams_GQ_prob :=
-          case_when(sex=="Male" ~ number_sams_GQ * .93, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-                    sex=="Female" ~ number_sams_GQ * .07),
+#        number_sams_GQ_prob :=
+#          case_when(sex=="Male" ~ number_sams_GQ * .93, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
+#                    sex=="Female" ~ number_sams_GQ * .07),
         #number_sams_GQ_prob2 := 
         #  case_when(age_range=="18 to 19 years" ~ number_sams_GQ_prob * .05, 
                #     age_range=="20 to 24 years" ~ number_sams_GQ_prob * .09,
@@ -475,19 +487,19 @@ createIndividuals <- function() {
            #         age_range=="45 to 54 years" ~ number_sams_GQ_prob * .14,
           #          age_range=="55 to 64 years" ~ number_sams_GQ_prob * .07,
          #           TRUE ~ 0),
-        number_sams_GQ_prob := round(number_sams_GQ_prob), 
-        tract_sam := if_else(!is.na(prob_GQ_tract),round(tract_sam*prob_GQ_tract),tract_sam*1), #multiplying by one seems to make it a double and not an integer...
+#        number_sams_GQ_prob := round(number_sams_GQ_prob), 
+#        tract_sam := if_else(!is.na(prob_GQ_tract),round(tract_sam*prob_GQ_tract),tract_sam*1), #multiplying by one seems to make it a double and not an integer...
         #number_sams_GQ_prob := number_sams_GQ,
-        number_sams_not_GQ := (tract_sam - number_sams_GQ_prob) 
-      )
+#        number_sams_not_GQ := (tract_sam - number_sams_GQ_prob) 
+#      )
     
-    joint_sam_GQ <- joint_sam_GQ %>%
-      group_by(tract) %>%
-      mutate(
-        group_quartered := if_else(number_sams_GQ_prob > 0 & number_sams_not_GQ > 0 & spouse_present!="married spouse present", 
-                                   sample(c(rep("group quartered",number_sams_GQ_prob[1]),rep("not group quartered",number_sams_not_GQ[1])),
-                                   replace=FALSE,size = tract_sam[1],prob=c(rep(1/tract_sam[1],tract_sam[1]))),"not group quartered")
-        )
+#    joint_sam_GQ <- joint_sam_GQ %>%
+#      group_by(tract) %>%
+#      mutate(
+#        group_quartered := if_else(number_sams_GQ_prob > 0 & number_sams_not_GQ > 0 & spouse_present!="married spouse present", 
+#                                   sample(c(rep("group quartered",number_sams_GQ_prob[1]),rep("not group quartered",number_sams_not_GQ[1])),
+#                                   replace=FALSE,size = tract_sam[1],prob=c(rep(1/tract_sam[1],tract_sam[1]))),"not group quartered")
+#        )
     
     
     
