@@ -9,7 +9,7 @@ source("tools.R")
 
 nhanesdir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/NHANES/" #Dan at home
 #nhanesdir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/NHANES/" #Dan at work
-nhanesyear = "2012/" #or 2016/
+nhanesyear = "2016/" #or 2012/
 file_path <- paste0(censusdir, vintage, "/downloaded/", state, "_", county, "_", groupname, ".csv")
 
 NH_file_folder <- paste0(nhanesdir,nhanesyear)
@@ -29,7 +29,8 @@ fileNames <- c("DEMO_I.XPT", #demographics  https://wwwn.cdc.gov/Nchs/Nhanes/201
                "HSQ_I.XPT", #current health: https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/HSQ_I.htm
                "BMX_I.XPT", #Body measures: https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/BMX_I.htm
                "PAQ_I.XPT", #phys_act: https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PAQ_I.htm
-               "PFQ_I.XPT") #phys_func: https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFQ_I.htm
+               "PFQ_I.XPT" #phys_func: https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/PFQ_I.htm
+              )
 
 #not included
 #"DR2TOT_I.XPT" #diet_nutrient2: https://wwwn.cdc.gov/Nchs/Nhanes/2015-2016/DR2IFF_I.htm
@@ -39,19 +40,20 @@ fileNames <- c("DEMO_I.XPT", #demographics  https://wwwn.cdc.gov/Nchs/Nhanes/201
 fileNames <- c("DEMO_G.XPT", #demographics  Oct.11, 2019
                "DR1TOT_G.XPT", #diet_nutrient1: 
                "MCQ_G.XPT", #medical conditions:
-               "DPQ_G.XPT", #depression instrument:
-               "CFQ_G.XPT", #cognitive function
-               "SLQ_G.XPT", #sleep
+ #              "DPQ_G.XPT", #depression instrument:
+#               "CFQ_G.XPT", #cognitive function
+#               "SLQ_G.XPT", #sleep
                "DIQ_G.XPT", #diabetes: 
-               "HOQ_G.XPT", #housing 
-               "HUQ_G.XPT", #healthcare utilization: 
-               "CBQ_G.XPT", #consumer: 
+#               "HOQ_G.XPT", #housing 
+#               "HUQ_G.XPT", #healthcare utilization: 
+#               "CBQ_G.XPT", #consumer: 
                "DBQ_G.XPT", #dietary behavior: 
-               "OCQ_G.XPT", #occupation: 
+#               "OCQ_G.XPT", #occupation: 
                "HSQ_G.XPT", #current health: 
                "BMX_G.XPT", #Body measures: 
-               "PAQ_G.XPT", #phys_act: 
-               "PFQ_G.XPT"#phys_func:
+               "BPQ_G.XPT" #Blood pressure:
+#               "PAQ_G.XPT", #phys_act: 
+#               "PFQ_G.XPT"#phys_func:
                )  
 
 fileList=lapply(fileNames, function(x){paste0(NH_file_folder,x)})
@@ -232,7 +234,7 @@ NHANES_1$luck2 <- sample(100, size = nrow(NHANES_1), replace = TRUE)
 NHANES_1$luck3 <- sample(100, size = nrow(NHANES_1), replace = TRUE)
 NHANES_1$luck4 <- sample(100, size = nrow(NHANES_1), replace = TRUE)
 
-write_csv2(merged_NHANES_F,paste0(nhanesdir,"cogNH_more_12.csv"))# etc.
+write_csv2(merged_NHANES_F,paste0(nhanesdir,"NHANES_full_Dan_2016.csv"))# etc.
 #preparation of NHANES for PCA
 #make categorical variables in vectors of binary, which will be removed later...
 #could do it where we didn't break out the categorical variables, and just did the PCA with supplemental values, but

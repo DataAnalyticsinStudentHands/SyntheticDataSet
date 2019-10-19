@@ -450,16 +450,18 @@ createIndividuals <- function() {
       group_by(tract) %>%
       filter(is.na(GQ_id))
     
-    test_sam <- sam_eig_DT %>%
-      group_by(tract) %>%
-      mutate(n = n()) 
+#    test_sam <- sam_eig_DT %>%
+#      group_by(tract) %>%
+#      mutate(n = n()) 
     
-    test_sam <- test_sam_DT %>%
-      group_by(tract) %>%
-      .[, c('first','second') := list(rep(2,n),rep(3,n))]
+#    test_sam <- test_sam_DT %>%
+#      group_by(tract) %>%
+#      .[, c('first','second') := list(5,6)]
+   #   .[, c('first','second') := list(rep(2,n()),rep(3,n()))]
       
-    #do diabetes for Alex? then do a sample, with percentages from GQ-eig vs. sam_eig...
+    #if which(matching on groups) less than 5, then match on one fewer group, etc. - then order by distance like in NHANES
     
+
     
     
     
