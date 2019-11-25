@@ -415,15 +415,14 @@ createIndividuals <- function() {
       
     #GQ_sam_PCA_res <- PCA(GQ_sam[,c('sex','age_range')],scale.unit=TRUE, ncp=1)  #I added them in to sam, then did PCA, then matched, then subtracted
     
-    GQ_sam$age_range <- as.character(GQ_sam$age_range) #so bind_rows works
+    GQ_sam$age_range <- as.character(GQ_sam$age_range_num) #so bind_rows works
     
-    sam_marital <- sam_marital %>%
+    sam_marital <- joined_sam_marital %>%
       mutate(
         sex_num := case_when(sex == "Male" ~ 0, sex == "Female" ~1)
       )
     
-    sam_marital2 <- bind_rows(sam_marital,GQ_sam)
-    
+    sam_marital2 <- bind_rows(sam_marital,GQ_sam) #bind them so that the PCA includes GQ by tract 
     
     sam_marital_eig <- sam_marital2 %>%
       group_by(tract) %>%
@@ -435,20 +434,46 @@ createIndividuals <- function() {
         tract_coords3 := 
           PCA(.[which(tract==tract),c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[3] #var with 3 values
       )
+    #GQ doesn't include race, so it's imputed by the mean of the variable for the tract - which is reasonable, but not perfect.
     
     #should change names - have to think through adding multiples, too.
-    sam_marital_PCA_res <- PCA(joined_sam_marital[,c('age','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
+    #for whole, to compare with by tract and to have the GQ_Sam included in the PCA so matching by distance makes sense for whole
+    sam_marital_PCA_res <- PCA(sam_marital2[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
     #42,000 rows had NA for Hispanic - which is size of GQ_Sam - filling automatically from the FactoMineR
-    sam_marital <- joined_sam_marital
+    
     sam_marital_eig[,c('harris_coord1','harris_coord2','harris_coord3')] <- sam_marital_PCA_res$ind$coord[,1:3] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
+   
+    saveRDS(sam_marital_eig,"sam_marital_eig.RDS") #temp save
+    sam_marital_eig <- readRDS("sam_marital_eig.RDS")
     
-    GQ_eig <- sam_marital_eig %>%
-      group_by(tract) %>%
-      filter(!is.na(GQ_id))
+    sam_marital_DT <- as.data.table(sam_marital_eig)
     
-    sam_eig <- sam_marital_eig %>%
-      group_by(tract) %>%
-      filter(is.na(GQ_id))
+    #because the expanded GQ is less than the expanded census, have to make sure that the sampling is right.
+    #for each total in that tract, prob = total_with_GQ_id/total_tract 
+    #, order by first eigendim, then for each that has no GQ_id, look for matches 
+    #using logic from NHANES, but modified for data.table - 
+    
+    sam_marital_DT[is.na(GQ_id),("tract_total") := .N,tract]
+    
+    sam_marital_DT[,("GQ_num") := is.na(GQ_id),.N,tract]
+    
+    sam_marital_DT[is.na(GQ_id),('number_sams_GQ') := 0L]
+    sam_marital_DT[!is.na(GQ_id),("GQ_tract_total") := .N,tract]
+    sam_marital_DT[,("GQ_num") := max(as.integer(number_sams_GQ)),tract]
+    sam_marital_DT[GQ_tract_total>0,("GQ_num") := as.integer(GQ_tract_total/number_sams_GQ)]
+    sam_marital_DT[tract=="210100" & is.na(GQ_id),.N]
+    sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:.N,.N,replace = FALSE)]
+    sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:max(as.integer(number_sams_GQ)),max(as.integer(number_sams_GQ)),replace = FALSE)]
+    sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:3,max(as.integer(number_sams_GQ)),replace = TRUE)]
+    sam_marital_DT[tract=="210100" & is.na(GQ_id) & sex=="Male" & spouse_present == "married spouse present",.N] #if in correctional facilities, then change spouse_present to "married spouse absent"?
+    
+#    GQ_eig <- sam_marital_eig %>%
+#      group_by(tract) %>%
+#      filter(!is.na(GQ_id))
+    
+#    sam_eig <- sam_marital_eig %>%
+#      group_by(tract) %>%
+#      filter(is.na(GQ_id))
     
 #    test_sam <- sam_eig_DT %>%
 #      group_by(tract) %>%
@@ -462,7 +487,7 @@ createIndividuals <- function() {
     #if which(matching on groups) less than 5, then match on one fewer group, etc. - then order by distance like in NHANES
     
 
-    
+ #   do the data.table piece by piece, with notes about why going to the well for the larger context maatch gives you hypergraphs...
     
     
 #    joint_sam_GQ <- joined_sam_marital %>%
