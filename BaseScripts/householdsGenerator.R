@@ -465,6 +465,7 @@ createIndividuals <- function() {
     sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:.N,.N,replace = FALSE)]
     sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:max(as.integer(number_sams_GQ)),max(as.integer(number_sams_GQ)),replace = FALSE)]
     sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:3,max(as.integer(number_sams_GQ)),replace = TRUE)]
+    sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(sam_marital_DT[tract=="210100" & !is.na(GQ_id),"age"],max(as.integer(number_sams_GQ)),replace = TRUE)]
     sam_marital_DT[tract=="210100" & is.na(GQ_id) & sex=="Male" & spouse_present == "married spouse present",.N] #if in correctional facilities, then change spouse_present to "married spouse absent"?
     
 #    GQ_eig <- sam_marital_eig %>%
