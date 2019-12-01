@@ -423,19 +423,43 @@ createIndividuals <- function() {
       )
     
     sam_marital2 <- bind_rows(sam_marital,GQ_sam) #bind them so that the PCA includes GQ by tract 
-    
-    sam_marital_eig <- sam_marital2 %>%
-      group_by(tract) %>%
-      mutate(
-        tract_coords1 := 
-          PCA(.[which(tract==tract),c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[1], #var with 3 values
-        tract_coords2 := 
-          PCA(.[which(tract==tract),c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[2], #var with 3 values
-        tract_coords3 := 
-          PCA(.[which(tract==tract),c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=2)$ind$coord[3] #var with 3 values
-      )
+
     #GQ doesn't include race, so it's imputed by the mean of the variable for the tract - which is reasonable, but not perfect.
     
+
+#better way to do mean, etc - should change some of logic from above to DT
+    
+    sam_marital_DT[,"age" := if_else(is.na(GQ_id),age,mean(age,na.rm = TRUE)),tract]
+    sam_marital_DT[,"sex_num" := if_else(is.na(GQ_id),sex_num,mean(sex_num,na.rm = TRUE)),tract]
+    sam_marital_DT[,"white" := if_else(is.na(GQ_id),white,mean(white,na.rm = TRUE)),tract]
+    sam_marital_DT[,"black" := if_else(is.na(GQ_id),black,mean(black,na.rm = TRUE)),tract]
+    sam_marital_DT[,"hispanic" := if_else(is.na(GQ_id),hispanic,mean(hispanic,na.rm = TRUE)),tract]
+    sam_marital_DT[,"asian" := if_else(is.na(GQ_id),asian,mean(asian,na.rm = TRUE)),tract]
+    sam_marital_DT[,"other_race" := if_else(is.na(GQ_id),other_race,mean(other_race,na.rm = TRUE)),tract]
+    sam_marital_DT[,"american_indian" := if_else(is.na(GQ_id),american_indian,mean(american_indian,na.rm = TRUE)),tract]
+    sam_marital_DT[,"pacific_islander" := if_else(is.na(GQ_id),pacific_islander,mean(pacific_islander,na.rm = TRUE)),tract]
+    sam_marital_DT[,"bi_racial" := if_else(is.na(GQ_id),bi_racial,mean(bi_racial,na.rm = TRUE)),tract]
+    
+    test <- sam_marital_DT
+    
+    for(i in unique(test$tract))(
+      test[tract == i,"eig_tract_1" := 
+            PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
+                 scale.unit=TRUE, ncp=5)$ind$coord[,1]]
+    )
+    for(i in unique(test$tract))(
+      test[tract == i,"eig_tract_2" := 
+             PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
+                 scale.unit=TRUE, ncp=5)$ind$coord[,2]]
+    )
+    for(i in unique(test$tract))(
+      test[tract == i,"eig_tract_3" := 
+             PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
+                 scale.unit=TRUE, ncp=5)$ind$coord[,3]]
+    )
+
+    sam_marital_eig <- test #clean up process later
+
     #should change names - have to think through adding multiples, too.
     #for whole, to compare with by tract and to have the GQ_Sam included in the PCA so matching by distance makes sense for whole
     sam_marital_PCA_res <- PCA(sam_marital2[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
@@ -453,20 +477,31 @@ createIndividuals <- function() {
     #, order by first eigendim, then for each that has no GQ_id, look for matches 
     #using logic from NHANES, but modified for data.table - 
     
+    #testing stuff on DTs
     sam_marital_DT[is.na(GQ_id),("tract_total") := .N,tract]
-    
     sam_marital_DT[,("GQ_num") := is.na(GQ_id),.N,tract]
-    
     sam_marital_DT[is.na(GQ_id),('number_sams_GQ') := 0L]
     sam_marital_DT[!is.na(GQ_id),("GQ_tract_total") := .N,tract]
     sam_marital_DT[,("GQ_num") := max(as.integer(number_sams_GQ)),tract]
     sam_marital_DT[GQ_tract_total>0,("GQ_num") := as.integer(GQ_tract_total/number_sams_GQ)]
-    sam_marital_DT[tract=="210100" & is.na(GQ_id),.N]
+    test <- sam_marital_DT[tract=="210100"][order(tract_coords1)]
+    test <- sam_marital_DT[tract=="210100" & is.na(GQ_id),.N]
     sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:.N,.N,replace = FALSE)]
     sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:max(as.integer(number_sams_GQ)),max(as.integer(number_sams_GQ)),replace = FALSE)]
     sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:3,max(as.integer(number_sams_GQ)),replace = TRUE)]
-    sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(sam_marital_DT[tract=="210100" & !is.na(GQ_id),"age"],max(as.integer(number_sams_GQ)),replace = TRUE)]
+    #test[tract=="210100" & is.na(GQ_id),"test_num"] <- test[tract=="210100" & is.na(GQ_id),sample(test[tract=="210100" & is.na(GQ_id)],.N,replace = TRUE)]
     sam_marital_DT[tract=="210100" & is.na(GQ_id) & sex=="Male" & spouse_present == "married spouse present",.N] #if in correctional facilities, then change spouse_present to "married spouse absent"?
+    
+    test[,"eig_distance" := if_else(is.na(GQ_id),
+                                    as.numeric(1),  #how can we do this without the for loop??
+                                    as.numeric(0)),tract]
+    
+    for(i in unique(test$tract))(
+      test[tract == i,"eig_distance_tract" := 
+             PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
+                 scale.unit=TRUE, ncp=5)$ind$coord[,3]]
+    )
+    
     
 #    GQ_eig <- sam_marital_eig %>%
 #      group_by(tract) %>%
