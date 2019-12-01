@@ -393,10 +393,10 @@ createIndividuals <- function() {
     group_quarters_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26001")
     
     base_group_quarters_data <- group_quarters_data_from_census %>%
-      pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_GQ") 
+      pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_temp") 
     
     #make into a PCA based only on the characteristics that are known
-    GQ_sam <- uncount(base_group_quarters_data,number_sams_GQ,.remove = FALSE,.id="GQ_id") %>%
+    GQ_sam <- uncount(base_group_quarters_data,number_sams_temp,.remove = FALSE,.id="temp_id") %>%
       group_by(tract) %>%
       mutate( #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
         GQ_facility_type := if_else(number_sams_GQ > 400,"correctional","nursing home"),
@@ -440,6 +440,10 @@ createIndividuals <- function() {
     sam_marital_DT[,"pacific_islander" := if_else(is.na(GQ_id),pacific_islander,mean(pacific_islander,na.rm = TRUE)),tract]
     sam_marital_DT[,"bi_racial" := if_else(is.na(GQ_id),bi_racial,mean(bi_racial,na.rm = TRUE)),tract]
     
+    add_means <- function(dt,facts){
+      dt[,as.name(facts) := if_else(is.na(temp_id),as.name(facts),median(as.name(facts),na.rm = TRUE))]  #do this for tract??
+    }
+    
     test <- sam_marital_DT
     
     for(i in unique(test$tract))(
@@ -456,6 +460,11 @@ createIndividuals <- function() {
       test[tract == i,"eig_tract_3" := 
              PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
                  scale.unit=TRUE, ncp=5)$ind$coord[,3]]
+    )
+    for(i in unique(test$tract))(  #percent variation explained by eigen_1 (divide by 100)
+      test[tract == i,"eig_pve_1" :=  
+             PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
+                 scale.unit=TRUE, ncp=5)$eig[1,2] / 100]
     )
 
     sam_marital_eig <- test #clean up process later
@@ -496,10 +505,37 @@ createIndividuals <- function() {
                                     as.numeric(1),  #how can we do this without the for loop??
                                     as.numeric(0)),tract]
     
-    for(i in unique(test$tract))(
+    #general process: 1 - expand census data by tract; 1b - fill (uncount) with averaged so GQ_id, etc is = num_sams; 
+              # 2 - create_tract_eigs 
+              # 3 - dist - from avg [or median?] temp_person - should fill all with median??
+              # 4 - sample - 4b - using is.na(temp_id) etc. ; 4c - normalize by 100 for all distances, and use that as percent for sample tract 980000 is weird (exclude?)
+    
+ library(stats) #initial facts = c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
+    create_tract_eigs = function(dt,facts,name){ #where you have a data.table, a vector of factors, and a name to start with
+      for(i in unique(test$tract)){
+        #uncount to right size with median
+        
+        #dt[tract==i,as.name(facts) := if_else(is.na(temp_id),as.name(facts),median(as.name(facts),na.rm = TRUE))] #test this way of using facts
+        
+        pca_res <- PCA(dt[tract==i,..facts],scale.unit=TRUE, ncp=5)  #have to decide if want only three - dim1 by tract is between 18 and 32 var
+        dt[tract==i,paste0(name,"_eig_1") := pca_res$ind$coord[,1]]
+        dt[tract==i,paste0(name,"_eig_2") := pca_res$ind$coord[,2]]
+        dt[tract==i,paste0(name,"_eig_3") := pca_res$ind$coord[,3]]
+        dt[tract==i,paste0(name,"_eig_4") := pca_res$ind$coord[,4]]
+        dt[tract==i,paste0(name,"_eig_5") := pca_res$ind$coord[,5]]
+        dt[tract==i,paste0(name,"_pve_1") := pca_res$eig[1,2] / 100] #percent variance explained / need to check on factoMineR 
+        dt[tract==i,paste0(name,"_pve_2") := pca_res$eig[2,2] / 100]
+        #return distance matrix, too
+      }
+      return(dt)
+    }
+    facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
+    test_dt <- create_tract_eigs(sam_marital_DT,facts=facts,"age_race")
+    
+    for(i in unique(df$tract))(
       test[tract == i,"eig_distance_tract" := 
-             PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
-                 scale.unit=TRUE, ncp=5)$ind$coord[,3]]
+             
+             ]
     )
     
     
@@ -668,14 +704,14 @@ createHouseholds <- function(sam_residents) {
     # poverty - type - number of persons in HH
     household_poverty_people_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17013")
     #above just says how many people below or above poverty, but number of people and type of HH is given - something... match on family_type of Head of Household, but have to already have households
+    
     #  type - relatives -just tells you if they live with additional non-relatives, and gives race
     household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
+    
     #type by age of HH 
     household_age_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17017")
     #type by education of HH B17018
     household_educ_level_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17018")
-    
-    
     
     #gets per_capita by race per tract
     per_capita_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19301")
