@@ -4,6 +4,10 @@ library(stringr)
 library(data.table)
 #library(rio) #may not need here - playing with it
 library(FactoMineR)
+library(doParallel)
+library(foreach)
+#for distance calculation
+library(stats)
 
 #' createIndividuals
 #'
@@ -395,11 +399,11 @@ createIndividuals <- function() {
     base_group_quarters_data <- group_quarters_data_from_census %>%
       pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_temp") 
     
-    #make into a PCA based only on the characteristics that are known
+    #make into a model based only on the characteristics that are known
     GQ_sam <- uncount(base_group_quarters_data,number_sams_temp,.remove = FALSE,.id="temp_id") %>%
       group_by(tract) %>%
       mutate( #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-        GQ_facility_type := if_else(number_sams_GQ > 400,"correctional","nursing home"),
+        GQ_facility_type := if_else(number_sams_temp > 400,"correctional","nursing home"),
         age_range_num := if_else(GQ_facility_type == "correctional",
                              sample(c(1,2,3,4,5,6,7), #c("18 to 19 years","20 to 24 years","25 to 29 years","30 to 34 years","35 to 44 years","45 to 54 years","55 to 64 years"),
                                     replace=TRUE,size = n(),prob=c(.05,.09,.16,.25,.24,.14,.07)),
@@ -412,194 +416,106 @@ createIndividuals <- function() {
                               replace=TRUE,size = n(),prob=c(.33,.67)),
                        )
       )
-      
-    #GQ_sam_PCA_res <- PCA(GQ_sam[,c('sex','age_range')],scale.unit=TRUE, ncp=1)  #I added them in to sam, then did PCA, then matched, then subtracted
     
     GQ_sam$age_range <- as.character(GQ_sam$age_range_num) #so bind_rows works
     
-    sam_marital <- joined_sam_marital %>%
+    sam_marital <- joined_sam_marital %>% #adding sex_num so PCA will have it as numeric
       mutate(
         sex_num := case_when(sex == "Male" ~ 0, sex == "Female" ~1)
       )
     
-    sam_marital2 <- bind_rows(sam_marital,GQ_sam) #bind them so that the PCA includes GQ by tract 
+    sam_marital_GQ <- bind_rows(joined_sam_marital,GQ_sam) #bind them so that the PCA includes GQ by tract 
+    sam_marital_DT <- as.data.table(sam_marital_GQ)
 
     #GQ doesn't include race, so it's imputed by the mean of the variable for the tract - which is reasonable, but not perfect.
     
 
 #better way to do mean, etc - should change some of logic from above to DT
-    
-    sam_marital_DT[,"age" := if_else(is.na(GQ_id),age,mean(age,na.rm = TRUE)),tract]
-    sam_marital_DT[,"sex_num" := if_else(is.na(GQ_id),sex_num,mean(sex_num,na.rm = TRUE)),tract]
-    sam_marital_DT[,"white" := if_else(is.na(GQ_id),white,mean(white,na.rm = TRUE)),tract]
-    sam_marital_DT[,"black" := if_else(is.na(GQ_id),black,mean(black,na.rm = TRUE)),tract]
-    sam_marital_DT[,"hispanic" := if_else(is.na(GQ_id),hispanic,mean(hispanic,na.rm = TRUE)),tract]
-    sam_marital_DT[,"asian" := if_else(is.na(GQ_id),asian,mean(asian,na.rm = TRUE)),tract]
-    sam_marital_DT[,"other_race" := if_else(is.na(GQ_id),other_race,mean(other_race,na.rm = TRUE)),tract]
-    sam_marital_DT[,"american_indian" := if_else(is.na(GQ_id),american_indian,mean(american_indian,na.rm = TRUE)),tract]
-    sam_marital_DT[,"pacific_islander" := if_else(is.na(GQ_id),pacific_islander,mean(pacific_islander,na.rm = TRUE)),tract]
-    sam_marital_DT[,"bi_racial" := if_else(is.na(GQ_id),bi_racial,mean(bi_racial,na.rm = TRUE)),tract]
-    
-    add_means <- function(dt,facts){
-      dt[,as.name(facts) := if_else(is.na(temp_id),as.name(facts),median(as.name(facts),na.rm = TRUE))]  #do this for tract??
-    }
-    
-    test <- sam_marital_DT
-    
-    for(i in unique(test$tract))(
-      test[tract == i,"eig_tract_1" := 
-            PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
-                 scale.unit=TRUE, ncp=5)$ind$coord[,1]]
-    )
-    for(i in unique(test$tract))(
-      test[tract == i,"eig_tract_2" := 
-             PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
-                 scale.unit=TRUE, ncp=5)$ind$coord[,2]]
-    )
-    for(i in unique(test$tract))(
-      test[tract == i,"eig_tract_3" := 
-             PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
-                 scale.unit=TRUE, ncp=5)$ind$coord[,3]]
-    )
-    for(i in unique(test$tract))(  #percent variation explained by eigen_1 (divide by 100)
-      test[tract == i,"eig_pve_1" :=  
-             PCA(test[tract==i,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],
-                 scale.unit=TRUE, ncp=5)$eig[1,2] / 100]
-    )
+#first two are only for those that are created in second stage - uncount within 
+    sam_marital_DT[,"age" := if_else(is.na(temp_id),age,mean(age,na.rm = TRUE)),tract]
+    sam_marital_DT[,"sex_num" := if_else(is.na(temp_id),sex_num,mean(sex_num,na.rm = TRUE)),tract]
 
-    sam_marital_eig <- test #clean up process later
+#these are for both times through    
+    sam_marital_DT[,"white" := if_else(is.na(temp_id),white,mean(white,na.rm = TRUE)),tract]
+    sam_marital_DT[,"black" := if_else(is.na(temp_id),black,mean(black,na.rm = TRUE)),tract]
+    sam_marital_DT[,"hispanic" := if_else(is.na(temp_id),hispanic,mean(hispanic,na.rm = TRUE)),tract]
+    sam_marital_DT[,"asian" := if_else(is.na(temp_id),asian,mean(asian,na.rm = TRUE)),tract]
+    sam_marital_DT[,"other_race" := if_else(is.na(temp_id),other_race,mean(other_race,na.rm = TRUE)),tract]
+    sam_marital_DT[,"american_indian" := if_else(is.na(temp_id),american_indian,mean(american_indian,na.rm = TRUE)),tract]
+    sam_marital_DT[,"pacific_islander" := if_else(is.na(temp_id),pacific_islander,mean(pacific_islander,na.rm = TRUE)),tract]
+    sam_marital_DT[,"bi_racial" := if_else(is.na(temp_id),bi_racial,mean(bi_racial,na.rm = TRUE)),tract]
+ 
+#something like this should work - tried lots of variations, but decided to do it by hand, as needed, above       
+    add_means <- function(dt,facts){  
+      for(fact in facts){
+        print(fact)
+        print(mean(dt[,..fact][[1]],na.rm = TRUE))
+        dt[,(fact) := if_else(is.na(temp_id),fact,mean(dt[,..fact][[1]],na.rm = TRUE)),tract]
+      }
+      return(dt)
+    }
 
     #should change names - have to think through adding multiples, too.
     #for whole, to compare with by tract and to have the GQ_Sam included in the PCA so matching by distance makes sense for whole
-    sam_marital_PCA_res <- PCA(sam_marital2[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
-    #42,000 rows had NA for Hispanic - which is size of GQ_Sam - filling automatically from the FactoMineR
-    
-    sam_marital_eig[,c('harris_coord1','harris_coord2','harris_coord3')] <- sam_marital_PCA_res$ind$coord[,1:3] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
+    sam_marital_PCA_res <- PCA(sam_marital_DT[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
+
+    sam_marital_DT[,("harris_coord_1") := sam_marital_PCA_res$ind$coord[,1]] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
+    sam_marital_DT[,("harris_coord_2") := sam_marital_PCA_res$ind$coord[,2]]
+    sam_marital_DT[,("harris_coord_3") := sam_marital_PCA_res$ind$coord[,3]]
    
-    saveRDS(sam_marital_eig,"sam_marital_eig.RDS") #temp save
-    sam_marital_eig <- readRDS("sam_marital_eig.RDS")
-    
-    sam_marital_DT <- as.data.table(sam_marital_eig)
-    
-    #because the expanded GQ is less than the expanded census, have to make sure that the sampling is right.
-    #for each total in that tract, prob = total_with_GQ_id/total_tract 
-    #, order by first eigendim, then for each that has no GQ_id, look for matches 
-    #using logic from NHANES, but modified for data.table - 
-    
-    #testing stuff on DTs
-    sam_marital_DT[is.na(GQ_id),("tract_total") := .N,tract]
-    sam_marital_DT[,("GQ_num") := is.na(GQ_id),.N,tract]
-    sam_marital_DT[is.na(GQ_id),('number_sams_GQ') := 0L]
-    sam_marital_DT[!is.na(GQ_id),("GQ_tract_total") := .N,tract]
-    sam_marital_DT[,("GQ_num") := max(as.integer(number_sams_GQ)),tract]
-    sam_marital_DT[GQ_tract_total>0,("GQ_num") := as.integer(GQ_tract_total/number_sams_GQ)]
-    test <- sam_marital_DT[tract=="210100"][order(tract_coords1)]
-    test <- sam_marital_DT[tract=="210100" & is.na(GQ_id),.N]
-    sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:.N,.N,replace = FALSE)]
-    sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:max(as.integer(number_sams_GQ)),max(as.integer(number_sams_GQ)),replace = FALSE)]
-    sam_marital_DT[tract=="210100" & !is.na(GQ_id),sample(1:3,max(as.integer(number_sams_GQ)),replace = TRUE)]
-    #test[tract=="210100" & is.na(GQ_id),"test_num"] <- test[tract=="210100" & is.na(GQ_id),sample(test[tract=="210100" & is.na(GQ_id)],.N,replace = TRUE)]
-    sam_marital_DT[tract=="210100" & is.na(GQ_id) & sex=="Male" & spouse_present == "married spouse present",.N] #if in correctional facilities, then change spouse_present to "married spouse absent"?
-    
-    test[,"eig_distance" := if_else(is.na(GQ_id),
-                                    as.numeric(1),  #how can we do this without the for loop??
-                                    as.numeric(0)),tract]
-    
+    saveRDS(sam_marital_DT,"sam_marital_eig.RDS") #temp save
+    sam_marital_DT <- readRDS("sam_marital_eig.RDS")
+
     #general process: 1 - expand census data by tract; 1b - fill (uncount) with averaged so GQ_id, etc is = num_sams; 
               # 2 - create_tract_eigs 
               # 3 - dist - from avg [or median?] temp_person - should fill all with median??
               # 4 - sample - 4b - using is.na(temp_id) etc. ; 4c - normalize by 100 for all distances, and use that as percent for sample tract 980000 is weird (exclude?)
     
- library(stats) #initial facts = c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
-    create_tract_eigs = function(dt,facts,name){ #where you have a data.table, a vector of factors, and a name to start with
-      for(i in unique(test$tract)){
-        #uncount to right size with median
-        
-        #dt[tract==i,as.name(facts) := if_else(is.na(temp_id),as.name(facts),median(as.name(facts),na.rm = TRUE))] #test this way of using facts
-        
-        pca_res <- PCA(dt[tract==i,..facts],scale.unit=TRUE, ncp=5)  #have to decide if want only three - dim1 by tract is between 18 and 32 var
-        dt[tract==i,paste0(name,"_eig_1") := pca_res$ind$coord[,1]]
-        dt[tract==i,paste0(name,"_eig_2") := pca_res$ind$coord[,2]]
-        dt[tract==i,paste0(name,"_eig_3") := pca_res$ind$coord[,3]]
-        dt[tract==i,paste0(name,"_eig_4") := pca_res$ind$coord[,4]]
-        dt[tract==i,paste0(name,"_eig_5") := pca_res$ind$coord[,5]]
-        dt[tract==i,paste0(name,"_pve_1") := pca_res$eig[1,2] / 100] #percent variance explained / need to check on factoMineR 
-        dt[tract==i,paste0(name,"_pve_2") := pca_res$eig[2,2] / 100]
-        #return distance matrix, too
-      }
-      return(dt)
+  #initial facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
+                #initial fills <- c("white","black","hispanic","asian","other_race","american_indian","pacific_islander","bi_racial") 
+                #initial new_vars <- c("GQ_facility_type")
+ 
+  cl <- makeCluster(6) #have to decide how many cores 
+  registerDoParallel(cl)
+  #where you have a data.table, a vector of factors for PCA, a name to start with, ft as a vector of columns that need to be set to median, and new_vars are columns to move over to sam
+  create_tract_eigs = function(dt,name,facts){ 
+    foreach(i = unique(dt$tract),.combine=rbind, .packages = c("doParallel","FactoMineR","data.table")) %dopar% {  #does it need doParallel and data.table?? test??
+      #for(i in unique(dt$tract)){
+      pca_res <- PCA(dt[tract==i,..facts],scale.unit=TRUE, ncp=5)  #have to decide if want only three - dim1 by tract is between 18 and 32 var
+      dt[tract==i,paste0(name,"_eig_1") := pca_res$ind$coord[,1]]
+      dt[tract==i,paste0(name,"_eig_2") := pca_res$ind$coord[,2]]
+      dt[tract==i,paste0(name,"_eig_3") := pca_res$ind$coord[,3]]
+      dt[tract==i,paste0(name,"_eig_4") := pca_res$ind$coord[,4]]
+      dt[tract==i,paste0(name,"_eig_5") := pca_res$ind$coord[,5]]
+      dt[tract==i,paste0(name,"_pve_1") := pca_res$eig[1,2] / 100] #percent variance explained / need to check on factoMineR 
+      dt[tract==i,paste0(name,"_pve_2") := pca_res$eig[2,2] / 100]
+      #uncount to right size with median
+      number_sams_added <- sum(dt[tract==i & is.na(temp_id),.N],na.rm = TRUE) - sum(dt[tract==i & !is.na(temp_id),.N],na.rm = TRUE)
+      filler_dt <- as.data.table(dt[tract==i & !is.na(temp_id)][1]) 
+      filler_dt[,"GQ_facility_type" := 'not in Group Quarters']
+      added <- uncount(filler_dt,number_sams_added,.remove = FALSE,.id="temp_id")
+      dt <- rbind(dt,added) #does it need to be added for the tract?
+      #return euclidean distance
+      center <- dt[tract==i & !is.na(temp_id),c(paste0(name,"_eig_1"),paste0(name,"_eig_2"),paste0(name,"_eig_3"))][1]
+      target <- dt[tract==i & is.na(temp_id),c(paste0(name,"_eig_1"),paste0(name,"_eig_2"),paste0(name,"_eig_3"))]
+      dt[tract==i & is.na(temp_id),("euc_dist") := sqrt((target[,1]-center[,1][[1]])^2 + (target[,2]-center[,2][[1]])^2 + (target[,3]-center[,3][[1]])^2)]
     }
-    facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
-    test_dt <- create_tract_eigs(sam_marital_DT,facts=facts,"age_race")
-    
-    for(i in unique(df$tract))(
-      test[tract == i,"eig_distance_tract" := 
-             
-             ]
-    )
-    
-    
-#    GQ_eig <- sam_marital_eig %>%
-#      group_by(tract) %>%
-#      filter(!is.na(GQ_id))
-    
-#    sam_eig <- sam_marital_eig %>%
-#      group_by(tract) %>%
-#      filter(is.na(GQ_id))
-    
-#    test_sam <- sam_eig_DT %>%
-#      group_by(tract) %>%
-#      mutate(n = n()) 
-    
-#    test_sam <- test_sam_DT %>%
-#      group_by(tract) %>%
-#      .[, c('first','second') := list(5,6)]
-   #   .[, c('first','second') := list(rep(2,n()),rep(3,n()))]
-      
-    #if which(matching on groups) less than 5, then match on one fewer group, etc. - then order by distance like in NHANES
-    
-
- #   do the data.table piece by piece, with notes about why going to the well for the larger context maatch gives you hypergraphs...
-    
-    
-#    joint_sam_GQ <- joined_sam_marital %>%
-#      group_by(tract) %>%
-#      mutate(
-#        tract_sam := n(),
-#        number_sams_GQ := base_group_quarters_data[which(base_group_quarters_data$tract == tract)[1],"number_sams_GQ"][[1]],
-#        prob_GQ_tract := number_sams_GQ / tract_sam) %>%
-#      ungroup() %>%
-#      group_by(tract,sex,age_range) %>%
-#      mutate(
-        #tract_sam := n(),
-        
-#        prob_GQ_tract := number_sams_GQ / tract_sam,
-#        number_sams_GQ_prob :=
-#          case_when(sex=="Male" ~ number_sams_GQ * .93, #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
-#                    sex=="Female" ~ number_sams_GQ * .07),
-        #number_sams_GQ_prob2 := 
-        #  case_when(age_range=="18 to 19 years" ~ number_sams_GQ_prob * .05, 
-               #     age_range=="20 to 24 years" ~ number_sams_GQ_prob * .09,
-              #      age_range=="25 to 29 years" ~ number_sams_GQ_prob * .16,
-             #       age_range=="30 to 34 years" ~ number_sams_GQ_prob * .25,
-            #        age_range=="35 to 44 years" ~ number_sams_GQ_prob * .24, 
-           #         age_range=="45 to 54 years" ~ number_sams_GQ_prob * .14,
-          #          age_range=="55 to 64 years" ~ number_sams_GQ_prob * .07,
-         #           TRUE ~ 0),
-#        number_sams_GQ_prob := round(number_sams_GQ_prob), 
-#        tract_sam := if_else(!is.na(prob_GQ_tract),round(tract_sam*prob_GQ_tract),tract_sam*1), #multiplying by one seems to make it a double and not an integer...
-        #number_sams_GQ_prob := number_sams_GQ,
-#        number_sams_not_GQ := (tract_sam - number_sams_GQ_prob) 
-#      )
-    
-#    joint_sam_GQ <- joint_sam_GQ %>%
-#      group_by(tract) %>%
-#      mutate(
-#        group_quartered := if_else(number_sams_GQ_prob > 0 & number_sams_not_GQ > 0 & spouse_present!="married spouse present", 
-#                                   sample(c(rep("group quartered",number_sams_GQ_prob[1]),rep("not group quartered",number_sams_not_GQ[1])),
-#                                   replace=FALSE,size = tract_sam[1],prob=c(rep(1/tract_sam[1],tract_sam[1]))),"not group quartered")
-#        )
-    
+    return(dt)
+  }
+  #run as sam_race_age_eigs <- create_tract_eigs(dt,"race_age",facts)  #facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
+  sample_by_euc = function(dt,name,new_vars){ 
+    foreach(i = unique(dt$tract),.combine=rbind, .packages = c("doParallel","FactoMineR","data.table")) %dopar% {  #does it need doParallel and data.table?? test??
+      #normalize the euc_dist on the !is.na(temp_id) to use as prob paste0(name,"_dist_prob")
+      #sample, with ..new_vars returned from sample - every is.na(temp_id)  - 
+      dt[tract==i & is.na(temp_id),..new_vars :=  
+           sample(dt[tract==i & !is.na(temp_id),..new_vars],size = .N,replace = FALSE,prob = dt[tract==i & !is.na(temp_id),paste0(name,"_dist_prob")])]
+    }
+    dt_out <- dt[is.na(temp_id)]
+    return(dt_out)
+  }
+  
+  dt[!is.na(temp_id),..new_vars]
+  
     
     
     pregnancy_data_race_marriage_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B13002")
