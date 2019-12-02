@@ -479,7 +479,7 @@ createIndividuals <- function() {
   registerDoParallel(cl)
   #where you have a data.table, a vector of factors for PCA, a name to start with, ft as a vector of columns that need to be set to median, and new_vars are columns to move over to sam
   create_tract_eigs = function(dt,name,facts){ 
-    foreach(i = unique(dt$tract),.combine=rbind, .packages = c("doParallel","FactoMineR","data.table")) %dopar% {  #does it need doParallel and data.table?? test??
+    foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
       #for(i in unique(dt$tract)){
       pca_res <- PCA(dt[tract==i,..facts],scale.unit=TRUE, ncp=5)  #have to decide if want only three - dim1 by tract is between 18 and 32 var
       dt[tract==i,paste0(name,"_eig_1") := pca_res$ind$coord[,1]]
@@ -489,6 +489,12 @@ createIndividuals <- function() {
       dt[tract==i,paste0(name,"_eig_5") := pca_res$ind$coord[,5]]
       dt[tract==i,paste0(name,"_pve_1") := pca_res$eig[1,2] / 100] #percent variance explained / need to check on factoMineR 
       dt[tract==i,paste0(name,"_pve_2") := pca_res$eig[2,2] / 100]
+    }
+    return(dt)
+  }
+  
+  euc_distances = function(dt,name,facts){ 
+    foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
       #uncount to right size with median
       number_sams_added <- sum(dt[tract==i & is.na(temp_id),.N],na.rm = TRUE) - sum(dt[tract==i & !is.na(temp_id),.N],na.rm = TRUE)
       filler_dt <- as.data.table(dt[tract==i & !is.na(temp_id)][1]) 
