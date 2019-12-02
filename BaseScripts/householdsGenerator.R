@@ -475,7 +475,7 @@ createIndividuals <- function() {
                 #initial fills <- c("white","black","hispanic","asian","other_race","american_indian","pacific_islander","bi_racial") 
                 #initial new_vars <- c("GQ_facility_type")
  
-  cl <- makeCluster(6) #have to decide how many cores 
+  cl <- makeCluster(8) #have to decide how many cores 
   registerDoParallel(cl)
   #where you have a data.table, a vector of factors for PCA, a name to start with, ft as a vector of columns that need to be set to median, and new_vars are columns to move over to sam
   create_tract_eigs = function(dt,name,facts){ 
@@ -502,7 +502,10 @@ createIndividuals <- function() {
     }
     return(dt)
   }
-  #run as sam_race_age_eigs <- create_tract_eigs(dt,"race_age",facts)  #facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
+  sam_race_age_eigs <- create_tract_eigs(dt,"race_age",facts)  #facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
+  saveRDS(sam_race_age_eigs,"sam_race_age_eigs.RDS") 
+  sam_race_age_eigs <- readRDS("sam_race_age_eigs.RDS")
+  
   sample_by_euc = function(dt,name,new_vars){ 
     foreach(i = unique(dt$tract),.combine=rbind, .packages = c("doParallel","FactoMineR","data.table")) %dopar% {  #does it need doParallel and data.table?? test??
       #normalize the euc_dist on the !is.na(temp_id) to use as prob paste0(name,"_dist_prob")
