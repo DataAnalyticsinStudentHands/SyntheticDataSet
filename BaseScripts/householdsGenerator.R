@@ -492,6 +492,9 @@ createIndividuals <- function() {
     }
     return(dt)
   }
+  sam_race_age_eigs <- create_tract_eigs(dt,"race_age",facts)  #facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
+  saveRDS(sam_race_age_eigs,"sam_race_age_eigs.RDS") 
+  sam_race_age_eigs <- readRDS("sam_race_age_eigs.RDS")
   
   euc_distances = function(dt,name,facts){ 
     foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
@@ -508,9 +511,7 @@ createIndividuals <- function() {
     }
     return(dt)
   }
-  sam_race_age_eigs <- create_tract_eigs(dt,"race_age",facts)  #facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
-  saveRDS(sam_race_age_eigs,"sam_race_age_eigs.RDS") 
-  sam_race_age_eigs <- readRDS("sam_race_age_eigs.RDS")
+  sam_race_age_eigs_eucs <- euc_distances(sam_race_age_eigs,"race_age",facts)
   
   sample_by_euc = function(dt,name,new_vars){ 
     foreach(i = unique(dt$tract),.combine=rbind, .packages = c("doParallel","FactoMineR","data.table")) %dopar% {  #does it need doParallel and data.table?? test??
