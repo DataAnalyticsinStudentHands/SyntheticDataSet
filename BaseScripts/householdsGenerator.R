@@ -429,10 +429,16 @@ createIndividuals <- function() {
 
     #GQ doesn't include race, so it's imputed by the mean of the variable for the tract - which is reasonable, but not perfect.
     
-
+# for NA
+    sam_marital_DT[is.na(age),"age" := mean(age,na.rm = TRUE),tract]
+    sam_marital_DT[is.nan(age),"age" := mean(age,na.rm = TRUE),tract]
+    sam_marital_DT[is.nan(age),"age" := as.double(34),tract]
+    sam_marital_DT[is.nan(sex_num),"sex_num" := as.double(.502),tract]
+    sam_marital_DT[is.na(sex_num),"sex_num" := mean(sex_num,na.rm = TRUE),tract]
+    sam_marital_DT[is.nan(sex_num),"sex_num" := mean(sex_num,na.rm = TRUE),tract]
 #better way to do mean, etc - should change some of logic from above to DT
 #first two are only for those that are created in second stage - uncount within 
-    sam_marital_DT[,"age" := if_else(is.na(temp_id),age,mean(age,na.rm = TRUE)),tract]
+    sam_marital_DT[,"age" := if_else(is.na(age),age,mean(age,na.rm = TRUE)),tract]
     sam_marital_DT[,"sex_num" := if_else(is.na(temp_id),sex_num,mean(sex_num,na.rm = TRUE)),tract]
 
 #these are for both times through    
@@ -457,7 +463,7 @@ createIndividuals <- function() {
 
     #should change names - have to think through adding multiples, too.
     #for whole, to compare with by tract and to have the GQ_Sam included in the PCA so matching by distance makes sense for whole
-    sam_marital_PCA_res <- PCA(sam_marital_DT[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
+    sam_marital_PCA_res2 <- PCA(sam_marital_DT[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
 
     sam_marital_DT[,("harris_coord_1") := sam_marital_PCA_res$ind$coord[,1]] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
     sam_marital_DT[,("harris_coord_2") := sam_marital_PCA_res$ind$coord[,2]]
@@ -478,26 +484,28 @@ createIndividuals <- function() {
   cl <- makeCluster(8) #have to decide how many cores 
   registerDoParallel(cl)
   #where you have a data.table, a vector of factors for PCA, a name to start with, ft as a vector of columns that need to be set to median, and new_vars are columns to move over to sam
-  create_tract_eigs = function(dt,name,facts){ 
-    foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
-      #for(i in unique(dt$tract)){
-      pca_res <- PCA(dt[tract==i,..facts],scale.unit=TRUE, ncp=5)  #have to decide if want only three - dim1 by tract is between 18 and 32 var
-      dt[tract==i,paste0(name,"_eig_1") := pca_res$ind$coord[,1]]
-      dt[tract==i,paste0(name,"_eig_2") := pca_res$ind$coord[,2]]
-      dt[tract==i,paste0(name,"_eig_3") := pca_res$ind$coord[,3]]
-      dt[tract==i,paste0(name,"_eig_4") := pca_res$ind$coord[,4]]
-      dt[tract==i,paste0(name,"_eig_5") := pca_res$ind$coord[,5]]
-      dt[tract==i,paste0(name,"_pve_1") := pca_res$eig[1,2] / 100] #percent variance explained / need to check on factoMineR 
-      dt[tract==i,paste0(name,"_pve_2") := pca_res$eig[2,2] / 100]
+  create_tract_eigs = function(dt,var_name,facts){ 
+  #  foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
+    for(i in unique(dt$tract)){
+      print(i) #not  because it's not handling errors
+      pca_res <- PCA(dt[tract==i,..facts],scale.unit=TRUE, ncp=3)  #have to decide if want only three - dim1 by tract is between 18 and 32 var
+      dt[tract==i,paste0(var_name,"_eig_1") := pca_res$ind$coord[,1]]
+      dt[tract==i,paste0(var_name,"_eig_2") := pca_res$ind$coord[,2]]
+      dt[tract==i,paste0(var_name,"_eig_3") := pca_res$ind$coord[,3]]
+    #  dt[tract==i,paste0(var_name,"_eig_4") := pca_res$ind$coord[,4]]
+    #  dt[tract==i,paste0(var_name,"_eig_5") := pca_res$ind$coord[,5]]
+      dt[tract==i,paste0(var_name,"_pve_1") := pca_res$eig[1,2] / 100] #percent variance explained / need to check on factoMineR 
+      dt[tract==i,paste0(var_name,"_pve_2") := pca_res$eig[2,2] / 100]
     }
     return(dt)
   }
-  sam_race_age_eigs <- create_tract_eigs(dt,"race_age",facts)  #facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
+  sam_race_age_eigs <- create_tract_eigs(sam_marital_DT,"race_age",facts)  #facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
   saveRDS(sam_race_age_eigs,"sam_race_age_eigs.RDS") 
   sam_race_age_eigs <- readRDS("sam_race_age_eigs.RDS")
   
-  euc_distances = function(dt,name,facts){ 
-    foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
+  euc_distances = function(dt,vname,facts){ 
+    for(i in unique(dt$tract)){
+    #foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
       #uncount to right size with median
       number_sams_added <- sum(dt[tract==i & is.na(temp_id),.N],na.rm = TRUE) - sum(dt[tract==i & !is.na(temp_id),.N],na.rm = TRUE)
       filler_dt <- as.data.table(dt[tract==i & !is.na(temp_id)][1]) 
@@ -505,8 +513,11 @@ createIndividuals <- function() {
       added <- uncount(filler_dt,number_sams_added,.remove = FALSE,.id="temp_id")
       dt <- rbind(dt,added) #does it need to be added for the tract?
       #return euclidean distance
-      center <- dt[tract==i & !is.na(temp_id),c(paste0(name,"_eig_1"),paste0(name,"_eig_2"),paste0(name,"_eig_3"))][1]
-      target <- dt[tract==i & is.na(temp_id),c(paste0(name,"_eig_1"),paste0(name,"_eig_2"),paste0(name,"_eig_3"))]
+      center <- dt[tract==i & !is.na(temp_id),c(paste0(vname,"_eig_1"),paste0(vname,"_eig_2"),paste0(vname,"_eig_3"))]
+      #center <- dt[tract==i & !is.na(temp_id),c(paste0("race_age","_eig_1"),paste0("race_age","_eig_2"),paste0("race_age","_eig_3"))][1]
+      print(center)
+      target <- dt[tract==i & is.na(temp_id),c(paste0(var_name,"_eig_1"),paste0(var_name,"_eig_2"),paste0(var_name,"_eig_3"))]
+      print(center[,1][[1]])
       dt[tract==i & is.na(temp_id),("euc_dist") := sqrt((target[,1]-center[,1][[1]])^2 + (target[,2]-center[,2][[1]])^2 + (target[,3]-center[,3][[1]])^2)]
     }
     return(dt)
