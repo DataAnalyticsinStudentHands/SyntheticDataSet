@@ -6,8 +6,8 @@ library(data.table)
 library(FactoMineR)
 library(doParallel)
 library(foreach)
-#for distance calculation
-library(stats)
+#for distance calculation ? may do as own calculation instead
+#library(stats)
 
 #' createIndividuals
 #'
@@ -393,7 +393,7 @@ createIndividuals <- function() {
      #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
     #very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
     #biggest thing to worry about is inmate population; other GC are not large, as far as I can tell
-    #I don't have great confidence that the census is distributing them correctly - it may be an algorithm meant to hide concentrations.
+    #I don't have great confidence that the census is distributing them correctly by census.
     group_quarters_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26001")
     
     base_group_quarters_data <- group_quarters_data_from_census %>%
@@ -404,11 +404,16 @@ createIndividuals <- function() {
       group_by(tract) %>%
       mutate( #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
         GQ_facility_type := if_else(number_sams_temp > 400,"correctional","nursing home"),
-        age_range_num := if_else(GQ_facility_type == "correctional",
-                             sample(c(1,2,3,4,5,6,7), #c("18 to 19 years","20 to 24 years","25 to 29 years","30 to 34 years","35 to 44 years","45 to 54 years","55 to 64 years"),
-                                    replace=TRUE,size = n(),prob=c(.05,.09,.16,.25,.24,.14,.07)),
-                             sample(c(8,9,10), #c("65 to 75 years","75 to 85 years","85 years and over"),
-                                    replace = TRUE,size=n(),prob=c(.1,.4,.5))), # https://www.cdc.gov/nchs/nsltcp/index.htm
+        age := if_else(GQ_facility_type == "correctional",
+                       sample(c(18:64), #c("18 to 19 years","20 to 24 years","25 to 29 years","30 to 34 years","35 to 44 years","45 to 54 years","55 to 64 years"),
+                              replace=TRUE,size = n(),prob=c(rep(.025,2),rep(.018,5),rep(.032,5),rep(.05,5),rep(.024,10),rep(.014,10),rep(.007,10))),
+                       sample(c(65:99), #c("65 to 75 years","75 to 85 years","85 years and over"),
+                              replace = TRUE,size=n(),prob=c(rep(.01,10),rep(.04,10),rep(.01,15)))), # https://www.cdc.gov/nchs/nsltcp/index.htm
+ #       age_range_num := if_else(GQ_facility_type == "correctional",
+  #                           sample(c(1,2,3,4,5,6,7), #c("18 to 19 years","20 to 24 years","25 to 29 years","30 to 34 years","35 to 44 years","45 to 54 years","55 to 64 years"),
+   #                                 replace=TRUE,size = n(),prob=c(.05,.09,.16,.25,.24,.14,.07)),
+    #                         sample(c(8,9,10), #c("65 to 75 years","75 to 85 years","85 years and over"),
+     #                               replace = TRUE,size=n(),prob=c(.1,.4,.5))), # https://www.cdc.gov/nchs/nsltcp/index.htm
         sex_num := if_else(GQ_facility_type == "correctional",
                        sample(c(0,1), #c('male','female'),
                               replace=TRUE,size = n(),prob=c(.93,.07)),
@@ -417,29 +422,29 @@ createIndividuals <- function() {
                        )
       )
     
-    GQ_sam$age_range <- as.character(GQ_sam$age_range_num) #so bind_rows works
+    #using age, instead
+    #GQ_sam$age_range <- as.character(GQ_sam$age_range_num) #so bind_rows works
     
     sam_marital <- joined_sam_marital %>% #adding sex_num so PCA will have it as numeric
       mutate(
         sex_num := case_when(sex == "Male" ~ 0, sex == "Female" ~1)
       )
     
-    sam_marital_GQ <- bind_rows(joined_sam_marital,GQ_sam) #bind them so that the PCA includes GQ by tract 
+    sam_marital_GQ <- bind_rows(sam_marital,GQ_sam) #bind them so that the PCA includes GQ by tract 
     sam_marital_DT <- as.data.table(sam_marital_GQ)
 
     #GQ doesn't include race, so it's imputed by the mean of the variable for the tract - which is reasonable, but not perfect.
     
 # for NA
-    sam_marital_DT[is.na(age),"age" := mean(age,na.rm = TRUE),tract]
-    sam_marital_DT[is.nan(age),"age" := mean(age,na.rm = TRUE),tract]
-    sam_marital_DT[is.nan(age),"age" := as.double(34),tract]
-    sam_marital_DT[is.nan(sex_num),"sex_num" := as.double(.502),tract]
-    sam_marital_DT[is.na(sex_num),"sex_num" := mean(sex_num,na.rm = TRUE),tract]
-    sam_marital_DT[is.nan(sex_num),"sex_num" := mean(sex_num,na.rm = TRUE),tract]
+#    sam_marital_DT[is.na(age),"age" := mean(age,na.rm = TRUE),tract]
+#    sam_marital_DT[is.nan(age),"age" := mean(age,na.rm = TRUE),tract]
+#    sam_marital_DT[is.nan(age),"age" := as.double(34),tract]
+#   sam_marital_DT[is.nan(sex_num),"sex_num" := as.double(.502),tract]
+#    sam_marital_DT[is.na(sex_num),"sex_num" := mean(sex_num,na.rm = TRUE),tract]
 #better way to do mean, etc - should change some of logic from above to DT
 #first two are only for those that are created in second stage - uncount within 
-    sam_marital_DT[,"age" := if_else(is.na(age),age,mean(age,na.rm = TRUE)),tract]
-    sam_marital_DT[,"sex_num" := if_else(is.na(temp_id),sex_num,mean(sex_num,na.rm = TRUE)),tract]
+#    sam_marital_DT[,"age_range_num" := if_else(is.na(age),age,mean(age,na.rm = TRUE)),tract]
+#    sam_marital_DT[,"sex_num" := if_else(is.na(temp_id),sex_num,mean(sex_num,na.rm = TRUE)),tract]
 
 #these are for both times through    
     sam_marital_DT[,"white" := if_else(is.na(temp_id),white,mean(white,na.rm = TRUE)),tract]
@@ -463,7 +468,7 @@ createIndividuals <- function() {
 
     #should change names - have to think through adding multiples, too.
     #for whole, to compare with by tract and to have the GQ_Sam included in the PCA so matching by distance makes sense for whole
-    sam_marital_PCA_res2 <- PCA(sam_marital_DT[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
+    sam_marital_PCA_res <- PCA(sam_marital_DT[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
 
     sam_marital_DT[,("harris_coord_1") := sam_marital_PCA_res$ind$coord[,1]] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
     sam_marital_DT[,("harris_coord_2") := sam_marital_PCA_res$ind$coord[,2]]
@@ -486,6 +491,7 @@ createIndividuals <- function() {
   #where you have a data.table, a vector of factors for PCA, a name to start with, ft as a vector of columns that need to be set to median, and new_vars are columns to move over to sam
   create_tract_eigs = function(dt,var_name,facts){ 
   #  foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
+    #my guess is that it doesn't finish pca_res in the right order to do the assignment to dt if it's in doParallel
     for(i in unique(dt$tract)){
       print(i) #not  because it's not handling errors
       pca_res <- PCA(dt[tract==i,..facts],scale.unit=TRUE, ncp=3)  #have to decide if want only three - dim1 by tract is between 18 and 32 var
@@ -503,6 +509,7 @@ createIndividuals <- function() {
   saveRDS(sam_race_age_eigs,"sam_race_age_eigs.RDS") 
   sam_race_age_eigs <- readRDS("sam_race_age_eigs.RDS")
   
+  #calculate euclidean distance to center of each tract (which will be used to match in next step)
   euc_distances = function(dt,vname,facts){ 
     for(i in unique(dt$tract)){
     #foreach(i = unique(dt$tract),.combine=rbind,facts=facts, .packages = c("doParallel","FactoMineR","data.table","tidyr")) %dopar% {  #does it need doParallel and data.table?? test??
@@ -513,23 +520,24 @@ createIndividuals <- function() {
       added <- uncount(filler_dt,number_sams_added,.remove = FALSE,.id="temp_id")
       dt <- rbind(dt,added) #does it need to be added for the tract?
       #return euclidean distance
-      center <- dt[tract==i & !is.na(temp_id),c(paste0(vname,"_eig_1"),paste0(vname,"_eig_2"),paste0(vname,"_eig_3"))]
-      #center <- dt[tract==i & !is.na(temp_id),c(paste0("race_age","_eig_1"),paste0("race_age","_eig_2"),paste0("race_age","_eig_3"))][1]
-      print(center)
-      target <- dt[tract==i & is.na(temp_id),c(paste0(var_name,"_eig_1"),paste0(var_name,"_eig_2"),paste0(var_name,"_eig_3"))]
-      print(center[,1][[1]])
+      #center <- dt[tract==i & !is.na(temp_id),c(paste0(vname,"_eig_1"),paste0(vname,"_eig_2"),paste0(vname,"_eig_3"))]
+      center <- dt[tract==i & is.na(temp_id),c(paste0("race_age","_eig_1"),paste0("race_age","_eig_2"),paste0("race_age","_eig_3"))][which.min(abs(race_age_eig_1-median(race_age_eig_1))),]
+      #print(center)
+      target <- dt[tract==i & is.na(temp_id),c(paste0("race_age","_eig_1"),paste0("race_age","_eig_2"),paste0("race_age","_eig_3"))]
+      #print(center[,1][[1]])
       dt[tract==i & is.na(temp_id),("euc_dist") := sqrt((target[,1]-center[,1][[1]])^2 + (target[,2]-center[,2][[1]])^2 + (target[,3]-center[,3][[1]])^2)]
     }
     return(dt)
   }
+  sam_race_age_eigs_eucs_temp <- euc_distances(sam_race_age_eigs[tract=="410401"],"race_age",facts)
   sam_race_age_eigs_eucs <- euc_distances(sam_race_age_eigs,"race_age",facts)
   
-  sample_by_euc = function(dt,name,new_vars){ 
+  sample_by_euc = function(dt){ 
     foreach(i = unique(dt$tract),.combine=rbind, .packages = c("doParallel","FactoMineR","data.table")) %dopar% {  #does it need doParallel and data.table?? test??
       #normalize the euc_dist on the !is.na(temp_id) to use as prob paste0(name,"_dist_prob")
       #sample, with ..new_vars returned from sample - every is.na(temp_id)  - 
-      dt[tract==i & is.na(temp_id),..new_vars :=  
-           sample(dt[tract==i & !is.na(temp_id),..new_vars],size = .N,replace = FALSE,prob = dt[tract==i & !is.na(temp_id),paste0(name,"_dist_prob")])]
+      dt[tract==i & is.na(temp_id),("GQ_facility_type") :=  
+           sample(dt[tract==i & !is.na(temp_id),],size = .N,replace = FALSE,prob = dt[tract==i & !is.na(temp_id),"euc_dist"])] #with euc_distance normalized in such a way as to equal 1
     }
     dt_out <- dt[is.na(temp_id)]
     return(dt_out)
