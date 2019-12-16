@@ -548,8 +548,12 @@ createIndividuals <- function() {
     #assign each with age to a race
 #not sure why not working, but idea is to get totals by race and age and then sample from each other (could improve race_age too)
     preg_data_DT[is.na(age_range),("tract_total_race") := .(.N),by = .(tract)]
-    preg_data_DT[!is.na(age_range),("tract_total_age") := .N,by=tract]
-    preg_data_DT[,("tract_total_diff") := tract_total_race - tract_total_age,by=tract] #make sure they all equal 0!
+    preg_data_DT[!is.na(age_range),("tract_total_age") := .(.N),by = .(tract)]
+    
+    #maybe have to deal with NAs first???
+    preg_data_DT[,("tract_total_diff") := .(as.numeric(tract_total_race)) - .(as.numeric(tract_total_age)),by = .(tract)] #make sure they all equal 0!
+    
+    #if they're equal, then sampling this way should give everyone an age_range according to distribution
     preg_data_DT[is.na(age_range),("age_range_sample") :=
                    sample(dt[!is.na(age_range),age_range],size = .N,replace = FALSE,
                           prob = c(1/.N)),
