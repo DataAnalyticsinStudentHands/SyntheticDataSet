@@ -534,33 +534,27 @@ createIndividuals <- function() {
     
     pregnancy_data <- pregnancy_data_race_marriage_from_census %>%
       mutate(sex="Female",label = str_remove_all(label,"Estimate!!Total!!")) %>% 
-      mutate(label = str_remove_all(label,"Estimate!!Total")) %>%
-      mutate(birth = if_else(str_detect(label,"Women who had a birth in the past 12 months!!"),'yes','no')) %>%
-      #filter(substr(name,7,7) %in% acs_race_codes) %>%
-      mutate(race = substr(name,7,7)) %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total"),
+        birth = if_else(str_detect(label,"Women who had a birth in the past 12 months!!"),TRUE,FALSE),
+        race = substr(name,7,7)) %>%
       pivot_longer(4:ncol(pregnancy_data_race_marriage_from_census),names_to = "tract", values_to = "num") %>%
-      filter(num != 0 & birth == 'yes') %>% #still have estimate!!total, but not for did/didn't have birth in last 12months
       separate(label, into = c("birth_label","married","age_range"), sep = "!!", remove = F) %>%
       rename(census_group_name = name) %>%
+      filter(!is.na(married)) %>%
+      filter(!is.na(age_range) | race %in% acs_race_codes) %>%
       uncount(num,.remove = FALSE,.id="temp_id")
       
     preg_data_DT <- as.data.table(pregnancy_data)
-    #assign each with age to a race
-#not sure why not working, but idea is to get totals by race and age and then sample from each other (could improve race_age too)
-    preg_data_DT[is.na(age_range),("tract_total_race") := .(.N),by = .(tract)]
-    preg_data_DT[!is.na(age_range),("tract_total_age") := .(.N),by = .(tract)]
-    
-    #maybe have to deal with NAs first???
-    preg_data_DT[,("tract_total_diff") := .(as.numeric(tract_total_race)) - .(as.numeric(tract_total_age)),by = .(tract)] #make sure they all equal 0!
-    
+    preg_data_DT[,("age_range_race") := sample(rep(.SD[!is.na(age_range),.(age_range)][[1]],2),size = .N,replace = TRUE,
+                                                  prob = c(rep(1/.N,.N))),
+                 by=.(tract)]
     #if they're equal, then sampling this way should give everyone an age_range according to distribution
-    preg_data_DT[is.na(age_range),("age_range_sample") :=
-                   sample(dt[!is.na(age_range),age_range],size = .N,replace = FALSE,
-                          prob = c(1/.N)),
-                 by=tract]
-    pregnancy_data_DT <- preg_data_DT[is.na(age_range)]
+    pregnancy_data_DT <- preg_data_DT[race!='_']
     #assign numeric to race, marital_status, etc. then do all the PCA? 
 
+    
+    
+    
   
   return(sam_residents)
 }

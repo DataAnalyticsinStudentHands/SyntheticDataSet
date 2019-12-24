@@ -14,6 +14,7 @@ numberOfCores = 1
 state = 48
 county = 201
 tract = "*"
+set.seed(135)
 
 #let's create SAM
 sam <- createBaseSAM(censusdir, housingdir, vintage, 
