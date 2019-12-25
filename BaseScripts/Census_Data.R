@@ -31,7 +31,7 @@ censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county, tra
       filter(str_detect(name, groupname))
     
     acs_data_for_vars_state <- getCensus(name = "acs/acs5",
-                                         vintage = 2017,
+                                         vintage = vintage,
                                          vars = c("NAME", acs_variables$name),
                                          region = paste0("tract:", tract), regionin = paste0("state:", state),
                                          key = censuskey)
