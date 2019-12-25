@@ -35,25 +35,12 @@ createIndividuals <- function() {
     acs_race_codes <- c("A","B","C","D","E","F","G") #could collect all - add them up, without H and I, and you get the total! H is white alone, not hispanic and I is hispanic and if you add them up they don't equal white alone
     
     #gather information from census data, group B01001 will give us gender, race, age
-    sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")
-    sex_nativity_age_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05013")
-    citizen_nativity_age_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05003") 
-    citizen_place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05002")
-    period_entry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05005")
-    place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05006") #has PR at bottom
-    place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")
-    place_born_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06004")
-    place_born_marital_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06008")
-    place_born_education_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06009")
-    language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06007")
-    place_period_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05007")
-    sex_place_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05008")
-    kids_place_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05009")
-    mult_ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04005")
-    ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04006")
-    latino_origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B03001")
+    
+    
+    
+    
     pov_ratio_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05009") #count of kids with family income less than pov.
-    income_place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06010") #PR at top
+    
     moved_1yr_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07001")
     moved_1yr_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07003")
     moved_1yr_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07004")
@@ -91,7 +78,7 @@ createIndividuals <- function() {
     household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 
     household_seniors_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09020")
     household_adults_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09021")
-    household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") 
+    household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
     household_related_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002") 
     household_own_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11003") 
     household_related_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11004")
@@ -100,13 +87,38 @@ createIndividuals <- function() {
     household_type_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11011")
     household_type_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016") #stopped before marital status
     
+    #housing - have to keep an idea of housing/household separate from individual counts...
+    housing_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25001") #total number
+    housing_occupancy_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25002") #gives vacant vs. occup
+    housing_occup_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25003") #of occup, own or rent by race
+    housing_units_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25032") #units in structure by race
+    housing_occup_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25007") #of occup, own or rent by age
+    housing_occup_date_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25026") #of occup, own or rent by move in date
+    housing_occup_hhsize_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25009") #of occup, own or rent by household size
+    housing_occup_hhtype_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25011") #of occup, own or rent by household type
+    housing_occup_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25013") #of occup, own or rent by educ attainment
+    housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
+    housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
+    housing_occup_bedrooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25042") #of occup, number of bedrooms
+    housing_per_room_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25014") #ratio per tract occup per/room/race
+    housing_per_room_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25015") #ratio per tract occup per/room/race
+    mortgate_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25027") 
+    #gross rent is contract plus estimate for utilities, etc.
+    gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25063")
+    contract_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25056")
+    bedrooms_gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25068")
+    income_gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25122")
+    income_value_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25121")
+    #stopped before health insurance - B27001
     
-    
-    test <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11014")
+    test <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26101")
     
     
     
     #sample instead of percentage
+    #sex by age and race gets you a base by tract - everything else will be matched to it in some way
+    #key is to get the sample so that it's the same size as the thing matching, by whatever piece you want to match 
+    sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% #clean up label 
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%    
@@ -131,22 +143,157 @@ createIndividuals <- function() {
         first_age = as.numeric(substr(age_range,1,2)),
         last_age = as.numeric(substr(age_range,7,8)),
         age_range_length = last_age-first_age+1) %>%
-      select(-concept)
+      select(-concept) %>%
+      ##do uncount
     
-    sex_by_age_race_data_DT <- as.data.table(sex_by_age_race_data)
+    #expand into sam
+    sam_sex_race_age <- uncount(sex_by_age_race_data,number_sams,.id = "sams_id") %>% # should equal 4525519 per B10001 row 166 total in 2017; 4602523 in 2018;
+      rowwise() %>%
+      mutate(
+        age=as.numeric(sample(as.character(first_age:last_age),1,prob = rep(1/age_range_length,age_range_length),replace = FALSE))
+      )
+    
+    #may have better way of dealing with age numbers...
+    #add age_range to work for merge with marital data, uses data.table to make this fast
+    sam_sex_race_age_DT <- as.data.table(sam_sex_race_age)
+    sam_sex_race_age_DT[, age_range_marital := c("not of age",
+                                                 "15 to 17 years",
+                                                 "18 to 19 years",
+                                                 "20 to 24 years",
+                                                 "25 to 29 years",
+                                                 "30 to 34 years",
+                                                 "35 to 39 years",
+                                                 "40 to 44 years",
+                                                 "45 to 49 years",
+                                                 "50 to 54 years",
+                                                 "55 to 59 years",
+                                                 "60 to 64 years",
+                                                 "65 to 74 years",
+                                                 "75 to 84 years",
+                                                 "85 to 104 years")[1 +
+                                                                      1 * (age >= 15 & age <= 17) + 
+                                                                      2 * (age >= 18 & age <= 19) +
+                                                                      3 * (age >= 20 & age <= 24) +
+                                                                      4 * (age >= 25 & age <= 29) +
+                                                                      5 * (age >= 30 & age <= 34) +
+                                                                      6 * (age >= 35 & age <= 39) +
+                                                                      7 * (age >= 40 & age <= 44) +
+                                                                      8 * (age >= 45 & age <= 49) +
+                                                                      9 * (age >= 50 & age <= 54) +
+                                                                      10 * (age >= 55 & age <= 59) +
+                                                                      11 * (age >= 60 & age <= 64) +
+                                                                      12 * (age >= 65 & age <= 74) +
+                                                                      13 * (age >= 75 & age <= 84) +
+                                                                      14 * (age >= 85 & age <= 104) ]
+                        ]
+    sam_sex_race_age <- sam_sex_race_age_DT
+    
+    
     #can we join original place to the hispanic data? 
+    #combine all place_born_data into one, then match to sex_by_age
+    #unique(place_born) - "Born in state of residence" "Born in other state in the United States" "Native; born outside the United States"   "Foreign born" 
+    place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05006") #has PR at bottom
+    place_born_data <- place_born_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_born_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("origin_continent","origin_area","origin_region","origin_country"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(origin_country = if_else(is.na(origin_country),origin_region,origin_country)) %>%
+      filter(number_sams > 0 & !is.na(origin_country)) 
     
-    #sex by age and race gets you a base by tract - everything else will be matched to it in some way
-    #key is to get the sample so that it's the same size as the thing matching, by whatever piece you want to match 
-    #play around with matching a few and combining them before going back to full sam? looking for all the ways they match and can be combined...
+    place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")
+    place_born_age_data <- place_born_age_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_born_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("place_born","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(number_sams > 0 & !is.na(age_range))
+    
+    place_born_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06004")
+    place_born_race_data <- place_born_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!"),
+             race = substr(name,7,7)) %>%
+      filter(label != "Estimate!!Total" & race %in% acs_race_codes) %>%
+      rename(place_born = label) %>%
+      pivot_longer(4:ncol(place_born_race_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      filter(number_sams > 0 & !is.na(race))
+    
+    income_place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06010") #PR at top
+    income_place_born_data <- income_place_born_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(income_place_born_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("place_born","has_income","income_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(income_range = if_else(has_income=="No income","$0",income_range)) %>%
+      filter(number_sams > 0 & !is.na(income_range))
+    
+    place_born_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06007")
+    place_born_language_data <- place_born_language_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_born_language_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("place_born","language_at_home","English_proficiency"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(English_proficiency = if_else(language_at_home=="Speak only English","Native English Speaker",English_proficiency)) %>%
+      filter(number_sams > 0 & !is.na(English_proficiency))
+    
+    place_born_marital_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06008")
+    place_born_marital_data <- place_born_marital_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_born_marital_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("place_born","marital_status"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(number_sams > 0 & !is.na(marital_status))
+    
+    place_born_education_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06009")
+    place_born_education_data <- place_born_education_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_born_education_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("place_born","educational_status"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(number_sams > 0 & !is.na(educational_status))
+    
+    #unique on date_entered: "Entered 2010 or later" "Entered before 1990"   "Entered 2000 to 2009"  "Entered 1990 to 1999"
+    #looks to only have data for Latin America!!!! others include Europe and Asia
+    place_period_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05007")
+    place_period_citizen_data <- place_period_citizen_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_period_citizen_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("origin_area","origin_region","origin_country","date_entered","citizen"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(citizen = if_else(str_detect(date_entered,"citizen"),date_entered,citizen),
+             date_entered = if_else(str_detect(origin_country,"Entered"),origin_country,date_entered),
+             origin_country = if_else(str_detect(origin_country,"Entered"),origin_region,origin_country)) %>%
+      filter(number_sams > 0 & !is.na(citizen))
+    
+    sex_place_when_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05008")
+    sex_place_when_data <- sex_place_when_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(sex_place_when_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("sex","origin_area","origin_region","origin_country","date_entered"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(date_entered = if_else(str_detect(origin_country,"Entered"),origin_country,date_entered),
+             date_entered = if_else(str_detect(origin_region,"Entered"),origin_country,date_entered),
+             origin_country = if_else(str_detect(origin_country,"Entered"),origin_region,origin_country),
+             origin_region = if_else(str_detect(origin_region,"Entered"),origin_area,origin_country)) %>%
+      filter(number_sams > 0 & !is.na(date_entered))
+    
+    kids_place_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05009")
+    sex_nativity_age_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05013")
+    citizen_nativity_age_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05003") 
+    citizen_place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05002")
+    period_entry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05005")
     
     
+    mult_ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04005")
+    ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04006")
     
+    #think about how to match with Hispanic number from original sex_age??
+    latino_origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B03001")
     latino_origin_data <- latino_origin_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       pivot_longer(4:ncol(latino_origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("latinx","origin_area","origin_country"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(origin_country = if_else(is.na(origin_country),origin_area,origin_country)) %>%
+      #mutate(origin_country = if_else(is.na(origin_country),origin_area,origin_country)) %>% #have to figure out which are totals
       rename(census_group_name = name)
     
     
@@ -156,7 +303,15 @@ createIndividuals <- function() {
     
     
     
-    #use information in label and name columns to create subgroups 
+    
+    
+    
+    
+    
+    
+    
+    
+     
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% #clean up label 
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%    
@@ -223,49 +378,8 @@ createIndividuals <- function() {
       filter(number_sams!=0) %>%
       select(-hispanic_id,-hispanic_number,-white_hispanic,-ends_with("_tract_age"))
       
-      #expand into sam
-      sam_sex_race_age <- uncount(sex_by_age_race_data,number_sams,.id = "sams_id") %>% # should equal 4525519 per B10001 row 166 total in 2017; 4602523 in 2018;
-        rowwise() %>%
-        mutate(
-          age=as.numeric(sample(as.character(first_age:last_age),1,prob = rep(1/age_range_length,age_range_length),replace = FALSE))
-        )
-      #add age_range to work for merge with marital data, uses data.table to make this fast
-      sam_sex_race_age_DT <- as.data.table(sam_sex_race_age)
-      sam_sex_race_age_DT[, age_range_marital := c("not of age",
-                             "15 to 17 years",
-                            "18 to 19 years",
-                            "20 to 24 years",
-                            "25 to 29 years",
-                            "30 to 34 years",
-                            "35 to 39 years",
-                            "40 to 44 years",
-                            "45 to 49 years",
-                            "50 to 54 years",
-                            "55 to 59 years",
-                            "60 to 64 years",
-                            "65 to 74 years",
-                            "75 to 84 years",
-                            "85 to 104 years")[1 +
-                               1 * (age >= 15 & age <= 17) + 
-                               2 * (age >= 18 & age <= 19) +
-                               3 * (age >= 20 & age <= 24) +
-                               4 * (age >= 25 & age <= 29) +
-                               5 * (age >= 30 & age <= 34) +
-                               6 * (age >= 35 & age <= 39) +
-                               7 * (age >= 40 & age <= 44) +
-                               8 * (age >= 45 & age <= 49) +
-                               9 * (age >= 50 & age <= 54) +
-                              10 * (age >= 55 & age <= 59) +
-                              11 * (age >= 60 & age <= 64) +
-                              12 * (age >= 65 & age <= 74) +
-                              13 * (age >= 75 & age <= 84) +
-                              14 * (age >= 85 & age <= 104) ]
-   ]
-      sam_sex_race_age <- sam_sex_race_age_DT
-    
-    #for other individual characteristics: get age_range to year; get percentages by race and age, sample with tract_race_year multiplied into probability?
-     
-     
+      
+  
 #could try to get race by age_range from above, then use that for calculating if folks are married??
     
     #get marriage data
