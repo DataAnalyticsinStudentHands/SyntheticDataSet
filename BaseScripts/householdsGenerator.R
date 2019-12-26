@@ -75,17 +75,7 @@ createIndividuals <- function() {
     kids_respons_grands_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B10057")
     kids_respons_grands_disability_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B10052")
     kids_respons_grands_nativity_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B10053")
-    household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 
-    household_seniors_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09020")
-    household_adults_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09021")
-    household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
-    household_related_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002") 
-    household_own_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11003") 
-    household_related_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11004")
-    household_type_seniors_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11007")
-    household_type_partners_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009") #only unmarried but same sex included
-    household_type_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11011")
-    household_type_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016") #stopped before marital status
+
     
     #housing - have to keep an idea of housing/household separate from individual counts...
     housing_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25001") #total number
@@ -187,6 +177,55 @@ createIndividuals <- function() {
                                                                       14 * (age >= 85 & age <= 104) ]
                         ]
     sam_sex_race_age <- sam_sex_race_age_DT
+    
+    #START WITH UNCOUNTS and try to join these
+    household_type_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016") 
+    household_type_size_data <- household_type_size_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_type_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family","number_in_family"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(number_sams > 0 & !is.na(number_in_family)) %>%
+      mutate(nonfamily = if_else(str_detect(family_or_non,"nonfamily"),TRUE,FALSE),
+             numeric_in_family = as.numeric(substr(number_in_family,1,1))) %>%
+      uncount(number_sams,.id = "family_id") %>%
+      uncount(numeric_in_family,.id="num_family_id")  #each 1 will be head of household / get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more some in GQ?
+      
+    #not every household has a householder
+    household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 
+    household_type_relation_data <- household_type_relation_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_type_relation_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("group_or_hh","family_or_non","relative","family_role","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(
+             group_quarters = if_else(str_detect(group_or_hh,"group"),TRUE,FALSE),
+             nonfamily = if_else(str_detect(family_or_non,"nonfamily"),TRUE,FALSE),
+             #sex = if_else(str_detect(family_role,"ale"),if_else(!is.na(living_alone),family_role,'del'),'none'),
+             sex = if_else(str_detect(family_role,"ale"),family_role,'none'),
+             sex = if_else(is.na(sex),'none',sex),
+             family_role = if_else(group_quarters,"in_group_quarters", #you can't define family_role in series...(except that is.na)
+                if_else(relative=="Child" | relative=="Nonrelatives",if_else(is.na(family_role),'del',family_role),
+                if_else(relative=="Householder",relative,family_role))),
+             family_role = if_else(is.na(family_role),relative,family_role),
+             del = if_else(sex == "Male" | sex == "Female" & is.na(living_alone),TRUE,if_else((sex == "Male" | sex == "Female") & nonfamily,TRUE,FALSE)),
+             del = if_else(family_role=="del",TRUE,del)
+             ) %>% #want each role to have 786 before uncount
+      filter(!del) %>%
+      filter(number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "role_id") #not sure why it needed as.numeric this time, but still works on filter above...
+    
+    
+    household_seniors_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09020")
+    household_adults_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09021")
+    household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
+    household_related_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002") 
+    household_own_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11003") 
+    household_related_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11004")
+    household_type_seniors_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11007")
+    household_type_partners_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009") #only unmarried but same sex included
+    household_type_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11011")
+    #stopped before marital status
     
     
     #can we join original place to the hispanic data? 
@@ -308,6 +347,7 @@ createIndividuals <- function() {
       separate(label, c("multiple_ancestry","sm_area"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(number_sams > 0 & !is.na(multiple_ancestry) & is.na(sm_area)) 
     
+    #people reporting either only or as part of multiple ethnicity - not sure how to code to individuals
     ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04006")
     ancestry_data <- ancestry_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
