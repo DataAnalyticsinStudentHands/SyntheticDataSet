@@ -278,22 +278,52 @@ createIndividuals <- function() {
       filter(number_sams > 0 & !is.na(date_entered))
     
     kids_place_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05009")
+    #this is a challenging one to include - how many parents are foreign born and how to make a household that matches, for just 10k cases!
+    kids_place_citizen_data <- kids_place_citizen_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(kids_place_citizen_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("kid_age_range","both_parents","parent_nativity","kid_nativity"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(kid_nativity = if_else(str_detect(parent_nativity,"Child"),parent_nativity,kid_nativity),
+             kid_nativity = if_else(str_detect(both_parents,"Child"),both_parents,kid_nativity),
+             parent_nativity = if_else(str_detect(parent_nativity,"Child"),both_parents,parent_nativity),
+             parent_nativity = if_else(str_detect(parent_nativity,"Living"),kid_nativity,parent_nativity)) %>%
+      filter(number_sams > 0 & !is.na(kid_nativity))
+    
     sex_nativity_age_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05013")
-    citizen_nativity_age_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05003") 
-    citizen_place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05002")
-    period_entry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05005")
-    
-    
+    sex_nativity_age_race_data <- sex_nativity_age_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(sex_nativity_age_race_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(number_sams > 0 & !is.na(age_range)) #have to decide how to deal with age_range
+ 
+    #UGH - probably not worth it!! 
+    #https://www.census.gov/topics/population/ancestry/about/faq.html
     mult_ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04005")
+    mult_ancestry_data <- mult_ancestry_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(mult_ancestry_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("multiple_ancestry","sm_area"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(number_sams > 0 & !is.na(multiple_ancestry) & is.na(sm_area)) 
+    
     ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04006")
+    ancestry_data <- ancestry_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(ancestry_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("ancestry","sm_area"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(number_sams > 0 & !is.na(ancestry) & is.na(sm_area))
     
     #think about how to match with Hispanic number from original sex_age??
     latino_origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B03001")
     latino_origin_data <- latino_origin_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(latino_origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("latinx","origin_area","origin_country"), sep = "!!", remove = F, convert = FALSE) %>%
-      #mutate(origin_country = if_else(is.na(origin_country),origin_area,origin_country)) %>% #have to figure out which are totals
+      filter(!is.na(origin_area)) %>%
       rename(census_group_name = name)
     
     
