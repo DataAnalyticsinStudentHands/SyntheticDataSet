@@ -6,9 +6,11 @@
 
 # from http://pdata.hcad.org/GIS/index.html
 # got Parcels 2015, Hwy, School, City, Sub_poly (subdivisions), TIRZ
+#on 12/27/2019 got 2017 of Parcels, and most recent of others
 
 #got 2015 acct information from: http://pdata.hcad.org/download/2015.html
 # PP-files, real_account, and real_building
+#downloaded 2017 from http://pdata.hcad.org/download/2017.html on Dec. 27, 2019.
 
 #http://hcad.org/hcad-resources/hcad-appraisal-codes/
 #http://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-building-style-codes/ also exists, but has some diffs
@@ -26,25 +28,28 @@ library(sf)
 library(dplyr)
 
 #start with loading files we need from HCAD
-HCAD_parcels <- st_read("HCAD/2015/Parcels/Parcels.shp",stringsAsFactors = FALSE)
-HCAD_res_build <- read.csv2("HCAD/2015/Real_building_land/building_res.txt", 
+HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE)
+HCAD_res_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_res.txt"),
         stringsAsFactors = FALSE,
         sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
-HCAD_real_build <- read.csv2("HCAD/2015/Real_building_land/building_other.txt", 
+HCAD_real_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_other.txt"),
+        stringsAsFactors = FALSE,
         sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
 #there are no account numbers in common between res_build and real_build, but some codes are in both
-HCAD_real_acct <- read.csv2("HCAD/2015/Real_acct_owner/real_acct.txt", 
-        sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
-HCAD_exempt <- read.csv2("HCAD/2015/Real_jur_exempt/jur_exempt_cd.txt", 
+
+HCAD_real_acct <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/real_acct.txt"),
         stringsAsFactors = FALSE,
         sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
-HCAD_owner_date <- read.csv2("HCAD/2015/Real_acct_owner/deeds.txt", 
-                        sep = "\t", header = FALSE, quote="",
-                        colClasses = c("V1"="character","V2"="character"))
-HCAD_fixtures <- read.csv2("HCAD/2015/Real_building_land/fixtures.txt", 
+HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt_cd.txt"),
+                         stringsAsFactors = FALSE,
+                         sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+HCAD_owner_date <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/deeds.txt"),
+                             stringsAsFactors = FALSE,
+                             sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+HCAD_fixtures <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/fixtures.txt"),
                            stringsAsFactors = FALSE,
-                           sep = "\t", header = FALSE, quote="",
-                           colClasses = c("V1"="character"))
+                           sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+
 
 #clean up, rename and join
 HCAD_parcels <- HCAD_parcels %>% 
