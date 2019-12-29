@@ -23,6 +23,7 @@
 
 #they also provide column names from a screenshot of their Access db: http://pdata.hcad.org/DB/Pdata_Fieldnames.pdf
 #and http://pdata.hcad.org/Desc/Layout_and_Length.txt
+#census geometry files were taken on 12/27/2019 from: https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.2017.html
 
 library(sf)
 library(dplyr)
@@ -54,7 +55,68 @@ HCAD_fixtures <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/fixt
 #clean up, rename and join
 HCAD_parcels <- HCAD_parcels %>% 
   rename(account=HCAD_NUM) %>%
-  select(account,LocAddr,city,zip,geometry)
+  select(account,LocAddr,city,zip,geometry) %>%
+  mutate(valid = st_is_valid(geometry)) %>% #90 False, 1380490 true
+  filter(valid)
+
+saveRDS(HCAD_parcels,file = paste0(censusdir, vintage, "/temp/HCAD_parcels_valid.RDS"))
+HCAD_parcels <- readRDS(paste0(censusdir, vintage, "/temp/HCAD_parcels_valid.RDS"))
+
+#add geo information from U.S. census: https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.2017.html
+#my download is 12/27/2019
+censustracts <- st_read(paste0(censusdir, vintage, "/geo_census/cb_", vintage, "_", state, "_tract_500k/cb_", vintage, "_", state, "_tract_500k.shp"))
+# put them in same CRS as Parcels
+censustracts <- st_transform(censustracts, st_crs(HCAD_parcels))
+
+# match parcels with tracts
+CensusTractforHCADParcels <- st_within(HCAD_parcels, censustracts)
+#unlist into vector
+CensusTractforHCADParcelsunlisted <- rapply(CensusTractforHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+CensusTractforHCADParcelsunlisted <- unlist(CensusTractforHCADParcelsunlisted)
+
+# add census tract information to each parcel
+HCAD_parcels$tract=censustracts$TRACTCE[CensusTractforHCADParcelsunlisted] 
+#get rid of 11337 NAs? - not sure why they died? perhaps overlapping with two? or not residential building? or should try on centroids?
+#not run: HCAD_parcels <- HCAD_parcels[which(!is.na(HCAD_parcels$tract)),]
+#plot(HCAD_parcels[which(is.na(HCAD_parcels$tract)),])
+saveRDS(HCAD_parcels,file = paste0(censusdir, vintage, "/temp/HCAD_parcels_tract.RDS"))
+HCAD_parcels <- readRDS(paste0(censusdir, vintage, "/temp/HCAD_parcels_tract.RDS"))
+
+#add centroids for each lot (need to make sure it's not also houses?)
+HCAD_parcels_centroids <- st_as_sf(HCAD_parcels, crs=3674)
+sf_HCAD_parcels <- HCAD_parcels_centroids %>%
+  ungroup() %>%
+  mutate(
+    NADcentroids = st_centroid(geometry),
+    ptcoords = st_transform(NADcentroids,crs=4326),
+  )
+saveRDS(sf_HCAD_parcels,file = paste0(housingdir, vintage, "/temp/HCAD_parcels_tract_coords.RDS"))
+sf_HCAD_parcels <- readRDS(paste0(housingdir, vintage, "/temp/HCAD_parcels_tract_coords.RDS"))
+
+#see if I can add stuff from txt files of HCAD while still sf?
+
+
+
+
+# city on HCAD is better, but save for outside Harris:
+#NOT RUN
+censusplace <- st_read(paste0(censusdir, vintage, "/geo_census/cb_", vintage, "_", state, "_place_500k/cb_", vintage, "_", state, "_place_500k.shp"))
+censusplace <- st_transform(censusplace, st_crs(HCAD_parcels))
+censusplace_within <- st_within(HCAD_parcels, censusplace) #for all of TX; not sure about subsetting for just Harris County...
+censusplace_within_unlist <- rapply(censusplace_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+censusplace_within_unlist <- unlist(censusplace_within_unlist)
+HCAD_parcels$place_name=censusplace$NAME[censusplace_within_unlist] 
+
+
+
+
+#Do distance to highways? or use all roads? tl_2017_48201_roads, or compare with products from TXDot in ../Traffic
+#do city within, school (HISD and census), see what is in place and puma
+#do centroids
+
+#for distance to grocery stores, pantries, etc.
+#and to pollution: https://www.tceq.texas.gov/compliance/enforcement/compliance-history/get_list.html
+
 #for res, they use effective area (V24) for calculating improvement value
 #they have a nbhd_factor that asthma folks could use, but it's not there for apts.
 HCAD_res_build$V1 <- str_remove_all(HCAD_res_build$V1, " ")
