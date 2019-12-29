@@ -346,22 +346,52 @@ createIndividuals <- function() {
 #didn't finish list - go back to start of marital, right after B11011
     
     
-    #can we join original place to the hispanic data? 
+    #can we join original place to the hispanic data? 1174879 from Estimate!!Total, which is same as "foreign_born" for the place_born sets
+    #I get 1083547 (91332) - it doesn't add up on the excel (with work in title), and I'm not sure how to fudge it, even, because I see no pattern to the errors
+    #chose to add 1.1481 to the Americas, and .78286  to Europe, because I couldn't find a simple reason those two continents didn't match (others did).
     #combine all place_born_data into one, then match to sex_by_age
-    #unique(place_born) - "Born in state of residence" "Born in other state in the United States" "Native; born outside the United States"   "Foreign born" 
     origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05006") #has PR at bottom
     origin_data <- origin_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
+      filter(label != "Estimate!!Total") %>%  
+      filter(label != "Americas!!Latin America!!South America") %>% 
+      filter(label != "Americas!!Latin America!!Central America") %>% 
+      filter(label != "Asia!!Eastern Asia!!China") %>%
       pivot_longer(4:ncol(origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("origin_continent","origin_area","origin_region","origin_country"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(origin_country = if_else(is.na(origin_country),if_else(str_detect(origin_area,"n.e.c") | 
-                                       origin_area=="Fiji",origin_area,origin_region),origin_country)) %>%
+      mutate(
+        origin_country = if_else(is.na(origin_country),if_else(str_detect(origin_area,"n.e.c") | 
+                                       origin_area=="Fiji",origin_area,origin_region),origin_country),
+        number_sams = case_when(origin_region=="Central America" ~ round(number_sams*1.198435,digits=0),
+                                origin_region=="South America" ~ round(number_sams*.8237,digits=0),
+                                origin_continent=="Europe" ~ round(number_sams*.78286,digits=0),
+                                TRUE ~ number_sams
+                                )
+        ) %>%
       filter(number_sams > 0 & !is.na(origin_country)) %>%
       uncount(as.numeric(number_sams),.id = "origin_id")
     
+    #think about how to match with Hispanic number from original sex_age??
+    #total right - 4525519
+    latinx_origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B03001")
+    latinx_origin_data <- latinx_origin_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      filter(label != "Hispanic or Latino") %>%
+      filter(label != "Hispanic or Latino!!Other Hispanic or Latino") %>%
+      filter(label != "Hispanic or Latino!!South American") %>%
+      filter(label != "Hispanic or Latino!!Central American") %>%
+      pivot_longer(4:ncol(latinx_origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("latinx","origin_country","origin_country2"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(origin_country = if_else(!is.na(origin_country2),
+                                      origin_country2,origin_country)) %>%
+      filter(!is.na(origin_country) | latinx == "Not Hispanic or Latino") %>%
+      rename(census_group_name = name) %>% 
+      uncount(as.numeric(number_sams),.id = "latinx_id")
+    
+    #unique(place_born) - "Born in state of residence" "Born in other state in the United States" "Native; born outside the United States"   "Foreign born" 
     place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")
-    #correct if do by either age or by category, but 465645 short if do by agesxcategories!! all missing from foreign born, under age - foreign born by total is right
+    #correct if do by either age or by category, but 465645 short if do by agesxcategories!! so I fudged it, with 1.6564 for that one category; all missing from foreign born, under age - foreign born by total is right
     #could redistribute foreign_born by age category and total foreign_born?? excel B06001 work shows calculations.
     #means that this cannot be used without checking for other years / counties
     place_born_age_data <- place_born_age_from_census %>%
@@ -502,20 +532,7 @@ createIndividuals <- function() {
       separate(label, c("ancestry","sm_area"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(number_sams > 0 & !is.na(ancestry) & is.na(sm_area))
     
-    #think about how to match with Hispanic number from original sex_age??
-    latino_origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B03001")
-    latino_origin_data <- latino_origin_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(latino_origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("latinx","origin_country","origin_country2"), sep = "!!", remove = F, convert = FALSE) %>%
-      #mutate(origin_country = if_else(!is.na(origin_country2),))
-      mutate(origin_country = if_else(!is.na(origin_country2),
-                                      if_else(origin_country=="South American" | origin_country=="Central American",origin_country2, #should remain NA
-                                      origin_country),origin_country)) %>%
-      filter(!is.na(origin_country) | latinx == "Not Hispanic or Latino") %>%
-      rename(census_group_name = name) %>% 
-      uncount(as.numeric(number_sams),.id = "latinx_id")
+    
     
     
     
