@@ -249,16 +249,62 @@ sf_HCAD_parcels <- readRDS(paste0(housingdir, vintage, "/temp/HCAD_parcels_tract
 
 
 
-# city on HCAD is better, but save for outside Harris:
-#NOT RUN
-censusplace <- st_read(paste0(censusdir, vintage, "/geo_census/cb_", vintage, "_", state, "_place_500k/cb_", vintage, "_", state, "_place_500k.shp"))
-censusplace <- st_transform(censusplace, st_crs(HCAD_parcels))
-censusplace_within <- st_within(HCAD_parcels, censusplace) #for all of TX; not sure about subsetting for just Harris County...
-censusplace_within_unlist <- rapply(censusplace_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-censusplace_within_unlist <- unlist(censusplace_within_unlist)
-HCAD_parcels$place_name=censusplace$NAME[censusplace_within_unlist] 
+# roads from census - also available from TXDOT
+roads <- st_read(paste0(censusdir, vintage, "/geo_census/cb_", vintage, "_", state, "_roads/cb_", vintage, "_", state, "_roads.shp"))
+roads <- st_transform(roads, st_crs(HCAD_parcels))
+#get which rooads within 1km, then record distances?
+roads_distance <- st_distance
 
-saveRDS(HCAD,file = paste0(housingdir, vintage, "/temp/HCAD_",Sys.Date(),".RDS"))
+#schools from HISD 
+
+#superneighborhoods
+superneighborhoods <- st_read(paste0(houstondatadir, "COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
+superneighborhoods <- st_transform(superneighborhoods, st_crs(HCAD)) #HCAD is renamed from sf_HCAD in this run - can change
+super_within <- st_within(HCAD, superneighborhoods)
+super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+super_within_unlist <- unlist(super_within_unlist)
+HCAD$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist] 
+
+#civic_clubs - much more detailed than the superneighborhoods; some don't have anything
+civic_clubs <- st_read(paste0(houstondatadir, "COH_CIVIC_CLUBS/COH_CIVIC_CLUBS.shp"))
+civic_clubs <- st_transform(civic_clubs, st_crs(HCAD)) #HCAD is renamed from sf_HCAD in this run - can change
+civic_within <- st_within(HCAD, civic_clubs)
+civic_within_unlist <- rapply(civic_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+civic_within_unlist <- unlist(civic_within_unlist)
+HCAD$civic_club=civic_clubs$NAME[civic_within_unlist] 
+
+#bus - 
+bus <- st_read(paste0(houstondatadir, "Bus_Stops/Bus_Stops.shp"))
+#calculate distances to stops?
+
+#parks - 
+parks <- st_read(paste0(houstondatadir, "COH_PARK_SECTOR/COH_PARK_SECTOR.shp"))
+#calculate distances to parks?
+pst
+libraries <- st_read(paste0(houstondatadir, "COH_LIBRARIES/COH_LIBRARIES.shp"))
+#calculate distances to libraries?
+
+#traffic - in Traffic/2018/TxDOT_AADT_Annuals - http://gis-txdot.opendata.arcgis.com/datasets/txdot-aadt-annuals/geoservice
+
+#TCEQ in general: https://www.tceq.texas.gov/agency/data/lookup-data/download-data.html
+#air compliance in TCQQ - CN_OUT2.txt is compliance history database - would be hard to get assigned to sites
+#2013thru2017statesum is point source emissions inventory. https://www.tceq.texas.gov/airquality/air-emissions
+#brownfields is bsadb, but also available from COH - need to compare - https://www.tceq.texas.gov/remediation/bsa/bsa.html
+#drycleaners is DC_Registration_All.xls: https://www.tceq.texas.gov/agency/data/lookup-data/drycleaners-data-records.html
+#these are good class examples - 14523 pages of text available as a page of text??
+#above ground storage facilities: https://www.tceq.texas.gov/assets/public/admin/data/docs/pst_ast.txt
+#and with facility info: https://www.tceq.texas.gov/assets/public/admin/data/docs/pst_fac.txt
+#could do annual waste summaries, too: https://www.tceq.texas.gov/agency/data/lookup-data/ihw-datasets.html / https://www.tceq.texas.gov/tires/tires 
+#municipal solid waste https://www.tceq.texas.gov/permitting/waste_permits/msw_permits/msw-data 
+
+HCAD_residences <- HCAD %>%
+  filter(is.na(improv_typ_real))
+HCAD_businesses <- HCAD %>%
+  filter(!is.na(improv_typ_real))
+
+
+saveRDS(HCAD_residences,file = paste0(housingdir, vintage, "/temp/HCAD_residences_",Sys.Date(),".RDS"))
+saveRDS(HCAD_businesses,file = paste0(housingdir, vintage, "/temp/HCAD_businesses_",Sys.Date(),".RDS"))
 
 
 #Do distance to highways? or use all roads? tl_2017_48201_roads, or compare with products from TXDot in ../Traffic
