@@ -29,15 +29,10 @@ createIndividuals <- function() {
     censuskey <- readLines(paste0(censusdir, vintage, "/key"))
     
     #American community survey 1yr variables: https://api.census.gov/data/2018/acs/acs1/variables.html
-    #American community survey 1yr variables: https://api.census.gov/data/2018/acs/acs5/variables.html
+    #American community survey 5yr variables: https://api.census.gov/data/2018/acs/acs5/variables.html
     
     #setup race codes https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
     acs_race_codes <- c("A","B","C","D","E","F","G") #could collect all - add them up, without H and I, and you get the total! H is white alone, not hispanic and I is hispanic and if you add them up they don't equal white alone
-    
-    #gather information from census data, group B01001 will give us gender, race, age
-    
-    
-    
     
     pov_ratio_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05009") #count of kids with family income less than pov.
     
@@ -101,7 +96,6 @@ createIndividuals <- function() {
     income_value_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25121")
     #stopped before health insurance - B27001
     
-    test <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26101")
     
     
     
@@ -146,45 +140,43 @@ createIndividuals <- function() {
     place_born_race_dt[,("white_not_latinx_num") := nrow(.SD[race=="H"]),by=.(tract,place_born)] #get number of white_not_latinx
     place_born_race_dt[,("white_and_latinx_num") := nrow(.SD[race=="A"])-nrow(.SD[race=="H"]),by=.(tract,place_born)]
     place_born_race_dt[,("latinx_not_white_num") := nrow(.SD[race=="I"])-white_and_latinx_num,by=.(tract,place_born)]
-    #number_sams is still on each one, and represents their race by category before expanding
     place_born_race_dt[race=="A",("latinx") := c(rep(as.integer(1),as.integer(white_and_latinx_num[1])),rep(as.integer(0),as.integer(white_not_latinx_num[1]))),
                        by=.(tract,place_born)] #just assigns, since there's no matching besides on tract and place born within A
-    place_born_race_dt[,("other_latinx_num") := round(nrow(.SD[race=="F"]) * .75, digits = 0),by=.(tract,place_born)]
-    place_born_race_dt[,("other_not_latinx_num") := nrow(.SD[race=="F"]) - other_latinx_num,by=.(tract,place_born)]
-    place_born_race_dt[race=="F",("latinx") := c(rep(as.integer(1),as.integer(other_latinx_num[1])),rep(as.integer(0),as.integer(other_not_latinx_num[1]))),
+    place_born_race_dt[,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num),by=.(tract,place_born)]
+    #670982 folks live in a place where there are no remaining_latinx
+    place_born_race_dt[remaining_latinx>0,("other_latinx_num") := round(nrow(.SD[race=="F"]) * .75, digits = 0),by=.(tract,place_born)]
+    place_born_race_dt[other_latinx_num > remaining_latinx,("other_latinx_num") := as.numeric(remaining_latinx),by=.(tract,place_born)]
+    place_born_race_dt[remaining_latinx>0,("other_not_latinx_num") := nrow(.SD[race=="F"]) - other_latinx_num,by=.(tract,place_born)]
+    place_born_race_dt[remaining_latinx>0 & race=="F",("latinx") := c(rep(as.integer(1),as.numeric(other_latinx_num[1])),rep(as.integer(0),as.integer(other_not_latinx_num[1]))),
                        by=.(tract,place_born)]
-    place_born_race_dt[,("two_latinx_num") := round(nrow(.SD[race=="G"]) * .4, digits = 0),by=.(tract,place_born)]
-    place_born_race_dt[,("two_not_latinx_num") := nrow(.SD[race=="G"]) - two_latinx_num,by=.(tract,place_born)]
-    place_born_race_dt[race=="G",("latinx") := c(rep(as.integer(1),as.integer(two_latinx_num[1])),rep(as.integer(0),as.integer(two_not_latinx_num[1]))),
+    place_born_race_dt[remaining_latinx>0,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num - as.integer(other_latinx_num)),by=.(tract,place_born)]
+    place_born_race_dt[remaining_latinx>0,("two_latinx_num") := round(nrow(.SD[race=="G"]) * .5, digits = 0),by=.(tract,place_born)]
+    place_born_race_dt[remaining_latinx>0,("two_not_latinx_num") := nrow(.SD[race=="G"]) - two_latinx_num,by=.(tract,place_born)]
+    place_born_race_dt[remaining_latinx>0 & race=="G",("latinx") := c(rep(as.integer(1),as.integer(two_latinx_num[1])),rep(as.integer(0),as.integer(two_not_latinx_num[1]))),
                        by=.(tract,place_born)]
-    place_born_race_dt[,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num - other_latinx_num - two_latinx_num),by=.(tract,place_born)]
+    place_born_race_dt[,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num - as.integer(other_latinx_num) - as.integer(two_latinx_num)),by=.(tract,place_born)]
     place_born_race_dt[remaining_latinx>0,("black_latinx_num") := nrow(.SD[race=="B" & place_born=="Foreign born"]) - remaining_latinx,by=.(tract,place_born)]
-    place_born_race_dt[,("black_latinx_num") := if_else(black_latinx_num<0,0,black_latinx_num)]
+    place_born_race_dt[,("black_latinx_num") := if_else(black_latinx_num<0,0,as.numeric(black_latinx_num))]
     place_born_race_dt[black_latinx_num>=0,("black_not_latinx_num") := nrow(.SD[race=="B" & place_born=="Foreign born"]) - black_latinx_num,by=.(tract,place_born)]
     place_born_race_dt[,("black_not_latinx_num") := if_else(black_not_latinx_num>0,black_not_latinx_num,0)]
     place_born_race_dt[race=="B" & place_born=="Foreign born"  & black_not_latinx_num>0,("latinx") := 
                          c(rep(as.integer(1),as.integer(black_latinx_num[1])),rep(as.integer(0),as.integer(black_not_latinx_num[1]))),
                        by=.(tract,place_born)]
-    
-#need to finish this logic!!    currently, just distributing rest of latinx evenly among non-white and it needs to work from origins or some other logic
- #   place_born_race_dt[race=="F" | race=="G" | ,("latinx") := sample( 
-  #                       c(rep(as.integer(1),as.integer(latinx_not_white_num[1])), #all latinx not also in white
-   #                                                  rep(as.integer(0),as.integer(.N-latinx_not_white_num[1]))),
-    #                     size = .N,prob = c(rep(1/.N,.N)),replace = FALSE
-     #                    ),
-      #                 by=.(tract,place_born)] 
+    #now reassign to get native born black_latinx
+    place_born_race_dt[,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num - other_latinx_num - two_latinx_num - black_latinx_num),by=.(tract,place_born)]
+    place_born_race_dt[remaining_latinx>0,("rem_black_latinx_num") := nrow(.SD[race=="B" & place_born!="Foreign born"]) - as.integer(remaining_latinx),by=.(tract,place_born)]
+    place_born_race_dt[,("rem_black_latinx_num") := if_else(rem_black_latinx_num<0,0,as.numeric(rem_black_latinx_num))]
+    place_born_race_dt[rem_black_latinx_num>=0,("rem_black_not_latinx_num") := nrow(.SD[race=="B" & place_born!="Foreign born"]) - rem_black_latinx_num,by=.(tract,place_born)]
+    place_born_race_dt[race=="B" & place_born!="Foreign born"  & rem_black_not_latinx_num>0,("latinx") := 
+                         c(rep(as.integer(1),as.integer(rem_black_latinx_num[1])),rep(as.integer(0),as.integer(rem_black_not_latinx_num[1]))),
+                       by=.(tract,place_born)]
     place_born_race_latinx_dt <- place_born_race_dt[!is.na(race) & race %in% acs_race_codes]
     #race==I - 1910535 latinx = 1909669 , so we're 866 short of total, but probably not distributed perfectly.
+    #tests: table(place_born_race_latinx_dt$race) == table(sam_sex_race_age_dt$race) = TRUE for all
+    #test <- table(place_born_race_latinx_dt$race,place_born_race_latinx_dt$tract) == table(sam_sex_race_age_dt$race,sam_sex_race_age_dt$tract) TRUE for all
+    #if these aren't true, my trick for assigning based on sample with replace=FALSE won't work by tract...
     
-    hispanic_number = case_when(race=="A" & white_hispanic > 0 ~ as.integer(white_hispanic),
-                                race=="I" ~ as.integer(number_sams), 
-                                race=="F" ~ as.integer(number_sams*.92), 
-                                race=="B" ~ as.integer(number_sams*.2),  
-                                race=="G" ~ as.integer(number_sams*.75),
-                                TRUE ~ as.integer(0))
-    
-    
-    #so used other source for age
+    #used for percentages used other source for age because the place_born didn't match by tract, so couldn't combine!!
     place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")
     #correct if do by either age or by category, but 465645 short if do by agesxcategories!! so I fudged it, with 1.6564 for that one category; all missing from foreign born, under age - foreign born by total is right
     #could redistribute foreign_born by age category and total foreign_born?? excel B06001 work shows calculations.
@@ -194,32 +186,67 @@ createIndividuals <- function() {
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(place_born_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("place_born","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(age_range = if_else(place_born=="Foreign born" & is.na(age_range),"fb_age_total",age_range)) %>%
       filter(as.numeric(number_sams) > 0 & !is.na(age_range)) %>%
-      mutate(number_sams = if_else(place_born=="Foreign born",round(number_sams*1.6564,digits = 0),number_sams)) %>% #fixing mistake in census data, but guessing it was consistent and not just a single age_group, etc.; gives 1 too many total
-      uncount(as.numeric(number_sams),.id = "place_born_age_id") %>%
-      mutate(del = if_else(number_sams == max(number_sams) & place_born == "Foreign born" & place_born_age_id == number_sams,TRUE,FALSE)) %>%
-      filter(!del) #taking risk in future that there's only one extra...
+      #mutate(number_sams = if_else(place_born=="Foreign born",round(number_sams*1.6564,digits = 0),number_sams)) %>% #fixing mistake in census data, but guessing it was consistent and not just a single age_group, etc.; gives 1 too many total
+      uncount(as.numeric(number_sams),.id = "place_born_age_id") # %>%
+#      mutate(del = if_else(number_sams == max(number_sams) & place_born == "Foreign born" & place_born_age_id == number_sams,TRUE,FALSE)) %>%
+#      filter(!del) #taking risk in future that there's only one extra...
     place_born_age_dt <- as.data.table(place_born_age_data)
+    place_born_age_dt[place_born=="Foreign born",c("fb_age") := c(.SD[age_range=="fb_age_total",(number_sams)][1]),by=.(tract)]
+    place_born_age_dt <- place_born_age_dt[age_range!="fb_age_total"]
+    place_born_age_dt[place_born=="Foreign born",c("fb_cast_by_census") := c(.SD[age_range=="fb_age_total",(number_sams)][1]),by=.(tract)]
+    #get percentages because the totals by tract don't add to the same (something about census algorithm, not sure of pattern, but definitely not distributing evenly)
+    #place_born_age_dt[,("percent_whole_pb_age_range") := .N / 4525519,by=.(age_range,place_born)] 
+    #make dt for assigning according to percentages to place_born_race - 
+    uniq_pb <- data.table(place_born = unique(place_born_age_dt$place_born))
+    uniq_age <- data.table(age_range = unique(place_born_age_dt$age_range))
+    test <- table(place_born_race_latinx_dt$place_born,place_born_race_latinx_dt$tract) == table(place_born_age_dt$place_born,place_born_age_dt$tract) #TRUE for all
     
+    test <- table(place_born_age_dt$age_range,place_born_age_dt$tract) == table(sam_sex_race_age_dt$age_range,sam_sex_race_age_dt$tract)
     
-    test <- place_born_race_dt
-    test[,("char") := place_born_age_dt[.SD[,.(tract)]] ,by=.(tract,place_born)]
-    setkey(test2,tract,place_born)
-    test[,("char") := place_born_age_dt[test2[.(age_range)]] ,by=.(tract,place_born)]
-    test2 <- place_born_age_dt
-    test[test2,by=c("tract","place_born")]
-    test3<- rbindlist(list(place_born_age_dt,place_born_race_latinx_dt,place_born_race_latinx_dt),use.names = TRUE,fill = TRUE,idcol = TRUE)
-    test3[,("fu") := c(1:.N),by=.(tract,place_born)]
-    test3[,c("fu","wtf") := .(c(1:.N),c(1:.N)),by=.(tract,place_born)]
-    test3[,c("fu") := sample(rep(number_sams,.N),size = .N), by=.(tract,place_born)]
-    test3[1:max(number_sams)*2,c("fu2") := rep(sample(c(.SD[!is.na(race),.(age_range)][1:max(number_sams)],2),size=max(number_sams),replace = FALSE),'duh'),
-          by=.(tract,place_born)]
+    pb_age_percent <- data.table(place_born = rep(uniq_pb[,place_born],nrow(uniq_age)),age_range=rep(uniq_age[,age_range],nrow(uniq_pb)))
+    pb_age_percent[place_born_age_dt, on=c('place_born','age_range'), percent := i.percent_whole_pb_age_range]
     
-    place_born_age_race_dt <- rbindlist(list(place_born_age_dt,place_born_race_latinx_dt),use.names = TRUE,fill = TRUE,idcol = TRUE)
-    #place_born_age_race_dt[is.na(race),c("race","latinx") := sample(rep(.SD[!is.na(race),c(race,latinx)[[1]]],2),size = .N,replace = TRUE,
-    place_born_age_race_dt[,("race_char") := sample(rep(.SD[!is.na(race),.(age_range)],2),size=.N,replace = FALSE),
-                                                          
-                           by=.(tract)]
+    place_born_race_latinx_dt[pb_age_percent,("age_range") := 
+                                sample(uniq_age[,age_range],size = 1,prob = list(pb_age_percent[which(place_born==.(place_born)),"percent"]),replace = TRUE),
+                              on = 'place_born'
+                              ]
+    
+    A[pb_age_percent,("tcage_range") := as.character(list(.SD[i.place_born==place_born,.(percent)])), # .SD[i.place_born==place_born,.(percent)],
+            #sample(uniq_age[,age_range],size = 1,prob = list(.SD[i.place_born==place_born,.(percent)]),replace = TRUE),
+          on = 'place_born'
+          ]
+    
+    test <- place_born_race_latinx_dt
+    #if I can get it into list in right order for sample, can just import that
+    A <- data.table(place_born = unique(place_born_age_dt$place_born),a = 1:8, b = c(12:15,12:15))
+    B <- data.table(a = 2:3, b = 13:14) #, key = 'a') 
+    
+    B[A]
+    A[B, on = 'a', bb := i.b]
+    B[A, on = c('a','b'), bb := i.b]
+    #test7 as A, then to use as prob and sample for sample for adding?
+    test7[test1, on=c('place_born'), percent := "percent_whole_pb_age_range"]
+    
+    test1 <- place_born_age_dt
+    setkey(test7,place_born)
+    test2 <- place_born_race_latinx_dt
+    test3 <- merge(test1,test2,by=c("place_born"))
+    test2[,('percent_pb_age') := test1[place_born==.SD[("place_born")],.(percent_place_born_whole)],by=(place_born)]
+    #sex_race_age_dt to place_born_race_latinx_dt
+    test2[place_born %in% test1$place_born,('percent_pb_age'),by=(place_born)]
+    test4 <- unique(test1[,.(place_born)])
+    test5 <- unique(test1[,.(age_range)])
+    test6 <- unique(test1[,.(percent_place_born_whole)])
+    test7 <- crossing(test4,test5) #44 combinations as text
+    test7[,('percent') := which(test1$place_born=="place_born")]
+    setkey(test1,c(place_born,age_range))
+    test7[,('percent5') := test1[which(test1$place_born==place_born & test1$age_range==age_range),(percent_whole_age_range_place_born),by=.(age_range,place_born)],
+          by=.(age_range,place_born)]
+    test4[,(test5$age_range) := test6$percent_place_born_whole]
+    
+    test2[which(place_born==test1$place_born),("percent") := test1$percent_place_born_whole]
     
     preg_data_DT[,("age_range_race") := sample(rep(.SD[!is.na(age_range),.(age_range)][[1]],2),size = .N,replace = TRUE,
                                                prob = c(rep(1/.N,.N))),
@@ -367,6 +394,7 @@ createIndividuals <- function() {
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "related_kids_id")
     
+    #gives 1562813, which is same as householders in household_type_relation_data
     household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
     household_type_race_data <- household_type_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -379,7 +407,7 @@ createIndividuals <- function() {
       ) %>% 
       filter(!is.na(family_role)) %>%
       filter(number_sams > 0 & race %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "hh_type_race_id")  #gives 1562813, which is same as householders in household_type_relation_data
+      uncount(as.numeric(number_sams),.id = "hh_type_race_id")  
     
 #doesn't seem to add anything more than above
     household_related_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002") 
@@ -468,7 +496,7 @@ createIndividuals <- function() {
       uncount(as.numeric(number_sams),.id = "origin_id")
     
     #think about how to match with Hispanic number from original sex_age??
-    #total right - 4525519
+    #total right - 4525519, but would have to match before making latinx to get numbers right, and not sure about matching spouses, etc.
     latinx_origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B03001")
     latinx_origin_data <- latinx_origin_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -488,6 +516,7 @@ createIndividuals <- function() {
         
     
     #population 15 yrs and over - 3223758 / doesn't match age_categories from other place_born groups
+    #nrow(sam_sex_race_age_dt[age_range!="Under 5 years" & age_range!="5 to 9 years" & age_range!="10 to 14 years"]) = 3494885 (not a match!)
     income_place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06010") #PR at top
     income_place_born_data <- income_place_born_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -509,7 +538,7 @@ createIndividuals <- function() {
       filter(number_sams > 0 & !is.na(English_proficiency)) %>%
       uncount(as.numeric(number_sams),.id = "place_born_language_id")
     
-    #population 15 and over - 3560318
+    #population 15 and over - 3560318 NOT A MATCH with sex_age_race...
     place_born_marital_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06008")
     place_born_marital_data <- place_born_marital_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -584,6 +613,9 @@ createIndividuals <- function() {
       filter(number_sams > 0 & !is.na(age_range)) %>% 
       uncount(as.numeric(number_sams),.id = "sex_nativity_age_id")
  
+
+    
+    
     #UGH - probably not worth it!! 
     #https://www.census.gov/topics/population/ancestry/about/faq.html
     mult_ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04005")
