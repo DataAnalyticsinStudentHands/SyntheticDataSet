@@ -144,32 +144,36 @@ createIndividuals <- function() {
                        by=.(tract,place_born)] #just assigns, since there's no matching besides on tract and place born within A
     place_born_race_dt[,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num),by=.(tract,place_born)]
     #670982 folks live in a place where there are no remaining_latinx
-    place_born_race_dt[remaining_latinx>0,("other_latinx_num") := round(nrow(.SD[race=="F"]) * .75, digits = 0),by=.(tract,place_born)]
-    place_born_race_dt[other_latinx_num > remaining_latinx,("other_latinx_num") := as.numeric(remaining_latinx),by=.(tract,place_born)]
+    place_born_race_dt[remaining_latinx>0,("other_latinx_num") := round(nrow(.SD[race=="F"]) * .97, digits = 0),by=.(tract,place_born)]
+    place_born_race_dt[,("other_latinx_num") := if_else(other_latinx_num > remaining_latinx,as.numeric(remaining_latinx),other_latinx_num),by=.(tract,place_born)]
     place_born_race_dt[remaining_latinx>0,("other_not_latinx_num") := nrow(.SD[race=="F"]) - other_latinx_num,by=.(tract,place_born)]
     place_born_race_dt[remaining_latinx>0 & race=="F",("latinx") := c(rep(as.integer(1),as.numeric(other_latinx_num[1])),rep(as.integer(0),as.integer(other_not_latinx_num[1]))),
                        by=.(tract,place_born)]
     place_born_race_dt[remaining_latinx>0,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num - as.integer(other_latinx_num)),by=.(tract,place_born)]
-    place_born_race_dt[remaining_latinx>0,("two_latinx_num") := round(nrow(.SD[race=="G"]) * .5, digits = 0),by=.(tract,place_born)]
+    place_born_race_dt[remaining_latinx>0,("two_latinx_num") := round(nrow(.SD[race=="G"]) * .77, digits = 0),by=.(tract,place_born)]
+    place_born_race_dt[,("two_latinx_num") := if_else(two_latinx_num > remaining_latinx,as.numeric(remaining_latinx),two_latinx_num),by=.(tract,place_born)]
     place_born_race_dt[remaining_latinx>0,("two_not_latinx_num") := nrow(.SD[race=="G"]) - two_latinx_num,by=.(tract,place_born)]
     place_born_race_dt[remaining_latinx>0 & race=="G",("latinx") := c(rep(as.integer(1),as.integer(two_latinx_num[1])),rep(as.integer(0),as.integer(two_not_latinx_num[1]))),
                        by=.(tract,place_born)]
     place_born_race_dt[,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num - as.integer(other_latinx_num) - as.integer(two_latinx_num)),by=.(tract,place_born)]
     place_born_race_dt[remaining_latinx>0,("black_latinx_num") := nrow(.SD[race=="B" & place_born=="Foreign born"]) - remaining_latinx,by=.(tract,place_born)]
-    place_born_race_dt[,("black_latinx_num") := if_else(black_latinx_num<0,0,as.numeric(black_latinx_num))]
+    place_born_race_dt[,("black_latinx_num") := if_else(black_latinx_num > remaining_latinx,as.numeric(remaining_latinx),as.numeric(black_latinx_num))]
     place_born_race_dt[black_latinx_num>=0,("black_not_latinx_num") := nrow(.SD[race=="B" & place_born=="Foreign born"]) - black_latinx_num,by=.(tract,place_born)]
     place_born_race_dt[,("black_not_latinx_num") := if_else(black_not_latinx_num>0,black_not_latinx_num,0)]
     place_born_race_dt[race=="B" & place_born=="Foreign born"  & black_not_latinx_num>0,("latinx") := 
                          c(rep(as.integer(1),as.integer(black_latinx_num[1])),rep(as.integer(0),as.integer(black_not_latinx_num[1]))),
                        by=.(tract,place_born)]
     #now reassign to get native born black_latinx
-    place_born_race_dt[,("remaining_latinx") := (nrow(.SD[race=="I"]) - white_and_latinx_num - other_latinx_num - two_latinx_num - black_latinx_num),by=.(tract,place_born)]
-    place_born_race_dt[remaining_latinx>0,("rem_black_latinx_num") := nrow(.SD[race=="B" & place_born!="Foreign born"]) - as.integer(remaining_latinx),by=.(tract,place_born)]
-    place_born_race_dt[,("rem_black_latinx_num") := if_else(rem_black_latinx_num<0,0,as.numeric(rem_black_latinx_num))]
-    place_born_race_dt[rem_black_latinx_num>=0,("rem_black_not_latinx_num") := nrow(.SD[race=="B" & place_born!="Foreign born"]) - rem_black_latinx_num,by=.(tract,place_born)]
+    place_born_race_dt[,("remaining_latinx") := as.integer(nrow(.SD[race=="I"]) - white_and_latinx_num - other_latinx_num - two_latinx_num - black_latinx_num),by=.(tract,place_born)]
+    #place_born_race_dt[is.na(remaining_latinx),("remaining_latinx") := max(remaining_latinx),by=.(tract,place_born)]#work around because of weirdness in if_else
+    place_born_race_dt[remaining_latinx>0,("rem_black_latinx_num") := as.numeric(nrow(.SD[race=="B"]) - as.integer(remaining_latinx)),by=.(tract,place_born)]
+    place_born_race_dt[,("rem_black_latinx_num") := if_else(rem_black_latinx_num > remaining_latinx,as.numeric(remaining_latinx),as.numeric(rem_black_latinx_num))]
+    place_born_race_dt[rem_black_latinx_num>=0,("rem_black_not_latinx_num") := nrow(.SD[race=="B"]) - rem_black_latinx_num,by=.(tract,place_born)]
     place_born_race_dt[race=="B" & place_born!="Foreign born"  & rem_black_not_latinx_num>0,("latinx") := 
                          c(rep(as.integer(1),as.integer(rem_black_latinx_num[1])),rep(as.integer(0),as.integer(rem_black_not_latinx_num[1]))),
                        by=.(tract,place_born)]
+    place_born_race_dt[,("remaining_latinx") := as.integer(nrow(.SD[race=="I"]) - white_and_latinx_num - other_latinx_num - two_latinx_num - black_latinx_num - rem_black_latinx_num),by=.(tract,place_born)]
+    
     place_born_race_latinx_dt <- place_born_race_dt[!is.na(race) & race %in% acs_race_codes]
     #race==I - 1910535 latinx = 1909669 , so we're 866 short of total, but probably not distributed perfectly.
     #tests: table(place_born_race_latinx_dt$race) == table(sam_sex_race_age_dt$race) = TRUE for all
