@@ -30,6 +30,8 @@ library(dplyr)
 
 #start with loading files we need from HCAD
 HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE)
+#did all the geo joins and manipulations on this, before adding the other columns from HCAD - may have to rename HCAD_parcels <- HCAD
+
 HCAD_res_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_res.txt"),
         stringsAsFactors = FALSE,
         sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
@@ -203,114 +205,20 @@ fourplex4 <- HCAD %>% filter(improv_typ.x == 1004) #looks like each account has 
 #4213 = Mobile Home Parks (in real) - 1008 = Mobile Homes (in res) has rooms listed, so works
 #it's possible that we could just know where they are and do some rough and ready by sf????
 
-#clean up, rename and join
-HCAD_parcels <- HCAD_parcels %>% 
-  rename(account=HCAD_NUM) %>%
-  select(account,LocAddr,city,zip,geometry) %>%
-  mutate(valid = st_is_valid(geometry)) %>% #90 False, 1380490 true
-  filter(valid)
 
-saveRDS(HCAD_parcels,file = paste0(censusdir, vintage, "/temp/HCAD_parcels_valid.RDS"))
-HCAD_parcels <- readRDS(paste0(censusdir, vintage, "/temp/HCAD_parcels_valid.RDS"))
-
-#add geo information from U.S. census: https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.2017.html
-#my download is 12/27/2019
-censustracts <- st_read(paste0(censusdir, vintage, "/geo_census/cb_", vintage, "_", state, "_tract_500k/cb_", vintage, "_", state, "_tract_500k.shp"))
-# put them in same CRS as Parcels
-censustracts <- st_transform(censustracts, st_crs(HCAD_parcels))
-
-# match parcels with tracts
-CensusTractforHCADParcels <- st_within(HCAD_parcels, censustracts)
-#unlist into vector
-CensusTractforHCADParcelsunlisted <- rapply(CensusTractforHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-CensusTractforHCADParcelsunlisted <- unlist(CensusTractforHCADParcelsunlisted)
-
-# add census tract information to each parcel
-HCAD_parcels$tract=censustracts$TRACTCE[CensusTractforHCADParcelsunlisted] 
-#get rid of 11337 NAs? - not sure why they died? perhaps overlapping with two? or not residential building? or should try on centroids?
-#not run: HCAD_parcels <- HCAD_parcels[which(!is.na(HCAD_parcels$tract)),]
-#plot(HCAD_parcels[which(is.na(HCAD_parcels$tract)),])
-saveRDS(HCAD_parcels,file = paste0(censusdir, vintage, "/temp/HCAD_parcels_tract.RDS"))
-HCAD_parcels <- readRDS(paste0(censusdir, vintage, "/temp/HCAD_parcels_tract.RDS"))
-
-#add centroids for each lot (need to make sure it's not also houses?)
-HCAD_parcels_centroids <- st_as_sf(HCAD_parcels, crs=3674)
-sf_HCAD_parcels <- HCAD_parcels_centroids %>%
-  ungroup() %>%
-  mutate(
-    NADcentroids = st_centroid(geometry),
-    ptcoords = st_transform(NADcentroids,crs=4326),
-  )
-saveRDS(sf_HCAD_parcels,file = paste0(housingdir, vintage, "/temp/HCAD_parcels_tract_coords.RDS"))
-sf_HCAD_parcels <- readRDS(paste0(housingdir, vintage, "/temp/HCAD_parcels_tract_coords.RDS"))
-
-#see if I can add stuff from txt files of HCAD while still sf?
-
-
-
-
-# roads from census - also available from TXDOT
-roads <- st_read(paste0(censusdir, vintage, "/geo_census/cb_", vintage, "_", state, "_roads/cb_", vintage, "_", state, "_roads.shp"))
-roads <- st_transform(roads, st_crs(HCAD_parcels))
-#get which rooads within 1km, then record distances?
-roads_distance <- st_distance
-
-#schools from HISD 
-
-#superneighborhoods
-superneighborhoods <- st_read(paste0(houstondatadir, "COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
-superneighborhoods <- st_transform(superneighborhoods, st_crs(HCAD)) #HCAD is renamed from sf_HCAD in this run - can change
-super_within <- st_within(HCAD, superneighborhoods)
-super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-super_within_unlist <- unlist(super_within_unlist)
-HCAD$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist] 
-
-#civic_clubs - much more detailed than the superneighborhoods; some don't have anything
-civic_clubs <- st_read(paste0(houstondatadir, "COH_CIVIC_CLUBS/COH_CIVIC_CLUBS.shp"))
-civic_clubs <- st_transform(civic_clubs, st_crs(HCAD)) #HCAD is renamed from sf_HCAD in this run - can change
-civic_within <- st_within(HCAD, civic_clubs)
-civic_within_unlist <- rapply(civic_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-civic_within_unlist <- unlist(civic_within_unlist)
-HCAD$civic_club=civic_clubs$NAME[civic_within_unlist] 
-
-#bus - 
-bus <- st_read(paste0(houstondatadir, "Bus_Stops/Bus_Stops.shp"))
-#calculate distances to stops?
-
-#parks - 
-parks <- st_read(paste0(houstondatadir, "COH_PARK_SECTOR/COH_PARK_SECTOR.shp"))
-#calculate distances to parks?
-pst
-libraries <- st_read(paste0(houstondatadir, "COH_LIBRARIES/COH_LIBRARIES.shp"))
-#calculate distances to libraries?
-
-#traffic - in Traffic/2018/TxDOT_AADT_Annuals - http://gis-txdot.opendata.arcgis.com/datasets/txdot-aadt-annuals/geoservice
-
-#TCEQ in general: https://www.tceq.texas.gov/agency/data/lookup-data/download-data.html
-#air compliance in TCQQ - CN_OUT2.txt is compliance history database - would be hard to get assigned to sites
-#2013thru2017statesum is point source emissions inventory. https://www.tceq.texas.gov/airquality/air-emissions
-#brownfields is bsadb, but also available from COH - need to compare - https://www.tceq.texas.gov/remediation/bsa/bsa.html
-#drycleaners is DC_Registration_All.xls: https://www.tceq.texas.gov/agency/data/lookup-data/drycleaners-data-records.html
-#these are good class examples - 14523 pages of text available as a page of text??
-#above ground storage facilities: https://www.tceq.texas.gov/assets/public/admin/data/docs/pst_ast.txt
-#and with facility info: https://www.tceq.texas.gov/assets/public/admin/data/docs/pst_fac.txt
-#could do annual waste summaries, too: https://www.tceq.texas.gov/agency/data/lookup-data/ihw-datasets.html / https://www.tceq.texas.gov/tires/tires 
-#municipal solid waste https://www.tceq.texas.gov/permitting/waste_permits/msw_permits/msw-data 
 
 HCAD_residences <- HCAD %>%
   filter(is.na(improv_typ_real))
 HCAD_businesses <- HCAD %>%
   filter(!is.na(improv_typ_real))
 
+HCAD_dt <- as.data.table(HCAD)
+HCAD_residences <- HCAD_dt[is.na(improv_typ_real)]
+HCAD_businesses <- HCAD_dt[!is.na(improv_typ_real)]
 
-saveRDS(HCAD_residences,file = paste0(housingdir, vintage, "/temp/HCAD_residences_",Sys.Date(),".RDS"))
-saveRDS(HCAD_businesses,file = paste0(housingdir, vintage, "/temp/HCAD_businesses_",Sys.Date(),".RDS"))
 
+saveRDS(HCAD,file = paste0(housingdir, vintage, "/HCAD_",Sys.Date(),".RDS"))
+saveRDS(HCAD_residences,file = paste0(housingdir, vintage, "/HCAD_residences_",Sys.Date(),".RDS"))
+saveRDS(HCAD_businesses,file = paste0(housingdir, vintage, "/HCAD_businesses_",Sys.Date(),".RDS"))
 
-#Do distance to highways? or use all roads? tl_2017_48201_roads, or compare with products from TXDot in ../Traffic
-#do city within, school (HISD and census), see what is in place and puma
-#do centroids
-
-#for distance to grocery stores, pantries, etc.
-#and to pollution: https://www.tceq.texas.gov/compliance/enforcement/compliance-history/get_list.html
-
+#HCAD as a whole has all the spatial info we may need for some of the SDoH calculations 

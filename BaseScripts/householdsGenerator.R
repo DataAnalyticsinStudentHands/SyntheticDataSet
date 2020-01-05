@@ -8,6 +8,9 @@ library(doParallel)
 library(foreach)
 #for distance calculation ? may do as own calculation instead
 #library(stats)
+#census does a process of modeling, based on weighting of responses. Hard to find exactly where they're doing the projections.
+#cf. Appendix B, starting at esp. around 103: https://www2.census.gov/programs-surveys/decennial/2020/program-management/census-research/predictive-models-audience-segmentation-report.pdf
+
 
 #' createIndividuals
 #'
