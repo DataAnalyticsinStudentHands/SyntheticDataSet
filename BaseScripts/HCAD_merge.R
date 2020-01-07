@@ -27,6 +27,7 @@
 
 library(sf)
 library(dplyr)
+library(data.table)
 
 #start with loading files we need from HCAD
 HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE)
@@ -207,17 +208,19 @@ fourplex4 <- HCAD %>% filter(improv_typ.x == 1004) #looks like each account has 
 
 
 
+st_geometry(HCAD) <- NULL
+HCAD <- HCAD %>%
+  select(-NADcentroids)
+
+
 HCAD_residences <- HCAD %>%
   filter(is.na(improv_typ_real))
 HCAD_businesses <- HCAD %>%
   filter(!is.na(improv_typ_real))
 
-HCAD_dt <- as.data.table(HCAD)
-HCAD_residences <- HCAD_dt[is.na(improv_typ_real)]
-HCAD_businesses <- HCAD_dt[!is.na(improv_typ_real)]
 
 
-saveRDS(HCAD,file = paste0(housingdir, vintage, "/HCAD_",Sys.Date(),".RDS"))
+saveRDS(HCAD,file = paste0(housingdir, vintage, "/HCAD_pts_",Sys.Date(),".RDS"))
 saveRDS(HCAD_residences,file = paste0(housingdir, vintage, "/HCAD_residences_",Sys.Date(),".RDS"))
 saveRDS(HCAD_businesses,file = paste0(housingdir, vintage, "/HCAD_businesses_",Sys.Date(),".RDS"))
 
