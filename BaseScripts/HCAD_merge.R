@@ -196,6 +196,7 @@ HCAD <- full_join(HCAD,HCAD_fixtures,by="account")
 #RMT                 Room:  Total
 #UNT                 Number of Apartment Units 
 
+#https://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-building-type-codes/
 #perhaps still need to add logic for: (some come from improv_typ.x, some from improv_typ.y - res vs. real)
 #NOT run - just in case we want to drill down
 fourplex4 <- HCAD %>% filter(improv_typ.x == 1004) #looks like each account has it listed as 8 bedrooms, instead of as 4 apts.
@@ -214,7 +215,8 @@ HCAD <- HCAD %>%
 
 
 HCAD_residences <- HCAD %>%
-  filter(is.na(improv_typ_real))
+  filter(is.na(improv_typ_real)) #there are a significant number that are na on improv_typ, still, but chose to keep them for wholeness here
+#cf: they seem to be things like commercial land in residential areas, some church properties, and other odds and ends
 HCAD_businesses <- HCAD %>%
   filter(!is.na(improv_typ_real))
 
