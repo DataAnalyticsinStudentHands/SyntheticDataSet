@@ -21,15 +21,23 @@ HCAD_dt <- as.data.table(HCAD_residences)
 HCAD_dt[,tract:=droplevels(tract)]
 HCAD_not_vacant <- HCAD_dt[!is.na(improv_typ)] #returns 1815741
 
-HCAD_ext <- bind_rows(HCAD_not_vacant,sex_age_race_latinx_dt)
-#trying to get super and city in same place, but respecting that not all addresses in a tract are in the super/city
-#should look at how the supers align with tracts, most are within, I think.
-#A[,("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==.(tract),.(superneighborhood)][[1]]),
-A[,("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==.(tract),.(superneighborhood)][[1]]),
-                       size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+#HCAD_ext <- bind_rows(HCAD_not_vacant,sex_age_race_latinx_dt)
+#the stuff below writes NAs to everything except the last one it goes through... all the hh go to Webster...
 hh_type_race_dt <- as.data.table(household_type_race_data)
-hh_type_race_dt[,("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==.(tract),.(superneighborhood)][[1]]),
+for (tr in hh_type_race_dt$tract){
+  hh_type_race_dt[,("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==tr,.(superneighborhood)][.N][[1]]),
+                                       size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+  hh_type_race_dt[is.na(super),("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==tr,.(city)][.N][[1]]),
+                                                   size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+}
+
+
+hh_type_race_dt[,("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==.(tract),.(superneighborhood)][.N][[1]]),
                                               size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
-hh_type_race_dt[is.na(super),("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==.(tract),.(city)][[1]]),
-                                                 size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+hh_type_race_dt[is.na(super),("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==.(tract),.(city)][.N][[1]]),
+                                     size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+#hh_type_race_dt[tract=="211500",("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]=="211500",.(superneighborhood)][.N][[1]]),
+#                                                    size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+#hh_type_race_dt[is.na(super),("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==.(tract),.(city)][[1]]),
+#                                                 size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
 #do pca at superneighbor level to then mix tract info better...
