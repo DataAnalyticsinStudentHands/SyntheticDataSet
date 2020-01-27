@@ -228,7 +228,26 @@ createIndividuals <- function() {
                         ]
     sam_sex_race_age <- sam_sex_race_age_DT
     
+    #gives 1562813, which is same as householders in household_type_relation_data
+    household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
+    household_type_race_data <- household_type_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_type_race_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family_or_non","family_type","family_role"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(
+        race = substr(name,7,7),
+        family_role = if_else(family_type=="Other family",family_role,family_type)
+      ) %>% 
+      filter(!is.na(family_role)) %>%
+      filter(number_sams > 0 & race %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "hh_type_race_id")  
+    
+    #doesn't seem to add anything more than above
+    #household_related_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
+    
     #ugh get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!!
+    #could be that householders not living alone (87550) should somehow be counted as having roommates; up to 330554-41220 / 87550 = 3.3 roommates on avg?
     #has right number of householders / households
     household_type_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016") 
     household_type_size_data <- household_type_size_from_census %>%
@@ -317,26 +336,9 @@ createIndividuals <- function() {
                       if_else(str_detect(family_role,"No related"),family_role,related_kids))
       ) %>% #want each role to have 786 before uncount
       filter(!is.na(age)) %>%
+      rename(kid_age = age) %>%
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "related_kids_id")
-    
-    #gives 1562813, which is same as householders in household_type_relation_data
-    household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
-    household_type_race_data <- household_type_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_type_race_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("family_or_non","family_type","family_role"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(
-        race = substr(name,7,7),
-        family_role = if_else(family_type=="Other family",family_role,family_type)
-      ) %>% 
-      filter(!is.na(family_role)) %>%
-      filter(number_sams > 0 & race %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "hh_type_race_id")  
-    
-#doesn't seem to add anything more than above
-    household_related_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002") 
     
     
     household_own_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11003") 
@@ -354,6 +356,7 @@ createIndividuals <- function() {
                       if_else(str_detect(family_role,"No own"),family_role,own_kids))
       ) %>% 
       filter(!is.na(age)) %>%
+      rename(kid_age = age) %>%
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "hh_own_kids_id") #gives 1420205 - which is 140k short, but could add with related kids?
     
@@ -384,10 +387,10 @@ createIndividuals <- function() {
       filter(label != "Estimate!!Total") %>% 
       filter(label != "Nonfamily households") %>%
       pivot_longer(4:ncol(household_type_units_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("family_type","family_role","structs","num_structures"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("hh_type","fam_role_units","structs","num_structures"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
-        num_structures = if_else(family_role=="Other family",num_structures,if_else(family_type=="Nonfamily households",family_role,structs)),
-        family_role = if_else(family_role=="Other family",structs,if_else(family_type=="Nonfamily households",family_type,family_role))
+        num_structures = if_else(fam_role_units=="Other family",num_structures,if_else(hh_type=="Nonfamily households",fam_role_units,structs)),
+        fam_role_units = if_else(fam_role_units=="Other family",structs,if_else(hh_type=="Nonfamily households",hh_type,fam_role_units))
       ) %>% 
       filter(!is.na(num_structures)) %>%
       filter(number_sams > 0) %>%
