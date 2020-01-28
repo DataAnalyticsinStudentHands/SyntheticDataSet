@@ -83,20 +83,19 @@ hh_relation_dt[,("percent_relat_intract") := num_relat_intract/.N,by=.(tract)]
 hh_relation_dt[,("individual_id") := paste0(state,county,tract,as.character(100000+seq.int(1:.N))),by=.(tract)] #may want to redo to encode more info
 hh_relation <- hh_relation_dt  %>% select(individual_id,tract,family_role,percent_relat_intract)
 hh_expanded <- hh_expanded %>% select(household_id,tract,family_type,family_role,num_in_family,num_hh_intract,race,super,zip)  #super and zip are only if used - would be supplanted by HCAD
-hh_merge_rel <- bind_cols(hh_relation[family_role=="Householder"],hh_expanded)  #do by tract, in case they got mixed above??
-hh_merge_exp <- merge(hh_relation,hh_merge_rel,by="individual_id",all = TRUE)
-hh_merge_exp <- hh_merge_exp %>% select(individual_id,household_id,tract = tract.x,family_role = family_role.x,
-                                        family_type,percent_relat_intract = percent_relat_intract.x,num_hh_intract,
-                                             num_in_family,race,super,zip)
+hh_relation[,("household_id") := if_else(family_role=="Householder",paste0(state,county,tract,as.character(200000+seq.int(1:.N))),'none'),by=.(tract)]
+hh_relation[family_role=="Householder",c("family_type","num_in_family","race","super","zip") := 
+          hh_expanded[.SD, list(family_type,num_in_family,race,super,zip), on = .(household_id)]]
 
-saveRDS(hh_merge_exp,file = paste0(housingdir, vintage, "/hh_merge_exp_",Sys.Date(),".RDS"))
+
+saveRDS(hh_relation,file = paste0(housingdir, vintage, "/hh_relation_",Sys.Date(),".RDS"))
 #hh_merge_exp[family_role=="Householder"] gets you the hh group - 1532813
 
 hh_partner_dt <- as.data.table(household_type_partners_data)
 hh_partner_dt[is.na(partner_type),("partner_type") := "Not a partner households"]
 hh_partner_dt[,("num_hh_intract") := .N,by=.(tract)]
 hh_partner_dt[,("percent_partners_intract") := .N/num_hh_intract,by=.(tract,partner_type)]
-hh_partner_exp <- bind_rows(hh_merge_exp,hh_partner_dt)
+hh_partner_exp <- bind_rows(hh_relation,hh_partner_dt)
 hh_partner_exp[is.na(percent_partners_intract),("percent_partners_intract") := as.numeric(0.000000001)]
 hh_partner_exp[family_role=="Householder" | is.na(individual_id),("partner_hh_type") := 
                  sample(rep(.SD[is.na(individual_id),.(partner_type)][[1]],2),size=.N,
@@ -111,12 +110,13 @@ hh_units_dt[,("units_fam_role") := if_else(fam_role_units=="Female householder n
                                           "Other family",if_else(fam_role_units=="Nonfamily households","Other households",fam_role_units))]
 hh_partner_exp[,("units_fam_role") := if_else(family_type=="Householder living alone" | family_type=="Householder not living alone",
                                               "Other households",family_type)]
+
 #trying trick to merge by ids, but something is wrong...
 hh_partner_exp[family_role=="Householder",("units_id"):=paste0(tract,units_fam_role,as.character(100000+seq.int(1:.N))),by=.(tract,units_fam_role)]
 hh_units_dt[,("units_id"):=paste0(tract,units_fam_role,as.character(100000+seq.int(1:.N))),by=.(tract,units_fam_role)]
-hh_units_merge <- merge(hh_partner_exp[family_role=="Householder"],hh_units_dt,all.y=TRUE,by=c("units_id"))
-hh_units_full <- merge(hh_partner_exp,hh_units_merge,by="individual_id")  
-
+hh_partner_exp[family_role=="Householder",c("num_structures") := 
+                 hh_units_dt[.SD, list(num_structures), on = .(tract,units_fam_role,units_id)]]
+saveRDS(hh_partner_exp,file = paste0(housingdir, vintage, "/hh_partner_exp_",Sys.Date(),".RDS"))
 
 
 
