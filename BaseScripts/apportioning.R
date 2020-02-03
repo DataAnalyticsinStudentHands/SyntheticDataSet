@@ -81,28 +81,42 @@ hh_relation_dt <- as.data.table(household_type_relation_data)
 hh_relation_dt[,("num_relat_intract") := .N,by=.(tract,family_role)]
 hh_relation_dt[,("percent_relat_intract") := num_relat_intract/.N,by=.(tract)]
 hh_relation_dt[,("individual_id") := paste0(state,county,tract,as.character(100000+seq.int(1:.N))),by=.(tract)] #may want to redo to encode more info
-hh_relation <- hh_relation_dt  %>% select(individual_id,tract,family_role,percent_relat_intract)
+hh_relation <- hh_relation_dt  %>% select(individual_id,tract,relative,family_or_non,group_or_hh,family_role,group_quarters,percent_relat_intract)
 hh_expanded <- hh_expanded %>% select(household_id,tract,family_type,family_role,num_in_family,num_hh_intract,race,super,zip)  #super and zip are only if used - would be supplanted by HCAD
-hh_relation[,("household_id") := if_else(family_role=="Householder",paste0(state,county,tract,as.character(200000+seq.int(1:.N))),'none'),by=.(tract)]
-hh_relation[family_role=="Householder",c("family_type","num_in_family","race","super","zip") := 
+hh_relation[,("household_id") := if_else(family_role=="Householder",paste0(state,county,tract,as.character(200000+seq.int(1:.N))),'none'),by=.(tract,family_role=="Householder")]
+hh_relation[family_role=="Householder",c("family_type_rel","num_in_family_rel","race","super","zip") := 
           hh_expanded[.SD, list(family_type,num_in_family,race,super,zip), on = .(household_id)]]
-
 
 saveRDS(hh_relation,file = paste0(housingdir, vintage, "/hh_relation_",Sys.Date(),".RDS"))
 #hh_merge_exp[family_role=="Householder"] gets you the hh group - 1532813
 
 hh_partner_dt <- as.data.table(household_type_partners_data)
-hh_partner_dt[is.na(partner_type),("partner_type") := "Not a partner households"]
+#hh_relation[household_id != "none",#"partner_type_id" :=  "No partner", #MAYBE USE SAMPLE TO GENERATE LAST DIGITS OF ID TO MERGE ON??
+#            by=.(tract,group_or_hh,family_or_non)]
+
+hh_partner_dt[is.na(partner_type),("partner_type") := "Not a partner household"] #get with unmarried #family_role has housemate or roommate which is close to partner totals
+
 hh_partner_dt[,("num_hh_intract") := .N,by=.(tract)]
 hh_partner_dt[,("percent_partners_intract") := .N/num_hh_intract,by=.(tract,partner_type)]
+hh_relation[,"partner_hh_type" := "No partner"]
 hh_partner_exp <- bind_rows(hh_relation,hh_partner_dt)
 hh_partner_exp[is.na(percent_partners_intract),("percent_partners_intract") := as.numeric(0.000000001)]
+
 hh_partner_exp[family_role=="Householder" | is.na(individual_id),("partner_hh_type") := 
                  sample(rep(.SD[is.na(individual_id),.(partner_type)][[1]],2),size=.N,
                         replace = FALSE,prob = rep((percent_partners_intract*2)/.N,1)),
        by=.(tract)]
+
 hh_partner_exp <- hh_partner_exp[!is.na(individual_id)]
 hh_partner_exp <- hh_partner_exp %>% select(-name, -label, -unmarried, -partner_type, -concept, -number_sams, -partner_id, -percent_partners_intract)
+hh_partner_exp[partner_hh_type == "Female householder and female partner",("sex_hh") := "Female"]
+hh_partner_exp[partner_hh_type == "Female householder and female partner",("sex_partner") := "Female"]
+hh_partner_exp[partner_hh_type == "Male householder and male partner",("sex_hh") := "Male"]
+hh_partner_exp[partner_hh_type == "Male householder and male partner",("sex_partner") := "Male"]
+hh_partner_exp[partner_hh_type == "Male householder and female partner",("sex_hh") := "Male"]
+hh_partner_exp[partner_hh_type == "Male householder and female partner",("sex_partner") := "Female"]
+hh_partner_exp[partner_hh_type == "Female householder and male partner",("sex_hh") := "Female"]
+hh_partner_exp[partner_hh_type == "Female householder and male partner",("sex_partner") := "Male"]
 saveRDS(hh_partner_exp,file = paste0(housingdir, vintage, "/hh_partner_exp_",Sys.Date(),".RDS"))
 
 hh_units_dt <- as.data.table(household_type_units_data)
@@ -117,6 +131,7 @@ hh_units_dt[,("units_id"):=paste0(tract,units_fam_role,as.character(100000+seq.i
 hh_partner_exp[family_role=="Householder",c("num_structures") := 
                  hh_units_dt[.SD, list(num_structures), on = .(tract,units_fam_role,units_id)]]
 saveRDS(hh_partner_exp,file = paste0(housingdir, vintage, "/hh_partner_exp_",Sys.Date(),".RDS"))
+
 
 
 

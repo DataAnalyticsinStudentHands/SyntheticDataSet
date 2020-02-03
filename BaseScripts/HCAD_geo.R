@@ -100,7 +100,7 @@ roads <- st_transform(roads, st_crs(HCAD$ptcoords))
 
 highways_distance <- st_distance(HCAD$ptcoords,roads[which(roads$MTFCC=="S1100"),]$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
 h_distance <- as.data.table(highways_distance)
-HCAD$min_h_distance <- apply(h_distance[,1:90], 1, min) #minimum distance in meters - should do for S1200, too!!
+HCAD$min_h_distance <- apply(h_distance[,1:90], 1, min) #minimum distance in meters
 #secondary streets, including what Houstonians call Freeways and throughways of various sorts - some as large as highways
 freeways_distance <- st_distance(HCAD$ptcoords,roads[which(roads$MTFCC=="S1200"),]$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
 f_distance <- as.data.table(freeways_distance)
@@ -114,12 +114,23 @@ HCAD$min_walk_bike_path_distance <- apply(wb_distance[,1:4], 1, min) #minimum di
 
 saveRDS(HCAD,file = paste0(housingdir, vintage, "/temp/HCAD_HISD_roads_1_5_20.RDS")) #and everything before
 
+traffic_counts <- st_read(paste0(maindir, "Traffic/2018/TxDOT_AADT_Annuals/TxDOT_AADT_Annuals.shp"))
+traffic_counts <- st_transform(traffic_counts, st_crs(HCAD))
+#need distance to count and number for top five??
 
 
-#Not done below here: need to decide on how to make it add-on, since not done at beginning:
+#Not done below here: need to decide on how to make it add-on, since not done at beginning and to think through what you want to represent...
 HPD_crime <- st_read(paste0(houstondatadir, "HPD_NIBRS_CRIME/HPD_NIBRS_CRIME.shp"))
 HPD_crime <- st_transform(HPD_crime, st_crs(HCAD))
 HPD_crime_distance <- st_distance(HCAD$ptcoords,HPD_crime,by_element = FALSE)
+
+brownfields_site <- st_read(paste0(houstondatadir, "COH_PWE_BROWNSFIELDS_SITES/COH_PWE_BROWNSFIELDS_SITES.shp"))
+brownfields <- st_read(paste0(houstondatadir, "COH_PWE_BROWNSFIELDS_POINTS/COH_PWE_BROWNSFIELDS_POINTS.shp"))
+brownfields_dt <- as.data.table(brownfields)
+brownfields_distance <- st_distance(HCAD$ptcoords,brownfields_dt[,]$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+b_distance <- as.data.table(brownfields_distance)
+HCAD$min_b_distance <- apply(h_distance[,1:90], 1, min) #minimum distance in meters
+
 
 #could do sldl and sldu (state legislative units) / and all the stuff from the city???
 

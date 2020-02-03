@@ -47,10 +47,22 @@ sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
          bi_racial = if_else(race=="G",1,0)
   ) %>%
   separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%  #NA in rows with only one
+  mutate(age_range = str_replace(age_range,"Under 5 years","0  to  5 years"), #have to do something funky...
+         age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
+         age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
+         age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to norm it when calculating...
+         first_age = as.numeric(substr(age_range,1,2)),
+         last_age = as.numeric(substr(age_range,7,8)),
+         age_range_length = last_age-first_age+1
+         ) %>%
   rename(census_group_name = name) %>%
   filter(number_sams != 0, !is.na(age_range),race!="_",age_range!="Total") %>%
+  rowwise() %>%
+  mutate(
+    age=as.numeric(sample(as.character(first_age:last_age),1,prob = rep(1/age_range_length,age_range_length),replace = FALSE)),
+    age=if_else(age_range=="85 to 94 years",as.numeric(sample(85:105,size=1,replace=TRUE,prob = rep(2/(8:28)^5/sum(2/(8:28)^5)))),age) 
+  ) %>%
   uncount(number_sams,.id = "sams_id") 
-
 
 sex_age_race_dt <- as.data.table(sex_by_age_race_data) # a couple of things for sampling work better as dt
 sex_age_race_dt[,("white_not_latinx_num") := nrow(.SD[race=="H"]),by=.(tract,age_range)] #get number of white_not_latinx
@@ -87,8 +99,9 @@ sex_age_race_dt[rem_black_latinx_num>=0,("rem_black_not_latinx_num") := nrow(.SD
 sex_age_race_dt[race=="B" & age_range!="Foreign born"  & rem_black_not_latinx_num>0,("latinx") := 
                      c(rep(as.integer(1),as.integer(rem_black_latinx_num[1])),rep(as.integer(0),as.integer(rem_black_not_latinx_num[1]))),
                    by=.(tract,age_range)]
-
 sex_age_race_latinx_dt <- sex_age_race_dt[!is.na(race) & race %in% acs_race_codes] # should equal 4525519 per B10001 row 166 total in 2017; 4602523 in 2018;
+
+
 
 #unique(place_born) - "Born in state of residence" "Born in other state in the United States" "Native; born outside the United States"   "Foreign born" 
 place_born_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06004")

@@ -181,52 +181,7 @@ createIndividuals <- function() {
     
     #may have better way of dealing with age numbers...
     #add age_range to work for merge with marital data, uses data.table to make this fast
-    %>% 
-      mutate(
-        age_range = str_replace(age_range,"Under 5 years","0  to  5 years"), #have to do something funky...
-        age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
-        age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
-        age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to norm it when calculating...
-        first_age = as.numeric(substr(age_range,1,2)),
-        last_age = as.numeric(substr(age_range,7,8)),
-        age_range_length = last_age-first_age+1) %>%
-      select(-concept) 
-    rowwise() %>%
-      mutate(
-        age=as.numeric(sample(as.character(first_age:last_age),1,prob = rep(1/age_range_length,age_range_length),replace = FALSE))
-      )
-    sam_sex_race_age_DT <- as.data.table(sam_sex_race_age)
-    sam_sex_race_age_DT[, age_range_marital := c("not of age",
-                                                 "15 to 17 years",
-                                                 "18 to 19 years",
-                                                 "20 to 24 years",
-                                                 "25 to 29 years",
-                                                 "30 to 34 years",
-                                                 "35 to 39 years",
-                                                 "40 to 44 years",
-                                                 "45 to 49 years",
-                                                 "50 to 54 years",
-                                                 "55 to 59 years",
-                                                 "60 to 64 years",
-                                                 "65 to 74 years",
-                                                 "75 to 84 years",
-                                                 "85 to 104 years")[1 +
-                                                                      1 * (age >= 15 & age <= 17) + 
-                                                                      2 * (age >= 18 & age <= 19) +
-                                                                      3 * (age >= 20 & age <= 24) +
-                                                                      4 * (age >= 25 & age <= 29) +
-                                                                      5 * (age >= 30 & age <= 34) +
-                                                                      6 * (age >= 35 & age <= 39) +
-                                                                      7 * (age >= 40 & age <= 44) +
-                                                                      8 * (age >= 45 & age <= 49) +
-                                                                      9 * (age >= 50 & age <= 54) +
-                                                                      10 * (age >= 55 & age <= 59) +
-                                                                      11 * (age >= 60 & age <= 64) +
-                                                                      12 * (age >= 65 & age <= 74) +
-                                                                      13 * (age >= 75 & age <= 84) +
-                                                                      14 * (age >= 85 & age <= 104) ]
-                        ]
-    sam_sex_race_age <- sam_sex_race_age_DT
+   
     
     #gives 1562813, which is same as householders in household_type_relation_data
     household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
@@ -284,6 +239,17 @@ createIndividuals <- function() {
       filter(!del) %>%
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "role_id") #not sure why it needed as.numeric this time, but still works on filter above...
+    
+    #definitely use with sample - gives unmarried partners, straight and same-sex, and has others in amount to make for married - all within non-family households? 
+    #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
+    household_type_partners_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009") #only unmarried but same sex included
+    household_type_partners_data <- household_type_partners_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      filter(label != "Unmarried-partner households") %>%
+      pivot_longer(4:ncol(household_type_partners_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("unmarried","partner_type"), sep = "!!", remove = F, convert = FALSE) %>%
+      uncount(as.numeric(number_sams),.id = "partner_id",.remove = TRUE)
     
     #adults and kids gets you right(ish) total (20,000, depending on using seniors from inside adults or separately)
     household_seniors_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09020")
@@ -349,7 +315,7 @@ createIndividuals <- function() {
       separate(label, c("family_type","family_role","own_kids","age"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
         own_kids = if_else(family_type=="Other family",own_kids,family_role),
-        family_role = if_else(family_type=="Other family",family_type,family_role),
+        family_role = if_else(family_type=="Other family",family_type,family_role), #family_role gives with and without own children and other families
         age = if_else(family_type=="Other family",
                       if_else(str_detect(family_role,"No own"),family_role,
                               if_else(str_detect(own_kids,"No own"),own_kids,age)),
@@ -369,16 +335,6 @@ createIndividuals <- function() {
       pivot_longer(4:ncol(household_type_seniors_from_census),names_to = "tract", values_to = "number_sams") %>% 
       mutate(sr_present = if_else(str_detect(label,"no people 65"),FALSE,TRUE)) %>%
       uncount(as.numeric(number_sams),.id = "sr_present_id",.remove = TRUE)
-    
-    #definitely use with sample - gives unmarried partners, straight and same-sex, and has others in amount to make for married - all within non-family households? 
-    household_type_partners_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009") #only unmarried but same sex included
-    household_type_partners_data <- household_type_partners_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      filter(label != "Unmarried-partner households") %>%
-      pivot_longer(4:ncol(household_type_partners_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("unmarried","partner_type"), sep = "!!", remove = F, convert = FALSE) %>%
-      uncount(as.numeric(number_sams),.id = "partner_id",.remove = TRUE)
     
     #tells only if household is in single structure or complex - also worth adding, and gets correct number of 1562813
     household_type_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11011")
@@ -1136,6 +1092,57 @@ createHouseholds <- function(sam_residents) {
     occupation_earnings_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B24124")
   }
 }
+
+
+
+#NOTES
+
+%>% 
+  mutate(
+    age_range = str_replace(age_range,"Under 5 years","0  to  5 years"), #have to do something funky...
+    age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
+    age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
+    age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to norm it when calculating...
+    first_age = as.numeric(substr(age_range,1,2)),
+    last_age = as.numeric(substr(age_range,7,8)),
+    age_range_length = last_age-first_age+1) %>%
+  select(-concept) 
+rowwise() %>%
+  mutate(
+    age=as.numeric(sample(as.character(first_age:last_age),1,prob = rep(1/age_range_length,age_range_length),replace = FALSE))
+  )
+sam_sex_race_age_DT <- as.data.table(sam_sex_race_age)
+sam_sex_race_age_DT[, age_range_marital := c("not of age",
+                                             "15 to 17 years",
+                                             "18 to 19 years",
+                                             "20 to 24 years",
+                                             "25 to 29 years",
+                                             "30 to 34 years",
+                                             "35 to 39 years",
+                                             "40 to 44 years",
+                                             "45 to 49 years",
+                                             "50 to 54 years",
+                                             "55 to 59 years",
+                                             "60 to 64 years",
+                                             "65 to 74 years",
+                                             "75 to 84 years",
+                                             "85 to 104 years")[1 +
+                                                                  1 * (age >= 15 & age <= 17) + 
+                                                                  2 * (age >= 18 & age <= 19) +
+                                                                  3 * (age >= 20 & age <= 24) +
+                                                                  4 * (age >= 25 & age <= 29) +
+                                                                  5 * (age >= 30 & age <= 34) +
+                                                                  6 * (age >= 35 & age <= 39) +
+                                                                  7 * (age >= 40 & age <= 44) +
+                                                                  8 * (age >= 45 & age <= 49) +
+                                                                  9 * (age >= 50 & age <= 54) +
+                                                                  10 * (age >= 55 & age <= 59) +
+                                                                  11 * (age >= 60 & age <= 64) +
+                                                                  12 * (age >= 65 & age <= 74) +
+                                                                  13 * (age >= 75 & age <= 84) +
+                                                                  14 * (age >= 85 & age <= 104) ]
+                    ]
+sam_sex_race_age <- sam_sex_race_age_DT
 
 
 
