@@ -122,8 +122,8 @@ saveRDS(hh_partner_exp,file = paste0(housingdir, vintage, "/hh_partner_exp_",Sys
 hh_units_dt <- as.data.table(household_type_units_data)
 hh_units_dt[,("units_fam_role") := if_else(fam_role_units=="Female householder no husband present" | fam_role_units=="Male householder no wife present",
                                           "Other family",if_else(fam_role_units=="Nonfamily households","Other households",fam_role_units))]
-hh_partner_exp[,("units_fam_role") := if_else(family_type=="Householder living alone" | family_type=="Householder not living alone",
-                                              "Other households",family_type)]
+hh_partner_exp[,("units_fam_role") := if_else(family_type_rel=="Householder living alone" | family_type_rel=="Householder not living alone",
+                                              "Other households",family_type_rel)]
 
 #trying trick to merge by ids, but something is wrong...
 hh_partner_exp[family_role=="Householder",("units_id"):=paste0(tract,units_fam_role,as.character(100000+seq.int(1:.N))),by=.(tract,units_fam_role)]
@@ -132,41 +132,82 @@ hh_partner_exp[family_role=="Householder",c("num_structures") :=
                  hh_units_dt[.SD, list(num_structures), on = .(tract,units_fam_role,units_id)]]
 saveRDS(hh_partner_exp,file = paste0(housingdir, vintage, "/hh_partner_exp_",Sys.Date(),".RDS"))
 
+hh_sam <- hh_partner_exp
 
 
+#want to get age of adults by relation_hh and age of person
+hh_adults <- as.data.table(household_adults_relation_data)
+#hh_partner_exp has perhaps younger than 18 and married? has family_role=="Spouse" of 733235; "Householder" at 1562813 
+
+hh_adults[,("relation") := relation_hh]
+hh_adults[relation_hh=="Householder living with spouse or spouse of householder" & family_id %% 2 == 0, ("relation_hh") := "Spouse of Householder"]
+hh_adults[relation_hh=="Householder living with spouse or spouse of householder", ("relation_hh") := "Householder"]
+hh_adults[relation_hh=="Householder living with unmarried partner or unmarried partner of householder" & family_id %% 2 == 0, ("relation_hh") := "Unmarried partner of Householder"]
+hh_adults[relation_hh=="Householder living with unmarried partner or unmarried partner of householder", ("relation_hh") := "Householder"]
+hh_adults[relation_hh=="Lives alone", ("relation_hh") := "Householder"]
+#moved family_roles into subcategories that helped with age...
+hh_sam[family_role=="Householder",("relation_hh") := "Householder"]
+hh_sam[family_role=="Adopted child" | family_role=="Stepchild" | family_role=="Foster child" | family_role=="Son-in-law or daughter-in-law" | 
+         family_role=="Biological child",("relation_hh") := "Child of householder"] #but this should only be for the subset of such over 18 in hh
+hh_sam[family_role=="Spouse",("relation_hh") := "Spouse of Householder"]
+hh_sam[family_role=="Unmarried partner",("relation_hh") := "Unmarried partner of Householder"]
+hh_sam[family_role=="Parent" | family_role=="Brother or sister" | family_role=="Other relatives" ,("relation_hh") := "Other relatives"]
+hh_sam[family_role=="Housemate or roommate" | 
+       family_role=="Parent-in-law" | family_role=="Roomer or boarder" | #these should get different ages!!!
+         family_role=="Other nonrelatives",("relation_hh") := "Other nonrelatives"]
+
+hh_adults[,("num_adult_rels_intract") := .N,by=.(tract,relation_hh)]
+hh_adults[,("percent_adult_rels_intract") := .N/num_adult_rels_intract,by=.(tract,relation_hh,age_range)]
+
+#add age and race
+sex_age_race_latinx_dt[,("num_age_intract") := .N,by=.(tract)]
+sex_age_race_latinx_dt[,("percent_sex_intract") := .N/num_age_intract,by=.(tract,sex)]
+sex_age_race_latinx_dt[,("percent_age_intract") := .N/num_age_intract,by=.(tract,sex,age_range)]
+sex_age_race_latinx_dt[,("percent_race_intract") := .N/num_age_intract,by=.(tract,sex,age_range,race)]
+sex_age_race_latinx_dt[,("percent_latinx_intract") := .N/num_age_intract,by=.(tract,sex,age_range,race,latinx)]
+sex_age_race_latinx_dt[,("age_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
+
+hh_sam_age <- bind_rows(hh_sam,sex_age_race_latinx_dt)
+hh_sam_age[is.na(percent_sex_intract),("percent_sex_intract") := as.numeric(0.000000001)]
+hh_sam_age[is.na(percent_age_intract),("percent_age_intract") := as.numeric(0.000000001)]
+hh_sam_age[is.na(percent_race_intract),("percent_race_intract") := as.numeric(0.000000001)]
+hh_sam_age[is.na(percent_latinx_intract),("percent_latinx_intract") := as.numeric(0.000000001)]
+
+###how to get this to do sex, age_range, race, latinx !!!!!!
+#could do each by percent, and previous one, till getting latinx after 4 times through...
+hh_sam_age[,c("sex") := 
+             sample(rep(.SD[is.na(individual_id),.(sex)][[1]],2),size=.N,
+                    replace = FALSE,prob = rep((percent_sex_intract*2)/.N,1)),
+           by=.(tract)]
+hh_sam_age[,c("age_range") := 
+             sample(rep(.SD[is.na(individual_id),.(age_range)][[1]],2),size=.N,
+                    replace = FALSE,prob = rep((percent_age_intract*2)/.N,1)),
+           by=.(tract,sex)]
+hh_sam_age[,c("race") := 
+             sample(rep(.SD[is.na(individual_id),.(race)][[1]],2),size=.N,
+                    replace = FALSE,prob = rep((percent_race_intract*2)/.N,1)),
+           by=.(tract,sex)]
+hh_sam_age[,c("latinx") := 
+             sample(rep(.SD[is.na(individual_id),.(latinx)][[1]],2),size=.N,
+                    replace = FALSE,prob = rep((percent_latinx_intract*2)/.N,1)),
+           by=.(tract,sex)]
+
+hh_sam_age <- hh_sam_age[!is.na(individual_id)]
+saveRDS(hh_sam_age,file = paste0(housingdir, vintage, "/hh_sam_age_",Sys.Date(),".RDS"))
+
+hh_sams_exp <- bind_rows(hh_sam_age,hh_adults)
+hh_sams_exp[is.na(percent_adult_rels_intract),("percent_adult_rels_intract") := as.numeric(0.000000001)]
+#HAVE TO MAKE BOTH SIDES THE SAME SIZE
+hh_sams_exp[as.numeric(substr(age_range,1,2))>17,c("adult_rels") := 
+              sample(rep(.SD[is.na(individual_id),list(relation_hh)][[1]],2),size=.N,
+                     replace = FALSE,prob = rep((percent_adult_rels_intract*2)/.N,1)),
+            by=.(tract)]
+
+hh_sams_exp <- hh_sams_exp[!is.na(sams_id)]
+
+#sample inside relation_hh on both??
+
+#add age
 
 
-
-
-#for each percent_relat_intract - can I create IDs that they would match on??
-hh_merge_exp_test[,("family_id_wrk") := paste0(100000+num_hh_intract,100000+seq.int(1:.N)),
-                  by=.(tract,family_role)]
-#or just do one at a time through the types???, with a counter for how many in the family are left??? maybe dplyr
-
-
-#sample from .SD - search by family_roles - should balance by race afterwards - here race is only for the householder
-hh_merge_exp_test[!is.na(household_id),("spouse_id") := if_else(family_type=="Married-couple family",
-                                                                sample(rep(.SD[family_role=="Spouse",.(individual_id)][[1]],1)),
-                                                                "No spouse"), #are they only the ones not separated?? should look??
-                  by=.(tract)]
-hh_merge_exp_test[is.na(household_id),("household_id") := "test",
-                  by=.(tract,family_role)]
-
-#bind rows with hh_expanded; then go backwards with everything going to the full sam size - have to think about mixed race families....
-
-#hh_rel_exp <- bind_rows(hh_expanded,hh_relation_dt)
-
-#hh_rel_exp[,("household_id") := sample(rep(.SD[!is.na(role_id),.(numeric_in_family)][[1]],2),size=.N,
- #                                                                          replace = FALSE,prob = rep((percent_race_role_intract*2)/.N,1)),
-  #     by=.(tract,family_or_non)]
-
-#for hh_type_race_data$family_role, householder living alone and Household not living alone are the two types of non-family households
-#check hh_type_size and age_race to see if it has same rows vs tract problems... if it does match before distributing by zip / super
-#apportion by getting percentages by row for subsets and using those as prob weights...
-#use dt to get sums by .N for race ?? 
-for (type in hh_type_race_dt$family_type){
-  #only non-GQ hh
-    #sum over zip and sum over super add and then divide by two
-  #get percentages that matter by super, then use as weights for prob
-}
-
+#sex_age_race_latinx_dt
