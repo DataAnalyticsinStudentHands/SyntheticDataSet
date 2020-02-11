@@ -197,7 +197,8 @@ saveRDS(hh_sam_age,file = paste0(housingdir, vintage, "/hh_sam_age_",Sys.Date(),
 
 hh_sams_exp <- bind_rows(hh_sam_age,hh_adults)
 hh_sams_exp[is.na(percent_adult_rels_intract),("percent_adult_rels_intract") := as.numeric(0.000000001)]
-#HAVE TO MAKE BOTH SIDES THE SAME SIZE
+#HAVE TO MAKE BOTH SIDES THE SAME SIZE - no group quarters in hh_adults means no tract for 412100 and 312100, so can't match...
+#maybe create something as a dt that has tract, other categories that are known, and then the total numbers, etc. - and just look up instead of bind_rows?? 
 hh_sams_exp[as.numeric(substr(age_range,1,2))>17,c("adult_rels") := 
               sample(rep(.SD[is.na(individual_id),list(relation_hh)][[1]],2),size=.N,
                      replace = FALSE,prob = rep((percent_adult_rels_intract*2)/.N,1)),
