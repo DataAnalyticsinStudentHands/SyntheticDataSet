@@ -74,16 +74,7 @@ createIndividuals <- function() {
     #housing - have to keep an idea of housing/household separate from individual counts...
     housing_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25001") #total number (same as adding occupied and vacant)
     housing_units_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25032") #units in structure by race
-    housing_occup_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25007") #of occup, own or rent by age
-    housing_occup_date_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25026") #of occup, own or rent by move in date
-    housing_occup_hhsize_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25009") #of occup, own or rent by household size
-    housing_occup_hhtype_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25011") #of occup, own or rent by household type
-    housing_occup_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25013") #of occup, own or rent by educ attainment
-    housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
-    housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
-    housing_occup_bedrooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25042") #of occup, number of bedrooms
-    housing_per_room_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25014") #ratio per tract occup per/room/race
-    housing_per_room_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25015") #ratio per tract occup per/room/race
+
     mortgage_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25027") 
     #gross rent is contract plus estimate for utilities, etc.
     gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25063")
@@ -176,7 +167,13 @@ createIndividuals <- function() {
     
     #concept is:"RATIO OF INCOME TO POVERTY LEVEL IN THE PAST 12 MONTHS BY NATIVITY OF CHILDREN UNDER 18 YEARS IN FAMILIES AND SUBFAMILIES BY LIVING ARRANGEMENTS AND NATIVITY OF PARENTS"
     pov_ratio_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05010") #count of kids with family income less than pov.
-    
+    pov_ratio_kids_data <- pov_ratio_kids_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_unmarried_children_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("poverty_ratio","parent_type","parent_nativity"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(parent_nativity) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "poverty_kids_id",.remove = TRUE)
     
     #gives unmarried partners, straight and same-sex, and has others in amount to make for married - all within non-family households? 
     #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
@@ -320,6 +317,14 @@ createIndividuals <- function() {
       uncount(as.numeric(number_sams),.id = "sr_present_id",.remove = TRUE)
     
     kids_SSI_household_type_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09010")
+    kids_SSI_household_type_data <- kids_SSI_household_type_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(kids_SSI_household_type_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("SSI","family","family_type"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(family_type=if_else(family=="In nonfamily households",family,family_type)) %>%
+      filter(!is.na(family_type) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "kids_SSI_id",.remove = TRUE)
     
     #vacant_occupied=="Occupied" gives 1562813, which is equal to number of households
     housing_occupancy_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25002") #gives vacant vs. occup
@@ -339,8 +344,110 @@ createIndividuals <- function() {
       mutate(race = substr(name,7,7)) %>%
       rename(own_rent = label) %>%
       filter(race %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_id",.remove = TRUE)
+      uncount(as.numeric(number_sams),.id = "own_rent_race_id",.remove = TRUE)
     
+    housing_occup_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25007") #of occup, own or rent by age
+    housing_occup_age_data <- housing_occup_age_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_age_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","householder_age"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(householder_age) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_age_id",.remove = TRUE)
+    
+    #concept:TOTAL POPULATION IN OCCUPIED HOUSING UNITS BY TENURE BY YEAR HOUSEHOLDER MOVED INTO UNIT
+    #4484299 - not sure why not complete? group quarters?
+    housing_occup_date_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25026") #of occup, own or rent by move in date
+    housing_occup_date_data <- housing_occup_date_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total population in occupied housing units!!")) %>%
+      filter(label != "Estimate!!Total population in occupied housing units") %>%
+      pivot_longer(4:ncol(housing_occup_date_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","move_in_date"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(move_in_date) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_date_id",.remove = TRUE)
+    
+    housing_occup_hhsize_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25009") #of occup, own or rent by household size
+    housing_occup_hhsize_data <- housing_occup_hhsize_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_hhsize_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_hhsize_id",.remove = TRUE)
+    
+    
+    housing_occup_hhtype_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25011") #of occup, own or rent by household type
+    housing_occup_hhtype_data <- housing_occup_hhtype_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_hhtype_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","family_or_non","family_type","partner_present","householder_age"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(
+        householder_age = if_else(str_detect(partner_present,"years"),partner_present,householder_age),
+        householder_age = if_else(str_detect(family_type,"years"),family_type,householder_age)
+      ) %>% 
+      filter(!is.na(householder_age) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_hhtype_id",.remove = TRUE)
+    
+    housing_occup_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25013") #of occup, own or rent by educ attainment
+    housing_occup_educ_data <- housing_occup_educ_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_educ_data),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","hh_education_level"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_education_level) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
+    
+    
+    housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
+    housing_occup_income_data <- housing_occup_income_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_income_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","hh_income_level"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_income_level) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
+    
+    
+    housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
+    housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_rooms_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","num_rooms"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(num_rooms) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_num_rooms_id",.remove = TRUE)
+    
+    
+    housing_occup_bedrooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25042") #of occup, number of bedrooms
+    housing_occup_bedrooms_data <- housing_occup_bedrooms_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_bedrooms_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","num_bedrooms"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(num_bedrooms) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_num_bedrooms_id",.remove = TRUE)
+    
+    #either have to go through process of getting race in all of them, as in sex_race_age, or just use the numbers...
+    housing_per_room_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25014") #ratio per tract occup per/room/race
+    housing_per_room_race_data <- housing_per_room_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(race = substr(name,7,7)) %>%
+      filter(!is.na(num_per_room) & number_sams > 0) %>% #seems to keep num_per_room only for all race totals, not individual race...
+      uncount(as.numeric(number_sams),.id = "own_rent_num_per_rooms_id",.remove = TRUE)
+    
+    
+    housing_per_room_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25015") #ratio per tract occup per/room/race
+    housing_per_room_age_data <- housing_per_room_age_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_per_room_age_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","householder_age", "num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(num_per_room) & number_sams > 0) %>% #seems to keep num_per_room only for all race totals, not individual race...
+      uncount(as.numeric(number_sams),.id = "own_rent_age_per_rooms_id",.remove = TRUE)
     
     #used for percentages used other source for age because the place_born didn't match by tract, so couldn't combine!!
     place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")

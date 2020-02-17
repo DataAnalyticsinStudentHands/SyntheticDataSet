@@ -89,9 +89,28 @@ hh_relation_dt[family_role=="Householder",c("family","family_type","family_role"
 
 saveRDS(hh_relation_dt,file = paste0(housingdir, vintage, "/hh_relation_dt_",Sys.Date(),".RDS"))
 
+#kids stuff - getting ready to add it to hh_relation_dt, which has race for householder / adults stuff has age_range for family_roles
+
+kids_family_age_dt <- as.data.table(kids_family_age_data)
+
+poverty_ratio_kids_dt <- as.data.table(pov_ratio_kids_data)
+
+parents_kids_dt <- as.data.table(hh_unmarried_children_data)
 
 
-hh_sam <- hh_partner_exp
+#housing occupancay stuff!! some are for total population; some just for householders - have to sort!
+
+occupied_vacant_data
+
+occupied_race_data
+
+housing_occup_age_data
+
+housing_occup_date_data
+
+housing_occup_hhsize_data
+
+#for individual stuff
 
 
 #want to get age of adults by relation_hh and age of person
