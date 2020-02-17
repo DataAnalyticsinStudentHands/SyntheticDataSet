@@ -20,56 +20,36 @@ HCAD_dt <- HCAD_dt[!is.na(improv_typ)] #returns 1815741
 #: https://stackoverflow.com/questions/15113650/faster-weighted-sampling-without-replacement
 #we're really not sampling as much anymore - could look at for later time
 
-hh_type_race_dt <- as.data.table(household_type_race_data)
-
 #getting household_type_size_data from householdsGenerator.R - num_family_id == 1 : 1562813, which is same as nrow in for hh; numeric_in_family lets you expand
 hh_size_dt <- as.data.table(household_type_size_data)
-hh_type_race_dt[,("num_role_intract") := .N,by=.(tract,family_role)]
-hh_type_race_dt[,("percent_race_role_intract") := .N/num_role_intract,by=.(tract,race,family_role)]
-hh_exp <- bind_rows(hh_type_race_dt,hh_size_dt)
-hh_exp[is.na(family_or_non),("family_or_non") := if_else(nonfamily,"Nonfamily households","Family households")]
-hh_exp[is.na(percent_race_role_intract),("percent_race_role_intract") := as.numeric(0.001)]
-hh_exp[num_family_id==1 | is.na(num_family_id),("num_in_family") := sample(rep(.SD[!is.na(num_family_id),.(numeric_in_family)][[1]],2),size=.N,
-                           replace = FALSE,prob = rep((percent_race_role_intract*2)/.N,1)),
-       by=.(tract,family_or_non)]
-#got a warning that "Invalid .internal.selfref detected and fixed by taking a (shallow) copy..." not sure how to fix; I am using set except with bind_rows...
-hh_expanded <- hh_exp[is.na(family_id)]
-hh_expanded[,("family_role") := "Householder"]
-hh_expanded[,c("household_id","num_hh_intract") := list(paste0(state,county,tract,as.character(200000+seq.int(1:.N))),.N),by=.(tract)]
+#add number of workers per household
+hh_workers_dt <- as.data.table(household_workers_data)
+hh_size_dt[,("number_in_hh"):=if_else(as.numeric(substr(number_in_family,1,1))>3,"4-or-more-person household",number_in_family)]
+hh_size_dt[,("num_workers_id"):=paste0(tract,number_in_hh,as.character(1000000+seq.int(1:.N))),by=.(tract,number_in_hh)]
+hh_workers_dt[,("num_workers_id"):=paste0(tract,number_in_hh,as.character(1000000+seq.int(1:.N))),by=.(tract,number_in_hh)]
+hh_size_dt[,c("number_workers_in_hh") := hh_workers_dt[.SD, list(number_workers_in_hh), on = .(tract,number_in_hh,num_workers_id)]]
 
-hh_relation_dt <- as.data.table(household_type_relation_data)
-#family_role has everything and without NAs adds up to 4525519; with Householder at 1562813
-hh_relation_dt[,("num_relat_intract") := .N,by=.(tract,family_role)]
-hh_relation_dt[,("percent_relat_intract") := num_relat_intract/.N,by=.(tract)]
-hh_relation_dt[,("individual_id") := paste0(state,county,tract,as.character(100000+seq.int(1:.N))),by=.(tract)] #may want to redo to encode more info
-hh_relation <- hh_relation_dt  %>% select(individual_id,tract,relative,family_or_non,group_or_hh,family_role,group_quarters,percent_relat_intract)
-hh_expanded <- hh_expanded %>% select(household_id,tract,family_type,family_role,num_in_family,num_hh_intract,race,super,zip)  #super and zip are only if used - would be supplanted by HCAD
-hh_relation[,("household_id") := if_else(family_role=="Householder",paste0(state,county,tract,as.character(200000+seq.int(1:.N))),'none'),by=.(tract,family_role=="Householder")]
-hh_relation[family_role=="Householder",c("family_type_rel","num_in_family_rel","race","super","zip") := 
-          hh_expanded[.SD, list(family_type,num_in_family,race,super,zip), on = .(household_id)]]
+hh_type_race_dt <- as.data.table(household_type_race_data)
+hh_type_race_dt[,c("household_id","num_hh_intract") := list(paste0(state,county,tract,as.character(2000000+seq.int(1:.N))),.N),by=.(tract)]
+hh_type_race_dt[,("size_id"):=paste0(tract,family,as.character(1000000+seq.int(1:.N))),by=.(tract,family)]
+hh_size_dt[,("size_id"):=paste0(tract,family,as.character(1000000+seq.int(1:.N))),by=.(tract,family)]
+hh_type_race_dt[,c("family_size","number_workers_in_hh") := hh_size_dt[.SD, c(list(number_in_family),list(number_workers_in_hh)), on = .(tract,family,size_id)]]
 
-saveRDS(hh_relation,file = paste0(housingdir, vintage, "/hh_relation_",Sys.Date(),".RDS"))
-#hh_merge_exp[family_role=="Householder"] gets you the hh group - 1532813
-
+#unmarried partners who are not householders are not counted here!!
 hh_partner_dt <- as.data.table(household_type_partners_data)
-#hh_relation[household_id != "none",#"partner_type_id" :=  "No partner", #MAYBE USE SAMPLE TO GENERATE LAST DIGITS OF ID TO MERGE ON??
-#            by=.(tract,group_or_hh,family_or_non)]
-
-hh_partner_dt[is.na(partner_type),("partner_type") := "Not a partner household"] #get with unmarried #family_role has housemate or roommate which is close to partner totals
-
+hh_partner_dt[is.na(partner_type),("partner_type") := "Not a partner household"] 
 hh_partner_dt[,("num_hh_intract") := .N,by=.(tract)]
 hh_partner_dt[,("percent_partners_intract") := .N/num_hh_intract,by=.(tract,partner_type)]
-hh_relation[,"partner_hh_type" := "No partner"]
-hh_partner_exp <- bind_rows(hh_relation,hh_partner_dt)
+hh_partner_exp <- bind_rows(hh_type_race_dt,hh_partner_dt)
 hh_partner_exp[is.na(percent_partners_intract),("percent_partners_intract") := as.numeric(0.000000001)]
 
-hh_partner_exp[family_role=="Householder" | is.na(individual_id),("partner_hh_type") := 
-                 sample(rep(.SD[is.na(individual_id),.(partner_type)][[1]],2),size=.N,
+hh_partner_exp[,("partner_hh_type") := 
+                 sample(rep(.SD[is.na(household_id),.(partner_type)][[1]],2),size=.N,
                         replace = FALSE,prob = rep((percent_partners_intract*2)/.N,1)),
-       by=.(tract)]
+               by=.(tract)]
 
-hh_partner_exp <- hh_partner_exp[!is.na(individual_id)]
-hh_partner_exp <- hh_partner_exp %>% select(-name, -label, -unmarried, -partner_type, -concept, -number_sams, -partner_id, -percent_partners_intract)
+hh_partner_exp <- hh_partner_exp[!is.na(household_id)]
+hh_partner_exp <- hh_partner_exp %>% select(-name, -label, -size_id, -unmarried, -partner_type, -concept, -number_sams, -partner_id, -percent_partners_intract)
 hh_partner_exp[partner_hh_type == "Female householder and female partner",("sex_hh") := "Female"]
 hh_partner_exp[partner_hh_type == "Female householder and female partner",("sex_partner") := "Female"]
 hh_partner_exp[partner_hh_type == "Male householder and male partner",("sex_hh") := "Male"]
@@ -80,18 +60,36 @@ hh_partner_exp[partner_hh_type == "Female householder and male partner",("sex_hh
 hh_partner_exp[partner_hh_type == "Female householder and male partner",("sex_partner") := "Male"]
 saveRDS(hh_partner_exp,file = paste0(housingdir, vintage, "/hh_partner_exp_",Sys.Date(),".RDS"))
 
+
 hh_units_dt <- as.data.table(household_type_units_data)
 hh_units_dt[,("units_fam_role") := if_else(fam_role_units=="Female householder no husband present" | fam_role_units=="Male householder no wife present",
-                                          "Other family",if_else(fam_role_units=="Nonfamily households","Other households",fam_role_units))]
-hh_partner_exp[,("units_fam_role") := if_else(family_type_rel=="Householder living alone" | family_type_rel=="Householder not living alone",
-                                              "Other households",family_type_rel)]
+                                           "Other family",if_else(fam_role_units=="Nonfamily households","Other households",fam_role_units))]
+hh_partner_exp[,("units_fam_role") := if_else(family_type=="Householder living alone" | family_type=="Householder not living alone",
+                                              "Other households",family_type)]
 
 #trying trick to merge by ids I assign to capture full course of possible positions
-hh_partner_exp[family_role=="Householder",("units_id"):=paste0(tract,units_fam_role,as.character(100000+seq.int(1:.N))),by=.(tract,units_fam_role)]
-hh_units_dt[,("units_id"):=paste0(tract,units_fam_role,as.character(100000+seq.int(1:.N))),by=.(tract,units_fam_role)]
-hh_partner_exp[family_role=="Householder",c("num_structures") := 
-                 hh_units_dt[.SD, list(num_structures), on = .(tract,units_fam_role,units_id)]]
+hh_partner_exp[,("units_id"):=paste0(tract,units_fam_role,as.character(1000000+seq.int(1:.N))),by=.(tract,units_fam_role)]
+hh_units_dt[,("units_id"):=paste0(tract,units_fam_role,as.character(1000000+seq.int(1:.N))),by=.(tract,units_fam_role)]
+hh_partner_exp[,c("num_structures") := hh_units_dt[.SD, list(num_structures), on = .(tract,units_fam_role,units_id)]]
+
 saveRDS(hh_partner_exp,file = paste0(housingdir, vintage, "/hh_partner_exp_",Sys.Date(),".RDS"))
+
+#family_role has everything and without NAs adds up to 4525519; with Householder at 1562813
+hh_relation_dt <- as.data.table(household_type_relation_data)
+hh_relation_dt[family_role=="Householder",("hh_id"):=paste0(state,county,tract,as.character(2000000+seq.int(1:.N))),by=.(tract)]
+hh_partner_exp[,("hh_id"):=paste0(state,county,tract,as.character(2000000+seq.int(1:.N))),by=.(tract)]
+hh_relation_dt[family_role=="Householder",c("family","family_type","family_role","race","num_hh_intract",
+                                            "family_size","number_workers_in_hh","partner_hh_type","sex_hh",
+                                            "sex_partner","num_structures") := 
+                 hh_partner_exp[.SD, c(list(family),list(family_type),list(family_role),list(race),list(num_hh_intract),
+                      list(family_size),list(number_workers_in_hh),list(partner_hh_type),
+                      list(sex_hh),list(sex_partner),list(num_structures)), on = .(hh_id)]]
+#and test whether the place I do it above is correct or not - should make all four type of householder different??? 
+#hh_relation_dt[!is.na(hh_id)] #gets Households
+
+saveRDS(hh_relation_dt,file = paste0(housingdir, vintage, "/hh_relation_dt_",Sys.Date(),".RDS"))
+
+
 
 hh_sam <- hh_partner_exp
 
@@ -135,7 +133,11 @@ hh_sam[is.na(age_range) & as.numeric(str_sub(adults_id,-1,-1)) %% 2 ==1,c("age_r
 
 saveRDS(hh_sam,file = paste0(housingdir, vintage, "/hh_sam_",Sys.Date(),".RDS"))
 
-hh_workers <- as.data.table(household_workers_data)
+
+
+
+
+
 
 
 #add age and race
@@ -246,3 +248,17 @@ sd(diff(table(sex_by_age_race_data$age_range,sex_by_age_race_data$tract))) / abs
 cor(table(sex_by_age_race_data$race)[-length(table(sex_by_age_race_data$race))],table(sex_by_age_race_data$race)[-1]) #=.3401369
 cor(table(sex_by_age_race_data$age_range)[-length(table(sex_by_age_race_data$age_range))],table(sex_by_age_race_data$age_range)[-1]) #= .4854334
 
+
+
+
+hh_type_race_dt[,("num_role_intract") := .N,by=.(tract,family_role)]
+hh_type_race_dt[,("percent_race_role_intract") := .N/num_role_intract,by=.(tract,race,family_role)]
+hh_exp <- bind_rows(hh_type_race_dt,hh_size_dt)
+hh_exp[is.na(family_or_non),("family_or_non") := if_else(nonfamily,"Nonfamily households","Family households")]
+hh_exp[is.na(percent_race_role_intract),("percent_race_role_intract") := as.numeric(0.001)]
+hh_exp[num_family_id==1 | is.na(num_family_id),("num_in_family") := sample(rep(.SD[!is.na(num_family_id),.(numeric_in_family)][[1]],2),size=.N,
+                                                                           replace = FALSE,prob = rep((percent_race_role_intract*2)/.N,1)),
+       by=.(tract,family_or_non)]
+#got a warning that "Invalid .internal.selfref detected and fixed by taking a (shallow) copy..." not sure how to fix; I am using set except with bind_rows...
+hh_expanded <- hh_exp[is.na(family_id)]
+hh_expanded[,("family_role") := "Householder"]
