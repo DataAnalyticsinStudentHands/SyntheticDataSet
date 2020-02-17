@@ -9,61 +9,21 @@ library(forcats)
 #get HCAD_residences from HCAD_merge or from housingdir main level for desired vintage (by most recent date)
 #get others from household and individual generator scripts
 
-#start with sex_by_age_race from individuals_generator. Race seems reasonable, but age does not (lower score is smoother).
-#see discussion at https://stats.stackexchange.com/questions/24607/how-to-measure-smoothness-of-a-time-series-in-r
-sd(diff(table(sex_by_age_race_data$race))) / abs(mean(diff(table(sex_by_age_race_data$race)))) #= 8.339956
-sd(diff(table(sex_by_age_race_data$race,sex_by_age_race_data$tract))) / abs(mean(diff(table(sex_by_age_race_data$race,sex_by_age_race_data$tract)))) #= 13.187
-sd(diff(table(sex_by_age_race_data$age_range,sex_by_age_race_data$tract))) / abs(mean(diff(table(sex_by_age_race_data$age_range,sex_by_age_race_data$tract)))) #= 199.1819
-cor(table(sex_by_age_race_data$race)[-length(table(sex_by_age_race_data$race))],table(sex_by_age_race_data$race)[-1]) #=.3401369
-cor(table(sex_by_age_race_data$age_range)[-length(table(sex_by_age_race_data$age_range))],table(sex_by_age_race_data$age_range)[-1]) #= .4854334
 
-
+#depends on where pulling it from
 HCAD_dt <- as.data.table(HCAD_residences)
 HCAD_dt[,tract:=droplevels(tract)]
 HCAD_dt <- HCAD_dt[!is.na(improv_typ)] #returns 1815741
 
-#HCAD_ext <- bind_rows(HCAD_not_vacant,sex_age_race_latinx_dt)
-#need to rerun having taken out the ones that don't have improv_typ 
+
+#a faster sample algorithm is available, with interesting papers on approaches to be uploaded along with
+#: https://stackoverflow.com/questions/15113650/faster-weighted-sampling-without-replacement
+#we're really not sampling as much anymore - could look at for later time
+
 hh_type_race_dt <- as.data.table(household_type_race_data)
-#this could have zip and super mixed up, but we won't be saving them - will use the zip super from HCAD at end
-for (tr in hh_type_race_dt$tract){
-  hh_type_race_dt[tract==tr,("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==tr,.(superneighborhood)][.N][[1]]),
-                                       size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
-  hh_type_race_dt[tract==tr,("zip") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==tr,.(zip)][.N][[1]]),
-                                                size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
-}
-#add cities for places without super; for some reason 
-#unique(hh_type_race_dt[is.na(super)]$tract) - "542800" "550401" "550402" "551100" "552001" - all in Cypress, Katy or Spring, but 18094 hh
-#the NAs don't seem to be because of stopping - although I did just run the for loops, and then stop it after painful waiting; I think it was just stuck in exit of loop
-for (tr in hh_type_race_dt$tract){
-  hh_type_race_dt[tract==tr & is.na(super),("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==z,.(city)][.N][[1]]),
-                                                   size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
-}
-saveRDS(hh_type_race_dt,file = paste0(housingdir, vintage, "/hh_type_",Sys.Date(),".RDS"))
-hh_type_race_dt[is.na(super) & tract == c("542800"),("super") := "KATY"]
-hh_type_race_dt[is.na(super) & tract == c("552001"),("super") := "CYPRESS"]
-hh_type_race_dt[is.na(super) & tract == c("550401"),("super") := "SPRING"]  #each lists Houston as city, but is in Spring ISD 
-hh_type_race_dt[is.na(super) & tract == c("550402"),("super") := "SPRING"]
-hh_type_race_dt[is.na(super) & tract == c("551100"),("super") := "SPRING"]
 
-#unique(hh_type_race_dt[is.na(zip)]$tract) : "230500" (77093) "332800" (77087) "341302" (77058) "433201" (77036) 
-#"450802" (77042) "452802" (77072) "521100" (77080) "542800" (77493) "552001" (77065) "330400" (77053) 
-#some have two zip codes, and I just picked one by eye.
-hh_type_race_dt[is.na(zip) & tract == c("230500"),("zip") := "77093"]
-hh_type_race_dt[is.na(zip) & tract == c("332800"),("zip") := "77087"]
-hh_type_race_dt[is.na(zip) & tract == c("341302"),("zip") := "77058"]
-hh_type_race_dt[is.na(zip) & tract == c("433201"),("zip") := "77036"]
-hh_type_race_dt[is.na(zip) & tract == c("450802"),("zip") := "77042"]
-hh_type_race_dt[is.na(zip) & tract == c("452802"),("zip") := "77072"]
-hh_type_race_dt[is.na(zip) & tract == c("521100"),("zip") := "77080"]
-hh_type_race_dt[is.na(zip) & tract == c("542800"),("zip") := "77493"]
-hh_type_race_dt[is.na(zip) & tract == c("552001"),("zip") := "77065"]
-hh_type_race_dt[is.na(zip) & tract == c("330400"),("zip") := "77053"]
-
-#some things that don't need zip and super - idea would be same logic as by=.(tract,etc) but with either zip or super
 #getting household_type_size_data from householdsGenerator.R - num_family_id == 1 : 1562813, which is same as nrow in for hh; numeric_in_family lets you expand
 hh_size_dt <- as.data.table(household_type_size_data)
-#or get from OneDrive
 hh_type_race_dt[,("num_role_intract") := .N,by=.(tract,family_role)]
 hh_type_race_dt[,("percent_race_role_intract") := .N/num_role_intract,by=.(tract,race,family_role)]
 hh_exp <- bind_rows(hh_type_race_dt,hh_size_dt)
@@ -175,11 +135,7 @@ hh_sam[is.na(age_range) & as.numeric(str_sub(adults_id,-1,-1)) %% 2 ==1,c("age_r
 
 saveRDS(hh_sam,file = paste0(housingdir, vintage, "/hh_sam_",Sys.Date(),".RDS"))
 
-
-#a faster sample algorithm is available, with interesting papers on approaches to be uploaded along with
-#: https://stackoverflow.com/questions/15113650/faster-weighted-sampling-without-replacement
-#we're really not sampling as much anymore - could look at for later time
-
+hh_workers <- as.data.table(household_workers_data)
 
 
 #add age and race
@@ -244,3 +200,49 @@ hh_sams_exp <- hh_sams_exp[!is.na(individual_id)]
 
 
 #sex_age_race_latinx_dt
+
+
+#this could have zip and super mixed up, but we won't be saving them - will use the zip super from HCAD at end
+for (tr in hh_type_race_dt$tract){
+  hh_type_race_dt[tract==tr,("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==tr,.(superneighborhood)][.N][[1]]),
+                                                size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+  hh_type_race_dt[tract==tr,("zip") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==tr,.(zip)][.N][[1]]),
+                                              size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+}
+#add cities for places without super; for some reason 
+#unique(hh_type_race_dt[is.na(super)]$tract) - "542800" "550401" "550402" "551100" "552001" - all in Cypress, Katy or Spring, but 18094 hh
+#the NAs don't seem to be because of stopping - although I did just run the for loops, and then stop it after painful waiting; I think it was just stuck in exit of loop
+for (tr in hh_type_race_dt$tract){
+  hh_type_race_dt[tract==tr & is.na(super),("super") := sample(list(HCAD_dt[.SD[,.(tract)][[1]]==z,.(city)][.N][[1]]),
+                                                               size = 1,replace = TRUE,prob = c(1/.N)),by = .(tract)]
+}
+saveRDS(hh_type_race_dt,file = paste0(housingdir, vintage, "/hh_type_",Sys.Date(),".RDS"))
+hh_type_race_dt[is.na(super) & tract == c("542800"),("super") := "KATY"]
+hh_type_race_dt[is.na(super) & tract == c("552001"),("super") := "CYPRESS"]
+hh_type_race_dt[is.na(super) & tract == c("550401"),("super") := "SPRING"]  #each lists Houston as city, but is in Spring ISD 
+hh_type_race_dt[is.na(super) & tract == c("550402"),("super") := "SPRING"]
+hh_type_race_dt[is.na(super) & tract == c("551100"),("super") := "SPRING"]
+
+#unique(hh_type_race_dt[is.na(zip)]$tract) : "230500" (77093) "332800" (77087) "341302" (77058) "433201" (77036) 
+#"450802" (77042) "452802" (77072) "521100" (77080) "542800" (77493) "552001" (77065) "330400" (77053) 
+#some have two zip codes, and I just picked one by eye.
+hh_type_race_dt[is.na(zip) & tract == c("230500"),("zip") := "77093"]
+hh_type_race_dt[is.na(zip) & tract == c("332800"),("zip") := "77087"]
+hh_type_race_dt[is.na(zip) & tract == c("341302"),("zip") := "77058"]
+hh_type_race_dt[is.na(zip) & tract == c("433201"),("zip") := "77036"]
+hh_type_race_dt[is.na(zip) & tract == c("450802"),("zip") := "77042"]
+hh_type_race_dt[is.na(zip) & tract == c("452802"),("zip") := "77072"]
+hh_type_race_dt[is.na(zip) & tract == c("521100"),("zip") := "77080"]
+hh_type_race_dt[is.na(zip) & tract == c("542800"),("zip") := "77493"]
+hh_type_race_dt[is.na(zip) & tract == c("552001"),("zip") := "77065"]
+hh_type_race_dt[is.na(zip) & tract == c("330400"),("zip") := "77053"]
+
+
+#start with sex_by_age_race from individuals_generator. Race seems reasonable, but age does not (lower score is smoother).
+#see discussion at https://stats.stackexchange.com/questions/24607/how-to-measure-smoothness-of-a-time-series-in-r
+sd(diff(table(sex_by_age_race_data$race))) / abs(mean(diff(table(sex_by_age_race_data$race)))) #= 8.339956
+sd(diff(table(sex_by_age_race_data$race,sex_by_age_race_data$tract))) / abs(mean(diff(table(sex_by_age_race_data$race,sex_by_age_race_data$tract)))) #= 13.187
+sd(diff(table(sex_by_age_race_data$age_range,sex_by_age_race_data$tract))) / abs(mean(diff(table(sex_by_age_race_data$age_range,sex_by_age_race_data$tract)))) #= 199.1819
+cor(table(sex_by_age_race_data$race)[-length(table(sex_by_age_race_data$race))],table(sex_by_age_race_data$race)[-1]) #=.3401369
+cor(table(sex_by_age_race_data$age_range)[-length(table(sex_by_age_race_data$age_range))],table(sex_by_age_race_data$age_range)[-1]) #= .4854334
+
