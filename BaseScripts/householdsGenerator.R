@@ -37,7 +37,6 @@ createIndividuals <- function() {
     #setup race codes https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
     acs_race_codes <- c("A","B","C","D","E","F","G") #could collect all - add them up, without H and I, and you get the total! H is white alone, not hispanic and I is hispanic and if you add them up they don't equal white alone
     
-    pov_ratio_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05010") #count of kids with family income less than pov.
     
     moved_1yr_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07001")
     moved_1yr_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07003")
@@ -60,8 +59,6 @@ createIndividuals <- function() {
     vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
     transport_tenure_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08137")
     vehicles_household_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08201")
-    
-    kids_family_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09002")
     
     #kids_to_householder_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09018")
     
@@ -153,6 +150,8 @@ createIndividuals <- function() {
       filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
     
+    #concept is:"OWN CHILDREN UNDER 18 YEARS BY FAMILY TYPE AND AGE"
+    #get kids' race, etc. and add to the kids side; already have it for the householders; then distribute adults, etc.
     kids_family_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09002")
     kids_family_age_data <- kids_family_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -163,16 +162,21 @@ createIndividuals <- function() {
       filter(!is.na(kid_age) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "kids_age_id",.remove = TRUE)
     
-    #children come in at 1223249 - not sure how many are siblings
+    #concept is: "PRESENCE OF UNMARRIED PARTNER OF HOUSEHOLDER BY HOUSEHOLD TYPE FOR CHILDREN UNDER 18 YEARS IN HOUSEHOLDS"
+    #children come in at 1223249 - nrow(sex_age_race_latinx_dt[age<18]) = 1225059 - 1810 kids could be cps / foster waiting?
     household_unmarried_children_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09008")
     hh_unmarried_children_data <- household_unmarried_children_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_type_children_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      pivot_longer(4:ncol(household_unmarried_children_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("partner_present_kids","family","family_type"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(family_type = if_else(family=="In nonfamily households","In nonfamily households",family_type)) %>%
       filter(!is.na(family_type) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "hh_unmarried_kids_id",.remove = TRUE)
+    
+    #concept is:"RATIO OF INCOME TO POVERTY LEVEL IN THE PAST 12 MONTHS BY NATIVITY OF CHILDREN UNDER 18 YEARS IN FAMILIES AND SUBFAMILIES BY LIVING ARRANGEMENTS AND NATIVITY OF PARENTS"
+    pov_ratio_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05010") #count of kids with family income less than pov.
+    
     
     #gives unmarried partners, straight and same-sex, and has others in amount to make for married - all within non-family households? 
     #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
