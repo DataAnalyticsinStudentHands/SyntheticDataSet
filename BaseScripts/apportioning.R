@@ -4,6 +4,7 @@ library(tidyr)
 library(dplyr)
 library(stringr)
 library(data.table)
+library(forcats)
 
 #get HCAD_residences from HCAD_merge or from housingdir main level for desired vintage (by most recent date)
 #get others from household and individual generator scripts
@@ -125,7 +126,7 @@ hh_units_dt[,("units_fam_role") := if_else(fam_role_units=="Female householder n
 hh_partner_exp[,("units_fam_role") := if_else(family_type_rel=="Householder living alone" | family_type_rel=="Householder not living alone",
                                               "Other households",family_type_rel)]
 
-#trying trick to merge by ids, but something is wrong...
+#trying trick to merge by ids I assign to capture full course of possible positions
 hh_partner_exp[family_role=="Householder",("units_id"):=paste0(tract,units_fam_role,as.character(100000+seq.int(1:.N))),by=.(tract,units_fam_role)]
 hh_units_dt[,("units_id"):=paste0(tract,units_fam_role,as.character(100000+seq.int(1:.N))),by=.(tract,units_fam_role)]
 hh_partner_exp[family_role=="Householder",c("num_structures") := 
@@ -145,19 +146,41 @@ hh_adults[relation_hh=="Householder living with spouse or spouse of householder"
 hh_adults[relation_hh=="Householder living with unmarried partner or unmarried partner of householder" & family_id %% 2 == 0, ("relation_hh") := "Unmarried partner of Householder"]
 hh_adults[relation_hh=="Householder living with unmarried partner or unmarried partner of householder", ("relation_hh") := "Householder"]
 hh_adults[relation_hh=="Lives alone", ("relation_hh") := "Householder"]
+hh_adults[is.na(relation_hh),("relation_hh") := "Group Quartered"] #should be a way of having automatically with factors, but couldn't figure it out
+
+
 #moved family_roles into subcategories that helped with age...
 hh_sam[family_role=="Householder",("relation_hh") := "Householder"]
 hh_sam[family_role=="Adopted child" | family_role=="Stepchild" | family_role=="Foster child" | family_role=="Son-in-law or daughter-in-law" | 
-         family_role=="Biological child",("relation_hh") := "Child of householder"] #but this should only be for the subset of such over 18 in hh
+         family_role=="Biological child" | family_role=="Grandchild",("relation_hh") := "Child of householder"] #but this should only be for the subset of such over 18 in hh
 hh_sam[family_role=="Spouse",("relation_hh") := "Spouse of Householder"]
 hh_sam[family_role=="Unmarried partner",("relation_hh") := "Unmarried partner of Householder"]
 hh_sam[family_role=="Parent" | family_role=="Brother or sister" | family_role=="Other relatives" ,("relation_hh") := "Other relatives"]
 hh_sam[family_role=="Housemate or roommate" | 
        family_role=="Parent-in-law" | family_role=="Roomer or boarder" | #these should get different ages!!!
          family_role=="Other nonrelatives",("relation_hh") := "Other nonrelatives"]
+hh_sam[is.na(relation_hh),("relation_hh") := "Group Quartered"]
 
-hh_adults[,("num_adult_rels_intract") := .N,by=.(tract,relation_hh)]
-hh_adults[,("percent_adult_rels_intract") := .N/num_adult_rels_intract,by=.(tract,relation_hh,age_range)]
+#add an id
+hh_adults[,("adults_id"):=paste0(tract,relation_hh,as.character(100000+seq.int(1:.N))),by=.(tract,relation_hh)]
+hh_sam[,("adults_id"):=paste0(tract,relation_hh,as.character(100000+seq.int(1:.N))),by=.(tract,relation_hh)]
+#assign - this works as long as everything for hh_sam is still independent of age, except for implicit things like kids living at home over 17...
+hh_sam[,c("age_range") := hh_adults[.SD, list(age_range), on = .(tract,relation_hh,adults_id)]]
+
+#pick up missing ones by going to one for whole
+hh_adults[,("pu_adults_id"):=paste0(relation_hh,as.character(1000000+seq.int(1:.N))),by=.(relation_hh)]
+hh_sam[,("pu_adults_id"):=paste0(relation_hh,as.character(1000000+seq.int(1:.N))),by=.(relation_hh)]
+#try to pick up half of the remaining - not quite perfect, but close enough for now
+hh_sam[is.na(age_range) & as.numeric(str_sub(adults_id,-1,-1)) %% 2 ==1,c("age_range") := hh_adults[.SD, list(age_range), on = .(relation_hh,pu_adults_id)]]
+
+saveRDS(hh_sam,file = paste0(housingdir, vintage, "/hh_sam_",Sys.Date(),".RDS"))
+
+
+#a faster sample algorithm is available, with interesting papers on approaches to be uploaded along with
+#: https://stackoverflow.com/questions/15113650/faster-weighted-sampling-without-replacement
+#we're really not sampling as much anymore - could look at for later time
+
+
 
 #add age and race
 sex_age_race_latinx_dt[,("num_age_intract") := .N,by=.(tract)]
@@ -190,21 +213,30 @@ hh_sam_age[,c("race") :=
 hh_sam_age[,c("latinx") := 
              sample(rep(.SD[is.na(individual_id),.(latinx)][[1]],2),size=.N,
                     replace = FALSE,prob = rep((percent_latinx_intract*2)/.N,1)),
-           by=.(tract,sex)]
+           by=.(tract,sex)]  #total number is lower by 20820?? I = 1910535 - 1889715 after this - would be different number if rerun
+#https://medium.com/@ThinkNowTweets/progressive-latino-pollster-trust-me-latinos-do-not-identify-with-latinx-63229adebcea
+hh_sam_age <- hh_sam_age %>% rename(hispanic = latinx)
+hh_sam_age[is.na(hispanic), c("hispanic") := 
+             sample(c(rep(TRUE,20820),rep(FALSE,nrow(.SD[is.na(hispanic)])-20820)),size = .N,
+                    replace = FALSE,prob = rep(1/.N,.N))
+                    ]
 
 hh_sam_age <- hh_sam_age[!is.na(individual_id)]
 saveRDS(hh_sam_age,file = paste0(housingdir, vintage, "/hh_sam_age_",Sys.Date(),".RDS"))
+hh_sam_age[age>17,c("adult_rel"):=
+             sample(c(.SD[relation_hh==hh_adults$relation_hh,list(relation_hh)][[1]]),size = .N,
+                    )]
 
-hh_sams_exp <- bind_rows(hh_sam_age,hh_adults)
-hh_sams_exp[is.na(percent_adult_rels_intract),("percent_adult_rels_intract") := as.numeric(0.000000001)]
+#hh_sams_exp <- bind_rows(hh_sam_age,hh_adults)
+#hh_sams_exp[is.na(percent_adult_rels_intract),("percent_adult_rels_intract") := as.numeric(0.000000001)]
 #HAVE TO MAKE BOTH SIDES THE SAME SIZE - no group quarters in hh_adults means no tract for 412100 and 312100, so can't match...
 #maybe create something as a dt that has tract, other categories that are known, and then the total numbers, etc. - and just look up instead of bind_rows?? 
-hh_sams_exp[as.numeric(substr(age_range,1,2))>17,c("adult_rels") := 
-              sample(rep(.SD[is.na(individual_id),list(relation_hh)][[1]],2),size=.N,
-                     replace = FALSE,prob = rep((percent_adult_rels_intract*2)/.N,1)),
-            by=.(tract)]
+#hh_sams_exp[as.numeric(substr(age_range,1,2))>17,c("adult_rels") := 
+ #             sample(c(rep(.SD[is.na(individual_id),list(relation_hh)][[1]],1),rep("not adult relation",nrow(.SD[!is.na(individual_id)]))),size=.N,
+  #                   replace = FALSE,prob = rep(percent_adult_rels_intract/.N,1)),
+   #         by=.(tract)]
 
-hh_sams_exp <- hh_sams_exp[!is.na(sams_id)]
+hh_sams_exp <- hh_sams_exp[!is.na(individual_id)]
 
 #sample inside relation_hh on both??
 
