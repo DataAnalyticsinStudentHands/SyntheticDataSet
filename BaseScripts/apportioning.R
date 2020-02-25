@@ -89,29 +89,7 @@ hh_relation_dt[family_role=="Householder",c("family","family_type","family_role"
 
 saveRDS(hh_relation_dt,file = paste0(housingdir, vintage, "/hh_relation_dt_",Sys.Date(),".RDS"))
 
-#kids stuff - getting ready to add it to hh_relation_dt, which has race for householder / adults stuff has age_range for family_roles
-
-kids_family_age_dt <- as.data.table(kids_family_age_data)
-
-poverty_ratio_kids_dt <- as.data.table(pov_ratio_kids_data)
-
-parents_kids_dt <- as.data.table(hh_unmarried_children_data)
-
-
-#housing occupancay stuff!! some are for total population; some just for householders - have to sort!
-
-occupied_vacant_data
-
-occupied_race_data
-
-housing_occup_age_data
-
-housing_occup_date_data
-
-housing_occup_hhsize_data
-
-#for individual stuff
-
+#start moving adults into households
 
 #want to get age of adults by relation_hh and age of person
 hh_adults <- as.data.table(household_adults_relation_data)
@@ -125,9 +103,9 @@ hh_adults[relation_hh=="Householder living with unmarried partner or unmarried p
 hh_adults[relation_hh=="Lives alone", ("relation_hh") := "Householder"]
 hh_adults[is.na(relation_hh),("relation_hh") := "Group Quartered"] #should be a way of having automatically with factors, but couldn't figure it out
 
-
+hh_sam <- hh_relation_dt # or pull in as hh_sam, etc
 #moved family_roles into subcategories that helped with age...
-hh_sam[family_role=="Householder",("relation_hh") := "Householder"]
+hh_sam[relative=="Householder",("relation_hh") := "Householder"]
 hh_sam[family_role=="Adopted child" | family_role=="Stepchild" | family_role=="Foster child" | family_role=="Son-in-law or daughter-in-law" | 
          family_role=="Biological child" | family_role=="Grandchild",("relation_hh") := "Child of householder"] #but this should only be for the subset of such over 18 in hh
 hh_sam[family_role=="Spouse",("relation_hh") := "Spouse of Householder"]
@@ -153,6 +131,54 @@ hh_sam[is.na(age_range) & as.numeric(str_sub(adults_id,-1,-1)) %% 2 ==1,c("age_r
 saveRDS(hh_sam,file = paste0(housingdir, vintage, "/hh_sam_",Sys.Date(),".RDS"))
 
 
+#kids stuff - getting ready to add it to hh_relation_dt, which has race for householder / adults stuff has age_range for family_roles
+#add kids' age to hh_sam
+kids_family_age_dt <- as.data.table(kids_family_age_data)
+#hh_sam[(group_quarters)] has no age_range
+#hh_sam[!(group_quarters) & is.na(age_range),("age_range"):=
+hh_sam[family_role=="Parent-in-law",("age_range"):="65 years and over"] #fixing something odd
+hh_sam[family_role=="Female householder no husband present",("age_range"):="35 to 64 years"] 
+hh_sam[family_role=="Male householder no wife present",("age_range"):="35 to 64 years"] 
+hh_sam[family_role=="Married-couple family",("age_range"):="35 to 64 years"]
+hh_sam[family_role=="in_group_quarters",("age_range"):="17 to 64 years"]
+hh_sam[family_role=="Son-in-law or daughter-in-law",("age_range"):="18 to 34 years"]
+hh_sam[family_role=="Householder not living alone",("age_range"):="18 to 34 years"]
+hh_sam[family_role=="Householder living alone",("age_range"):="18 to 34 years"]
+hh_sam[family_role=="Spouse",("age_range"):="18 to 34 years"]
+hh_sam[family_role=="Roomer or boarder",("age_range"):="18 to 34 years"]
+hh_sam[family_role=="Unmarried partner",("age_range"):="18 to 34 years"]
+hh_sam[family_role=="Housemate or roommate",("age_range"):="18 to 34 years"]
+#ignoring 17 year olds in other roles
+#add ids per family - create matching columns - match_family
+#make "In other families" in kids_family_age_dt$family into their value from family_type
+kids_family_age_dt[,("match_family"):=if_else(family=="In other families",family_type,family)]
+#in hh_sam$family should equal family households - from hh_sam$family_type, get Married-couple family and Other family, and add hh_sam$sex_hh
+hh_sam[,("match_family"):=if_else(family_type=="Married-couple family","In married-couple families",
+                                  if_else(family_type=="Other family" & sex_hh=="Male","Male householder no wife present",
+                                          if_else(family_type=="Other family" & sex_hh=="Female","Female householder no husband present","Not family")))]
+#do IDs on this subgroup and on all of kids
+
+#add match_family and age from kids_family_age_dt to hh_sam
+#given that there's no other info on the kids, just adding age doesn't require coming up with new ids...
+
+poverty_ratio_kids_dt <- as.data.table(pov_ratio_kids_data)
+
+parents_kids_dt <- as.data.table(hh_unmarried_children_data)
+
+
+#housing occupancay stuff!! some are for total population; some just for householders - have to sort!
+
+occupied_vacant_data
+
+occupied_race_data
+
+housing_occup_age_data
+
+housing_occup_date_data
+
+housing_occup_hhsize_data
+
+#for individual stuff
 
 
 

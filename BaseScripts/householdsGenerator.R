@@ -145,7 +145,7 @@ createIndividuals <- function() {
     #get kids' race, etc. and add to the kids side; already have it for the householders; then distribute adults, etc.
     kids_family_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09002")
     kids_family_age_data <- kids_family_age_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% 
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(kids_family_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("family","family_type","kid_age"), sep = "!!", remove = F, convert = FALSE) %>%
@@ -170,7 +170,7 @@ createIndividuals <- function() {
     pov_ratio_kids_data <- pov_ratio_kids_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_unmarried_children_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      pivot_longer(4:ncol(pov_ratio_kids_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("poverty_ratio","parent_type","parent_nativity"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(parent_nativity) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "poverty_kids_id",.remove = TRUE)
