@@ -129,7 +129,7 @@ hh_sam[,("pu_adults_id"):=paste0(relation_hh,as.character(1000000+seq.int(1:.N))
 hh_sam[is.na(age_range) & as.numeric(str_sub(adults_id,-1,-1)) %% 2 ==1,c("age_range") := hh_adults[.SD, list(age_range), on = .(relation_hh,pu_adults_id)]]
 
 saveRDS(hh_sam,file = paste0(housingdir, vintage, "/hh_sam_",Sys.Date(),".RDS"))
-
+hh_sam <- readRDS(paste0(housingdir, vintage, "/hh_sam_2020-02-18.RDS"))
 
 #kids stuff - getting ready to add it to hh_relation_dt, which has race for householder / adults stuff has age_range for family_roles
 #add kids' age to hh_sam
