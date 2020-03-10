@@ -4,6 +4,7 @@
 #https://www.data-to-viz.com/graph/dendrogram.html
 #https://ggplot2.tidyverse.org/reference/geom_smooth.html
 #https://rviews.rstudio.com/2017/12/13/introduction-to-skewness/
+#https://cran.r-project.org/web/packages/moments/moments.pdf
 
 #trying to get at sense that choice of producing through simple side by side variatio on the geom_smooth 
 #i.e., solving the multiple linear equations
@@ -54,6 +55,15 @@ ggparcoord(factor_frame,
   xlab("")
 
 library(ggalluvial)
+ggplot(dframe,
+       aes(y=x,axis1=as.factor(w),axis2=as.factor(y))) +
+  geom_alluvium(aes(fill=as.factor(g)),width=1/12) +
+  geom_stratum(width=1/12,fill="black",color="grey") +
+  geom_label(stat = "stratum", infer.label = TRUE) +
+  scale_x_discrete(limits = c("w", "y"), expand = c(.05, .05)) +
+  scale_fill_brewer(type = "qual", palette = "Set1") +
+  ggtitle("Title goes here")
+
 lode_frame <- to_lodes_form(factor_frame,axes = 2:4,id="group")
 ggplot(lode_frame,
        aes(x = w,y = x,alluvium=group)) +
