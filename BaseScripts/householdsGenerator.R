@@ -141,7 +141,7 @@ createIndividuals <- function() {
       filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
     
-    #concept is:"OWN CHILDREN UNDER 18 YEARS BY FAMILY TYPE AND AGE"
+    #concept is:"OWN CHILDREN UNDER 18 YEARS BY FAMILY TYPE AND AGE" - 
     #get kids' race, etc. and add to the kids side; already have it for the householders; then distribute adults, etc.
     kids_family_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09002")
     kids_family_age_data <- kids_family_age_from_census %>%
@@ -175,7 +175,7 @@ createIndividuals <- function() {
       filter(!is.na(parent_nativity) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "poverty_kids_id",.remove = TRUE)
     
-    #gives unmarried partners, straight and same-sex, and has others in amount to make for married - all within non-family households? 
+    #gives unmarried partners, straight and same-sex 
     #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
     household_type_partners_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009") #only unmarried but same sex included
     household_type_partners_data <- household_type_partners_from_census %>%
@@ -263,8 +263,7 @@ createIndividuals <- function() {
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "sr_role_id")
     
-    #gives by race - seems superior to own_kids dataset
-    #worth doing, but not yet
+    #gives amount equal to hh_relation_dt[family_role=="Householder",family_or_non], In family households (1066649); In nonfamily households, at 496164 gets up to 1562813 total for households
     household_related_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11004")
     household_related_kids_data <- household_related_kids_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -272,17 +271,11 @@ createIndividuals <- function() {
       pivot_longer(4:ncol(household_related_kids_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("family_or_non","family_type","related_kids","age"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
-        race = substr(name,7,7),
-        family_type = if_else(family_type=="Other family",related_kids,family_type),
-        related_kids = if_else(family_type=="Other family",age,related_kids),
-        age = if_else(family_type=="Other family",
-                      if_else(str_detect(related_kids,"No related"),related_kids,
-                              if_else(str_detect(family_type,"No related"),family_type,age)),
-                      if_else(str_detect(family_type,"No related"),family_type,related_kids))
-      ) %>% #want each role to have 786 before uncount
-      select(-related_kids) %>%
-      filter(!is.na(age)) %>%
-      rename(kid_age = age) %>%
+        age = if_else(family_or_non=="Married-couple family",related_kids,age),
+        kid_age = if_else(str_detect(related_kids,"No related") | str_detect(family_type,"No related"),"No children",age),
+        family_type = if_else(family_or_non=="Married-couple family","Married-couple family",family_type)
+      ) %>%
+      filter(!is.na(kid_age)) %>%
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "related_kids_id")
     
