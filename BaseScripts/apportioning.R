@@ -181,6 +181,43 @@ hh_sam[,("pu_kids_id"):=paste0(match_kids,as.character(1000000+seq.int(1:.N))),b
 hh_sam[family=="Family households" & is.na(kids_age_range),c("kids_age_range") := related_kids_dt[.SD, list(age), on = .(match_kids,pu_kids_id)]]
 hh_sam[family=="Family households" & is.na(kids_age_range),c("kids_age_range") := "6 to 17 years only"] #it's the one that was lowest....
 
+#make a second copy to do the joins from
+hh_sam2 <- hh_sam
+#add spouses 
+hh_sam2[family_role=="Spouse",("match_spouse_id"):=paste0(tract,"spouse",1:.N),by=.(tract)]
+hh_sam[family_type=="Married-couple family",("match_spouse_id"):=paste0(tract,"spouse",1:.N),by=.(tract)]
+
+
+hh_sam[!is.na(match_spouse_id) & family_type=="Married-couple family",
+       c("hh2_id","hh2_type"):= hh_sam2[.SD,
+         c(list(individual_id),"Spouse"),on = .(match_spouse_id)]]
+
+
+
+hh_sam[hh2_id==individual_id,c("hh2_id","hh2_type"):=("none")]
+
+
+hh_sam[is.na(match_spouse_id),("match_spouse_id"):=paste0(tract,"spouse",1:.N),by=.(tract)]
+hh_sam[!is.na(match_spouse_id) & is.na(hh2_id) & family_type=="Married-couple family",c("hh2_id","hh2_type"):=c(list(individual_id),"Spouse"),by = .(match_spouse_id)]
+hh_sam[family_type!="Married-couple family" & !is.na(hh2_id),c("hh2_id","hh2_type"):=("none")]
+
+
+
+
+
+
+hh_sam_test[family_role=="Spouse",("cnt_Spouse_txt"):=paste0("spouse",1:.N),by=.(tract)]
+hh_sam_test[,("cnt_diff"):=cnt_Spouse-nrow(.SD[family_type=="Married-couple family"]),by=.(tract)]
+hh_sam_test[,("diff"):=cnt_diff-(1:.N),by=.(tract)]
+
+hh_sam_test[
+       c("hh_2_id"):= if_else(as.numeric(substr(family_size,1,1)) > 1 & family_role=="Married-couple family",
+         sample(c(.SD[is.na(hh_id) & family_role=="Spouse",.(individual_id)][[1]][1:.N]),size=.N,
+                replace = FALSE,prob = rep(1/.N,.N)),
+       "none"),
+       by=.(tract)] #can we do a .SD and a rep on how many in each part by each of the other categories??
+#how to record the ones, and then to go back and find if it's in a separate place...
+
 #partners are from family_role == "Unmarried partner", but it's about 800 off total??? spouse and married couple don't match either
 hh_sam[!is.na(hh_id) & family_size!="1-person household",("second_person_id"):=if_else()] #get unmarried partners from family role on hh_sam, but right sex; then get Spouse
 
