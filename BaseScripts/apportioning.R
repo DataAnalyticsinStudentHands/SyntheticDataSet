@@ -186,11 +186,11 @@ hh_sam2 <- hh_sam
 #add spouses 
 hh_sam2[family_role=="Spouse",("match_spouse_id"):=paste0(tract,"spouse",1:.N),by=.(tract)]
 hh_sam[family_type=="Married-couple family",("match_spouse_id"):=paste0(tract,"spouse",1:.N),by=.(tract)]
+hh_sam[is.na(match_spouse_id),("match_spouse_id"):=paste0(tract,"not_spouse",1:.N),by=.(tract)]
 
-
-hh_sam[!is.na(match_spouse_id) & family_type=="Married-couple family",
-       c("hh2_id","hh2_type"):= hh_sam2[.SD,
-         c(list(individual_id),"Spouse"),on = .(match_spouse_id)]]
+hh_sam[,#!is.na(match_spouse_id),# & family_type=="Married-couple family",
+       c("hh2_id"):= hh_sam2[.SD,
+         c(list(individual_id)),on = .(match_spouse_id)]]
 
 
 
