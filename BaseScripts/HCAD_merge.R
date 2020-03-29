@@ -228,12 +228,14 @@ HCAD_dt <- as.data.table(HCAD_residences)
 HCAD_dt[,tract:=droplevels(tract)]
 HCAD_dt <- HCAD_dt[!is.na(improv_typ)] #returns 1815741
 HCAD_res <- HCAD_dt[!is.na(LocAddr)]
+HCAD_res <- HCAD_res[!duplicated(account) | !improv_typ=="1001"] #not sure how that happened - should be single_family
 
 HCADbus_dt <- as.data.table(HCAD_businesses)
 HCADbus_dt[,tract:=droplevels(tract)]
 HCADbus_dt <- HCADbus_dt[!is.na(improv_typ_real)]
 HCAD_bus <- HCADbus_dt[!duplicated(account)]
 HCAD_bus <- HCAD_bus[!is.na(LocAddr)]
+HCAD_bus <- HCAD_bus[!is.na(account)]
 
 #clean up HCAD_bus to have right number of units
 #https://pdata.hcad.org/data/cama/2015/code_desc_real.txt
@@ -242,6 +244,7 @@ HCAD_bus[improv_typ_real=="1001",apt_units:=1] #Residential Single Family - not 
 HCAD_bus[improv_typ_real=="1002",apt_units:=2] #Residential Duplex
 HCAD_bus[improv_typ_real=="1005",apt_units:=1] #Mixed use - only five, look to be single family in business
 HCAD_bus[improv_typ_real=="1008",apt_units:=1] #Mobile home 
+#only adds 96 units above
 HCAD_bus[improv_typ_real=="4108",apt_units:=1] #Commercial Mobile home
 HCAD_bus[improv_typ_real=="4209",apt_units:=as.numeric(units)] #Apartment Struct. 4-20 Units
 HCAD_bus[improv_typ_real=="4211",apt_units:=as.numeric(units)] #Apartment Garden (1 to 3 Stories) - doesn't match up with number generated from AP2, etc.
@@ -257,8 +260,9 @@ HCAD_bus[improv_typ_real=="4316" & !is.na(as.numeric(units)),apt_units:=as.numer
 HCAD_bus[improv_typ_real=="4316" & is.na(as.numeric(units)),apt_units:=40] #nursing Home
 HCAD_bus[improv_typ_real=="4317",apt_units:=as.numeric(units)] #Retirement Home
 HCAD_bus[improv_typ_real=="4318",apt_units:=as.numeric(units)] #Boarding & Rooming House
-HCAD_bus[improv_typ_real=="4319" & !is.na(as.numeric(units)),apt_units:=as.numeric(units)] #Commercial Bldg. - Mixed Res.
-HCAD_bus[improv_typ_real=="4319" & is.na(as.numeric(units)),apt_units:=40] #Commercial Bldg. - Mixed Res.
+HCAD_bus[is.na(total_income),apt_units:=as.numeric(0)]
+#HCAD_bus[improv_typ_real=="4319" & !is.na(as.numeric(units)),apt_units:=as.numeric(units)] #Commercial Bldg. - Mixed Res.
+#HCAD_bus[improv_typ_real=="4319" & is.na(as.numeric(units)),apt_units:=40] #Commercial Bldg. - Mixed Res.
 #supermarkets are 4347
 #colleges and universities (4613): 1243320010001 is TSU; 0410070130026 is UH; 1318230000001 is Rice; 
 HCAD_bus[account=="1243320010001",apt_units:=2500] #TSU - frosh dorms only?
@@ -271,7 +275,7 @@ HCAD_bus[account=="0031220000001",apt_units:=4500]
 HCAD_bus[account=="0010120000010",apt_units:=4200]
 
 #get each apt_units a new row
-HCAD_apts <- HCAD_bus[!is.na(apt_units)]
+HCAD_apts <- HCAD_bus[!is.na(apt_units) & apt_units!=0]
 HCAD_apts <- HCAD_apts %>% uncount(apt_units,.id = "apt_number_id",.remove = TRUE)
 #HCAD_homes <- rbind(HCAD_apts,HCAD_res,fill=TRUE) #choking on ptcoords!!!
 HCAD_homes <- bind_rows(HCAD_res,HCAD_apts) #Vectorizing 'sfc_POINT' elements may not preserve their attributes!  might have to do each?? looks right, but hard to be sure
@@ -279,9 +283,12 @@ HCAD_homes <- bind_rows(HCAD_res,HCAD_apts) #Vectorizing 'sfc_POINT' elements ma
 #fix up a few things
 HCAD_homes[,qual_descript:=if_else(is.na(qual_descript.x),qual_descript.y,qual_descript.x)]
 HCAD_homes[,yr_remodel:=if_else(is.na(yr_remodel.x),yr_remodel.y,yr_remodel.x)]
-HCAD_homes[,nbhd_factor:=if_else(is.na(nbhd_factor.x),as.integer(nbhd_factor.y),as.integer(nbhd_factor.x))]
+HCAD_homes[,nbhd_factor:=if_else(is.na(nbhd_factor.x),as.numeric(nbhd_factor.y),as.numeric(nbhd_factor.x))] #or as.numeric?
+HCAD_homes <- HCAD_homes[!is.na(tract)]
+HCAD_homes[,building_val:=if_else(is.na(bldg_value),as.numeric(bldg_value_real),as.numeric(bldg_value))]
 HCAD_homes <- HCAD_homes %>% 
-  select(-qual_descript.x,-qual_descript.y,-yr_remodel.x,-yr_remodel.y,-nbhd_factor.x,-nbhd_factor.y)
+  select(-qual_descript.x,-qual_descript.y,-yr_remodel.x,-yr_remodel.y,-nbhd_factor.x,-nbhd_factor.y,
+         -lease_rate,-occupancy_rate,-bldg_value,-bldg_value_real,valid)
 
 #can I get values to give me number of bedrooms? How am I filling them?
 
