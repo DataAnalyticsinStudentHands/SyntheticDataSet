@@ -14,6 +14,14 @@ library(forcats)
 HCAD_dt <- as.data.table(HCAD_residences)
 HCAD_dt[,tract:=droplevels(tract)]
 HCAD_dt <- HCAD_dt[!is.na(improv_typ)] #returns 1815741
+HCAD_res <- HCAD_dt[!duplicated(account)]
+
+HCADbus_dt <- as.data.table(HCAD_businesses)
+HCADbus_dt[,tract:=droplevels(tract)]
+HCADbus_dt <- HCADbus_dt[!is.na(improv_typ_real)]
+HCAD_bus <- HCADbus_dt[!duplicated(account)]
+
+#could do is.na(as.numeric(units)) on units in the apts in real and then create accounts for each apt., with value / units... 
 
 
 #a faster sample algorithm is available, with interesting papers on approaches to be uploaded along with

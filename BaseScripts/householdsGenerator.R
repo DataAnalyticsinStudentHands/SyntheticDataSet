@@ -40,14 +40,13 @@ createIndividuals <- function() {
     
     moved_1yr_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07001")
     moved_1yr_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07003")
-    moved_1yr_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07004")
     moved_1yr_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07007")
     moved_1yr_marital_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07008")
     moved_1yr_education_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07009")
     moved_1yr_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07010")
     transport_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08006")
     transport_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08101")
-    transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
+    
     transport_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08113")
     transport_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08119")
     transport_occupation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08124")
@@ -73,8 +72,7 @@ createIndividuals <- function() {
     
     #housing - have to keep an idea of housing/household separate from individual counts...
     housing_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25001") #total number (same as adding occupied and vacant)
-    housing_units_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25032") #units in structure by race
-
+    
     mortgage_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25027") 
     #gross rent is contract plus estimate for utilities, etc.
     gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25063")
@@ -108,7 +106,7 @@ createIndividuals <- function() {
       separate(label, c("family","family_type","hh_role"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
         race = substr(name,7,7),
-        family_role = if_else(family_type=="Other family",family_role,family_type)
+        family_role = if_else(family_type=="Other family",hh_role,family_type)
       ) %>% 
       filter(!is.na(family_role)) %>%
       filter(number_sams > 0 & race %in% acs_race_codes) %>%
@@ -125,10 +123,10 @@ createIndividuals <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(household_type_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("family","number_in_family"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_in_family)) %>%
-      mutate(nonfamily = if_else(str_detect(family,"Nonfamily"),TRUE,FALSE),
-             numeric_in_family = as.numeric(substr(number_in_family,1,1))) %>%
+      separate(label, c("hh_type","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size)) %>%
+      mutate(#nonfamily = if_else(str_detect(family,"Nonfamily"),TRUE,FALSE),
+             numeric_in_family = as.numeric(substr(hh_size,1,1))) %>%
       uncount(number_sams,.id = "family_id",.remove = TRUE) #%>% #has right size for number of households total!!! maybe family / non-family mixed don't add in??
 #      uncount(numeric_in_family,.id="num_family_id",.remove = FALSE)  
     
@@ -439,8 +437,42 @@ createIndividuals <- function() {
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(housing_per_room_age_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("own_rent","householder_age", "num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(num_per_room) & number_sams > 0) %>% #seems to keep num_per_room only for all race totals, not individual race...
+      filter(!is.na(num_per_room) & number_sams > 0) %>% #seems to keep num_per_room only for all age totals, not individual age
       uncount(as.numeric(number_sams),.id = "own_rent_age_per_rooms_id",.remove = TRUE)
+    
+    
+    housing_units_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25032") #units in structure by race
+    housing_units_race_data <- housing_units_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_units_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(housing_units = label) %>%
+      filter(race %in% acs_race_codes & number_sams>0) %>%
+      uncount(as.numeric(number_sams),.id = "housing_units_race_id",.remove = TRUE)
+    
+    #means of transportation to work
+    #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few
+    transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
+    transport_race_data <- transport_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(tranport_to_work = label) %>%
+      filter(race %in% acs_race_codes & number_sams>0) %>%
+      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
+    
+    #has population of 4458402
+    moved_1yr_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07004")
+    moved_1yr_race_data <- moved_1yr_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(moved_1yr_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(moved_1yr = label) %>%
+      filter(race %in% acs_race_codes & number_sams>0) %>%
+      uncount(as.numeric(number_sams),.id = "moved_1yr_race_id",.remove = TRUE)
     
     #used for percentages used other source for age because the place_born didn't match by tract, so couldn't combine!!
     place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")

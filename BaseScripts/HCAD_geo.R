@@ -9,6 +9,7 @@ HCAD_parcels <- HCAD_parcels %>%
   mutate(valid = st_is_valid(geometry)) %>% #90 False, 1380490 true
   filter(valid)
 
+#should have reduced to only single accounts here, instead of later.
 saveRDS(HCAD_parcels,file = paste0(censusdir, vintage, "/temp/HCAD_parcels_valid.RDS"))
 HCAD_parcels <- readRDS(paste0(censusdir, vintage, "/temp/HCAD_parcels_valid.RDS"))
 

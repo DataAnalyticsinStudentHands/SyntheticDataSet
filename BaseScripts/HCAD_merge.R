@@ -15,11 +15,12 @@
 #http://hcad.org/hcad-resources/hcad-appraisal-codes/
 #http://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-building-style-codes/ also exists, but has some diffs
 
-#code descriptions for real are from: http://pdata.hcad.org/Desc/2015/code_desc_real.txt
-#and personal: http://pdata.hcad.org/Desc/2015/code_desc_personal.txt
+#code descriptions for real are from: http://pdata.hcad.org/Desc/2015/code_desc_real.txt #updated https://pdata.hcad.org/data/cama/2015/code_desc_real.txt
+#and personal: http://pdata.hcad.org/Desc/2015/code_desc_personal.txt #updated: #https://pdata.hcad.org/data/cama/2015/code_desc_personal.txt
 #also exists, but has some diffs, perhaps because of year?
 #http://hcad.org/hcad-resources/hcad-appraisal-codes/
 #http://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-building-style-codes/ 
+
 
 #they also provide column names from a screenshot of their Access db: http://pdata.hcad.org/DB/Pdata_Fieldnames.pdf
 #and http://pdata.hcad.org/Desc/Layout_and_Length.txt
@@ -66,7 +67,7 @@ HCAD_res_build <- HCAD_res_build %>%
   select(account,improv_typ,bldg_value,qual_descript,date_erected,yr_remodel,
          living_sf,nbhd_factor,size_index) 
 #there are 53,770 records in res_build that don't match with parcel?
-#do a full_join, then select out later - depending on other how well other filtering works
+#do a full_join, then select out later - depending on other how well other filtering works - is this what grew the account size??
 HCAD <- full_join(HCAD_parcels,HCAD_res_build,by='account')
 
 #using actual_area for total_bldg_sf - get units from fixtures
@@ -75,7 +76,7 @@ HCAD_real_build$V1 <- str_remove_all(HCAD_real_build$V1, " ")
 HCAD_real_build <- HCAD_real_build %>% 
   rename(account=V1,improv_typ_real=V4,
         bldg_value_real=V9,qual_descript=V14,date_built=V15,
-        yr_remodel=V16,bldg_sf=V27,nbhd_factor=V28,bldg_name=V32,units=V33,
+        yr_remodel=V16,bldg_sf=V27,nbhd_factor=V28,bldg_name=V32,units=V33,  #units in real_building is more like apt. number not number of apts?
         lease_rate=V35,occupancy_rate=V36,total_income=V37) %>%
   select(account,improv_typ_real,bldg_value_real,qual_descript,date_built,yr_remodel,bldg_sf,
         nbhd_factor,bldg_name,units,lease_rate,occupancy_rate,total_income)
@@ -128,7 +129,7 @@ HCAD_exempt <- HCAD_exempt %>%
     )
 HCAD <- full_join(HCAD,HCAD_exempt,by="account")
 
-#for bldg_data codes: http://pdata.hcad.org/Desc/2015/code_desc_real.txt
+#for bldg_data codes: http://pdata.hcad.org/Desc/2015/code_desc_real.txt #updated: https://pdata.hcad.org/data/cama/2015/code_desc_real.txt
 #add counts for rooms and apartments
 HCAD_fixtures <- HCAD_fixtures %>%
   rename(account=V1,bldg_num=V2,bldg_data=V3,
@@ -227,3 +228,48 @@ saveRDS(HCAD_residences,file = paste0(housingdir, vintage, "/HCAD_residences_",S
 saveRDS(HCAD_businesses,file = paste0(housingdir, vintage, "/HCAD_businesses_",Sys.Date(),".RDS"))
 
 #HCAD as a whole has all the spatial info we may need for some of the SDoH calculations 
+
+#depends on where pulling it from
+HCAD_dt <- as.data.table(HCAD_residences)
+HCAD_dt[,tract:=droplevels(tract)]
+HCAD_dt <- HCAD_dt[!is.na(improv_typ)] #returns 1815741
+HCAD_res <- HCAD_dt[!duplicated(account)]
+HCAD_res <- HCAD_res[!is.na(LocAddr)]
+
+HCADbus_dt <- as.data.table(HCAD_businesses)
+HCADbus_dt[,tract:=droplevels(tract)]
+HCADbus_dt <- HCADbus_dt[!is.na(improv_typ_real)]
+HCAD_bus <- HCADbus_dt[!duplicated(account)]
+HCAD_bus <- HCAD_bus[!is.na(LocAddr)]
+
+#clean up HCAD_bus to have right number of units
+#https://pdata.hcad.org/data/cama/2015/code_desc_real.txt
+#are these all owned vs. rented?
+HCAD_bus[improv_typ_real=="1001",apt_units:=1] #Residential Single Family - not sure how different from res, but not in both
+HCAD_bus[improv_typ_real=="1002",apt_units:=2] #Residential Duplex
+HCAD_bus[improv_typ_real=="1005",apt_units:=1] #Mixed use - only five, look to be single family in business
+HCAD_bus[improv_typ_real=="1008",apt_units:=1] #Mobile home 
+HCAD_bus[improv_typ_real=="4108",apt_units:=1] #Commercial Mobile home
+HCAD_bus[improv_typ_real=="4209",apt_units:=as.numeric(units)] #Apartment Struct. 4-20 Units
+HCAD_bus[improv_typ_real=="4211",apt_units:=as.numeric(units)] #Apartment Garden (1 to 3 Stories) - doesn't match up with number generated from AP2, etc.
+HCAD_bus[improv_typ_real=="4212",apt_units:=as.numeric(units)] #Apartment Mid Rise (4 to 12 Stories)
+HCAD_bus[improv_typ_real=="4213" & !is.na(as.numeric(units)),apt_units:=as.numeric(units)] #Mobile Home Park
+HCAD_bus[improv_typ_real=="4213" & is.na(as.numeric(units)),apt_units:=4] #Mobile Home Park
+HCAD_bus[improv_typ_real=="4214",apt_units:=as.numeric(units)] #Apartment High Rise (13+ Stories)
+HCAD_bus[improv_typ_real=="4221",apt_units:=as.numeric(units)] #Subsidized Housing
+HCAD_bus[improv_typ_real=="4222",apt_units:=as.numeric(units)] #Apartment - Tax Credit
+HCAD_bus[improv_typ_real=="4299",apt_units:=as.numeric(units)] #Apartment Structure
+#HCAD_bus[improv_typ_real=="4313",apt_units:=as.numeric(units)] #Dormitories - can't get numbers from units
+HCAD_bus[improv_typ_real=="4316" & !is.na(as.numeric(units)),apt_units:=as.numeric(units)] #Nursing Home - some didn't have units
+HCAD_bus[improv_typ_real=="4316" & is.na(as.numeric(units)),apt_units:=40] #nursing Home
+HCAD_bus[improv_typ_real=="4317",apt_units:=as.numeric(units)] #Retirement Home
+HCAD_bus[improv_typ_real=="4318",apt_units:=as.numeric(units)] #Boarding & Rooming House
+HCAD_bus[improv_typ_real=="4319" & !is.na(as.numeric(units)),apt_units:=as.numeric(units)] #Commercial Bldg. - Mixed Res.
+HCAD_bus[improv_typ_real=="4319" & is.na(as.numeric(units)),apt_units:=40] #Commercial Bldg. - Mixed Res.
+#supermarkets are 4347
+
+#get each apt_units a new row
+HCAD_apts <- HCAD_bus[!is.na(apt_units)]
+HCAD_apts <- HCAD_apts %>% uncount(apt_units,.id = "apt_number_id",.remove = TRUE)
+HCAD_homes <- rbind(HCAD_apts,HCAD_res,fill=TRUE) #choking on ptcoords!!!
+
