@@ -278,4 +278,5 @@ saveRDS(HCAD_apts,file = paste0(housingdir, vintage, "/HCAD_apts_",Sys.Date(),".
 saveRDS(HCAD_bus,file = paste0(housingdir, vintage, "/HCAD_bus_",Sys.Date(),".RDS"))
 saveRDS(HCAD_res,file = paste0(housingdir, vintage, "/HCAD_res_",Sys.Date(),".RDS"))
 
-
+#for adding correctional facilities - in tract 210100 add account 0031220000001 from HCAD_bus;  The seven floor 701 Jail has 4,144 inmate beds, and a few others, it is Harris County Correctional Facility, 701 Jail
+#in tract 100000 add account 0010120000010' The facility, which has 4,156 regular beds, 124 beds for the Medical Division, and 96 beds for MHMRA, is one American football field deep and two American football fields in length. It is Harris County Correctional Facility, 1200 Jail
