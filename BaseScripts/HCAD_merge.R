@@ -203,12 +203,6 @@ HCAD <- full_join(HCAD,HCAD_fixtures,by="account")
 fourplex4 <- HCAD %>% filter(improv_typ.x == 1004) #looks like each account has it listed as 8 bedrooms, instead of as 4 apts.
 #1002 = duplex, 1003 = triplex, with same problems.
 
-#Not sure how to deal with:
-#4670 - Correctional; 4313 = Dormitory; 4320 - Extended Stay; 4318 - Boarding House
-#4213 = Mobile Home Parks (in real) - 1008 = Mobile Homes (in res) has rooms listed, so works
-#it's possible that we could just know where they are and do some rough and ready by sf????
-
-
 
 st_geometry(HCAD) <- NULL
 HCAD <- HCAD %>%
@@ -233,8 +227,7 @@ saveRDS(HCAD_businesses,file = paste0(housingdir, vintage, "/HCAD_businesses_",S
 HCAD_dt <- as.data.table(HCAD_residences)
 HCAD_dt[,tract:=droplevels(tract)]
 HCAD_dt <- HCAD_dt[!is.na(improv_typ)] #returns 1815741
-HCAD_res <- HCAD_dt[!duplicated(account)]
-HCAD_res <- HCAD_res[!is.na(LocAddr)]
+HCAD_res <- HCAD_dt[!is.na(LocAddr)]
 
 HCADbus_dt <- as.data.table(HCAD_businesses)
 HCADbus_dt[,tract:=droplevels(tract)]
@@ -267,16 +260,33 @@ HCAD_bus[improv_typ_real=="4318",apt_units:=as.numeric(units)] #Boarding & Roomi
 HCAD_bus[improv_typ_real=="4319" & !is.na(as.numeric(units)),apt_units:=as.numeric(units)] #Commercial Bldg. - Mixed Res.
 HCAD_bus[improv_typ_real=="4319" & is.na(as.numeric(units)),apt_units:=40] #Commercial Bldg. - Mixed Res.
 #supermarkets are 4347
+#colleges and universities (4613): 1243320010001 is TSU; 0410070130026 is UH; 1318230000001 is Rice; 
+HCAD_bus[account=="1243320010001",apt_units:=2500] #TSU - frosh dorms only?
+HCAD_bus[account=="0410070130026",apt_units:=8500] #UH - guess, since I think some are listed differently
+HCAD_bus[account=="0410070130026",apt_units:=3000] #Rice
+#correctional facilities are improv_typ_real 4670
+#for adding correctional facilities - in tract 210100 add account 0031220000001 from HCAD_bus;  The seven floor 701 Jail has 4,144 inmate beds, and a few others, it is Harris County Correctional Facility, 701 Jail
+#in tract 100000 add account 0010120000010' The facility, which has 4,156 regular beds, 124 beds for the Medical Division, and 96 beds for MHMRA, is one American football field deep and two American football fields in length. It is Harris County Correctional Facility, 1200 Jail
+HCAD_bus[account=="0031220000001",apt_units:=4500]
+HCAD_bus[account=="0010120000010",apt_units:=4200]
 
 #get each apt_units a new row
 HCAD_apts <- HCAD_bus[!is.na(apt_units)]
 HCAD_apts <- HCAD_apts %>% uncount(apt_units,.id = "apt_number_id",.remove = TRUE)
-HCAD_homes <- rbind(HCAD_apts,HCAD_res,fill=TRUE) #choking on ptcoords!!!
-HCAD_homes <- bind_rows(HCAD_res,HCAD_apts) #Vectorizing 'sfc_POINT' elements may not preserve their attributes!  might have to do each??
+#HCAD_homes <- rbind(HCAD_apts,HCAD_res,fill=TRUE) #choking on ptcoords!!!
+HCAD_homes <- bind_rows(HCAD_res,HCAD_apts) #Vectorizing 'sfc_POINT' elements may not preserve their attributes!  might have to do each?? looks right, but hard to be sure
+
+#fix up a few things
+HCAD_homes[,qual_descript:=if_else(is.na(qual_descript.x),qual_descript.y,qual_descript.x)]
+HCAD_homes[,yr_remodel:=if_else(is.na(yr_remodel.x),yr_remodel.y,yr_remodel.x)]
+HCAD_homes[,nbhd_factor:=if_else(is.na(nbhd_factor.x),as.integer(nbhd_factor.y),as.integer(nbhd_factor.x))]
+HCAD_homes <- HCAD_homes %>% 
+  select(-qual_descript.x,-qual_descript.y,-yr_remodel.x,-yr_remodel.y,-nbhd_factor.x,-nbhd_factor.y)
+
+#can I get values to give me number of bedrooms? How am I filling them?
 
 saveRDS(HCAD_apts,file = paste0(housingdir, vintage, "/HCAD_apts_",Sys.Date(),".RDS"))
 saveRDS(HCAD_bus,file = paste0(housingdir, vintage, "/HCAD_bus_",Sys.Date(),".RDS"))
 saveRDS(HCAD_res,file = paste0(housingdir, vintage, "/HCAD_res_",Sys.Date(),".RDS"))
+saveRDS(HCAD_homes,file = paste0(housingdir, vintage, "/HCAD_homes_",Sys.Date(),".RDS"))
 
-#for adding correctional facilities - in tract 210100 add account 0031220000001 from HCAD_bus;  The seven floor 701 Jail has 4,144 inmate beds, and a few others, it is Harris County Correctional Facility, 701 Jail
-#in tract 100000 add account 0010120000010' The facility, which has 4,156 regular beds, 124 beds for the Medical Division, and 96 beds for MHMRA, is one American football field deep and two American football fields in length. It is Harris County Correctional Facility, 1200 Jail
