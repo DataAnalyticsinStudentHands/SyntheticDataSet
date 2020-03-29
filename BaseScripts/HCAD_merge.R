@@ -290,7 +290,13 @@ HCAD_homes <- HCAD_homes %>%
   select(-qual_descript.x,-qual_descript.y,-yr_remodel.x,-yr_remodel.y,-nbhd_factor.x,-nbhd_factor.y,
          -lease_rate,-occupancy_rate,-bldg_value,-bldg_value_real,valid)
 
-#can I get values to give me number of bedrooms? How am I filling them?
+HCAD_homes[is.na(improv_typ),cost_per_sf:=tot_bldg_sf/improv_value]
+HCAD_homes[!is.na(improv_typ),cost_per_sf:=living_sf/improv_value] #relative value - could sort from high to low and give id (subtracting 10%?)
+HCAD_homes[is.na(improv_typ),avg_sf:=tot_bldg_sf/as.integer(units)] #size of living space to assign to
+HCAD_homes[!is.na(improv_typ),avg_sf:=living_sf] #just to complete the column for future
+HCAD_homes[,type_code:=if_else(is.na(improv_typ),improv_typ_real,improv_typ)] #also need to make one improv_typ
+
+
 
 saveRDS(HCAD_apts,file = paste0(housingdir, vintage, "/HCAD_apts_",Sys.Date(),".RDS"))
 saveRDS(HCAD_bus,file = paste0(housingdir, vintage, "/HCAD_bus_",Sys.Date(),".RDS"))
