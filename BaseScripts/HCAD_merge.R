@@ -272,4 +272,10 @@ HCAD_bus[improv_typ_real=="4319" & is.na(as.numeric(units)),apt_units:=40] #Comm
 HCAD_apts <- HCAD_bus[!is.na(apt_units)]
 HCAD_apts <- HCAD_apts %>% uncount(apt_units,.id = "apt_number_id",.remove = TRUE)
 HCAD_homes <- rbind(HCAD_apts,HCAD_res,fill=TRUE) #choking on ptcoords!!!
+HCAD_homes <- bind_rows(HCAD_res,HCAD_apts) #Vectorizing 'sfc_POINT' elements may not preserve their attributes!  might have to do each??
+
+saveRDS(HCAD_apts,file = paste0(housingdir, vintage, "/HCAD_apts_",Sys.Date(),".RDS"))
+saveRDS(HCAD_bus,file = paste0(housingdir, vintage, "/HCAD_bus_",Sys.Date(),".RDS"))
+saveRDS(HCAD_res,file = paste0(housingdir, vintage, "/HCAD_res_",Sys.Date(),".RDS"))
+
 
