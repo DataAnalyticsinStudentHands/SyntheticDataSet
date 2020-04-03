@@ -37,7 +37,7 @@ createHouseholds <- function() {
     
     #setup race codes https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
     acs_race_codes <- c("A","B","C","D","E","F","G") #could collect all - add them up, without H and I, and you get the total! H is white alone, not hispanic and I is hispanic and if you add them up they don't equal white alone
-    #acs_ethnicity <- c("H","I") #H is White Alone, not Hispanic or Latino; I is Hispanic or Latino #usually just use !acs_race_codes
+    acs_ethnicity <- c("H","I") #H is White Alone, not Hispanic or Latino; I is Hispanic or Latino #usually just use !acs_race_codes
     
         
     #may have better way of dealing with age numbers...
@@ -155,7 +155,7 @@ createHouseholds <- function() {
       filter(!is.na(householder_age) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hhtype_id",.remove = TRUE)
     occup_type_dt <- as.data.table(housing_occup_hhtype_data)
-    #sample on the num_eth_id inside each group
+    #sample inside each group
     occup_type_dt[order(match(own_rent,c("Owner occupied","Renter occupied"))),
                   ("num_type_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),by=.(tract,own_rent)]
     occupied_race_dt[order(match(own_rent,c("Owner occupied","Renter occupied"))),
@@ -256,39 +256,94 @@ createHouseholds <- function() {
     hh_type_race_dt[,c("housing_units") := 
                       housing_units_race_dt[.SD, c(list(housing_units)), on = .(hh_units_id)]]
     #test: table(occupied_race_dt$tract,occupied_race_dt$householder_age)==table(hh_type_race_dt$tract,hh_type_race_dt$householder_age)
-    
-    #means of transportation to work
-    #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few
-    transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
-    transport_race_data <- transport_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(race = substr(name,7,7)) %>%
-      rename(tranport_to_work = label) %>%
-      filter(race %in% acs_race_codes & number_sams>0) %>%
-      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
-    
-    #concept: TENURE BY OCCUPANTS PER ROOM, 1562813 (all hh) 
+  
+    #concept: TENURE BY OCCUPANTS PER ROOM, 1562813 (all hh) --only gives either >1 or <1 for each race
     housing_per_room_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25014") #ratio per tract occup per/room/race
     housing_per_room_race_data <- housing_per_room_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
       rename(num_per_room=label) %>%
-      mutate(race = substr(name,7,7)) %>%
+      mutate(race = substr(name,7,7),
+             num_per = case_when(
+               num_per_room=="1.00 or less occupants per room" ~ "<1",
+               num_per_room=="1.01 or more occupants per room" ~ ">1"
+             )) %>%
       filter(race %in% acs_race_codes & number_sams>0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_num_per_rooms_id",.remove = TRUE)
-    #same one, for diff. part
-    housing_per_room_tenure_data <- housing_per_room_race_from_census %>%
+    #ethnicity
+    housing_per_room_eth_data <- housing_per_room_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      filter(label != "Owner occupied") %>%
+      filter(label != "Renter occupied") %>%
+      pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(ethnicity = substr(name,7,7),
+             num_per_room = if_else(is.na(num_per_room),own_rent,num_per_room),
+             num_per = case_when(
+               num_per_room=="1.00 or less occupants per room" ~ "<1",
+               num_per_room=="1.01 or more occupants per room" ~ ">1",
+               num_per_room=="0.50 or less occupants per room" ~ "<1",
+               num_per_room=="0.51 to 1.00 occupants per room" ~ "<1",
+               num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
+               num_per_room=="1.51 to 2.00 occupants per room" ~ ">1",
+               num_per_room=="2.01 or more occupants per room" ~ ">1"
+             )) %>%
+      filter(!ethnicity %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "per_room_ethnicity_race_id",.remove = TRUE)
+    #same one, for diff. part - five categories for per_room, but no diff. by race - could just move over by sampling...; it also has own_rent
+    housing_per_room_rent_data <- housing_per_room_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("own_rent","num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(race = substr(name,7,7)) %>%
+      mutate(race = substr(name,7,7),
+             num_per = case_when(
+               num_per_room=="0.50 or less occupants per room" ~ "<1",
+               num_per_room=="0.51 to 1.00 occupants per room" ~ "<1",
+               num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
+               num_per_room=="1.51 to 2.00 occupants per room" ~ ">1",
+               num_per_room=="2.01 or more occupants per room" ~ ">1"
+             )) %>%
       filter(!is.na(num_per_room) & number_sams > 0) %>% 
       uncount(as.numeric(number_sams),.id = "own_rent_num_per_rooms_id",.remove = TRUE)
-    #can use the id trick to rejoin the two by using num_per_room in each for id - and for age, below
+    housing_per_room_race_dt <- as.data.table(housing_per_room_race_data)
+    housing_per_room_eth_dt <- as.data.table(housing_per_room_eth_data)
+    housing_per_room_rent_dt <- as.data.table(housing_per_room_rent_data)
+    housing_per_room_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,num_per)]
+    housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,num_per)]
+    housing_per_room_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,num_per)]
+    housing_per_room_eth_dt <- housing_per_room_eth_dt[(tokeep)]
+    housing_per_room_race_dt[(order(match(race,c("A","F","G","C","B","E","D")))),
+                          ("num_eth_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
+    housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),
+                         ("num_eth_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
+    housing_per_room_race_dt[,c("ethnicity") := housing_per_room_eth_dt[.SD, list(ethnicity), on = .(num_eth_id)]]
+    #test <- table(housing_per_room_race_dt$tract,housing_per_room_race_dt$race,housing_per_room_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
+    #length(test[test==FALSE])/length(test) = 0.051
+    housing_per_room_race_dt[(order(match(num_per,c("<1",">1")))),
+                          ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
+    housing_per_room_rent_dt[(order(match(num_per,c("<1",">1")))),
+                          ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
+    housing_per_room_race_dt[,c("own_rent","person_per_room") := housing_per_room_rent_dt[.SD, c(list(own_rent),list(num_per_room)), 
+                                                                  on = .(tract,num_per,num_units_id)]]
+    #test: table(housing_per_room_race_dt$tract,housing_per_room_race_dt$own_rent)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent)
+    housing_per_room_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
+                                 match(ethnicity,c("H","I")), #ethnicity has just a couple of tracts that don't match - sort to keep them in order
+                                 match(own_rent,c("Owner occupied","Renter occupied"))
+    )),
+    ("hh_per_room_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
+    by=.(tract,own_rent)]
+    hh_type_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
+                           match(ethnicity,c("H","I")),
+                           match(own_rent,c("Owner occupied","Renter occupied"))
+    )),
+    ("hh_per_room_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
+    by=.(tract,own_rent)]
+    hh_type_race_dt[,c("person_per_room") := 
+                      housing_per_room_race_dt[.SD, c(list(person_per_room)), on = .(hh_per_room_id)]]
+    
     
     #concept: SEX BY MARITAL STATUS FOR THE POPULATION 15 YEARS AND OVER x acs_race_codes
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
@@ -363,6 +418,41 @@ createHouseholds <- function() {
       filter(str_detect(number_workers_in_hh,"worker") & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
     
+    #means of transportation to work
+    #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few
+    transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
+    transport_race_data <- transport_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(transport_to_work = label) %>%
+      filter(race %in% acs_race_codes & number_sams>0) %>%
+      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
+    transport_eth_data <- transport_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(ethnicity = substr(name,7,7)) %>%
+      rename(transport_to_work = label) %>%
+      filter(!ethnicity %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
+#DIDN'T GIVE "_" numbers for some reason, so have to work on how to make this trick work    
+    transport_race_dt <- as.data.table(transport_race_data)
+    transport_eth_dt <- as.data.table(transport_eth_data)
+    transport_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_ethnicity]),by=.(tract,transport_to_work)]
+    transport_eth_dt[order(match(ethnicity,c("H","I",!ethnicity %in% acs_ethnicity))),c("cnt_ethn"):=list(1:.N),by=.(tract,transport_to_work)]
+    transport_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,transport_to_work)]
+    transport_eth_dt <- transport_eth_dt[(tokeep)]
+    #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
+    transport_race_dt[order(match(race,c("A","F","G","C","B","E","D"))),
+                      c("num_eth_id"):=paste0(tract,transport_to_work,as.character(1000000+seq.int(1:.N))),by=.(tract,transport_to_work)]
+    transport_eth_dt[order(match(ethnicity,c("H","I","_"))),
+                     c("num_eth_id"):=paste0(tract,transport_to_work,as.character(1000000+seq.int(1:.N))),by=.(tract,transport_to_work)]
+    transport_race_dt[,c("ethnicity") := transport_eth_dt[.SD, list(ethnicity), on = .(tract,transport_to_work,num_eth_id)]]
+    #test <- table(occupied_race_dt$tract,occupied_race_dt$race,occupied_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
+    #then move to sam after it's more than just households
+    
     #concept: MEANS OF TRANSPORTATION TO WORK BY TENURE
     transport_tenure_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08137")
     transport_tenure_data <- transport_tenure_from_census %>%
@@ -421,6 +511,7 @@ createHouseholds <- function() {
       uncount(as.numeric(number_sams),.id = "partner_id",.remove = TRUE)
     
     #concept: HOUSEHOLD TYPE BY UNITS IN STRUCTURE
+    #could use this to match with the housing_units_race??
     #tells only if household is in single structure or complex - also worth adding, and gets correct number of 1562813
     household_type_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11011")
     household_type_units_data <- household_type_units_from_census %>%
@@ -650,7 +741,11 @@ createHouseholds <- function() {
     
     
     #concept is: TENURE BY AGE OF HOUSEHOLDER BY OCCUPANTS PER ROOM
-    #num_per_room is different, but can be aggregated to match above
+    #num_per_room is different, but can be aggregated to match above 
+    #                                       1.00 or less occupants per room 1.01 to 1.50 occupants per room 1.51 or more occupants per room
+    #Householder 15 to 34 years                             350128                           22772                            8214
+    #Householder 35 to 64 years                             871976                           39863                           14692
+    #Householder 65 years and over                          251823                            2277                            1068
     housing_per_room_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25015") #ratio per tract occup per/room/race
     housing_per_room_age_data <- housing_per_room_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
