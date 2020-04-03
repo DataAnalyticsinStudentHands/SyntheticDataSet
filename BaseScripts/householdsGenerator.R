@@ -343,6 +343,53 @@ createHouseholds <- function() {
     by=.(tract,own_rent)]
     hh_type_race_dt[,c("person_per_room") := 
                       housing_per_room_race_dt[.SD, c(list(person_per_room)), on = .(hh_per_room_id)]]
+
+    #foodstamps B22005 race of HH
+    food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
+    food_stamps_data <- food_stamps_data_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(food_stamps = label) %>%
+      filter(race %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
+    food_stamps_eth_data <- food_stamps_data_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(ethnicity = substr(name,7,7)) %>%
+      rename(food_stamps = label) %>%
+#      filter(!ethnicity %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
+    food_stamps_dt <- as.data.table(food_stamps_data)
+    food_stamps_eth_dt <- as.data.table(food_stamps_eth_data) 
+    food_stamps_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,food_stamps)]
+    food_stamps_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,food_stamps)]
+    food_stamps_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,food_stamps)]
+    food_stamps_eth_dt <- food_stamps_eth_dt[(tokeep)]
+    #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
+    food_stamps_dt[(order(match(race,c("A","F","G","C","B","E","D")))),
+                     ("num_eth_id"):=paste0(tract,food_stamps,as.character(1000000+seq.int(1:.N))),by=.(tract,food_stamps)]
+    food_stamps_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),
+                    ("num_eth_id"):=paste0(tract,food_stamps,as.character(1000000+seq.int(1:.N))),by=.(tract,food_stamps)]
+    food_stamps_eth_dt[ethnicity %in% acs_race_codes,("ethnicity"):="_"]
+    food_stamps_dt[,c("ethnicity") := food_stamps_eth_dt[.SD, list(ethnicity), on = .(tract,food_stamps,num_eth_id)]]
+    #test <- table(food_stamps_dt$tract,food_stamps_dt$race,food_stamps_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
+    #length(test[test==FALSE])/length(test) = 0.54 
+    food_stamps_dt[(order(match(race,c("A","F","G","C","B","E","D")),
+                                    match(ethnicity,c("H","I"))) 
+              ),
+              ("hh_food_stamps_id"):=paste0(tract,race,as.character(1000000+sample(.N))),
+              by=.(tract,race)]
+    hh_type_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
+                           match(ethnicity,c("H","I")))
+              ),
+              ("hh_food_stamps_id"):=paste0(tract,race,as.character(1000000+sample(.N))),
+              by=.(tract,race)]
+    hh_type_race_dt[,c("SNAP") := 
+                      food_stamps_dt[.SD, c(list(food_stamps)), on = .(hh_food_stamps_id)]]
+    #test: table(hh_type_race_dt$tract,hh_type_race_dt$SNAP)==table(food_stamps_dt$tract,food_stamps_dt$food_stamps)
     
     
     #concept: SEX BY MARITAL STATUS FOR THE POPULATION 15 YEARS AND OVER x acs_race_codes
@@ -362,15 +409,6 @@ createHouseholds <- function() {
       filter(!is.na(age_range) | race %in% acs_race_codes) %>%
       uncount(num,.remove = FALSE,.id="temp_id")
     preg_data_dt <- as.data.table(pregnancy_data)
-    
-    #income median by race B19013
-    race_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19013")
-    
-    #foodstamps B22005 race of HH
-    food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
-    
-    #gets per_capita by race per tract
-    per_capita_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19301")
     
     
     
@@ -464,7 +502,6 @@ createHouseholds <- function() {
       mutate(own_rent = if_else(str_detect(owner_renter,"owner"),"Owner occupied","Renter occupied")) %>%
       uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
     
-    
     #concept is:"OWN CHILDREN UNDER 18 YEARS BY FAMILY TYPE AND AGE" - 
     #get kids' race, etc. and add to the kids side; already have it for the householders; then distribute adults, etc.
     kids_family_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09002")
@@ -528,7 +565,6 @@ createHouseholds <- function() {
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "hh_units_id")
     
-    
     #this gives exact number (4525519)
     household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 
     household_type_relation_data <- household_type_relation_from_census %>%
@@ -552,7 +588,6 @@ createHouseholds <- function() {
       filter(!del) %>%
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "role_id") #not sure why it needed as.numeric this time, but still works on filter above...
-    
     
     #this gets you seniors, too - slightly different totals from one with just seniors, for some reason
     household_adults_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09021")
@@ -654,8 +689,6 @@ createHouseholds <- function() {
       rename(vacant_occupied = label) %>%
       uncount(as.numeric(number_sams),.id = "occup_vacant_id",.remove = TRUE)
     
-    
-    
     housing_occup_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25007") #of occup, own or rent by age
     housing_occup_age_data <- housing_occup_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -697,7 +730,6 @@ createHouseholds <- function() {
       filter(!is.na(hh_size) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hhsize_id",.remove = TRUE)
     
-    
     housing_occup_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25013") #of occup, own or rent by educ attainment
     housing_occup_educ_data <- housing_occup_educ_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -706,7 +738,6 @@ createHouseholds <- function() {
       separate(label, c("own_rent","hh_education_level"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(hh_education_level) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
-    
     
     housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
     housing_occup_income_data <- housing_occup_income_from_census %>%
@@ -717,7 +748,6 @@ createHouseholds <- function() {
       filter(!is.na(hh_income_level) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
     
-    
     housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
     housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -726,7 +756,6 @@ createHouseholds <- function() {
       separate(label, c("own_rent","num_rooms"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(num_rooms) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_num_rooms_id",.remove = TRUE)
-    
     
     housing_occup_bedrooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25042") #of occup, number of bedrooms
     housing_occup_bedrooms_data <- housing_occup_bedrooms_from_census %>%
@@ -952,6 +981,13 @@ createHouseholds <- function() {
       separate(label, c("ancestry","sm_area"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(number_sams > 0 & !is.na(ancestry) & is.na(sm_area))
     
+    
+    
+    #income median by race B19013 - one value per tract per race
+    #race_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19013")
+    
+    #gets per_capita by race per tract - one value per tract per race
+    #per_capita_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B19301")
     
     
     
