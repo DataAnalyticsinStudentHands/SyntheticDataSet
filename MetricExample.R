@@ -75,3 +75,5 @@ ggplot(lode_frame,
   ggtitle("Title")
 
 
+
+Metrics and Hilbert spaces

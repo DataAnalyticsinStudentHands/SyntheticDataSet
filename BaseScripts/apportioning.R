@@ -9,6 +9,7 @@ library(forcats)
 #get HCAD_residences from HCAD_merge or from housingdir main level for desired vintage (by most recent date)
 #get others from household and individual generator scripts
 
+#use the occupancy vacancy to assign to HCAD only occupied; so it has right total?? #overcrowding???
 
 #depends on where pulling it from
 HCAD_dt <- as.data.table(HCAD_residences)
@@ -28,19 +29,39 @@ HCAD_bus <- HCADbus_dt[!duplicated(account)]
 #: https://stackoverflow.com/questions/15113650/faster-weighted-sampling-without-replacement
 #we're really not sampling as much anymore - could look at for later time
 
-#getting household_type_size_data from householdsGenerator.R - num_family_id == 1 : 1562813, which is same as nrow in for hh; numeric_in_family lets you expand
+#getting household_type_size_data from householdsGenerator.R - num_family_id == 1 : 1562813, which is same as nrow in for hh; numeric_in_family lets you expand but doesn't get you full population (see notes there)
 hh_size_dt <- as.data.table(household_type_size_data)
-#add number of workers per household
+#add occupance on same size
+occup_size_dt <- as.data.table(housing_occup_hhsize_data)
+#make sure testtables <- table(hh_size_dt$tract,hh_size_dt$hh_size)==table(occup_size_dt$tract,occup_size_dt$hh_size) and FALSE for FALSE %in% testtables
+#create ids for matching - should have been a better way to assign on matching factors, but this was brute force
+hh_size_dt[order(hh_size),("num_occup_id"):=paste0(tract,hh_size,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size)]
+occup_size_dt[order(hh_size),("num_occup_id"):=paste0(tract,hh_size,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size)]
+hh_size_dt[,c("own_rent") := occup_size_dt[.SD, list(own_rent), on = .(tract,hh_size,num_occup_id)]]
+#testtables <- table(hh_size_dt$tract,hh_size_dt$own_rent,hh_size_dt$hh_size)==table(occup_size_dt$tract,occup_size_dt$own_rent,occup_size_dt$hh_size)
+
+#add number of workers per household - same logic, but only has four factors for size, not seven
+#when adding age, workers need to be 18
 hh_workers_dt <- as.data.table(household_workers_data)
-hh_size_dt[,("number_in_hh"):=if_else(as.numeric(substr(number_in_family,1,1))>3,"4-or-more-person household",number_in_family)]
-hh_size_dt[,("num_workers_id"):=paste0(tract,number_in_hh,as.character(1000000+seq.int(1:.N))),by=.(tract,number_in_hh)]
-hh_workers_dt[,("num_workers_id"):=paste0(tract,number_in_hh,as.character(1000000+seq.int(1:.N))),by=.(tract,number_in_hh)]
+#number in hh_size_dt has 7 factors; in workers, there's only 4 so collapse
+hh_size_dt[,("number_in_hh"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
+#test: testtables <- table(hh_size_dt$tract,hh_size_dt$number_in_hh)==table(hh_workers_dt$tract,hh_workers_dt$number_in_hh)
+#FALSE %in% testtables (if false, then all tracts have same numbers of hh with each number of people)
+#create ids, just following order of how many in hh, so they can match
+hh_size_dt[order(number_in_hh),("num_workers_id"):=paste0(tract,number_in_hh,as.character(1000000+seq.int(1:.N))),by=.(tract,number_in_hh)]
+hh_workers_dt[order(number_in_hh),("num_workers_id"):=paste0(tract,number_in_hh,as.character(1000000+seq.int(1:.N))),by=.(tract,number_in_hh)]
 hh_size_dt[,c("number_workers_in_hh") := hh_workers_dt[.SD, list(number_workers_in_hh), on = .(tract,number_in_hh,num_workers_id)]]
 
-hh_type_race_dt <- as.data.table(household_type_race_data)
+#add household_type_units to get family_roles, maybe through housing_occup_hhtype and household_type_race_data family_type which also gets you hh_type and race? 
+#add the ethnicity_occup_type
+
+
+
+#only has family/non-family in common ; see if can use type_race with family_role matched to others, first do household_type_units
+hh_type_race_dt <- as.data.table(household_type_race_data) #will use this as base -- 
 hh_type_race_dt[,c("household_id","num_hh_intract") := list(paste0(state,county,tract,as.character(2000000+seq.int(1:.N))),.N),by=.(tract)]
-hh_type_race_dt[,("size_id"):=paste0(tract,family,as.character(1000000+seq.int(1:.N))),by=.(tract,family)]
-hh_size_dt[,("size_id"):=paste0(tract,family,as.character(1000000+seq.int(1:.N))),by=.(tract,family)]
+hh_type_race_dt[order(family),("size_id"):=paste0(tract,family,as.character(1000000+seq.int(1:.N))),by=.(tract,family)]
+hh_size_dt[order(family),("size_id"):=paste0(tract,family,as.character(1000000+seq.int(1:.N))),by=.(tract,family)]
 hh_type_race_dt[,c("family_size","number_workers_in_hh") := hh_size_dt[.SD, c(list(number_in_family),list(number_workers_in_hh)), on = .(tract,family,size_id)]]
 
 #unmarried partners who are not householders are not counted here!!
