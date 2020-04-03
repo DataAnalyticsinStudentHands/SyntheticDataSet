@@ -2,11 +2,10 @@ library(tidyr)
 library(dplyr)
 library(stringr)
 library(data.table)
-library(Hmisc)
 #library(rio) #may not need here - playing with it
-library(FactoMineR)
-library(doParallel)
-library(foreach)
+#library(FactoMineR)
+#library(doParallel)
+#library(foreach)
 #for distance calculation ? may do as own calculation instead
 #library(stats)
 #census does a process of modeling, based on weighting of responses. Hard to find exactly where they're doing the projections.
@@ -20,7 +19,7 @@ library(foreach)
 #' @return sam_residents A dataframe of simulated people.
 createHouseholds <- function() {
   
-  sam_residents_data_file <- paste0(censusdir, vintage,"/Residents_data.RDS")
+  sam_residents_data_file <- paste0(censusdir, vintage,"/sam_hh.RDS") 
   #Create or read in individual sam residents
   if(file.exists(sam_residents_data_file)) {
     # import saved sam residents from RDS file
@@ -37,7 +36,7 @@ createHouseholds <- function() {
     
     #setup race codes https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
     acs_race_codes <- c("A","B","C","D","E","F","G") #could collect all - add them up, without H and I, and you get the total! H is white alone, not hispanic and I is hispanic and if you add them up they don't equal white alone
-    acs_ethnicity <- c("H","I") #H is White Alone, not Hispanic or Latino; I is Hispanic or Latino #usually just use !acs_race_codes
+    #acs_ethnicity <- c("H","I") #H is White Alone, not Hispanic or Latino; I is Hispanic or Latino #usually just use !acs_race_codes
     
         
     #may have better way of dealing with age numbers...
@@ -441,13 +440,24 @@ createHouseholds <- function() {
     #      uncount(numeric_in_family,.id="num_family_id",.remove = FALSE) 
 #combine other things about hh_type to get good match on size before moving to sam...    
     
+    # poverty - type - number of persons in HH
+    household_poverty_people_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17013")
+    
+    #type by age of HH 
+    household_age_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17017")
+    #type by education of HH B17018
+    household_educ_level_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17018")
+    
+    #family data - family type by employment status B23007
+    family_employment_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B23007")
+    
     #concept is:  HOUSEHOLD SIZE BY VEHICLES AVAILABLE - get hh / 1562813
     vehicles_household_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08201")
     vehicles_household_data <- vehicles_household_size_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(vehicles_household_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("number_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("hh_size","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
     
@@ -457,7 +467,7 @@ createHouseholds <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(household_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("number_in_hh","number_workers_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("hh_size","number_workers_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
     
@@ -495,7 +505,7 @@ createHouseholds <- function() {
       filter(str_detect(number_workers_in_hh,"worker") & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
     
-    #means of transportation to work
+    #means of transportation to work - perhaps use for 
     #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few
     transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
     transport_race_data <- transport_race_from_census %>%
@@ -512,23 +522,22 @@ createHouseholds <- function() {
       pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
       mutate(ethnicity = substr(name,7,7)) %>%
       rename(transport_to_work = label) %>%
-      filter(!ethnicity %in% acs_race_codes) %>%
+#      filter(!ethnicity %in% acs_race_codes) %>%
       uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
-#DIDN'T GIVE "_" numbers for some reason, so have to work on how to make this trick work    
     transport_race_dt <- as.data.table(transport_race_data)
     transport_eth_dt <- as.data.table(transport_eth_data)
-    transport_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_ethnicity]),by=.(tract,transport_to_work)]
-    transport_eth_dt[order(match(ethnicity,c("H","I",!ethnicity %in% acs_ethnicity))),c("cnt_ethn"):=list(1:.N),by=.(tract,transport_to_work)]
+    transport_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,transport_to_work)]
+    transport_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,transport_to_work)]
     transport_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,transport_to_work)]
     transport_eth_dt <- transport_eth_dt[(tokeep)]
-    #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
+    #assign ids 
     transport_race_dt[order(match(race,c("A","F","G","C","B","E","D"))),
                       c("num_eth_id"):=paste0(tract,transport_to_work,as.character(1000000+seq.int(1:.N))),by=.(tract,transport_to_work)]
     transport_eth_dt[order(match(ethnicity,c("H","I","_"))),
                      c("num_eth_id"):=paste0(tract,transport_to_work,as.character(1000000+seq.int(1:.N))),by=.(tract,transport_to_work)]
     transport_race_dt[,c("ethnicity") := transport_eth_dt[.SD, list(ethnicity), on = .(tract,transport_to_work,num_eth_id)]]
-    #test <- table(occupied_race_dt$tract,occupied_race_dt$race,occupied_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
-    #then move to sam after it's more than just households
+    #test <- table(transport_race_dt$ethnicity,transport_race_dt$race)
+    #then us to build multi-worker households
     
     #concept: MEANS OF TRANSPORTATION TO WORK BY TENURE - for workers - 2135069
     transport_tenure_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08137")
@@ -1507,21 +1516,13 @@ createHouseholds <- function() {
 }
 
     #gather information from census data,
-    #Household - type by size - tells you if it's a family or non-family household, but no race - need to tidy the data
-    household_type_size_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016")
     #Household - multigenerational B11017 all NA
-    # poverty - type - number of persons in HH
-    household_poverty_people_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17013")
     #above just says how many people below or above poverty, but number of people and type of HH is given - something... match on family_type of Head of Household, but have to already have households
     
     #  type - relatives -just tells you if they live with additional non-relatives, and gives race
     household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
     
-    #type by age of HH 
-    household_age_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17017")
-    #type by education of HH B17018
-    household_educ_level_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17018")
-    
+        
     
     #AGGREGATE INCOME DEFICIT (DOLLARS) IN THE PAST 12 MONTHS FOR FAMILIES BY FAMILY TYPE -only below poverty... too complicated to unwind and explain
     agg_deficit_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17011")
@@ -1532,16 +1533,11 @@ createHouseholds <- function() {
     #by tenure B17019 (whether renter or not)
     household_tenure_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17019")
     
-    #family data - family type by employment status B23007
-    family_employment_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B23007")
-    
-    #unmarried partner household by sex of partner B11009 (2015 - not sure who might be married now)
-    unmarried_partner_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009")
-    
-    #occupation by earnings B24121 /122 is male /123 is female /124 is total? ALL NAs
-    occupation_earnings_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B24124")
-  }
+  saveRDS(sam_hh,file = paste0(censusdir, vintage,"/sam_hh.RDS"))
+  #and a dated copy?
+  saveRDS(sam_hh,file = paste0(censusdir, vintage, "/sam_hh_",Sys.Date(),".RDS"))
 }
+
 
 moved_1yr_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07001")
 moved_1yr_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07003")

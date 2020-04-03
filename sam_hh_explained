@@ -1,0 +1,76 @@
+sam_hh 
+1562813 households for Harris County / 2017
+> length(unique(sam_hh$tract))
+[1] 784
+
+output from HouseholdsGenerator function for different vintages, etc.
+
+> table(sam_hh$race)
+
+     A      B      C      D      E      F      G 
+999938 319805   6311 103608    686 104975  27490 
+
+> table(sam_hh$ethnicity)
+
+     _      H      I 
+443155 596755 522903
+
+
+
+> table(sam_hh$family)
+
+   Family households Nonfamily households 
+             1066649               496164
+             
+
+> table(sam_hh$family_type)
+
+    Householder living alone Householder not living alone        Married-couple family                 Other family 
+                      408614                        87550                       734108                       332541
+
+
+> table(sam_hh$hh_role) #subsets of "Other family"
+
+Female householder no husband present      Male householder no wife present 
+                               243222                                 89319
+                               
+
+> table(sam_hh$family_role) #combines info from family_type and hh_role
+
+Female householder no husband present              Householder living alone          Householder not living alone 
+                               243222                                408614                                 87550 
+     Male householder no wife present                 Married-couple family 
+                                89319                                734108
+
+
+> table(sam_hh$householder_age)
+
+   Householder 15 to 34 years    Householder 35 to 64 years Householder 65 years and over 
+                       381114                        926531                        255168
+
+> table(sam_hh$own_rent)
+
+ Owner occupied Renter occupied 
+         855629          707184
+
+
+> table(sam_hh$housing_units)
+
+      1 attached       1 detached         10 to 19                2         20 to 49           3 or 4           5 to 9       50 or more 
+           63652           929997           160087            18075            76682            45243            85437           143220 
+Boat RV van etc.      Mobile home 
+            1183            39237
+    
+            
+> table(sam_hh$person_per_room)
+
+0.50 or less occupants per room 0.51 to 1.00 occupants per room 1.01 to 1.50 occupants per room 1.51 to 2.00 occupants per room 
+                         975761                          498166                           64912                           18638 
+2.01 or more occupants per room 
+                           5336
+
+
+> table(sam_hh$SNAP)
+
+Household did not receive Food Stamps/SNAP in the past 12 months        Household received Food Stamps/SNAP in the past 12 months 
+                                                         1359978                                                           202835
