@@ -308,6 +308,27 @@ createHouseholds <- function() {
              )) %>%
       filter(!is.na(num_per_room) & number_sams > 0) %>% 
       uncount(as.numeric(number_sams),.id = "own_rent_num_per_rooms_id",.remove = TRUE)
+    #concept is: TENURE BY AGE OF HOUSEHOLDER BY OCCUPANTS PER ROOM
+    #num_per_room is different, but can be aggregated to match above 
+    #                                       1.00 or less occupants per room 1.01 to 1.50 occupants per room 1.51 or more occupants per room
+    #Householder 15 to 34 years                             350128                           22772                            8214
+    #Householder 35 to 64 years                             871976                           39863                           14692
+    #Householder 65 years and over                          251823                            2277                            1068
+    housing_per_room_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25015") #ratio per tract occup per/room/race
+    housing_per_room_age_data <- housing_per_room_age_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_per_room_age_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","householder_age", "num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(num_per = case_when(
+               num_per_room=="1.00 or less occupants per room" ~ "<1",
+               num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
+               num_per_room=="1.51 or more occupants per room" ~ ">1"
+             )) %>%
+      filter(!is.na(num_per_room) & number_sams > 0) %>% #seems to keep num_per_room only for all age totals, not individual age
+      uncount(as.numeric(number_sams),.id = "own_rent_age_per_rooms_id",.remove = TRUE)
+    
+    housing_per_room_age_dt <- as.data.table(housing_per_room_age_data)
     housing_per_room_race_dt <- as.data.table(housing_per_room_race_data)
     housing_per_room_eth_dt <- as.data.table(housing_per_room_eth_data)
     housing_per_room_rent_dt <- as.data.table(housing_per_room_rent_data)
@@ -329,21 +350,30 @@ createHouseholds <- function() {
     housing_per_room_race_dt[,c("own_rent","person_per_room") := housing_per_room_rent_dt[.SD, c(list(own_rent),list(num_per_room)), 
                                                                   on = .(tract,num_per,num_units_id)]]
     #test: table(housing_per_room_race_dt$tract,housing_per_room_race_dt$own_rent)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent)
+    housing_per_room_age_dt[(order(match(num_per,c("<1",">1")))),
+                             ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
+    housing_per_room_race_dt[(order(match(num_per,c("<1",">1")))),
+                             ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
+    housing_per_room_race_dt[,c("householder_age") := 
+                      housing_per_room_age_dt[.SD, c(list(householder_age)), on = .(num_rms_id)]]
+    #test: table(housing_per_room_age_dt$tract,housing_per_room_age_dt$householder_age)==table(housing_per_room_age_dt$tract,housing_per_room_age_dt$householder_age)
     housing_per_room_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
                                  match(ethnicity,c("H","I")), #ethnicity has just a couple of tracts that don't match - sort to keep them in order
-                                 match(own_rent,c("Owner occupied","Renter occupied"))
+                                 match(own_rent,c("Owner occupied","Renter occupied")),
+                                 match(householder_age,c("Householder 15 to 34 years","Householder 35 to 64 years","Householder 65 years and over"))
     )),
-    ("hh_per_room_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-    by=.(tract,own_rent)]
+    ("hh_per_room_id"):=paste0(tract,own_rent,householder_age,as.character(1000000+sample(.N))),
+    by=.(tract,own_rent,householder_age)]
     hh_type_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
                            match(ethnicity,c("H","I")),
-                           match(own_rent,c("Owner occupied","Renter occupied"))
+                           match(own_rent,c("Owner occupied","Renter occupied")),
+                           match(householder_age,c("Householder 15 to 34 years","Householder 35 to 64 years","Householder 65 years and over"))
     )),
-    ("hh_per_room_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-    by=.(tract,own_rent)]
+    ("hh_per_room_id"):=paste0(tract,own_rent,householder_age,as.character(1000000+sample(.N))),
+    by=.(tract,own_rent,householder_age)]
     hh_type_race_dt[,c("person_per_room") := 
                       housing_per_room_race_dt[.SD, c(list(person_per_room)), on = .(hh_per_room_id)]]
-
+    
     #foodstamps B22005 race of HH
     food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
     food_stamps_data <- food_stamps_data_from_census %>%
@@ -391,6 +421,45 @@ createHouseholds <- function() {
                       food_stamps_dt[.SD, c(list(food_stamps)), on = .(hh_food_stamps_id)]]
     #test: table(hh_type_race_dt$tract,hh_type_race_dt$SNAP)==table(food_stamps_dt$tract,food_stamps_dt$food_stamps)
     
+    #clean up and save sam_hh
+    sam_hh <- hh_type_race_dt[,c("race","ethnicity","tract","family","family_type","hh_role","family_role",
+                                 "householder_age","own_rent","housing_units","person_per_room","SNAP")]
+    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS"))
+    
+    #ugh if you take the size and multiply it out, you get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!! Also matches total for housing_occup_hh_size
+    #could be that householders not living alone (87550) should somehow be counted as having roommates; up to 330554-41220 / 87550 = 3.3 roommates on avg?
+    #has right number of householders / households - it only mentions group quarters as not in a household, but that number is too low - https://www.census.gov/programs-surveys/cps/technical-documentation/subject-definitions.html#household
+    household_type_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016") 
+    household_type_size_data <- household_type_size_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_type_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size)) %>%
+      #mutate(numeric_in_family = as.numeric(substr(hh_size,1,1))) %>%
+      uncount(number_sams,.id = "family_id",.remove = TRUE) #%>% #has right size for number of households total!!! maybe family / non-family mixed don't add in??
+    #      uncount(numeric_in_family,.id="num_family_id",.remove = FALSE) 
+#combine other things about hh_type to get good match on size before moving to sam...    
+    
+    #concept is:  HOUSEHOLD SIZE BY VEHICLES AVAILABLE - get hh / 1562813
+    vehicles_household_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08201")
+    vehicles_household_data <- vehicles_household_size_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(vehicles_household_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("number_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
+    
+    #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD
+    household_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08202")
+    household_workers_data <- household_workers_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("number_in_hh","number_workers_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
     
     #concept: SEX BY MARITAL STATUS FOR THE POPULATION 15 YEARS AND OVER x acs_race_codes
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
@@ -412,41 +481,11 @@ createHouseholds <- function() {
     
     
     
-    #ugh get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!! Also matches total for housing_occup_hh_size
-    #could be that householders not living alone (87550) should somehow be counted as having roommates; up to 330554-41220 / 87550 = 3.3 roommates on avg?
-    #has right number of householders / households - it only mentions group quarters as not in a household, but that number is too low - https://www.census.gov/programs-surveys/cps/technical-documentation/subject-definitions.html#household
-    household_type_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016") 
-    household_type_size_data <- household_type_size_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_type_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(hh_size)) %>%
-      #mutate(numeric_in_family = as.numeric(substr(hh_size,1,1))) %>%
-      uncount(number_sams,.id = "family_id",.remove = TRUE) #%>% #has right size for number of households total!!! maybe family / non-family mixed don't add in??
-#      uncount(numeric_in_family,.id="num_family_id",.remove = FALSE)  
+     
     
-    #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD
-    household_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08202")
-    household_workers_data <- household_workers_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("number_in_hh","number_workers_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
+    
 
-    #concept is:  HOUSEHOLD SIZE BY VEHICLES AVAILABLE
-    vehicles_household_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08201")
-    vehicles_household_data <- vehicles_household_size_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(vehicles_household_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("number_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
-    
-    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults??
+        #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults??
     vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
     vehicles_workers_data <- vehicles_workers_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -491,7 +530,7 @@ createHouseholds <- function() {
     #test <- table(occupied_race_dt$tract,occupied_race_dt$race,occupied_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
     #then move to sam after it's more than just households
     
-    #concept: MEANS OF TRANSPORTATION TO WORK BY TENURE
+    #concept: MEANS OF TRANSPORTATION TO WORK BY TENURE - for workers - 2135069
     transport_tenure_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08137")
     transport_tenure_data <- transport_tenure_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -548,7 +587,7 @@ createHouseholds <- function() {
       uncount(as.numeric(number_sams),.id = "partner_id",.remove = TRUE)
     
     #concept: HOUSEHOLD TYPE BY UNITS IN STRUCTURE
-    #could use this to match with the housing_units_race??
+    #could use this to match with the housing_units_race?? - seems like you lose a lot of information with this one...
     #tells only if household is in single structure or complex - also worth adding, and gets correct number of 1562813
     household_type_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11011")
     household_type_units_data <- household_type_units_from_census %>%
@@ -559,7 +598,7 @@ createHouseholds <- function() {
       separate(label, c("family","fam_role_units","structs","num_structures"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
         num_structures = if_else(fam_role_units=="Other family",num_structures,if_else(family=="Nonfamily households",fam_role_units,structs)),
-        fam_role_units = if_else(fam_role_units=="Other family",structs,if_else(family=="Nonfamily households",hh_type,fam_role_units))
+        fam_role_units = if_else(fam_role_units=="Other family",structs,if_else(family=="Nonfamily households",family,fam_role_units))
       ) %>% 
       filter(!is.na(num_structures)) %>%
       filter(number_sams > 0) %>%
@@ -734,7 +773,7 @@ createHouseholds <- function() {
     housing_occup_educ_data <- housing_occup_educ_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_occup_educ_data),names_to = "tract", values_to = "number_sams") %>%
+      pivot_longer(4:ncol(housing_occup_educ_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("own_rent","hh_education_level"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(hh_education_level) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
@@ -769,20 +808,6 @@ createHouseholds <- function() {
 
     
     
-    #concept is: TENURE BY AGE OF HOUSEHOLDER BY OCCUPANTS PER ROOM
-    #num_per_room is different, but can be aggregated to match above 
-    #                                       1.00 or less occupants per room 1.01 to 1.50 occupants per room 1.51 or more occupants per room
-    #Householder 15 to 34 years                             350128                           22772                            8214
-    #Householder 35 to 64 years                             871976                           39863                           14692
-    #Householder 65 years and over                          251823                            2277                            1068
-    housing_per_room_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25015") #ratio per tract occup per/room/race
-    housing_per_room_age_data <- housing_per_room_age_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_per_room_age_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","householder_age", "num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(num_per_room) & number_sams > 0) %>% #seems to keep num_per_room only for all age totals, not individual age
-      uncount(as.numeric(number_sams),.id = "own_rent_age_per_rooms_id",.remove = TRUE)
     
         #has population of 4458402
     moved_1yr_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07004")
