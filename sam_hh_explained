@@ -47,6 +47,15 @@ Female householder no husband present              Householder living alone     
 
    Householder 15 to 34 years    Householder 35 to 64 years Householder 65 years and over 
                        381114                        926531                        255168
+                       
+> table(sam_hh$householder_age_9) #each has both, and they match correctly
+
+   Householder 15 to 24 years    Householder 25 to 34 years    Householder 35 to 44 years    Householder 45 to 54 years 
+                        66322                        314792                        338327                        315823 
+   Householder 55 to 59 years    Householder 60 to 64 years    Householder 65 to 74 years    Householder 75 to 84 years 
+                       147865                        124516                        158670                         70296 
+Householder 85 years and over 
+                        26202
 
 > table(sam_hh$own_rent)
 
@@ -74,3 +83,20 @@ Boat RV van etc.      Mobile home
 
 Household did not receive Food Stamps/SNAP in the past 12 months        Household received Food Stamps/SNAP in the past 12 months 
                                                          1359978                                                           202835
+                                                         
+                                                         
+> table(sam_hh$hh_size)
+
+        1-person household         2-person household         3-person household         4-person household         5-person household 
+                    408614                     450108                     260771                     230582                     128422 
+        6-person household 7-or-more person household 
+                     50818                      33498 
+                     
+
+#sex of householder still defaults to Male, although technically it doesn't have to - I assigned all explicit female householders with no husband and half of householders living alone
+> table(sam_hh$sex)
+
+ Female    Male 
+ 447838 1114975
+                        
+

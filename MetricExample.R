@@ -11,10 +11,49 @@
 #is different from allowing them to resolve to the metric (to what the original is)
 #the later gets what we want from the category theory, too
 library(ggplot2)
+#library(moments)
+#x<- rnorm(10)
+#moment(x)
 
 #have different bits of skew, too?
 
+
+p = seq(0,1, length=100)
+plot(p, dbeta(p, 100, 100), ylab="density", type ="l", col=4)
+lines(p, dbeta(p, 10, 10), type ="l", col=3)
+lines(p, dbeta(p, 2, 2), col=2) 
+lines(p, dbeta(p, 1, 1), col=1) 
+legend(0.7,8, c("Be(100,100)","Be(10,10)","Be(2,2)", "Be(1,1)"),lty=c(1,1,1,1),col=c(4,3,2,1))
+
+plot(p, dbeta(p, 900, 100), ylab="density", type ="l", col=4)
+lines(p, dbeta(p, 90, 10), type ="l", col=3)
+lines(p, dbeta(p, 30, 70), col=2) 
+lines(p, dbeta(p, 3, 7), col=1) 
+legend(0.2,30, c("Be(900,100)","Be(90,10)","Be(30,70)", "Be(3,7)"),lty=c(1,1,1,1),col=c(4,3,2,1))
+#From these examples you should note the following:
+  
+#  The distribution is roughly centered on a/(a+b). Actually, it turns out that the mean is exactly a/(a+b). Thus the mean of the distribution is determined by the relative values of a and b.
+#The larger the values of a and b, the smaller the variance of the distribution about the mean.
+#For moderately large values of a and b the distribution looks visually “kind of normal”, although unlike the normal distribution the Beta distribution is restricted to [0,1].
+#The special case a=b=1 is the uniform distribution.
+
+
+#Values of a,b<1
+
+plot(p, dbeta(p/100, 0.1, 0.1), ylim=c(0,3),ylab="density", type ="l", col=4)
+lines(p, dbeta(p, 0.5, 0.5), type ="l", col=3)
+lines(p, dbeta(p, 0.1, 0.5), col=2) 
+lines(p, dbeta(p, 0.5, 2), col=1) 
+legend(0.5,2, c("Be(0.1,0.1)","Be(0.5,0.5)","Be(0.1,0.5)", "Be(0.5,2)"),lty=c(1,1,1,1),col=c(4,3,2,1))
+
+
+#rbinom (# observations, # trails/observation, probability of success )
+rbinom(5,150,.2)
+#[1] 29 38 30 36 25
+
 #generating lines vs. finding fits for lines
+
+
 
 dframe <- data.frame(x=c(1:100),y=sample(c(1:100),100,replace=FALSE))
 dframe <- data.frame(x=c(1:100),y=sample(c(1:100),100,replace=TRUE))

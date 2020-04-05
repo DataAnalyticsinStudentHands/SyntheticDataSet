@@ -65,6 +65,10 @@ sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
   uncount(number_sams,.id = "sams_id") 
 
 sex_age_race_dt <- as.data.table(sex_by_age_race_data) # a couple of things for sampling work better as dt
+
+
+
+
 sex_age_race_dt[,("white_not_latinx_num") := nrow(.SD[race=="H"]),by=.(tract,sex,age_range)] #get number of white_not_latinx
 sex_age_race_dt[,("white_and_latinx_num") := nrow(.SD[race=="A"])-nrow(.SD[race=="H"]),by=.(tract,sex,age_range)]
 #sex_age_race_dt[,("latinx_not_white_num") := nrow(.SD[race=="I"])-white_and_latinx_num,by=.(tract,age_range)]
