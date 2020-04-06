@@ -109,6 +109,7 @@ createHouseholds <- function() {
     #join back to sex_age_race - ethnicity is really just "hispanic and/or latino" and "white alone, not hispanic"; the _ doesn't get right total, but H and I do, and for each tract
     sex_age_race[,c("ethnicity") := sex_by_age_eth[.SD, list(ethnicity), on = .(num_eth_id)]]
 
+      
     #set to side and pick up after building as much of the Household info as stands on its own.      
 
     #gives 1562813; householders by tract is one of the base constants
@@ -559,6 +560,48 @@ createHouseholds <- function() {
     
     saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-05"
     
+    #match income on own_rent, sorted by Foodstamps
+    housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
+    housing_occup_income_data <- housing_occup_income_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_income_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","hh_income_level"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(income_low=case_when(
+                hh_income_level == "Less than $5 000" ~ as.integer(1),
+                hh_income_level == "$5 000 to $9 999" ~ as.integer(5000),
+                hh_income_level == "$10 000 to $14 999" ~ as.integer(10000),
+                hh_income_level == "$15 000 to $19 999" ~ as.integer(15000),
+                hh_income_level == "$20 000 to $24 999" ~ as.integer(20000),
+                hh_income_level == "$25 000 to $34 999" ~ as.integer(25000),
+                hh_income_level == "$35 000 to $49 999" ~ as.integer(35000),
+                hh_income_level == "$50 000 to $74 999" ~ as.integer(50000),
+                hh_income_level == "$75 000 to $99 999" ~ as.integer(75000),
+                hh_income_level == "$100 000 to $149 999" ~ as.integer(100000),
+                hh_income_level == "$150 000 or more" ~ as.integer(150000)),
+            income_high=case_when(
+              hh_income_level == "Less than $5 000" ~ as.integer(4999),
+              hh_income_level == "$5 000 to $9 999" ~ as.integer(9999),
+              hh_income_level == "$10 000 to $14 999" ~ as.integer(14999),
+              hh_income_level == "$15 000 to $19 999" ~ as.integer(19999),
+              hh_income_level == "$20 000 to $24 999" ~ as.integer(24999),
+              hh_income_level == "$25 000 to $34 999" ~ as.integer(34999),
+              hh_income_level == "$35 000 to $49 999" ~ as.integer(49999),
+              hh_income_level == "$50 000 to $74 999" ~ as.integer(74999),
+              hh_income_level == "$75 000 to $99 999" ~ as.integer(99999),
+              hh_income_level == "$100 000 to $149 999" ~ as.integer(149999),
+              hh_income_level == "$150 000 or more" ~ as.integer(500000)) #have to think about skew on this one... ~.006 make more than 500000
+      ) %>%
+      filter(!is.na(hh_income_level) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_hhincome_id",.remove = TRUE)
+    hh_income_dt <- as.data.table(housing_occup_income_data)
+    sam_hh[order(match(SNAP,"Household received Food Stamps/SNAP in the past 12 months", 
+                                "Household did not receive Food Stamps/SNAP in the past 12 months")),
+           ("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
+    hh_income_dt[order(income_low),("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
+    sam_hh[,c("hh_income_level","income_low","income_high") := 
+             hh_income_dt[.SD, c(list(hh_income_level),list(income_low),list(income_high)), on = .(income_occup_id)]]
+    
     sam_workers <- sam_hh #copy by reference, so need to separate for saves
     #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD
     household_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08202")
@@ -582,10 +625,18 @@ createHouseholds <- function() {
                ("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
     sam_workers[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(num_workers_id)]]
     
-    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
+    saveRDS(sam_workers,file = paste0(housingdir, vintage, "/sam_workers_",Sys.Date(),".RDS")) #"2020-04-06"
 
-                    #tried a trick for assining to a subgroup, and it came up with the wrong numbers - I think it's because how I wanted to sample based
-                    #on average employment for a group was that different from real numbers.
+    #and when is it that the householder is the one to expand - combine with info on family_role to come up with decisions about who expands
+    #make a category - "work_status" - "retired, etc." 
+    #make the workers actually exist, then take away attributes based on being in the same house - i.e., 95% same race, over 18
+                    #tried a trick for assigning to a subgroup, and it came up with the wrong numbers - I think it's because how I wanted to sample based
+    
+    #adding a few things to get the right total number of workers by sex, age
+    
+    
+    #maybe go back and reduce size of RHS for next step of matching...
+    #on average employment for a group was that different from real numbers.
                     #assign for subgroup - this is sort of brute force for obvious cases
                     #sam_workers[householder_age=="Householder 65 years and over" & as.numeric(substr(hh_size,1,1)) < 3,
                      #           c("number_workers_in_hh") := sample(c("No workers","1 worker"),1,prob = c(.15,.85),replace=TRUE)] #some for 2nd member working
@@ -632,15 +683,7 @@ createHouseholds <- function() {
     hh_educ_dt[,("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
     sam_hh[,c("hh_education_level") := hh_educ_dt[.SD, list(hh_education_level), on = .(educ_occup_id)]]
     
-    housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
-    housing_occup_income_data <- housing_occup_income_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_occup_income_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","hh_income_level"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(hh_income_level) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_hhincome_id",.remove = TRUE)
-    
+
     housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
     housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -661,6 +704,11 @@ createHouseholds <- function() {
     
     
     
+    
+    #unique(place_born) - "Born in state of residence" "Born in other state in the United States" "Native; born outside the United States"   "Foreign born" 
+    place_born_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06004")
+    #should do it by households, too??? would match on hh_size, then on race, etc., 
+    #    place_born_race_data <- place_born_race_from_census %>% #right total - 4525519
     
     
         

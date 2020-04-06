@@ -104,3 +104,32 @@ Household did not receive Food Stamps/SNAP in the past 12 months        Househol
 
          1 worker         2 workers 3 or more workers        No workers 
            719595            456044            114264            272910 
+           
+
+> table(sam_hh$hh_income_level)
+
+  $10 000 to $14 999 $100 000 to $149 999   $15 000 to $19 999     $150 000 or more   $20 000 to $24 999   $25 000 to $34 999 
+               68337               214604                75648               214924                80275               152801 
+  $35 000 to $49 999     $5 000 to $9 999   $50 000 to $74 999   $75 000 to $99 999     Less than $5 000 
+              204571                48176               274957               177981                50539
+              
+> table(sam_hh$income_low)
+
+     1   5000  10000  15000  20000  25000  35000  50000  75000 100000 150000 
+ 50539  48176  68337  75648  80275 152801 204571 274957 177981 214604 214924 
+ 
+> table(sam_hh$income_high)
+
+     1   5000  10000  15000  20000  25000  35000  50000  75000 100000 150000 
+ 50539  48176  68337  75648  80275 152801 204571 274957 177981 214604 214924
+
+           
+> table(sam_hh$SNAP,sam_hh$income_high) #we could move the couple that are up in high income...
+                                                                  
+                                                                        1   5000  10000  15000  20000  25000  35000  50000  75000 100000
+  Household did not receive Food Stamps/SNAP in the past 12 months   6425   6475  21225  44198  62449 136573 200546 274644 177939 214602
+  Household received Food Stamps/SNAP in the past 12 months         44114  41701  47112  31450  17826  16228   4025    313     42      2
+                                                                  
+                                                                   150000
+  Household did not receive Food Stamps/SNAP in the past 12 months 214902
+  Household received Food Stamps/SNAP in the past 12 months            22
