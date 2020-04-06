@@ -99,4 +99,8 @@ Household did not receive Food Stamps/SNAP in the past 12 months        Househol
  Female    Male 
  447838 1114975
                         
+#moving to sam_workers
+> table(sam_workers$number_workers_in_hh)
 
+         1 worker         2 workers 3 or more workers        No workers 
+           719595            456044            114264            272910 

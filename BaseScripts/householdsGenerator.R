@@ -55,6 +55,7 @@ createHouseholds <- function() {
     
     
     #let's start with the most detailed individual level without duplication
+    #concept is SEX BY AGE for each race / ethnicity - 4525519 2017 Harris County
     sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!"),
@@ -79,32 +80,37 @@ createHouseholds <- function() {
     sex_age_race[age_range=="85 to 94 years",("age"):=
                    as.numeric(sample(as.character(85:104),size=.N,prob=0.13-(1:20/174:155),replace = TRUE))] #looking for ~1300 centenarians in Houston
     
+    #for Latino population, see: https://www.pewsocialtrends.org/2015/06/11/chapter-7-the-many-dimensions-of-hispanic-racial-identity/
     sex_by_age_ethnicity_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(ethnicity = substr(name,7,7)) %>% 
+      mutate(age_range = str_replace(age_range,"Under 5 years","0  to  5 years"), #have to regularize and make possible to compare
+             age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
+             age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
+             age_range = str_replace(age_range,"85 years and over","85 to 94 years"),
+             ethnicity = substr(name,7,7)) %>% 
       filter(number_sams > 0, !ethnicity %in% acs_race_codes, !is.na(age_range)) %>%
       uncount(as.numeric(number_sams),.id = "sex_age_ethnicity_id")
     #do the id trick so that whitealone, but order ethnicity by H, I and then order race_adj by A,F,G,etc. with percentages of each, then the remaining
     sex_by_age_ethnicity <- as.data.table(sex_by_age_ethnicity_data)
-    sex_by_age_ethnicity[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,age_range)]
-    sex_by_age_ethnicity[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,age_range)]
-    sex_by_age_ethnicity[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,age_range)]
+    sex_by_age_ethnicity[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,sex)]
+    sex_by_age_ethnicity[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,sex)]
+    sex_by_age_ethnicity[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,sex)]
     sex_by_age_eth <- sex_by_age_ethnicity[(tokeep)]
     #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
-    sex_age_race[(order(match(race,c("A","F","G","C","B","E","D")))),
-                 ("num_eth_id"):=paste0(tract,age_range,sex,as.character(1000000+seq.int(1:.N))),by=.(tract,age_range,sex)]
+    sex_age_race[order(match(race,c("A","F","G","C","B","E","D"))),
+                 ("num_eth_id"):=paste0(tract,sex,age_range,as.character(1000000+seq.int(1:.N))),by=.(tract,sex,age_range)]
     sex_by_age_eth[order(match(ethnicity,c("H","I","_"))),
-                 ("num_eth_id"):=paste0(tract,age_range,sex,as.character(1000000+seq.int(1:.N))),by=.(tract,age_range,sex)]
+                   ("num_eth_id"):=paste0(tract,sex,age_range,as.character(1000000+seq.int(1:.N))),by=.(tract,sex,age_range)]
     #test<-table(sex_by_age_eth$tract,sex_by_age_eth$ethnicity)==table(sex_age_race$tract,sex_age_race$ethnicity)
     #length(test[test==FALSE])/length(test) = .31  length(test[test[,2:3]==FALSE])/length(test) = 0
-    #join back to sex_age_race - ethnicity is really just hispanic and white, not hispanic; the _ doesn't get right total, but H and I do, and for each tract
+    #join back to sex_age_race - ethnicity is really just "hispanic and/or latino" and "white alone, not hispanic"; the _ doesn't get right total, but H and I do, and for each tract
     sex_age_race[,c("ethnicity") := sex_by_age_eth[.SD, list(ethnicity), on = .(num_eth_id)]]
 
-#set to side and pick up after building as much of the Household info as stands on its own.      
-      #with dt, do age, and add an overall id that is the hex...    
+    #set to side and pick up after building as much of the Household info as stands on its own.      
+
     #gives 1562813; householders by tract is one of the base constants
     #concept: "HOUSEHOLD TYPE (INCLUDING LIVING ALONE) for acs_race_codes"
     household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
@@ -551,6 +557,48 @@ createHouseholds <- function() {
     sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
     sam_hh[is.na(sex),("sex"):="Male"]
     
+    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-05"
+    
+    sam_workers <- sam_hh #copy by reference, so need to separate for saves
+    #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD
+    household_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08202")
+    household_workers_data <- household_workers_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("hh_size_4","number_workers_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
+    #when adding age, workers need to be 18
+    hh_workers <- as.data.table(household_workers_data)
+    hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="3 or more workers"] #I think they made a mistake
+    #number in hh_size_dt has 7 factors; in workers, there's only 4 so collapse
+    sam_workers[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
+    #create ids, just following order of how many in hh, so they can match
+    #if we set it by hh_size_4 and then make it more likely to line up with fewer workers if older...
+    sam_workers[order(hh_size_4,-householder_age),("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
+    hh_workers[order(hh_size_4,match(
+                     number_workers_in_hh,c("No workers","1 worker","2 workers","3 or more workers"))),
+               ("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
+    sam_workers[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(num_workers_id)]]
+    
+    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
+
+                    #tried a trick for assining to a subgroup, and it came up with the wrong numbers - I think it's because how I wanted to sample based
+                    #on average employment for a group was that different from real numbers.
+                    #assign for subgroup - this is sort of brute force for obvious cases
+                    #sam_workers[householder_age=="Householder 65 years and over" & as.numeric(substr(hh_size,1,1)) < 3,
+                     #           c("number_workers_in_hh") := sample(c("No workers","1 worker"),1,prob = c(.15,.85),replace=TRUE)] #some for 2nd member working
+                    #now find and take out a matching set from hh_workers - redo indices
+                    #sam_workers[order(match(number_workers_in_hh,c("No workers","1 worker"))),
+                    #            ("num_workers_id_1"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
+                    #hh_workers[order(match(number_workers_in_hh,c("No workers","1 worker","2 workers","3 or more workers"))),
+                    #           ("num_workers_id_1"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
+                    #hh_workers_1 <- hh_workers[sam_workers[is.na(number_workers_in_hh)], on = .(num_workers_id_1)]
+                    #sam_workers[is.na(number_workers_in_hh),c("number_workers_in_hh") := hh_workers_1[.SD, list(number_workers_in_hh), on = .(num_workers_id_1)]]
+    
+    
+    #remember wife_employ, too
     #add the ones we have that are slightly larger - educ, workers, adults, then whole
     #doing hh_educ into over 18 educ, and then will add to whole? (that way we keep the rest of distribution?)
     #or pause on hh now, and add what we can to sam, with a designation of it as a household from relation file's householder?
@@ -591,7 +639,7 @@ createHouseholds <- function() {
       pivot_longer(4:ncol(housing_occup_income_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("own_rent","hh_income_level"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(hh_income_level) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
+      uncount(as.numeric(number_sams),.id = "own_rent_hhincome_id",.remove = TRUE)
     
     housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
     housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
@@ -617,16 +665,7 @@ createHouseholds <- function() {
     
         
     #add number of workers per household - same logic, but only has four factors for size, not seven
-    #when adding age, workers need to be 18
-    hh_workers_dt <- as.data.table(household_workers_data)
-    #number in hh_size_dt has 7 factors; in workers, there's only 4 so collapse
-    hh_size_dt[,("number_in_hh"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
-    #test: testtables <- table(hh_size_dt$tract,hh_size_dt$number_in_hh)==table(hh_workers_dt$tract,hh_workers_dt$number_in_hh)
-    #FALSE %in% testtables (if false, then all tracts have same numbers of hh with each number of people)
-    #create ids, just following order of how many in hh, so they can match
-    hh_size_dt[order(number_in_hh),("num_workers_id"):=paste0(tract,number_in_hh,as.character(1000000+seq.int(1:.N))),by=.(tract,number_in_hh)]
-    hh_workers_dt[order(number_in_hh),("num_workers_id"):=paste0(tract,number_in_hh,as.character(1000000+seq.int(1:.N))),by=.(tract,number_in_hh)]
-    hh_size_dt[,c("number_workers_in_hh") := hh_workers_dt[.SD, list(number_workers_in_hh), on = .(tract,number_in_hh,num_workers_id)]]
+    
     
     
     
@@ -640,15 +679,6 @@ createHouseholds <- function() {
       filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
     
-    #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD
-    household_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08202")
-    household_workers_data <- household_workers_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("hh_size","number_workers_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
     
     #concept: SEX BY MARITAL STATUS FOR THE POPULATION 15 YEARS AND OVER x acs_race_codes
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")

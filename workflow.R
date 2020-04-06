@@ -14,7 +14,7 @@ numberOfCores = 1
 state = 48
 county = 201
 tract = "*"
-set.seed(135)
+set.seed(135) # I don't think that's permanent - have to reinvoke??
 
 #let's create SAM
 sam <- createBaseSAM(censusdir, housingdir, vintage, 
@@ -41,4 +41,4 @@ if (sanityChecks(sam)) {
 
 
 #Save the final result
-saveRDS(sam, paste0("complete_sam", Sys.Date(), ".RDS"))
+saveRDS(sam, paste0(maindir,"complete_sam", Sys.Date(), ".RDS"))
