@@ -558,9 +558,10 @@ createHouseholds <- function() {
     sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
     sam_hh[is.na(sex),("sex"):="Male"]
     
-    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-05"
+    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
     
     #match income on own_rent, sorted by Foodstamps
+    #concept: TENURE BY HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2017 INFLATION-ADJUSTED DOLLARS) - 1562813hh
     housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
     housing_occup_income_data <- housing_occup_income_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -595,12 +596,225 @@ createHouseholds <- function() {
       filter(!is.na(hh_income_level) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hhincome_id",.remove = TRUE)
     hh_income_dt <- as.data.table(housing_occup_income_data)
-    sam_hh[order(match(SNAP,"Household received Food Stamps/SNAP in the past 12 months", 
-                                "Household did not receive Food Stamps/SNAP in the past 12 months")),
+    sam_hh[order(-SNAP),
            ("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
     hh_income_dt[order(income_low),("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
     sam_hh[,c("hh_income_level","income_low","income_high") := 
              hh_income_dt[.SD, c(list(hh_income_level),list(income_low),list(income_high)), on = .(income_occup_id)]]
+    #just to adjust by a bit - fewer than 5t affected
+    sam_hh[income_low>30000,("SNAP"):="Household did not receive Food Stamps/SNAP in the past 12 months"]
+    
+    #concept: TENURE BY EDUCATIONAL ATTAINMENT OF HOUSEHOLDER 1562813hh
+    housing_occup_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25013") #of occup, own or rent by educ attainment
+    housing_occup_educ_data <- housing_occup_educ_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_educ_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","hh_education_level"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_education_level) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
+    hh_educ_dt <- as.data.table(housing_occup_educ_data)
+    #make same variable categories with sam_hh
+    hh_educ_dt[str_detect(own_rent,"Owner"),("own_rent"):="Owner occupied"]
+    hh_educ_dt[str_detect(own_rent,"Renter"),("own_rent"):="Renter occupied"]
+    sam_hh[order(income_low),
+           ("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
+    hh_educ_dt[order(match(hh_education_level,c("Less than high school graduate","High school graduate (including equivalency)",
+                                                "Some college or associate's degree","Bachelor's degree or higher"))),
+                     ("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
+    sam_hh[,c("hh_education_level") := 
+             hh_educ_dt[.SD, list(hh_education_level), on = .(educ_occup_id)]]
+    #test: table(sam_hh$tract,sam_hh$hh_education_level)==table(hh_educ_dt$tract,hh_educ_dt$hh_education_level)
+
+    #concept is:  HOUSEHOLD SIZE BY VEHICLES AVAILABLE - get hh / 1562813
+    vehicles_household_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08201")
+    vehicles_household_data <- vehicles_household_size_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(vehicles_household_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("hh_size_4","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
+    vehicles_hh <- as.data.table(vehicles_household_data)
+    sam_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
+    sam_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
+    vehicles_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
+    sam_hh[,c("number_vehicles_in_hh") := 
+             vehicles_hh[.SD, list(number_vehicles_in_hh), on = .(vehicle_occup_id)]]
+    #test: table(sam_hh$tract,sam_hh$number_vehicles_in_hh)==table(vehicles_hh$tract,vehicles_hh$number_vehicles_in_hh)
+    
+    #equals "Renter occupied" on own_rent in Sam
+    #gross rent is contract plus estimate for utilities, etc.
+    #concept: GROSS RENT
+    gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25063")
+    gross_rent_data <- gross_rent_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(gross_rent_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("rent_cash","gross_rent"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(gross_rent=if_else(rent_cash=="No cash rent", "Less than $100", gross_rent)) %>%
+      filter(!is.na(gross_rent) & number_sams > 0) %>%
+      mutate(gross_rent_low=case_when(
+        gross_rent == "Less than $100" ~ as.integer(1),
+        gross_rent == "$100 to $149" ~ as.integer(100),
+        gross_rent == "$150 to $199" ~ as.integer(150),
+        gross_rent == "$200 to $249" ~ as.integer(200),
+        gross_rent == "$250 to $299" ~ as.integer(250),
+        gross_rent == "$300 to $349" ~ as.integer(300),
+        gross_rent == "$350 to $399" ~ as.integer(350),
+        gross_rent == "$400 to $449" ~ as.integer(400),
+        gross_rent == "$450 to $499" ~ as.integer(450),
+        gross_rent == "$500 to $549" ~ as.integer(500),
+        gross_rent == "$550 to $599" ~ as.integer(550),
+        gross_rent == "$600 to $649" ~ as.integer(600),
+        gross_rent == "$650 to $699" ~ as.integer(650),
+        gross_rent == "$700 to $749" ~ as.integer(700),
+        gross_rent == "$750 to $799" ~ as.integer(750),
+        gross_rent == "$800 to $899" ~ as.integer(800),
+        gross_rent == "$900 to $999" ~ as.integer(900),
+        gross_rent == "$1 000 to $1 249" ~ as.integer(1000),
+        gross_rent == "$1 250 to $1 499" ~ as.integer(1250),
+        gross_rent == "$1 500 to $1 999" ~ as.integer(1500),
+        gross_rent == "$2 000 to $2 499" ~ as.integer(2000),
+        gross_rent == "$2 500 to $2 999" ~ as.integer(2500),
+        gross_rent == "$3 000 to $3 499" ~ as.integer(3000),
+        gross_rent == "$3 500 or more" ~ as.integer(3500)),
+        gross_rent_high=case_when(
+          gross_rent == "Less than $100" ~ as.integer(99),
+          gross_rent == "$100 to $149" ~ as.integer(149),
+          gross_rent == "$150 to $199" ~ as.integer(199),
+          gross_rent == "$200 to $249" ~ as.integer(249),
+          gross_rent == "$250 to $299" ~ as.integer(299),
+          gross_rent == "$300 to $349" ~ as.integer(349),
+          gross_rent == "$350 to $399" ~ as.integer(399),
+          gross_rent == "$400 to $449" ~ as.integer(449),
+          gross_rent == "$450 to $499" ~ as.integer(499),
+          gross_rent == "$500 to $549" ~ as.integer(549),
+          gross_rent == "$550 to $599" ~ as.integer(599),
+          gross_rent == "$600 to $649" ~ as.integer(649),
+          gross_rent == "$650 to $699" ~ as.integer(699),
+          gross_rent == "$700 to $749" ~ as.integer(749),
+          gross_rent == "$750 to $799" ~ as.integer(799),
+          gross_rent == "$800 to $899" ~ as.integer(899),
+          gross_rent == "$900 to $999" ~ as.integer(999),
+          gross_rent == "$1 000 to $1 249" ~ as.integer(1249),
+          gross_rent == "$1 250 to $1 499" ~ as.integer(1499),
+          gross_rent == "$1 500 to $1 999" ~ as.integer(1999),
+          gross_rent == "$2 000 to $2 499" ~ as.integer(2499),
+          gross_rent == "$2 500 to $2 999" ~ as.integer(2999),
+          gross_rent == "$3 000 to $3 499" ~ as.integer(3449),
+          gross_rent == "$3 500 or more" ~ as.integer(6000)), #have to think about skew on this one
+        gross_rent_high2=case_when(
+          gross_rent == "Less than $100" ~ as.character(99),
+          gross_rent == "$100 to $149" ~ as.character(199),
+          gross_rent == "$150 to $199" ~ as.character(199),
+          gross_rent == "$200 to $249" ~ as.character(299),
+          gross_rent == "$250 to $299" ~ as.character(299),
+          gross_rent == "$300 to $349" ~ as.character(399),
+          gross_rent == "$350 to $399" ~ as.character(399),
+          gross_rent == "$400 to $449" ~ as.character(499),
+          gross_rent == "$450 to $499" ~ as.character(499),
+          gross_rent == "$500 to $549" ~ as.character(599),
+          gross_rent == "$550 to $599" ~ as.character(599),
+          gross_rent == "$600 to $649" ~ as.character(699),
+          gross_rent == "$650 to $699" ~ as.character(699),
+          gross_rent == "$700 to $749" ~ as.character(799),
+          gross_rent == "$750 to $799" ~ as.character(799),
+          gross_rent == "$800 to $899" ~ as.character(899),
+          gross_rent == "$900 to $999" ~ as.character(999),
+          gross_rent == "$1 000 to $1 249" ~ as.character(1249),
+          gross_rent == "$1 250 to $1 499" ~ as.character(1499),
+          gross_rent == "$1 500 to $1 999" ~ as.character(1999),
+          gross_rent == "$2 000 to $2 499" ~ as.character(6000),
+          gross_rent == "$2 500 to $2 999" ~ as.character(6000),
+          gross_rent == "$3 000 to $3 499" ~ as.character(6000),
+          gross_rent == "$3 500 or more" ~ as.character(6000))
+      ) %>%
+      uncount(as.numeric(number_sams),.id = "gross_rent_id",.remove = TRUE)
+    gross_rent_hh <- as.data.table(gross_rent_data)
+    
+    #matches gross_rent for with cash rent only... - add it before gross_rent
+    income_gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25122")
+    income_gross_rent_data <- income_gross_rent_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(income_gross_rent_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("hh_income_title","hh_income_renters","gross_rent_title","gross_rent"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(gross_rent) & number_sams > 0) %>%
+      mutate(
+        gross_rent_high2=case_when(
+          gross_rent == "Less than $100" ~ as.character(99),
+          gross_rent == "$100 to $199" ~ as.character(199),
+          gross_rent == "$200 to $299" ~ as.character(299),
+          gross_rent == "$300 to $399" ~ as.character(399),
+          gross_rent == "$400 to $499" ~ as.character(499),
+          gross_rent == "$500 to $599" ~ as.character(599),
+          gross_rent == "$600 to $699" ~ as.character(699),
+          gross_rent == "$700 to $799" ~ as.character(799),
+          gross_rent == "$800 to $899" ~ as.character(899),
+          gross_rent == "$900 to $999" ~ as.character(999),
+          gross_rent == "$1 000 to $1 249" ~ as.character(1249),
+          gross_rent == "$1 250 to $1 499" ~ as.character(1499),
+          gross_rent == "$1 500 to $1 999" ~ as.character(1999),
+          gross_rent == "$2 000 or more" ~ as.character(6000)) #have to think about skew on this one
+      ) %>%
+      uncount(as.numeric(number_sams),.id = "income_gross_rent_id",.remove = TRUE)
+    income_gross_rent_hh <- as.data.table(income_gross_rent_data)
+    gross_rent_hh[rent_cash=="With cash rent",("gross_inc_id"):=
+                    paste0(tract,gross_rent_high2,as.character(1000000+seq.int(1:.N))),by=.(gross_rent_high2,tract)]
+    income_gross_rent_hh[,("gross_inc_id"):=
+                           paste0(tract,gross_rent_high2,as.character(1000000+seq.int(1:.N))),by=.(gross_rent_high2,tract)]
+    setkey(income_gross_rent_hh,gross_inc_id)
+    setkey(gross_rent_hh,gross_inc_id)
+    gross_rent_income <- income_gross_rent_hh[gross_rent_hh,]
+    
+    #just correlating with income - could get more complicated in future iterations
+    sam_hh[order(-own_rent,income_low),
+           ("gross_rent_hh_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract)]
+    gross_rent_income[order(gross_rent_high2),("gross_rent_hh_id"):=paste0(tract,"Renter occupied",as.character(1000000+seq.int(1:.N))),by=.(tract)]
+    setkey(sam_hh,gross_rent_hh_id)
+    setkey(gross_rent_income,gross_rent_hh_id)
+    sam_rent <- gross_rent_income[sam_hh,]
+    #test: table(sam_rent[own_rent=="Renter occupied"]$tract,sam_rent[own_rent=="Renter occupied"]$gross_rent)==table(gross_rent_hh$tract,gross_rent_hh$gross_rent)
+    #perhaps looking at systematically, there's good but appropriately not perfect correlation: table(sam_rent$i.gross_rent,sam_rent$gross_rent)
+    #keep only gross_rent with 25 categories
+    sam_rent[,c("rent_gross","rent_gross_high","rent_gross_low"):=c(list(i.gross_rent),list(i.gross_rent_high2),list(gross_rent_low))]
+    sam_hh <- sam_rent[,c("tract","sex","race","ethnicity","family","family_type","hh_role","family_role",
+                          "householder_age","householder_age_9","own_rent","housing_units","person_per_room","SNAP",
+                          "rent_cash","rent_gross","rent_gross_high","rent_gross_low","hh_income_renters", #eventually assign numbers to rent and income
+                          "hh_income_level","income_high","income_low","hh_education_level","number_vehicles_in_hh")]
+    
+    
+#TODO clean up sam_rent, then start adding hh_relations like added workers, then expand - maybe redo from top, in right order!!!
+    #just in case
+    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-08"
+    saveRDS(sam_rent,file = paste0(housingdir, vintage, "/sam_rent_",Sys.Date(),".RDS")) #"2020-04-06"
+    
+    #have to explore later
+                  contract_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25056")
+                  bedrooms_gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25068")
+                  income_value_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25121")
+    
+    
+                            #should we compare this with hh_size times per_person_per_room??   
+                            #haven't done yet
+                            housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
+                            housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
+                              mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+                              filter(label != "Estimate!!Total") %>%
+                              pivot_longer(4:ncol(housing_occup_rooms_from_census),names_to = "tract", values_to = "number_sams") %>%
+                              separate(label, c("own_rent","num_rooms"), sep = "!!", remove = F, convert = FALSE) %>%
+                              filter(!is.na(num_rooms) & number_sams > 0) %>%
+                              uncount(as.numeric(number_sams),.id = "own_rent_num_rooms_id",.remove = TRUE)
+                            
+                            housing_occup_bedrooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25042") #of occup, number of bedrooms
+                            housing_occup_bedrooms_data <- housing_occup_bedrooms_from_census %>%
+                              mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+                              filter(label != "Estimate!!Total") %>%
+                              pivot_longer(4:ncol(housing_occup_bedrooms_from_census),names_to = "tract", values_to = "number_sams") %>%
+                              separate(label, c("own_rent","num_bedrooms"), sep = "!!", remove = F, convert = FALSE) %>%
+                              filter(!is.na(num_bedrooms) & number_sams > 0) %>%
+                              uncount(as.numeric(number_sams),.id = "own_rent_num_bedrooms_id",.remove = TRUE)
     
     sam_workers <- sam_hh #copy by reference, so need to separate for saves
     #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD
@@ -616,6 +830,7 @@ createHouseholds <- function() {
     hh_workers <- as.data.table(household_workers_data)
     hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="3 or more workers"] #I think they made a mistake
     #number in hh_size_dt has 7 factors; in workers, there's only 4 so collapse
+    #may be added to hh_sam before
     sam_workers[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
     #create ids, just following order of how many in hh, so they can match
     #if we set it by hh_size_4 and then make it more likely to line up with fewer workers if older...
@@ -654,15 +869,7 @@ createHouseholds <- function() {
     #doing hh_educ into over 18 educ, and then will add to whole? (that way we keep the rest of distribution?)
     #or pause on hh now, and add what we can to sam, with a designation of it as a household from relation file's householder?
     
-    housing_occup_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25013") #of occup, own or rent by educ attainment
-    housing_occup_educ_data <- housing_occup_educ_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_occup_educ_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","hh_education_level"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(hh_education_level) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
-    hh_educ_dt <- as.data.table(housing_occup_educ_data)
+
     #add own_rent to sex_age, by education_level, sampling inside the ids by age and counting if it's over...
     
     #concept:SEX BY AGE BY EDUCATIONAL ATTAINMENT FOR THE POPULATION 18 YEARS AND OVER - 
@@ -684,23 +891,7 @@ createHouseholds <- function() {
     sam_hh[,c("hh_education_level") := hh_educ_dt[.SD, list(hh_education_level), on = .(educ_occup_id)]]
     
 
-    housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
-    housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_occup_rooms_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","num_rooms"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(num_rooms) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_num_rooms_id",.remove = TRUE)
-    
-    housing_occup_bedrooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25042") #of occup, number of bedrooms
-    housing_occup_bedrooms_data <- housing_occup_bedrooms_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_occup_bedrooms_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","num_bedrooms"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(num_bedrooms) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_num_bedrooms_id",.remove = TRUE)
+
     
     
     
@@ -717,17 +908,7 @@ createHouseholds <- function() {
     
     
     
-    #concept is:  HOUSEHOLD SIZE BY VEHICLES AVAILABLE - get hh / 1562813
-    vehicles_household_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08201")
-    vehicles_household_data <- vehicles_household_size_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(vehicles_household_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("hh_size","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
-    
-    
+
     #concept: SEX BY MARITAL STATUS FOR THE POPULATION 15 YEARS AND OVER x acs_race_codes
     marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
     
@@ -995,7 +1176,7 @@ createHouseholds <- function() {
       uncount(as.numeric(number_sams),.id = "occup_vacant_id",.remove = TRUE)
     
     #MORTGAGE STATUS BY AGE OF HOUSEHOLDER
-    #shows for 855629 - with different age groups from housing_per_room_age_data (which also has 1562813 / hh)
+    #shows for 855629 - with different age groups from housing_per_room_age_data (which also has 1562813 / hh) / = to "Owner occupied" in own_rent
     mortgage_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25027") 
     mortgage_age_data <- mortgage_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -1043,6 +1224,7 @@ createHouseholds <- function() {
       filter(race %in% acs_race_codes & number_sams>0) %>%
       uncount(as.numeric(number_sams),.id = "moved_1yr_race_id",.remove = TRUE)
     
+    ##NEED TO REDO
     #used for percentages used other source for age because the place_born didn't match by tract, so couldn't combine!!
     place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")
     #correct if do by either age or by category, but 465645 short if do by agesxcategories!! so I fudged it, with 1.6564 for that one category; all missing from foreign born, under age - foreign born by total is right
@@ -1795,12 +1977,8 @@ kids_respons_grands_nativity_from_census <- censusDataFromAPI_byGroupName(census
 
 housing_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25001") #total number (same as adding occupied and vacant)
 
-#gross rent is contract plus estimate for utilities, etc.
-gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25063")
-contract_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25056")
-bedrooms_gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25068")
-income_gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25122")
-income_value_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25121")
+
+
 health_insurance_sex_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B27001")
 private_health_insurance_sex_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B27002")
 public_health_insurance_sex_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B27003")

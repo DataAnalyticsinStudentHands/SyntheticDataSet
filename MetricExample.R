@@ -62,9 +62,18 @@ dframe <- data.frame(x=c(1:100),y=sample(c(1:100),100,replace=TRUE))
 dframe <- data.frame(w=c(1:100),x=c(1:100),y=sample(c(1:100),100,replace=FALSE),z=sample(c(1:100),100,replace=FALSE),g=sample(c(1:5),100,replace=TRUE))
 
 #monoidal map that keeps the pre-order is structure-preserving (accounts for loss between observation and real / or allows for the solution in a dimensional reduction)
+#the monoidal category is what you get when you think about a set of functions that all achieve the same transformation - and 
+#how to find the kernel activity that you want to respect
+#so - if there are lots of paths that lead to an outcome, in terms of set theory, they can be reduced to a monoidal category.
+#if the outcomes are binomial, it's just a categorization problem.
+#if the problem is polynomial, you need to expand your sense of a space
+#if the problem is projection, you need to think through your function for reduction
+#each has a metric in the sense that the structure preservation means that some morphism holds.
 #under enrichment in 7 practical applications of cat theory, 2.3 - that Bool-cats are preorders and Cost-cats are metric spaces
 #i.e., we should have a way of telling whether a metric space is determined by the categories - knowing what we should be measuring in the SDoH, for example
 #thinking about what Andrew means by sampling vs. whole set - working inside to optimize instead of standing outside to characterize
+
+#two ways of thinking about explication or contextualization - always stepping outside...
 
 ggplot(dframe, aes(x,y)) +
   geom_segment(aes(xend=x, yend=abs(y-z)),arrow = arrow(length = unit(0.1,"cm")))
@@ -113,6 +122,7 @@ ggplot(lode_frame,
   scale_fill_brewer(type = "qual", palette = "Set1") +
   ggtitle("Title")
 
-
+Can alluvials on things like education and income follow things like Hispanic and acs_race_codes show how to get to an idea of a metric?
+  That something is really about the individuals, not about the resolution of the factors....
 
 Metrics and Hilbert spaces

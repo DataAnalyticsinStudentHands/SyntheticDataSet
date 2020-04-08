@@ -1,9 +1,16 @@
+output from HouseholdsGenerator function for Harris County, 2017.
+
 sam_hh 
 1562813 households for Harris County / 2017
-> length(unique(sam_hh$tract))
+> length(unique(sam_hh$tract)) 
 [1] 784
 
-output from HouseholdsGenerator function for different vintages, etc.
+#sex of householder still defaults to Male, although technically it doesn't have to - I assigned all explicit female householders with no husband and half of householders living alone
+> table(sam_hh$sex)
+
+ Female    Male 
+ 447838 1114975
+                        
 
 > table(sam_hh$race)
 
@@ -92,18 +99,11 @@ Household did not receive Food Stamps/SNAP in the past 12 months        Househol
         6-person household 7-or-more person household 
                      50818                      33498 
                      
+> table(sam_hh$hh_size_4)
 
-#sex of householder still defaults to Male, although technically it doesn't have to - I assigned all explicit female householders with no husband and half of householders living alone
-> table(sam_hh$sex)
+        1-person household         2-person household         3-person household 4-or-more-person household 
+                    408614                     450108                     260771                     443320
 
- Female    Male 
- 447838 1114975
-                        
-#moving to sam_workers
-> table(sam_workers$number_workers_in_hh)
-
-         1 worker         2 workers 3 or more workers        No workers 
-           719595            456044            114264            272910 
            
 
 > table(sam_hh$hh_income_level)
@@ -124,12 +124,49 @@ Household did not receive Food Stamps/SNAP in the past 12 months        Househol
  50539  48176  68337  75648  80275 152801 204571 274957 177981 214604 214924
 
            
-> table(sam_hh$SNAP,sam_hh$income_high) #we could move the couple that are up in high income...
-                                                                  
-                                                                        1   5000  10000  15000  20000  25000  35000  50000  75000 100000
-  Household did not receive Food Stamps/SNAP in the past 12 months   6425   6475  21225  44198  62449 136573 200546 274644 177939 214602
-  Household received Food Stamps/SNAP in the past 12 months         44114  41701  47112  31450  17826  16228   4025    313     42      2
-                                                                  
-                                                                   150000
-  Household did not receive Food Stamps/SNAP in the past 12 months 214902
-  Household received Food Stamps/SNAP in the past 12 months            22
+> table(sam_hh$own_rent,sam_hh$hh_income_renters)
+                 
+                  $10 000 to $19 999 $100 000 or more $20 000 to $34 999 $35 000 to $49 999 $50 000 to $74 999 $75 000 to $99 999
+  Owner occupied                   0                0                  0                  0                  0                  0
+  Renter occupied              96285            85477             142131             111004             122129              60758
+                 
+                  Less than $10 000
+  Owner occupied                  0
+  Renter occupied             67135
+  
+  
+table(sam_hh$own_rent,sam_hh$rent_gross)
+                 
+                  $1 000 to $1 249 $1 250 to $1 499 $1 500 to $1 999 $100 to $149 $150 to $199 $2 000 to $2 499 $2 500 to $2 999
+  Owner occupied                 0                0                0            0            0                0                0
+  Renter occupied           135559            80082            77494          944         2067            17901             6275
+                 
+                  $200 to $249 $250 to $299 $3 000 to $3 499 $3 500 or more $300 to $349 $350 to $399 $400 to $449 $450 to $499
+  Owner occupied             0            0                0              0            0            0            0            0
+  Renter occupied         4453         2946             3773           2883         3358         3313         4774         7101
+                 
+                  $500 to $549 $550 to $599 $600 to $649 $650 to $699 $700 to $749 $750 to $799 $800 to $899 $900 to $999 Less than $100
+  Owner occupied             0            0            0            0            0            0            0            0              0
+  Renter occupied        12193        18392        28373        33616        38164        40877        82880        76297           1204
+
+
+> table(sam_hh$hh_education_level)
+
+                 Bachelor's degree or higher High school graduate (including equivalency)               Less than high school graduate 
+                                      532121                                       326178                                       261317 
+          Some college or associate's degree 
+                                      443197
+                                      
+> table(sam_hh$number_vehicles_in_hh)
+
+         1 vehicle available         2 vehicles available         3 vehicles available 4 or more vehicles available 
+                      566545                       606400                       210018                        82758 
+        No vehicle available 
+                       97092
+
+
+#moving to sam_workers
+> table(sam_workers$number_workers_in_hh)
+
+         1 worker         2 workers 3 or more workers        No workers 
+           719595            456044            114264            272910 
