@@ -170,3 +170,17 @@ table(sam_hh$own_rent,sam_hh$rent_gross)
 
          1 worker         2 workers 3 or more workers        No workers 
            719595            456044            114264            272910 
+           
+> table(sam_hh$partner_type)
+
+Female householder and female partner   Female householder and male partner   Male householder and female partner 
+                                 3242                                 42514                                 43847 
+    Male householder and male partner               Not a partner household 
+                                 3188                               1470022
+                                 
+> table(sam_hh$sex_partner) #only for partner households
+
+Female   Male [this can vary by sample]
+ 30037  16834
+ 
+

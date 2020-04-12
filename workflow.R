@@ -1,6 +1,8 @@
 # Workflow controller for SAM creation
 source("BaseScripts/basesam.R")
 
+#should change this so that state, county are part of the directory!
+
 # before we get started, setup directories and parameters
 maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 #maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
