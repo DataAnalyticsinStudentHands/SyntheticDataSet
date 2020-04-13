@@ -480,7 +480,7 @@ createHouseholds <- function() {
     #clean up and save sam_hh
     sam_hh <- hh_type_race_dt[,c("race","ethnicity","tract","family","family_type","hh_role","family_role",
                                  "householder_age","own_rent","housing_units","person_per_room","SNAP")]
-    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS"))
+#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS"))
     
     #ugh if you take the size and multiply it out, you get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!! Also matches total for housing_occup_hh_size
     #could be that householders not living alone (87550) should somehow be counted as having roommates; up to 330554-41220 / 87550 = 3.3 roommates on avg?
@@ -821,8 +821,8 @@ createHouseholds <- function() {
     
     
     #just in case
-    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-11"
-    saveRDS(sam_rent,file = paste0(housingdir, vintage, "/sam_rent_",Sys.Date(),".RDS")) #"2020-04-06"
+#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-13"
+#    saveRDS(sam_rent,file = paste0(housingdir, vintage, "/sam_rent_",Sys.Date(),".RDS")) #"2020-04-06"
 
     #gives unmarried partners, straight and same-sex concept: UNMARRIED-PARTNER HOUSEHOLDS BY SEX OF PARTNER 
     #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
@@ -838,6 +838,7 @@ createHouseholds <- function() {
     hh_partner_dt <- as.data.table(household_type_partners_data)
     hh_partner_dt[is.na(partner_type),("partner_type") := "Not a partner household"] 
     #make partner_ids, with Other family from family_type
+    #frustrating because some partner households are listed as married couples - I think it's just the numbers game. I chose to put them as unmarried partners
     hh_partner_dt[order(match(unmarried,c("Unmarried-partner households","All other households"))),
                   ("partner_type_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
     sam_hh[order(match(family_type,c("Other family","Householder not living alone","Householder living alone","Married-couple family"))),
@@ -1012,13 +1013,15 @@ createHouseholds <- function() {
     relations_dt[,c("relations_id"):=list(paste0(family_role,tract,as.character(2000000+seq.int(1:.N)))),by=.(tract)]
     sam_hh[as.numeric(substr(hh_size,1,1))==1 & partner_type != "Not a partner household",
            ("hh_size"):=sample(c("2-person household","3-person household"),.N,replace = TRUE)]
-    sam_hh[as.numeric(substr(hh_size,1,1))==1 & partner_type != "Not a partner household",
-           ("family_type"):="Other family"]
+    sam_hh[partner_type!="Not a partner household",("family_type"):="Other family"]
     sam_hh[as.numeric(substr(hh_size,1,1))==1 & family_type=="Married-couple family",
            ("hh_size"):=sample(c("2-person household","3-person household"),.N,replace = TRUE)]
-    sam_hh[as.numeric(substr(hh_size,1,1))>=2 & partner_type!="Not a partner household", 
+    sam_hh[partner_type!="Not a partner household", 
            ("hh_2_role"):="Unmarried partner"]
-    sam_hh[family_type=="Married-couple family",("hh_2_role"):="Spouse"] #will be only Female
+    sam_hh[hh_2_role=="Unmarried partner" & as.numeric(substr(hh_size,1,1))==1,("hh_size"):="2-person household"]
+    sam_hh[hh_2_role=="Unmarried partner" & as.numeric(substr(hh_size_4,1,1))==1,("hh_size_4"):="2-person household"]
+    sam_hh[family_type=="Married-couple family",
+           ("hh_2_role"):="Spouse"] #will be only Female
     sam_hh[,("age_range"):=householder_age_9] #so that the spouses and the hh will be close in age, once we randomize
     
     
@@ -1059,7 +1062,7 @@ createHouseholds <- function() {
     exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",c("relation_hh_1"):="Unmarried partner"]
     exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",
             c("unmarried_partner_id"):=list(paste0(tract,"unm_p",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_spouse[family_role=="Unmarried partner" | family_role == "Spouse", #picking up the last ones
+    relations_dt_no_spouse[family_role=="Unmarried partner", 
                        c("unmarried_partner_id"):=list(paste0(tract,"unm_p",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
     exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",
             ("hh_2_id"):=relations_dt_no_spouse[.SD, list(relations_id),on=c("unmarried_partner_id")]]
