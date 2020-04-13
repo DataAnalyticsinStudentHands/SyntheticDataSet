@@ -183,4 +183,20 @@ Female householder and female partner   Female householder and male partner   Ma
 Female   Male [this can vary by sample]
  30037  16834
  
+ 
+> table(sam_hh$age_range)
+
+   Householder 15 to 24 years    Householder 25 to 34 years    Householder 35 to 44 years    Householder 45 to 54 years 
+                        66322                        314792                        338327                        315823 
+   Householder 55 to 59 years    Householder 60 to 64 years    Householder 65 to 74 years    Householder 75 to 84 years 
+                       147865                        124516                        158670                         70296 
+Householder 85 years and over 
+                        26202
+                        
+
+> table(sam_hh$kids_by_age)
+
+             6 to 17 years only                     No children Under 6 years and 6 to 17 years              Under 6 years only 
+                         317364                          472821                          143095                          133369
+                         
 

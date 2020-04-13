@@ -4,19 +4,19 @@ source("BaseScripts/basesam.R")
 #should change this so that state, county are part of the directory!
 
 # before we get started, setup directories and parameters
-maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
-#maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+#maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
+maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
 vintage = 2017
 housingStockFromRDS = TRUE 
-numberOfCores = 1
+#numberOfCores = 1
 state = 48
 county = 201
 tract = "*"
-set.seed(135) # I don't think that's permanent - have to reinvoke??
+set.seed(135) # I don't think that's permanent - have to reinvoke for each scope??
 
 #let's create SAM
 sam <- createBaseSAM(censusdir, housingdir, vintage, 
