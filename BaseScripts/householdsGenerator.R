@@ -235,7 +235,7 @@ createHouseholds <- function() {
     hh_type_race_dt[,c("own_rent","householder_age") := 
                        occupied_race_dt[.SD, c(list(own_rent),list(householder_age)), on = .(hh_age_id)]]
     #do same with only race, but to pick up the NAs nrow(hh_type_race_dt[is.na(own_rent)])/nrow(hh_type_race_dt) - (about 14%)
-    missed_type_race_dt <- occupied_race_dt[!hh_age_id %in% hh_type_race_dt[,hh_age_id]]
+    #missed_type_race_dt <- occupied_race_dt[!hh_age_id %in% hh_type_race_dt[,hh_age_id]]
 
     #test: table(occupied_race_dt$tract,occupied_race_dt$own_rent,occupied_race_dt$householder_age)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent,hh_type_race_dt$householder_age)
     
@@ -564,7 +564,7 @@ createHouseholds <- function() {
     sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
     sam_hh[is.na(sex),("sex"):="Male"]
     
-    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
+    #saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
     
     #match income on own_rent, sorted by Foodstamps
     #concept: TENURE BY HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2017 INFLATION-ADJUSTED DOLLARS) - 1562813hh
@@ -823,7 +823,7 @@ createHouseholds <- function() {
     #just in case
     saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-11"
     saveRDS(sam_rent,file = paste0(housingdir, vintage, "/sam_rent_",Sys.Date(),".RDS")) #"2020-04-06"
-#start here again, and get partners right per family_type!!
+
     #gives unmarried partners, straight and same-sex concept: UNMARRIED-PARTNER HOUSEHOLDS BY SEX OF PARTNER 
     #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
     household_type_partners_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11009") #only unmarried but same sex included
@@ -838,7 +838,7 @@ createHouseholds <- function() {
     hh_partner_dt <- as.data.table(household_type_partners_data)
     hh_partner_dt[is.na(partner_type),("partner_type") := "Not a partner household"] 
     #make partner_ids, with Other family from family_type
-    hh_partner_dt[order(-unmarried),#match(c(unmarried,"Unmarried-partner households","All other households"))),
+    hh_partner_dt[order(match(unmarried,c("Unmarried-partner households","All other households"))),
                   ("partner_type_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
     sam_hh[order(match(family_type,c("Other family","Householder not living alone","Householder living alone","Married-couple family"))),
            ("partner_type_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
@@ -861,7 +861,6 @@ createHouseholds <- function() {
                               "rent_cash","rent_gross","rent_gross_high","rent_gross_low","hh_income_renters", #eventually assign numbers to rent and income
                               "hh_income_level","income_high","income_low","hh_education_level","number_vehicles_in_hh",
                               "number_workers_in_hh","partner_type","sex_partner")]
-    #do roles, then assign people??  
     
     
     #concept: HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP gives exact number (4525519) - it's a mess in the mutate; should be able to fix
@@ -928,7 +927,8 @@ createHouseholds <- function() {
       uncount(as.numeric(number_sams),.id = "sr_role_id")
     sr_relations <- as.data.table(household_seniors_relation_data)
     
-    hh_ages_dt <- as.data.table(bind_rows(kids_family_age_data,household_adults_relation_data))
+    #hh_ages_dt <- as.data.table(bind_rows(kids_family_age_data,household_adults_relation_data))
+    hh_ages_dt <- rbindlist(list(kids_family_age_data,household_adults_relation_data),fill = TRUE)
     hh_relations_dt[relative=="Householder" | relative=="Spouse" | family_role=="Unmarried partner",
                     ("relations_merged"):= "Householder_partner"]
     hh_ages_dt[relation_hh=="Householder living with spouse or spouse of householder" |
@@ -958,16 +958,16 @@ createHouseholds <- function() {
     hh_sr_ages <- sr_relations[hh_ages_dt,on="sr_relations_id"]
     hh_sr_ages[is.na(kid_age),("age_range"):=relation_age_range]
     hh_sr_ages[!is.na(kid_age),("age_range"):=kid_age]
-    hh_ages_exp <- bind_rows(hh_sr_ages,hh_relations_dt[family_role=="Adopted child" |
+    hh_ages_exp <- rbindlist(list(hh_sr_ages,hh_relations_dt[family_role=="Adopted child" |
                                                           family_role=="Foster child" | 
                                                           family_role=="Grandchild" | 
-                                                          family_role=="Stepchild"])
+                                                          family_role=="Stepchild"]),fill = TRUE)
     hh_ages_exp[is.na(age_range),("age_range"):="0 to 17 years"] #add to all moved over from hh_relations
     hh_ages_exp[is.na(age_range),("relations_merged"):="Younger relatives"]
     
     #hh_relations_dt[(group_quarters),("relations_merged"):="Group Quarters"]
     hh_ages_exp[is.na(tract),("tract"):=i.tract]
-    hh_ages_exp[is.na(relations_merged),("tract"):=i.relations_merged]
+    hh_ages_exp[is.na(relations_merged),("relations_merged"):=i.relations_merged]
     hh_ages_exp[order(match(relations_merged,c("Child","Younger relatives","Householder_partner","Other nonrelatives","Other relatives"))),
                 ("ages_exp_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
     hh_relations_dt[order(match(relations_merged,c("Child","Younger relatives","Householder_partner","Other nonrelatives","Other relatives"))),
@@ -1016,7 +1016,7 @@ createHouseholds <- function() {
            ("family_type"):="Other family"]
     sam_hh[as.numeric(substr(hh_size,1,1))==1 & family_type=="Married-couple family",
            ("hh_size"):=sample(c("2-person household","3-person household"),.N,replace = TRUE)]
-    sam_hh[as.numeric(substr(hh_size,1,1))>=2 & family_role == "Householder not living alone", ###OR ONE OF THE PARTNER TYPES??? AND CHANGE SEX
+    sam_hh[as.numeric(substr(hh_size,1,1))>=2 & partner_type!="Not a partner household", 
            ("hh_2_role"):="Unmarried partner"]
     sam_hh[family_type=="Married-couple family",("hh_2_role"):="Spouse"] #will be only Female
     sam_hh[,("age_range"):=householder_age_9] #so that the spouses and the hh will be close in age, once we randomize
@@ -1044,6 +1044,7 @@ createHouseholds <- function() {
     exp_sam[spouse_partner_id==2 & !is.na(sex_partner),("sex"):=sex_partner]
     exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("sex"):="Female"]
     exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("family_role"):="Spouse"]
+    exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("relation_hh_1"):="Spouse"]
     exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",
             c("spouse_id"):=list(paste0(tract,"spouse",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
     relations_dt_no_GQ[family_role=="Spouse",
@@ -1051,7 +1052,21 @@ createHouseholds <- function() {
     exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",("hh_2_id"):=relations_dt_no_GQ[.SD, list(relations_id),on=c("spouse_id")]]
     #sam_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(num_workers_id)]]
     exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("hh_2_role"):="self"] 
-    #misses less than 1% of the spouses, but not complete
+    relations_dt_no_spouse <- relations_dt_no_GQ[!relations_id %in% unique(exp_sam[,hh_2_id])]
+    #misses less than 1% (4,573) of the spouses, but not complete match
+    
+    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",c("family_role"):="Unmarried partner"]
+    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",c("relation_hh_1"):="Unmarried partner"]
+    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",
+            c("unmarried_partner_id"):=list(paste0(tract,"unm_p",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
+    relations_dt_no_spouse[family_role=="Unmarried partner" | family_role == "Spouse", #picking up the last ones
+                       c("unmarried_partner_id"):=list(paste0(tract,"unm_p",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
+    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",
+            ("hh_2_id"):=relations_dt_no_spouse[.SD, list(relations_id),on=c("unmarried_partner_id")]]
+    #sam_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(num_workers_id)]]
+    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",c("hh_2_role"):="self"]
+    relations_dt_no_partners <- relations_dt_no_spouse[!relations_id %in% unique(exp_sam[,hh_2_id])]
+    
     relations_dt_no_GQ[family_role=="Householder"]
     relations_dt_no_GQ[family_role=="Unmarried partner"] #twice as many as should be
     relations_dt_no_spouse <- relations_dt_no_GQ[!relations_id %in% unique(exp_sam[,hh_2_id])]
@@ -1892,7 +1907,7 @@ createHouseholds <- function() {
         sex_num := case_when(sex == "Male" ~ 0, sex == "Female" ~1)
       )
     
-    sam_marital_GQ <- bind_rows(sam_marital,GQ_sam) #bind them so that the PCA includes GQ by tract 
+    sam_marital_GQ <- rbindlist(list(sam_marital,GQ_sam),fill = TRUE) #bind them so that the PCA includes GQ by tract 
     sam_marital_DT <- as.data.table(sam_marital_GQ)
 
     #GQ doesn't include race, so it's imputed by the mean of the variable for the tract - which is reasonable, but not perfect.
