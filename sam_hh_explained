@@ -200,3 +200,6 @@ Householder 85 years and over
                          317364                          472821                          143095                          133369
                          
 
+#hh_2_role matches the family_role from the relations file - 
+
+#hh_2_id matches the relations_id, and is on the householder's record too - not the same as the individual_id we should make at end
