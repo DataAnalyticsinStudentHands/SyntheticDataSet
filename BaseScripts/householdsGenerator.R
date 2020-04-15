@@ -53,7 +53,8 @@ createHouseholds <- function() {
     #clean up variables
     #create factor levels
     
-
+#do the households first, then expand and match with individual level data 
+#start with household type, since it has lots of data associated with it, and with race for most variation that will help matching
     #gives 1562813; householders by tract is one of the base constants
     #concept: "HOUSEHOLD TYPE (INCLUDING LIVING ALONE) for acs_race_codes"
     household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
@@ -423,7 +424,7 @@ createHouseholds <- function() {
     #clean up and save sam_hh
     sam_hh <- hh_type_race_dt[,c("race","ethnicity","tract","family","family_type","hh_role","family_role",
                                  "householder_age","own_rent","housing_units","person_per_room","SNAP")]
-#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS"))
+#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.427",Sys.Date(),".RDS"))
     
     #ugh if you take the size and multiply it out, you get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!! Also matches total for housing_occup_hh_size
     #could be that householders not living alone (87550) should somehow be counted as having roommates; up to 330554-41220 / 87550 = 3.3 roommates on avg?
@@ -764,7 +765,7 @@ createHouseholds <- function() {
     
     
     #just in case
-#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-13"
+#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.768",Sys.Date(),".RDS")) #"2020-04-13"
 #    saveRDS(sam_rent,file = paste0(housingdir, vintage, "/sam_rent_",Sys.Date(),".RDS")) #"2020-04-06"
 
     #gives unmarried partners, straight and same-sex concept: UNMARRIED-PARTNER HOUSEHOLDS BY SEX OF PARTNER 
@@ -969,16 +970,24 @@ createHouseholds <- function() {
     
     
     
-#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-13"
+#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.973",Sys.Date(),".RDS")) #"2020-04-13"
 #    saveRDS(relations_dt,file = paste0(housingdir, vintage, "/relations_dt_",Sys.Date(),".RDS")) #"2020-04-13" 
     
     sam_hh[order(-age_range),c("hh_match_id"):=list(paste0(tract,"hh",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
     relations_dt[family_role=="Householder" & order(-age_range), 
                            c("hh_match_id"):=list(paste0(tract,"hh",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    sam_hh[("hh_1_id"):=relations_dt[.SD, list(relations_id),on=c("hh_match_id")]]
+    sam_hh[,c("hh_1_id","relations_age_range"):=relations_dt[.SD, c(list(relations_id),list(age_range)),on=c("hh_match_id")]]
+    sam_hh[is.na(hh_1_id),("hh1_match_id"):=list(paste0(tract,"hh1",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
+    relations_dt[relative=="Nonrelatives" & age_range!="0 to 17 years",("hh1_match_id"):=list(paste0(tract,"hh1",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
+    sam_hh[is.na(hh_1_id),c("hh_1_id","relations_age_range"):=relations_dt[.SD, c(list(relations_id),list(age_range)),on=c("hh1_match_id")]]
+    sam_hh[is.na(hh_1_id),("hh_rest_match_id"):=list(paste0("hh2",as.character(2000000+seq.int(1:.N))))]
+    #trying to pick up last 2k, and help balance for Spouse, below
+    relations_dt[family_role=="Housemate or roommate" | family_role== "Roomer or boarder",("hh_rest_match_id"):=list(paste0("hh2",as.character(2000000+seq.int(1:.N))))]
+    sam_hh[is.na(hh_1_id),c("hh_1_id","relations_age_range"):=relations_dt[.SD, c(list(relations_id),list(age_range)),on=c("hh_rest_match_id")]]
     relations_dt_no_hh <- relations_dt[!relations_id %in% unique(sam_hh[,hh_1_id])]
+    #still missing over 1k HH
     
-    #assuming we get to here, then the point is to move folks over into hh_2_role, hh_3_role, etc. 
+    #add group quarters folks 
     gq1 <- sr_relations[(group_or_hh=="In group quarters"),c("tract","group_or_hh")]
     gq2 <- relations_dt[(i.group_quarters)]
     gq3 <- rbindlist(list(gq2,gq1),fill = TRUE)
