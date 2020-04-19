@@ -15,6 +15,49 @@ library(ggplot2)
 #x<- rnorm(10)
 #moment(x)
 
+#calling it a metric example to explain role of individuals in their tracts, with relations that identify them
+#a metric is an opportunity - something that can be expanded into; 
+#providing opportunities is what you do when you transform a category in relation to the original metrice
+z <- as.integer(10000000)
+y <- 1:z
+x <- as.integer(z/10)
+w <- as.integer(z/9)
+v <- as.integer(z/4)
+u <- as.integer(z-(x+w+v))
+dt <- as.data.table(y)
+dt[,`:=`(factor_a=sample(c(rep("f1",x),rep("f2",w),rep("f3",v),rep("f4",u)),.N), #family
+         factor_b=sample(c(rep("g1",x),rep("g2",v),rep("g3",w),rep("g4",u)),.N),
+         factor_c=sample(c(rep("g1",x),rep("g2",v),rep("g3",w),rep("g4",u)),.N),
+         factor_d=sample(c(rep("g1",x+x),rep("g2",v-x),rep("g3",w),rep("g4",u)),.N),
+         factor_e=sample(c(rep("g1",x+w),rep("g2",v-w),rep("g3",w),rep("g4",u)),.N),
+         factor_f=sample(c(rep("g1",x+x),rep("g2",v),rep("g3",w-x),rep("g4",u)),.N),
+         factor_g=sample(c(rep("h1",v),rep("h2",w),rep("h3",w),rep("h4",u)),.N))]
+dt[,`:=`(a=as.numeric(substr(factor_a,2,2)),
+         b=as.numeric(substr(factor_b,2,2)),
+         c=as.numeric(substr(factor_c,2,2)))]
+dt[factor_a=="f4",("sub_a"):=sample(c(rep("f4a",w),rep("f4b",u-w)),.N)] #category only applies to part
+dt[factor_a=="f3",("sub_b"):=sample(c(rep("f3b",w),rep("f3a",v-w)),.N)]
+
+#instead of all possible combinations, give all combinations given by the two views on the hypersphere
+dt1 <- dt #make more of an example
+#although making random, here, idea is that there is a unique assignment for the underlying individuals
+dt1[,`:=`(race=sample(c(rep("A",x),rep("B",w),rep("C",v),rep("D",u)),.N),
+          ethnicity=sample(c(rep("H",w-x),rep("I",w+x+v),rep("_",u)),.N))]
+#now break them up to put them back together again
+dt2 <- dt1[,c("factor_a","factor_b","factor_e","sub_a","sub_b","race")]  
+dt3 <- dt1[,c("factor_b","factor_c","factor_e","sub_b","ethnicity")]
+#sort by common factors and assign id # for match
+#join by id - the more common factors, the more likely it is to match
+dt2[order(factor_b,factor_e,sub_b),("sort_id"):=paste0(factor_b,"_",seq.int(1:.N))]
+dt3[order(factor_b,factor_e,sub_b),("sort_id"):=paste0(factor_b,"_",seq.int(1:.N))]
+dt4 <- dt3[dt2,on="sort_id"]
+test <- table(dt1$race,dt1$ethnicity)==table(dt4$race,dt4$ethnicity)
+length(test[test==TRUE])/length(test)
+
+#we want to show building by race and then building by etchnicity
+#in sam - you have age_race, you have relation_hh, you have type_hh, occup_hh
+#expanding number of rows, then eliminating where there aren't any matches
+
 #have different bits of skew, too?
 
 
