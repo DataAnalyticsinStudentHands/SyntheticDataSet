@@ -57,6 +57,47 @@ exp_census <- function() {
     #in general, the ethnicity stuff allows for several answers on the sub-categories - if you could distribute them easily across sufficient
     #categories, you could resolve, but we don't have enough - and ethnicity is an ill-defined category, poorly applied in the moment
     #gives 1562813; householders by tract is one of the base constants, with hh X race and X ethnicity stable
+    
+    
+    #concept: TENURE (householder rents or owns)
+    housing_occup_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25003") #of occup, own or rent by race
+    occupied_race_data <- housing_occup_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(own_rent = label) %>%
+      filter(race %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_race_id",.remove = TRUE)
+    occupied_race_dt <- as.data.table(occupied_race_data)
+    
+    occupied_eth_data <- housing_occup_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(housing_occup_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(ethnicity = substr(name,7,7)) %>%
+      rename(own_rent = label) %>%
+      filter(!ethnicity %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "own_ethnicity_race_id",.remove = TRUE)
+    occupied_eth_dt <- as.data.table(occupied_eth_data)
+    occupied_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,own_rent)]
+    occupied_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,own_rent)]
+    occupied_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE)]
+    occupied_eth_dt <- occupied_eth_dt[(tokeep)]
+    test <- table(occupied_eth_dt$tract,occupied_eth_dt$own_rent)==table(occupied_race_dt$tract,occupied_race_dt$own_rent)
+    length(test[test==TRUE])/length(test)
+    
+                                  #this is what I did when trying to keep race and ethnicity together - lost a lot of granularity, but better than just by percentages
+                                  #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
+                                  occupied_race_dt[order(match(race,c("A","F","G","C","B","E","D"))),
+                                                   ("num_eth_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
+                                  occupied_eth_dt[order(match(ethnicity,c("H","I","_"))),
+                                                  ("num_eth_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
+                                  occupied_race_dt[,c("ethnicity") := occupied_eth_dt[.SD, list(ethnicity), on = .(tract,own_rent,num_eth_id)]]
+                                  #test <- table(occupied_race_dt$tract,occupied_race_dt$race,occupied_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
+                                  #then match on race, ethnicity both each time - if tables don't match, need an overarching count that can be matched...like just ethnicity
+    
+    
     #concept: "HOUSEHOLD TYPE (INCLUDING LIVING ALONE) for acs_race_codes"
     household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
     household_type_race_data <- household_type_race_from_census %>%
@@ -94,7 +135,6 @@ exp_census <- function() {
       filter(!is.na(family_role)) %>%
       filter(number_sams > 0 & !ethnicity %in% acs_race_codes) %>%
       uncount(as.numeric(number_sams),.id = "hh_type_ethnicity_id")
-    #do the id trick so that whitealone, but order ethnicity by H, I and then order race_adj by A,F,G,etc. with percentages of each, then the remaining
     hh_type_ethnicity_dt <- as.data.table(household_type_ethnicity_data)
     hh_type_ethnicity_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,family_role)]
     hh_type_ethnicity_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,family_role)]
@@ -110,43 +150,6 @@ exp_census <- function() {
                       #join back to hh_type_race - ethnicity is really just hispanic and white, not hispanic
                       hh_type_race_dt[,c("ethnicity") := hh_type_eth_dt[.SD, list(ethnicity), on = .(tract,family_role,num_eth_id)]]
                       #could compare this to going through the extra steps to make it a certain likelihood to encounter each race by hispanic, but that would actually introduce the idea that the sample is from the whole population...
-    
-    #concept: TENURE (householder rents or owns)
-    housing_occup_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25003") #of occup, own or rent by race
-    occupied_race_data <- housing_occup_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_occup_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(race = substr(name,7,7)) %>%
-      rename(own_rent = label) %>%
-      filter(race %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_race_id",.remove = TRUE)
-    occupied_race_dt <- as.data.table(occupied_race_data)
-    
-    occupied_eth_data <- housing_occup_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_occup_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(ethnicity = substr(name,7,7)) %>%
-      rename(own_rent = label) %>%
-      filter(!ethnicity %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "own_ethnicity_race_id",.remove = TRUE)
-    occupied_eth_dt <- as.data.table(occupied_eth_data)
-    occupied_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,own_rent)]
-    occupied_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,own_rent)]
-    occupied_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE)]
-    occupied_eth_dt <- occupied_eth_dt[(tokeep)]
-    test <- table(occupied_eth_dt$tract,occupied_eth_dt$own_rent)==table(occupied_race_dt$tract,occupied_race_dt$own_rent)
-    length(test[test==TRUE])/length(test)
-    
-                      #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
-                      occupied_race_dt[order(match(race,c("A","F","G","C","B","E","D"))),
-                                      ("num_eth_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-                      occupied_eth_dt[order(match(ethnicity,c("H","I","_"))),
-                                     ("num_eth_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-                      occupied_race_dt[,c("ethnicity") := occupied_eth_dt[.SD, list(ethnicity), on = .(tract,own_rent,num_eth_id)]]
-                      #test <- table(occupied_race_dt$tract,occupied_race_dt$race,occupied_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
-                  #then match on race, ethnicity both each time - if tables don't match, need an overarching count that can be matched...like just ethnicity
     
     housing_occup_hhtype_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25011") #of occup, own or rent by household type
     housing_occup_hhtype_data <- housing_occup_hhtype_from_census %>%

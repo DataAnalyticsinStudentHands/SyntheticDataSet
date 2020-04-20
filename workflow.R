@@ -16,7 +16,8 @@ housingStockFromRDS = TRUE
 state = 48
 county = 201
 tract = "*"
-set.seed(135) # I don't think that's permanent - have to reinvoke for each scope??
+seed = 135
+set.seed(seed = seed) # I don't think that's permanent - have to reinvoke for each scope??
 
 #let's create SAM
 sam <- createBaseSAM(censusdir, housingdir, vintage, 

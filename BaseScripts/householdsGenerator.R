@@ -36,6 +36,63 @@ createHouseholds <- function() {
     ####
     #join hh_age_dt (householder_age_9) to occup_type_dt by own_rent and age - there's minimum info lost, just detail on age assigned at random inside category and tract
     #test <- table(hh_age_dt$tract,hh_age_dt$own_rent)==table(occup_type_dt$tract,occup_type_dt$own_rent)
+###FIGURE OUT WHAT HAPPENS TO OWN_RENT AND TO NUM_STRUCTURES - START BY MAKING SURE WE'RE USING RACE/ETH RIGHT FROM START
+
+    #race x owner is below!!! - start with occupied_race_dt
+###    occupied_race_dt with occup_type_dt 
+    sam_race_hh <- occupied_race_dt[,c("tract","race","own_rent")]
+    sam_eth_hh <- occupied_eth_dt[,c("tract","ethnicity","own_rent")]
+    #sample inside group for id generation, in case there's oddness - set.seed(seed = seed) doesn't seem worth repeating every time
+    #rule is to match until have a degree of freedom, sample in that group on each and then designate - ideal is to add only one
+    #think of it as a sort of triangulation repeated
+    #coordinate family_type back to own_rent, so that hh_type_race has an own_rent on it to match later
+    occup_type_dt[order(match(family_type,c("Householder living alone","Householder not living alone",
+                                            "Married-couple family","Other family")),
+                        match(single_hh_sex,c("Female householder no husband present",
+                                              "Male householder no wife present"))),
+                  ("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+                  by=.(tract,family_type,single_hh_sex)]
+    hh_type_race_dt[order(match(family_type,c("Householder living alone","Householder not living alone",
+                                              "Married-couple family","Other family")),
+                          match(single_hh_sex,c("Female householder no husband present",
+                                                "Male householder no wife present"))),
+                    ("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+                    by=.(tract,family_type,single_hh_sex)]
+    hh_type_race_dt[,c("own_rent"):=
+                  occup_type_dt[.SD, list(own_rent), on = .(rent_type_id)]]
+    hh_type_race_dt[,("rent_type_id"):=NULL]
+    hh_type_eth_dt[order(match(family_type,c("Householder living alone","Householder not living alone",
+                                             "Married-couple family","Other family")),
+                         match(single_hh_sex,c("Female householder no husband present",
+                                               "Male householder no wife present"))),
+                   ("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+                   by=.(tract,family_type,single_hh_sex)]
+    hh_type_eth_dt[,c("own_rent"):=
+                      occup_type_dt[.SD, list(own_rent), on = .(rent_type_id)]]
+    hh_type_eth_dt[,("rent_type_id"):=NULL]
+    
+    #add family_type info to sam_hh
+    sam_race_hh[order(race),
+             ("race_id"):=paste0(tract,race,as.character(1000000+sample(.N))),by=.(tract,race)]
+    hh_type_race_dt[order(race),
+                    ("race_id"):=paste0(tract,race,as.character(1000000+sample(.N))),by=.(tract,race)]
+    sam_race_hh[,c("own_rent","family","family_type","family_role","single_hh_sex"):=
+                  hh_type_race_dt[.SD, c(list(own_rent),list(family),list(family_type),list(family_role),list(single_hh_sex)), 
+                                  on = .(race_id)]]
+    sam_race_hh[,("race_id"):=NULL]
+    sam_eth_hh[order(ethnicity),
+             ("ethnicity_id"):=paste0(tract,ethnicity,as.character(1000000+sample(.N))),by=.(tract,ethnicity)]
+    hh_type_eth_dt[order(ethnicity),
+               ("ethnicity_id"):=paste0(tract,ethnicity,as.character(1000000+sample(.N))),by=.(tract,ethnicity)]
+    sam_eth_hh[,c("own_rent","family","family_type","family_role","single_hh_sex"):=
+                 hh_type_eth_dt[.SD, c(list(own_rent),list(family),list(family_type),list(family_role),list(single_hh_sex)), 
+                                on = .(ethnicity_id)]]
+    sam_eth_hh[,("ethnicity_id"):=NULL]
+    #test <- table(sam_race_hh$tract,sam_race_hh$race,sam_race_hh$family,sam_race_hh$family_type,sam_race_hh$single_hh_sex)==
+    #  table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$family,hh_type_race_dt$family_type,hh_type_race_dt$single_hh_sex)
+    #length(test[test==FALSE])/length(test)
+    
+#add householder_age_9 to occup_type_dt - (just a specification inside householder age, here with own_rent)
     occup_type_dt[order(match(own_rent,c("Owner occupied","Renter occupied")),
                         match(householder_age,c("Householder 15 to 34 years","Householder 35 to 64 years", "Householder 65 years and over"))),
                   ("num_type_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
@@ -43,38 +100,41 @@ createHouseholds <- function() {
                     match(householder_age_9,c("Householder 15 to 24 years","Householder 25 to 34 years","Householder 35 to 44 years",
                                               "Householder 45 to 54 years","Householder 55 to 59 years","Householder 60 to 64 years",
                                               "Householder 65 to 74 years","Householder 75 to 84 years"))),
-                  ("num_type_id"):=paste0(tract,own_rent,as.character(1000000++seq.int(1:.N))),by=.(tract,own_rent)]
+              ("num_type_id"):=paste0(tract,own_rent,as.character(1000000++seq.int(1:.N))),by=.(tract,own_rent)]
     occup_type_dt[,c("householder_age_9"):=hh_age_dt[.SD, list(householder_age_9), on = .(num_type_id)]]
     #test <- table(hh_age_dt$tract,hh_age_dt$householder_age_9)==table(occup_type_dt$tract,occup_type_dt$householder_age_9)
     
-    #join that to hh_type_dt by family, family_type, family_role, single_hh_sex
-    #test <- table(hh_type_race_dt$tract,hh_type_race_dt$family_type,hh_type_race_dt$single_hh_sex)==table(occup_type_dt$tract,occup_type_dt$family_type,occup_type_dt$single_hh_sex)
-    occup_type_dt[order(match(family,c("Family households","Nonfamily households")),
-                        match(family_type,c("Householder living alone","Householder not living alone", 
-                                            "Married-couple family","Other family")),
-                        match(single_hh_sex,c("Female householder no husband present","Male householder no wife present"))),
-                  ("fam_type_id"):=paste0(tract,family,family_type,single_hh_sex,as.character(1000000+seq.int(1:.N))),
-                  by=.(tract,family,family_type,single_hh_sex)]
-    hh_type_race_dt[order(match(family,c("Family households","Nonfamily households")),
-                          match(family_type,c("Householder living alone","Householder not living alone", 
-                                              "Married-couple family","Other family")),
-                          match(single_hh_sex,c("Female householder no husband present","Male householder no wife present"))),
-                    ("fam_type_id"):=paste0(tract,family,family_type,single_hh_sex,as.character(1000000+seq.int(1:.N))),
-                    by=.(tract,family,family_type,single_hh_sex)]
-    #moved into:
-    hh_type_race_dt[,c("own_rent","householder_age_3","householder_age_9"):=occup_type_dt[.SD, 
-                    c(list(own_rent),list(householder_age),list(householder_age_9)), on = .(fam_type_id)]]
-    hh_type_eth_dt[order(match(family,c("Family households","Nonfamily households")),
-                          match(family_type,c("Householder living alone","Householder not living alone", 
-                                              "Married-couple family","Other family")),
-                          match(single_hh_sex,c("Female householder no husband present","Male householder no wife present"))),
-                    ("fam_type_id"):=paste0(tract,family,family_type,single_hh_sex,as.character(1000000+seq.int(1:.N))),
-                    by=.(tract,family,family_type,single_hh_sex)]
-    #moved into:
-    hh_type_eth_dt[,c("own_rent","householder_age_3","householder_age_9"):=
-                      occup_type_dt[.SD,c(list(own_rent),list(householder_age),list(householder_age_9)), on = .(fam_type_id)]]
-    #test<-table(hh_type_race_dt$tract,hh_type_race_dt$own_rent,hh_type_race_dt$householder_age_9)==table(occup_type_dt$tract,occup_type_dt$own_rent,occup_type_dt$householder_age_9)
-    #test<-table(occup_type_dt$tract,occup_type_dt$own_rent,occup_type_dt$householder_age_9)==table(hh_type_eth_dt$tract,hh_type_eth_dt$own_rent,hh_type_eth_dt$householder_age_9)
+#add householder_age (3 labels) and householder_age_9  
+    sam_race_hh[order(match(own_rent,c("Owner occupied","Renter occupied")),
+                      match(family_type,c("Householder living alone","Householder not living alone",
+                                          "Married-couple family","Other family")),
+                      match(single_hh_sex,c("Female householder no husband present",
+                                            "Male householder no wife present"))),
+             ("rent_type_id"):=paste0(tract,own_rent,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+             by=.(tract,own_rent,family_type,single_hh_sex)]
+    occup_type_dt[order(match(own_rent,c("Owner occupied","Renter occupied")),
+                      match(family_type,c("Householder living alone","Householder not living alone",
+                                          "Married-couple family","Other family")),
+                      match(single_hh_sex,c("Female householder no husband present",
+                                            "Male householder no wife present"))),
+                ("rent_type_id"):=paste0(tract,own_rent,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+                by=.(tract,own_rent,family_type,single_hh_sex)]
+    sam_race_hh[,c("householder_age_3","householder_age_9"):=
+                  occup_type_dt[.SD, c(list(householder_age),list(householder_age_9)), on = .(rent_type_id)]]
+    sam_race_hh[,("rent_type_id"):=NULL]
+    sam_eth_hh[order(match(own_rent,c("Owner occupied","Renter occupied")),
+                     match(family_type,c("Householder living alone","Householder not living alone",
+                                         "Married-couple family","Other family")),
+                     match(single_hh_sex,c("Female householder no husband present",
+                                           "Male householder no wife present"))),
+               ("rent_type_id"):=paste0(tract,own_rent,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+               by=.(tract,own_rent,family_type,single_hh_sex)]
+    sam_eth_hh[,c("householder_age_3","householder_age_9"):=
+                  occup_type_dt[.SD, c(list(householder_age),list(householder_age_9)), on = .(rent_type_id)]]
+    sam_eth_hh[,("rent_type_id"):=NULL]
+    #test <- table(sam_race_hh$tract,sam_race_hh$own_rent,sam_race_hh$householder_age_9)==
+    #        table(occup_type_dt$tract,occup_type_dt$own_rent,occup_type_dt$householder_age_9)
+    #length(test[test==FALSE])/length(test)
     
     #add family type for housing units to housing units by rent_own and by race
     #housing units no hh_type need to match
@@ -106,60 +166,92 @@ createHouseholds <- function() {
                                                       "50 or more","Boat RV van etc.","Mobile home")))),
                          ("num_units_id"):=paste0(tract,housing_units,as.character(1000000+seq.int(1:.N))),by=.(tract,housing_units)]
     #move to race and eth:
-    housing_units_race_dt[,c("own_rent","family_role_4"):=
-                            housing_units_rent_dt[.SD,c(list(own_rent),list(family_role_4)), on = .(num_units_id)]]
-    housing_units_eth_dt[,c("own_rent","family_role_4"):=
-                           housing_units_rent_dt[.SD,c(list(own_rent),list(family_role_4)), on = .(num_units_id)]]
+    housing_units_race_dt[,c("own_rent","num_structures","family_role_4"):=
+                            housing_units_rent_dt[.SD,c(list(own_rent),list(num_structures),list(family_role_4)), on = .(num_units_id)]]
+    housing_units_eth_dt[,c("own_rent","num_structures","family_role_4"):=
+                           housing_units_rent_dt[.SD,c(list(own_rent),list(num_structures),list(family_role_4)), on = .(num_units_id)]]
     #family_role_4 := if_else(family_role=="Householder living alone" | family_role=="Householder not living alone","Nonfamily households")
         
-    #add units to type
+#add units to type
     
     hh_type_eth_dt[,("family_role_4"):=if_else(family_role=="Householder living alone" | family_role=="Householder not living alone",
                                                "Nonfamily households",family_role)]
-    hh_type_eth_dt[order(match(own_rent,c("Owner occupied","Renter occupied")),
+    hh_type_eth_dt[order(ethnicity,
+                         match(own_rent,c("Owner occupied","Renter occupied")),
                          match(family_role_4,c("Female householder no husband present",
                                                "Male householder no wife present",
                                                "Married-couple family","Nonfamily households"))),
-                   ("fam_units_id"):=paste0(tract,family_role_4,as.character(1000000+seq.int(1:.N))),
-                   by=.(tract,family_role_4)]
+                   ("fam_units_id"):=paste0(tract,ethnicity,family_role_4,as.character(1000000+seq.int(1:.N))),
+                   by=.(tract,ethnicity,family_role_4)]
     
     hh_type_race_dt[,("family_role_4"):=if_else(family_role=="Householder living alone" | family_role=="Householder not living alone",
                                                 "Nonfamily households",family_role)]
-    hh_type_race_dt[order(match(own_rent,c("Owner occupied","Renter occupied")),
+    hh_type_race_dt[order(race,
+                          match(own_rent,c("Owner occupied","Renter occupied")),
                           match(family_role_4,c("Female householder no husband present",
                                                 "Male householder no wife present",
                                                 "Married-couple family","Nonfamily households"))),
-                    ("fam_units_id"):=paste0(tract,family_role_4,as.character(1000000+seq.int(1:.N))),
-                    by=.(tract,family_role_4)]
+                    ("fam_units_id"):=paste0(tract,race,family_role_4,as.character(1000000+seq.int(1:.N))),
+                    by=.(tract,race,family_role_4)]
     
     #housing_units_eth_dt has fewer family_role_4 because non-H and non-I didn't have any...
     #table(housing_units_rent_dt$tract,housing_units_rent_dt$family_role_4,housing_units_rent_dt$own_rent,housing_units_rent_dt$housing_units)==table(housing_units_race_dt$tract,housing_units_race_dt$family_role_4,housing_units_race_dt$own_rent,housing_units_race_dt$housing_units)
-    housing_units_race_dt[order(match(own_rent,c("Owner occupied","Renter occupied")),
+    housing_units_race_dt[order(race,
+                                match(own_rent,c("Owner occupied","Renter occupied")),
                                 match(family_role_4,c("Female householder no husband present",
                                                       "Male householder no wife present",
                                                       "Married-couple family","Nonfamily households"))),
-                          ("fam_units_id"):=paste0(tract,family_role_4,as.character(1000000+seq.int(1:.N))),
-                          by=.(tract,family_role_4)]
-    housing_units_eth_dt[order(match(own_rent,c("Owner occupied","Renter occupied")),
+                          ("fam_units_id"):=paste0(tract,race,family_role_4,as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,race,family_role_4)]
+    housing_units_eth_dt[order(ethnicity,
+                               match(own_rent,c("Owner occupied","Renter occupied")),
                                match(family_role_4,c("Female householder no husband present",
                                                      "Male householder no wife present",
                                                      "Married-couple family","Nonfamily households"))),
-                         ("fam_units_id"):=paste0(tract,family_role_4,as.character(1000000+seq.int(1:.N))),
-                         by=.(tract,family_role_4)]
+                         ("fam_units_id"):=paste0(tract,ethnicity,family_role_4,as.character(1000000+seq.int(1:.N))),
+                         by=.(tract,ethnicity,family_role_4)]
     
-#moved into type - overriding own_rent, although should have gone back and figured it out...
-    hh_type_race_dt[,c("housing_units","own_rent"):=
-                            housing_units_race_dt[.SD, c(list(housing_units),list(own_rent)), on = .(fam_units_id)]]
-    hh_type_eth_dt[,c("housing_units","own_rent"):=
-                           housing_units_eth_dt[.SD, c(list(housing_units),list(own_rent)), on = .(fam_units_id)]]
+#move into type - overriding own_rent, although should have gone back and figured it out...
+    hh_type_race_dt[,c("housing_units","num_structures","own_rent"):=
+                            housing_units_race_dt[.SD, c(list(housing_units),list(num_structures),list(own_rent)), on = .(fam_units_id)]]
+    hh_type_eth_dt[,c("housing_units","num_structures","own_rent"):=
+                           housing_units_eth_dt[.SD, c(list(housing_units),list(num_structures),list(own_rent)), on = .(fam_units_id)]]
  #eth has NAs on housing_units for "_"   
     #table(hh_type_race_dt$tract,hh_type_race_dt$housing_units)==table(housing_units_race_dt$tract,housing_units_race_dt$housing_units) TRUE, but own_rent is not (it balances overall...)
     
-    #then add per_room
-      
+    
+#then add per_room
+    #test <- table(housing_per_room_race_dt$tract,housing_per_room_race_dt$race,housing_per_room_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
+    #length(test[test==FALSE])/length(test) = 0.051
+    housing_per_room_race_dt[(order(match(num_per,c("<1",">1")))),
+                          ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
+    housing_per_room_eth_dt[(order(match(num_per,c("<1",">1")))),
+                             ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
+    housing_per_room_rent_dt[(order(match(num_per,c("<1",">1")))),
+                          ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
+    housing_per_room_race_dt[,c("own_rent","person_per_room") := housing_per_room_rent_dt[.SD, c(list(own_rent),list(num_per_room)), 
+                                                                  on = .(tract,num_per,num_units_id)]]
+    housing_per_room_eth_dt[,c("own_rent","person_per_room") := housing_per_room_rent_dt[.SD, c(list(own_rent),list(num_per_room)), 
+                                                                                          on = .(tract,num_per,num_units_id)]]
+    #test: table(housing_per_room_race_dt$tract,housing_per_room_race_dt$own_rent)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent)
+    housing_per_room_age_dt[(order(match(num_per,c("<1",">1")))),
+                             ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
+    housing_per_room_race_dt[(order(match(num_per,c("<1",">1")))),
+                             ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
+    housing_per_room_eth_dt[(order(match(num_per,c("<1",">1")))),
+                             ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
+    housing_per_room_race_dt[,c("householder_age_3") := 
+                      housing_per_room_age_dt[.SD, c(list(householder_age)), on = .(num_rms_id)]]
+    housing_per_room_eth_dt[,c("householder_age_3") := 
+                      housing_per_room_age_dt[.SD, c(list(householder_age)), on = .(num_rms_id)]]
     
     
-  #remember to get gender and race/ethnicity as late as possible with other things feeding into it
+    #move to hh_type - use own_rent, householder_age_3 and race/ethnicity for match
+    housing_per_room_race_dt
+    hh_type_race_dt
+    housing_per_room_eth_dt
+    hh_type_eth_dt
+    
     
     #merge the ones with race first then the ones with ethnicity, then do a merge on all those factors for ethnicity back to race...
     sex_age_race
@@ -172,223 +264,12 @@ createHouseholds <- function() {
     #JOIN sex_age by race to marital, then by age (descending on age, not age_range) to sex_age
     #then join sex_age by ethnicity to marital, then by age to sex_age
     #then join sex_age to household stuff....
-
-    
-    
-
-
-    #test <- table(occupied_race_dt$tract,occupied_race_dt$family_type)==table(hh_type_race_dt$tract,hh_type_race_dt$family_type)
-    
-    
-    #ethnicity
-#    hh_type_eth_dt# "race" "family"  "family_type" "family_role" "single_hh_sex"  "tract"
-#    occupied_eth_dt #"own_rent" "ethnicity" "tract"
-#    occup_type_dt #"own_rent"  "family" "family_type" "partner_present" "householder_age"   "tract"
-#    housing_units_eth_dt #ethnicity, housing_units, tract
-#    housing_units_rent_dt #own_rent housing_units, tract
-#    hh_age_dt - own_rent householder_age_9
     
     
     
     
     
     
-    
-    
-    
-        
-
-    #concept: UNITS IN STRUCTURE x race in acs_race_codes
-    #can we get percentage own_rent by number of units from HCAD somehow?
-    housing_units_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25032") #units in structure by race
-    housing_units_race_data <- housing_units_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_units_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(race = substr(name,7,7)) %>%
-      rename(housing_units = label) %>%
-      filter(race %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "housing_units_race_id",.remove = TRUE)
-    housing_units_eth_data <- housing_units_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      filter(label != "Owner-occupied housing units") %>%
-      filter(label != "Renter-occupied housing units") %>%
-      pivot_longer(4:ncol(housing_units_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("owner_renter","housing_units"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(ethnicity = substr(name,7,7),
-             housing_units = if_else(is.na(housing_units),owner_renter,housing_units),
-             own_rent = case_when(str_detect(owner_renter,"Owner") ~ "Owner occupied",
-                                  str_detect(owner_renter,"Renter") ~ "Renter occupied")) %>%
-      filter(!ethnicity %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "units_ethnicity_race_id",.remove = TRUE)
-    housing_units_rent_data <- housing_units_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_units_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("owner_renter","housing_units"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(own_rent = case_when(str_detect(owner_renter,"Owner") ~ "Owner occupied",
-                                  str_detect(owner_renter,"Renter") ~ "Renter occupied")) %>%
-      filter(!is.na(housing_units)) %>%
-      uncount(as.numeric(number_sams),.id = "units_rent_race_id",.remove = TRUE)
-
-        
-    #test: table(housing_units_race_data$tract,housing_units_race_data$housing_units)==table(housing_units_rent_data$tract,housing_units_rent_data$housing_units)
-    housing_units_race_dt <- as.data.table(housing_units_race_data)
-    housing_units_eth_dt <- as.data.table(housing_units_eth_data)
-    housing_units_rent_dt <- as.data.table(housing_units_rent_data)
-    housing_units_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,housing_units)]
-    housing_units_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,housing_units)]
-    housing_units_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,housing_units)]
-    housing_units_eth_dt <- housing_units_eth_dt[(tokeep)]
-    housing_units_race_dt[(order(match(race,c("A","F","G","C","B","E","D")))),
-                     ("num_eth_id"):=paste0(tract,housing_units,as.character(1000000+seq.int(1:.N))),by=.(tract,housing_units)]
-    housing_units_eth_dt[order(match(ethnicity,c("H","I","_"))),
-                    ("num_eth_id"):=paste0(tract,housing_units,as.character(1000000+seq.int(1:.N))),by=.(tract,housing_units)]
-    housing_units_race_dt[,c("ethnicity") := housing_units_eth_dt[.SD, list(ethnicity), on = .(num_eth_id)]]
-    #test <- table(housing_units_race_dt$tract,housing_units_race_dt$race,housing_units_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
-    #length(test[test==FALSE])/length(test) = 0.047
-    housing_units_race_dt[(order(match(housing_units,c("1 attached","1 detached","10 to 19","2","20 to 49",
-                                                       "3 or 4","5 to 9","50 or more","Boat RV van etc.","Mobile home")))),
-                          ("num_units_id"):=paste0(tract,housing_units,as.character(1000000+seq.int(1:.N))),by=.(tract,housing_units)]
-    housing_units_rent_dt[(order(match(housing_units,c("1 attached","1 detached","10 to 19","2","20 to 49",
-                                                       "3 or 4","5 to 9","50 or more","Boat RV van etc.","Mobile home")))),
-                          ("num_units_id"):=paste0(tract,housing_units,as.character(1000000+seq.int(1:.N))),by=.(tract,housing_units)]
-    housing_units_race_dt[,c("own_rent") := housing_units_rent_dt[.SD, list(own_rent), on = .(tract,housing_units,num_units_id)]]
-    #test: table(housing_units_race_dt$tract,housing_units_race_dt$own_rent)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent)
-    #need to add an id with it sorted by race, ethnicity, own_rent, family_type - for both
-    housing_units_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                            match(ethnicity,c("H","I")), #ethnicity has just a couple of tracts that don't match - sort to keep them in order
-                            match(own_rent,c("Owner occupied","Renter occupied"))
-    )),
-    ("hh_units_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-    by=.(tract,own_rent)]
-    hh_type_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                           match(ethnicity,c("H","I")),
-                           match(own_rent,c("Owner occupied","Renter occupied"))
-    )),
-    ("hh_units_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-    by=.(tract,own_rent)]
-    hh_type_race_dt[,c("housing_units") := 
-                      housing_units_race_dt[.SD, c(list(housing_units)), on = .(hh_units_id)]]
-    #test: table(occupied_race_dt$tract,occupied_race_dt$householder_age)==table(hh_type_race_dt$tract,hh_type_race_dt$householder_age)
-  
-    #concept: TENURE BY OCCUPANTS PER ROOM, 1562813 (all hh) --only gives either >1 or <1 for each race
-    housing_per_room_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25014") #ratio per tract occup per/room/race
-    housing_per_room_race_data <- housing_per_room_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      rename(num_per_room=label) %>%
-      mutate(race = substr(name,7,7),
-             num_per = case_when(
-               num_per_room=="1.00 or less occupants per room" ~ "<1",
-               num_per_room=="1.01 or more occupants per room" ~ ">1"
-             )) %>%
-      filter(race %in% acs_race_codes & number_sams>0) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_num_per_rooms_id",.remove = TRUE)
-    #ethnicity
-    housing_per_room_eth_data <- housing_per_room_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      filter(label != "Owner occupied") %>%
-      filter(label != "Renter occupied") %>%
-      pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(ethnicity = substr(name,7,7),
-             num_per_room = if_else(is.na(num_per_room),own_rent,num_per_room),
-             num_per = case_when(
-               num_per_room=="1.00 or less occupants per room" ~ "<1",
-               num_per_room=="1.01 or more occupants per room" ~ ">1",
-               num_per_room=="0.50 or less occupants per room" ~ "<1",
-               num_per_room=="0.51 to 1.00 occupants per room" ~ "<1",
-               num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
-               num_per_room=="1.51 to 2.00 occupants per room" ~ ">1",
-               num_per_room=="2.01 or more occupants per room" ~ ">1"
-             )) %>%
-      filter(!ethnicity %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "per_room_ethnicity_race_id",.remove = TRUE)
-    #same one, for diff. part - five categories for per_room, but no diff. by race - could just move over by sampling...; it also has own_rent
-    housing_per_room_rent_data <- housing_per_room_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(race = substr(name,7,7),
-             num_per = case_when(
-               num_per_room=="0.50 or less occupants per room" ~ "<1",
-               num_per_room=="0.51 to 1.00 occupants per room" ~ "<1",
-               num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
-               num_per_room=="1.51 to 2.00 occupants per room" ~ ">1",
-               num_per_room=="2.01 or more occupants per room" ~ ">1"
-             )) %>%
-      filter(!is.na(num_per_room) & number_sams > 0) %>% 
-      uncount(as.numeric(number_sams),.id = "own_rent_num_per_rooms_id",.remove = TRUE)
-    #concept is: TENURE BY AGE OF HOUSEHOLDER BY OCCUPANTS PER ROOM
-    #num_per_room is different, but can be aggregated to match above 
-    #                                       1.00 or less occupants per room 1.01 to 1.50 occupants per room 1.51 or more occupants per room
-    #Householder 15 to 34 years                             350128                           22772                            8214
-    #Householder 35 to 64 years                             871976                           39863                           14692
-    #Householder 65 years and over                          251823                            2277                            1068
-    housing_per_room_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25015") #ratio per tract occup per/room/race
-    housing_per_room_age_data <- housing_per_room_age_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_per_room_age_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","householder_age", "num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(num_per = case_when(
-               num_per_room=="1.00 or less occupants per room" ~ "<1",
-               num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
-               num_per_room=="1.51 or more occupants per room" ~ ">1"
-             )) %>%
-      filter(!is.na(num_per_room) & number_sams > 0) %>% #seems to keep num_per_room only for all age totals, not individual age
-      uncount(as.numeric(number_sams),.id = "own_rent_age_per_rooms_id",.remove = TRUE)
-    
-    housing_per_room_age_dt <- as.data.table(housing_per_room_age_data)
-    housing_per_room_race_dt <- as.data.table(housing_per_room_race_data)
-    housing_per_room_eth_dt <- as.data.table(housing_per_room_eth_data)
-    housing_per_room_rent_dt <- as.data.table(housing_per_room_rent_data)
-    housing_per_room_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,num_per)]
-    housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,num_per)]
-    housing_per_room_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,num_per)]
-    housing_per_room_eth_dt <- housing_per_room_eth_dt[(tokeep)]
-    housing_per_room_race_dt[(order(match(race,c("A","F","G","C","B","E","D")))),
-                          ("num_eth_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
-    housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),
-                         ("num_eth_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
-    housing_per_room_race_dt[,c("ethnicity") := housing_per_room_eth_dt[.SD, list(ethnicity), on = .(num_eth_id)]]
-    #test <- table(housing_per_room_race_dt$tract,housing_per_room_race_dt$race,housing_per_room_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
-    #length(test[test==FALSE])/length(test) = 0.051
-    housing_per_room_race_dt[(order(match(num_per,c("<1",">1")))),
-                          ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
-    housing_per_room_rent_dt[(order(match(num_per,c("<1",">1")))),
-                          ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
-    housing_per_room_race_dt[,c("own_rent","person_per_room") := housing_per_room_rent_dt[.SD, c(list(own_rent),list(num_per_room)), 
-                                                                  on = .(tract,num_per,num_units_id)]]
-    #test: table(housing_per_room_race_dt$tract,housing_per_room_race_dt$own_rent)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent)
-    housing_per_room_age_dt[(order(match(num_per,c("<1",">1")))),
-                             ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
-    housing_per_room_race_dt[(order(match(num_per,c("<1",">1")))),
-                             ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
-    housing_per_room_race_dt[,c("householder_age") := 
-                      housing_per_room_age_dt[.SD, c(list(householder_age)), on = .(num_rms_id)]]
-    #test: table(housing_per_room_age_dt$tract,housing_per_room_age_dt$householder_age)==table(housing_per_room_age_dt$tract,housing_per_room_age_dt$householder_age)
-    housing_per_room_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                                 match(ethnicity,c("H","I")), #ethnicity has just a couple of tracts that don't match - sort to keep them in order
-                                 match(own_rent,c("Owner occupied","Renter occupied")),
-                                 match(householder_age,c("Householder 15 to 34 years","Householder 35 to 64 years","Householder 65 years and over"))
-    )),
-    ("hh_per_room_id"):=paste0(tract,own_rent,householder_age,as.character(1000000+sample(.N))),
-    by=.(tract,own_rent,householder_age)]
-    hh_type_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                           match(ethnicity,c("H","I")),
-                           match(own_rent,c("Owner occupied","Renter occupied")),
-                           match(householder_age,c("Householder 15 to 34 years","Householder 35 to 64 years","Householder 65 years and over"))
-    )),
-    ("hh_per_room_id"):=paste0(tract,own_rent,householder_age,as.character(1000000+sample(.N))),
-    by=.(tract,own_rent,householder_age)]
-    hh_type_race_dt[,c("person_per_room") := 
-                      housing_per_room_race_dt[.SD, c(list(person_per_room)), on = .(hh_per_room_id)]]
     
     #foodstamps B22005 race of HH
     food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
