@@ -193,8 +193,6 @@ exp_census <- function() {
     housing_units_eth_data <- housing_units_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
-#      filter(label != "Owner-occupied housing units") %>%
-#      filter(label != "Renter-occupied housing units") %>%
       pivot_longer(4:ncol(housing_units_race_from_census),names_to = "tract", values_to = "number_sams") %>%
       mutate(ethnicity = substr(name,7,7)) %>%
       separate(label, c("housing_units","empty"), sep = "!!", remove = F, convert = FALSE) %>%
@@ -260,27 +258,22 @@ exp_census <- function() {
     housing_per_room_eth_data <- housing_per_room_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
-      filter(label != "Owner occupied") %>%
-      filter(label != "Renter occupied") %>%
+#      filter(label != "Owner occupied") %>%
+#      filter(label != "Renter occupied") %>%
       pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("num_per_room","empty"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(ethnicity = substr(name,7,7),
-             num_per_room = if_else(is.na(num_per_room),own_rent,num_per_room),
              num_per = case_when(
                num_per_room=="1.00 or less occupants per room" ~ "<1",
                num_per_room=="1.01 or more occupants per room" ~ ">1",
-               num_per_room=="0.50 or less occupants per room" ~ "<1",
-               num_per_room=="0.51 to 1.00 occupants per room" ~ "<1",
-               num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
-               num_per_room=="1.51 to 2.00 occupants per room" ~ ">1",
-               num_per_room=="2.01 or more occupants per room" ~ ">1"
+               TRUE ~ "none given"
              )) %>%
-      filter(!ethnicity %in% acs_race_codes) %>%
+      filter(!ethnicity %in% acs_race_codes & is.na(empty)) %>%
       uncount(as.numeric(number_sams),.id = "per_room_ethnicity_race_id",.remove = TRUE)
     housing_per_room_eth_dt <- as.data.table(housing_per_room_eth_data)
-    housing_per_room_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,num_per)]
-    housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,num_per)]
-    housing_per_room_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,num_per)]
+    housing_per_room_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract)]
+    housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract)]
+    housing_per_room_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity)]
     housing_per_room_eth_dt <- housing_per_room_eth_dt[(tokeep)]
     
     #same one, for diff. part - five categories for per_room, but no diff. by race - could just move over by sampling...; it also has own_rent
@@ -288,16 +281,15 @@ exp_census <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(race = substr(name,7,7),
-             num_per = case_when(
-               num_per_room=="0.50 or less occupants per room" ~ "<1",
-               num_per_room=="0.51 to 1.00 occupants per room" ~ "<1",
-               num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
-               num_per_room=="1.51 to 2.00 occupants per room" ~ ">1",
-               num_per_room=="2.01 or more occupants per room" ~ ">1"
+      separate(label, c("own_rent","num_per_room_5"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(num_per = case_when(
+        num_per_room_5=="0.50 or less occupants per room" ~ "<1",
+        num_per_room_5=="0.51 to 1.00 occupants per room" ~ "<1",
+        num_per_room_5=="1.01 to 1.50 occupants per room" ~ ">1",
+        num_per_room_5=="1.51 to 2.00 occupants per room" ~ ">1",
+        num_per_room_5=="2.01 or more occupants per room" ~ ">1"
              )) %>%
-      filter(!is.na(num_per_room) & number_sams > 0) %>% 
+      filter(!is.na(num_per_room_5) & number_sams > 0) %>% 
       uncount(as.numeric(number_sams),.id = "own_rent_num_per_rooms_id",.remove = TRUE)
     housing_per_room_rent_dt <- as.data.table(housing_per_room_rent_data)
     
@@ -312,7 +304,7 @@ exp_census <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(housing_per_room_age_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","householder_age", "num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("own_rent","householder_age_3", "num_per_room"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(num_per = case_when(
                num_per_room=="1.00 or less occupants per room" ~ "<1",
                num_per_room=="1.01 to 1.50 occupants per room" ~ ">1",
