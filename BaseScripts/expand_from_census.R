@@ -313,47 +313,15 @@ exp_census <- function() {
       filter(!is.na(num_per_room) & number_sams > 0) %>% #seems to keep num_per_room only for all age totals, not individual age
       uncount(as.numeric(number_sams),.id = "own_rent_age_per_rooms_id",.remove = TRUE)
     housing_per_room_age_dt <- as.data.table(housing_per_room_age_data)
-    
-    
-                      housing_per_room_race_dt[(order(match(race,c("A","F","G","C","B","E","D")))),
-                                            ("num_eth_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
-                      housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),
-                                           ("num_eth_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
-                      housing_per_room_race_dt[,c("ethnicity") := housing_per_room_eth_dt[.SD, list(ethnicity), on = .(num_eth_id)]]
-                      #test <- table(housing_per_room_race_dt$tract,housing_per_room_race_dt$race,housing_per_room_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
-                      #length(test[test==FALSE])/length(test) = 0.051
-                      housing_per_room_race_dt[(order(match(num_per,c("<1",">1")))),
-                                            ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
-                      housing_per_room_rent_dt[(order(match(num_per,c("<1",">1")))),
-                                            ("num_units_id"):=paste0(tract,num_per,as.character(1000000+seq.int(1:.N))),by=.(tract,num_per)]
-                      housing_per_room_race_dt[,c("own_rent","person_per_room") := housing_per_room_rent_dt[.SD, c(list(own_rent),list(num_per_room)), 
-                                                                                    on = .(tract,num_per,num_units_id)]]
-                      #test: table(housing_per_room_race_dt$tract,housing_per_room_race_dt$own_rent)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent)
-                      housing_per_room_age_dt[(order(match(num_per,c("<1",">1")))),
-                                               ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
-                      housing_per_room_race_dt[(order(match(num_per,c("<1",">1")))),
-                                               ("num_rms_id"):=paste0(tract,num_per,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent,num_per)]
-                      housing_per_room_race_dt[,c("householder_age") := 
-                                        housing_per_room_age_dt[.SD, c(list(householder_age)), on = .(num_rms_id)]]
-                      #test: table(housing_per_room_age_dt$tract,housing_per_room_age_dt$householder_age)==table(housing_per_room_age_dt$tract,housing_per_room_age_dt$householder_age)
-                      housing_per_room_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                                                   match(ethnicity,c("H","I")), #ethnicity has just a couple of tracts that don't match - sort to keep them in order
-                                                   match(own_rent,c("Owner occupied","Renter occupied")),
-                                                   match(householder_age,c("Householder 15 to 34 years","Householder 35 to 64 years","Householder 65 years and over"))
-                      )),
-                      ("hh_per_room_id"):=paste0(tract,own_rent,householder_age,as.character(1000000+sample(.N))),
-                      by=.(tract,own_rent,householder_age)]
-                      hh_type_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                                             match(ethnicity,c("H","I")),
-                                             match(own_rent,c("Owner occupied","Renter occupied")),
-                                             match(householder_age,c("Householder 15 to 34 years","Householder 35 to 64 years","Householder 65 years and over"))
-                      )),
-                      ("hh_per_room_id"):=paste0(tract,own_rent,householder_age,as.character(1000000+sample(.N))),
-                      by=.(tract,own_rent,householder_age)]
-                      hh_type_race_dt[,c("person_per_room") := 
-                                        housing_per_room_race_dt[.SD, c(list(person_per_room)), on = .(hh_per_room_id)]]
                       
     #foodstamps B22005 race of HH
+    #join with nat'l SNAP data? https://host76.mathematica-mpr.com/fns/Download.aspx?, but looks like a pain
+    #FSBEN Unit SNAP benefit
+    #FSUSIZE Unit size
+    #FSGRINC Unit gross countable income
+    #FSNETINC Unit net countable income
+    #FSERNDED Unit earned income deduction
+    #TPOV Unit gross income as a percentage of poverty 
     food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
     food_stamps_data <- food_stamps_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -363,7 +331,7 @@ exp_census <- function() {
       rename(food_stamps = label) %>%
       filter(race %in% acs_race_codes) %>%
       uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
-    food_stamps_dt <- as.data.table(food_stamps_data)
+    food_stamps_race_dt <- as.data.table(food_stamps_data)
     
     food_stamps_eth_data <- food_stamps_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -371,44 +339,16 @@ exp_census <- function() {
       pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       mutate(ethnicity = substr(name,7,7)) %>%
       rename(food_stamps = label) %>%
-#      filter(!ethnicity %in% acs_race_codes) %>%
+      filter(!ethnicity %in% acs_race_codes) %>%
       uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
     food_stamps_eth_dt <- as.data.table(food_stamps_eth_data) 
     food_stamps_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,food_stamps)]
     food_stamps_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,food_stamps)]
+    food_stamps_eth_dt[ethnicity %in% acs_race_codes,("ethnicity"):="_"]
     food_stamps_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,food_stamps)]
     food_stamps_eth_dt <- food_stamps_eth_dt[(tokeep)]
     
-                
-                #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
-                food_stamps_dt[(order(match(race,c("A","F","G","C","B","E","D")))),
-                                 ("num_eth_id"):=paste0(tract,food_stamps,as.character(1000000+seq.int(1:.N))),by=.(tract,food_stamps)]
-                food_stamps_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),
-                                ("num_eth_id"):=paste0(tract,food_stamps,as.character(1000000+seq.int(1:.N))),by=.(tract,food_stamps)]
-                food_stamps_eth_dt[ethnicity %in% acs_race_codes,("ethnicity"):="_"]
-                food_stamps_dt[,c("ethnicity") := food_stamps_eth_dt[.SD, list(ethnicity), on = .(tract,food_stamps,num_eth_id)]]
-                #test <- table(food_stamps_dt$tract,food_stamps_dt$race,food_stamps_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
-                #length(test[test==FALSE])/length(test) = 0.54 
-                food_stamps_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                                                match(ethnicity,c("H","I"))) 
-                          ),
-                          ("hh_food_stamps_id"):=paste0(tract,race,as.character(1000000+sample(.N))),
-                          by=.(tract,race)]
-                hh_type_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                                       match(ethnicity,c("H","I")))
-                          ),
-                          ("hh_food_stamps_id"):=paste0(tract,race,as.character(1000000+sample(.N))),
-                          by=.(tract,race)]
-                hh_type_race_dt[,c("SNAP") := 
-                                  food_stamps_dt[.SD, c(list(food_stamps)), on = .(hh_food_stamps_id)]]
-                #test: table(hh_type_race_dt$tract,hh_type_race_dt$SNAP)==table(food_stamps_dt$tract,food_stamps_dt$food_stamps)
-                
-                #clean up and save sam_hh
-                sam_hh <- hh_type_race_dt[,c("race","ethnicity","tract","family","family_type","single_hh_sex","family_role",
-                                             "householder_age","own_rent","housing_units","person_per_room","SNAP")]
-            #    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.427",Sys.Date(),".RDS"))
-    
-    #ugh if you take the size and multiply it out, you get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!! Also matches total for housing_occup_hh_size
+    #If you take the size and multiply it out, you get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!! Also matches total for housing_occup_hh_size
     #could be that householders not living alone (87550) should somehow be counted as having roommates; up to 330554-41220 / 87550 = 3.3 roommates on avg?
     #has right number of householders / households - it only mentions group quarters as not in a household, but that number is too low - https://www.census.gov/programs-surveys/cps/technical-documentation/subject-definitions.html#household
     household_type_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016") 
