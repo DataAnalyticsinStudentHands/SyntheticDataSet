@@ -459,6 +459,16 @@ createHouseholds <- function() {
                   sam_eth_hh[.SD, list(ethnicity), on = .(join_race_id)]]
     sam_race_hh[,("join_race_id"):=NULL]
     
+#Tues. 4am sourcetree    
+    sam_hh <- sam_race_hh #adding hh characteristics that don't have race/ethnicity broken up
+    
+    #start with hh_size 
+    
+    
+    
+    
+    
+    
     #merge the ones with race first then the ones with ethnicity, then do a merge on all those factors for ethnicity back to race...
     sex_age_race
     sex_by_age_eth
