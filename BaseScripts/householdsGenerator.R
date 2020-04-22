@@ -37,11 +37,18 @@ createHouseholds <- function() {
     #join hh_age_dt (householder_age_9) to occup_type_dt by own_rent and age - there's minimum info lost, just detail on age assigned at random inside category and tract
     #test <- table(hh_age_dt$tract,hh_age_dt$own_rent)==table(occup_type_dt$tract,occup_type_dt$own_rent)
 ###Perhaps a way of writing it up is to say that it's a problem of counting the edges of a hypercube. 
+    #You sort like long sticks, where you only see the point, then you go to the other side and sort by that - and as you go along, 
+    #you get to the state where the individuals are determined by the sorting.
+    #category theory is the thought that these views on the hypercube are a metric - the categories for what it means to be
+    #an individual, as categorized by the census, etc., and the transformations are the new ways you can look at the cube.
+    #what if there's a transformation of the metric, and not just the view??
 
   ###NEED TO BUILD ETHNICITY UP ALONG WITH RACE TO COORDINATE AS WE BUILD -- DRAW IT OUT... go back into sam_eth and then rename...
 ###    occupied_race_dt with occup_type_dt 
     sam_race_hh <- occupied_race_dt[,c("tract","race","own_rent")]
     sam_eth_hh <- occupied_eth_dt[,c("tract","ethnicity","own_rent")]
+    rm(occupied_race_dt)
+    rm(occupied_eth_dt)
     #sample inside group for id generation, in case there's oddness - set.seed(seed = seed) doesn't seem worth repeating every time
     #rule is to match until have a degree of freedom, sample in that group on each and then designate - ideal is to add only one
     #think of it as a sort of triangulation repeated
@@ -415,9 +422,69 @@ createHouseholds <- function() {
     
     #separate into sam_race_hh and sam_eth_hh to track the other stuff easier (they are just subsets, so could be done together, but want them to run separately until consumed all the ones that have them separate)
     sam_eth_hh <- sam_race_hh[,("race"):=NULL]
-    sam_race_hh[,("ethnicity"):=NULL]
+    #sam_race_hh[,("ethnicity"):=NULL]
     
-#do food_stamps as last with ethnicity and race separate for households (others, below, on full sam)
+
+#Tues. 4am sourcetree    
+    sam_hh <- sam_race_hh #adding hh characteristics that don't have race/ethnicity broken up
+    
+    #add hh_size to occup
+    hh_size_dt[,("hh_size_id"):=paste0(tract,hh_size,as.character(1000000+sample(.N))),
+                by=.(tract,hh_size)]
+    hh_occup_size_dt[,("hh_size_id"):=paste0(tract,hh_size,as.character(1000000+sample(.N))),
+                             by=.(tract,hh_size)]
+    hh_size_dt[,c("own_rent"):=
+                 hh_occup_size_dt[.SD, list(own_rent), 
+                                           on = .(hh_size_id)]]
+    hh_size_dt[,("hh_size_id"):=NULL]
+    #test <- table(hh_size_dt$tract,hh_size_dt$own_rent)==table(hh_occup_size_dt$tract,hh_occup_size_dt$own_rent)
+    #instead of fixing post hoc: sam_hh[family_type=="Householder living alone",("hh_size"):="1-person household"]
+    sam_hh[family_type=="Householder living alone",("hh_size_id"):=paste0(tract,family_or_non,own_rent,as.character(1000000+sample(.N))),
+               by=.(tract,family_or_non,own_rent)]
+    hh_size_dt[hh_size=="1-person household",("hh_size_id"):=paste0(tract,family_or_non,own_rent,as.character(1000000+sample(.N))),
+                     by=.(tract,family_or_non,own_rent)]
+    sam_hh[,c("hh_size"):=
+             hh_size_dt[.SD, list(hh_size), 
+                                  on = .(hh_size_id)]]
+    sam_hh[family_type!="Householder living alone",("hh_size_id"):=paste0(tract,family_or_non,own_rent,as.character(1000000+sample(.N))),
+           by=.(tract,family_or_non,own_rent)]
+    hh_size_dt[hh_size!="1-person household",("hh_size_id"):=paste0(tract,family_or_non,own_rent,as.character(1000000+sample(.N))),
+               by=.(tract,family_or_non,own_rent)]
+    sam_hh[,c("hh_size"):=
+             hh_size_dt[.SD, list(hh_size), 
+                        on = .(hh_size_id)]]
+    sam_hh[,("hh_size_id"):=NULL]
+    
+#do rooms and bedrooms by person_per_room and hh_size
+    hh_occup_rooms_dt
+    hh_occup_bedrooms_dt
+    
+    
+    
+    
+#then start making individuals to then match with hh, and to line up with other income and employment info not provided by hh    
+    #put sex on sam_hh for matching
+    sam_hh[str_detect(family_role,"Female"),("sex"):="Female"]
+    sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
+    sam_hh[is.na(sex),("sex"):="Male"]
+    
+    
+    
+    #merge the ones with race first then the ones with ethnicity, then do a merge on all those factors for ethnicity back to race...
+    sex_age_race
+    sex_by_age_eth
+    
+    marital_status_race_dt
+    marital_status_eth_dt
+    marital_status_age_dt
+    ##do some matching between households and marital status, to get first clues...
+    #JOIN sex_age by race to marital, then by age (descending on age, not age_range) to sex_age
+    #then join sex_age by ethnicity to marital, then by age to sex_age
+    #then join sex_age to household stuff....
+    
+    
+    #SNAP - should follow rules for sub-setting that have to do with requirements by feds...
+    #do food_stamps as last with ethnicity and race separate for households (others, below, on full sam)
     #have background sorting include broad indicators of income, but not too much - all you get on this is race/eth and food_stamps
     sam_race_hh[order(people_per_room,match(own_rent,c("Owner occupied","Renter occupied"))),
                 ("join_snap_id"):=paste0(tract,race,as.character(1000000+seq.int(1:.N))),
@@ -429,15 +496,15 @@ createHouseholds <- function() {
                   food_stamps_race_dt[.SD, list(food_stamps), on = .(join_snap_id)]]
     sam_race_hh[,("join_snap_id"):=NULL]
     sam_eth_hh[order(people_per_room,match(own_rent,c("Owner occupied","Renter occupied"))),
-                ("join_snap_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
-                by=.(tract,ethnicity)]
+               ("join_snap_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
+               by=.(tract,ethnicity)]
     food_stamps_eth_dt[,
                        ("join_snap_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
                        by=.(tract,ethnicity)]
     sam_eth_hh[,c("SNAP"):=
-                  food_stamps_eth_dt[.SD, list(food_stamps), on = .(join_snap_id)]]
+                 food_stamps_eth_dt[.SD, list(food_stamps), on = .(join_snap_id)]]
     sam_eth_hh[,("join_snap_id"):=NULL]
-   
+    
     #bring sam_eth_hh and sam_race_hh together again
     sam_race_hh[order(match(own_rent,c("Owner occupied","Renter occupied")),
                       match(family_type,c("Householder living alone","Householder not living alone",
@@ -459,145 +526,13 @@ createHouseholds <- function() {
                   sam_eth_hh[.SD, list(ethnicity), on = .(join_race_id)]]
     sam_race_hh[,("join_race_id"):=NULL]
     
-#Tues. 4am sourcetree    
-    sam_hh <- sam_race_hh #adding hh characteristics that don't have race/ethnicity broken up
-    
-    #start with hh_size 
-    
-    
-    
-    
-    
-    
-    #merge the ones with race first then the ones with ethnicity, then do a merge on all those factors for ethnicity back to race...
-    sex_age_race
-    sex_by_age_eth
-    
-    marital_status_race_dt
-    marital_status_eth_dt
-    marital_status_age_dt
-    ##do some matching between households and marital status, to get first clues...
-    #JOIN sex_age by race to marital, then by age (descending on age, not age_range) to sex_age
-    #then join sex_age by ethnicity to marital, then by age to sex_age
-    #then join sex_age to household stuff....
-    
-    
-    
-    
-    
-    
-    
-    #foodstamps B22005 race of HH - question is how to get alignment with wealth on this...
-    food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
-    food_stamps_data <- food_stamps_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(race = substr(name,7,7)) %>%
-      rename(food_stamps = label) %>%
-      filter(race %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
-    food_stamps_eth_data <- food_stamps_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(ethnicity = substr(name,7,7)) %>%
-      rename(food_stamps = label) %>%
-#      filter(!ethnicity %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
-    food_stamps_dt <- as.data.table(food_stamps_data)
-    food_stamps_eth_dt <- as.data.table(food_stamps_eth_data) 
-    food_stamps_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,food_stamps)]
-    food_stamps_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,food_stamps)]
-    food_stamps_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,food_stamps)]
-    food_stamps_eth_dt <- food_stamps_eth_dt[(tokeep)]
-    #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
-    food_stamps_dt[(order(match(race,c("A","F","G","C","B","E","D")))),
-                     ("num_eth_id"):=paste0(tract,food_stamps,as.character(1000000+seq.int(1:.N))),by=.(tract,food_stamps)]
-    food_stamps_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),
-                    ("num_eth_id"):=paste0(tract,food_stamps,as.character(1000000+seq.int(1:.N))),by=.(tract,food_stamps)]
-    food_stamps_eth_dt[ethnicity %in% acs_race_codes,("ethnicity"):="_"]
-    food_stamps_dt[,c("ethnicity") := food_stamps_eth_dt[.SD, list(ethnicity), on = .(tract,food_stamps,num_eth_id)]]
-    #test <- table(food_stamps_dt$tract,food_stamps_dt$race,food_stamps_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
-    #length(test[test==FALSE])/length(test) = 0.54 
-    food_stamps_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                                    match(ethnicity,c("H","I"))) 
-              ),
-              ("hh_food_stamps_id"):=paste0(tract,race,as.character(1000000+sample(.N))),
-              by=.(tract,race)]
-    hh_type_race_dt[(order(match(race,c("A","F","G","C","B","E","D")),
-                           match(ethnicity,c("H","I")))
-              ),
-              ("hh_food_stamps_id"):=paste0(tract,race,as.character(1000000+sample(.N))),
-              by=.(tract,race)]
-    hh_type_race_dt[,c("SNAP") := 
-                      food_stamps_dt[.SD, c(list(food_stamps)), on = .(hh_food_stamps_id)]]
-    #test: table(hh_type_race_dt$tract,hh_type_race_dt$SNAP)==table(food_stamps_dt$tract,food_stamps_dt$food_stamps)
     
     #clean up and save sam_hh
     sam_hh <- hh_type_race_dt[,c("race","ethnicity","tract","family","family_type","hh_role","family_role",
                                  "householder_age","own_rent","housing_units","person_per_room","SNAP")]
 #    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.427",Sys.Date(),".RDS"))
     
-    #ugh if you take the size and multiply it out, you get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!! Also matches total for housing_occup_hh_size
-    #could be that householders not living alone (87550) should somehow be counted as having roommates; up to 330554-41220 / 87550 = 3.3 roommates on avg?
-    #has right number of householders / households - it only mentions group quarters as not in a household, but that number is too low - https://www.census.gov/programs-surveys/cps/technical-documentation/subject-definitions.html#household
-    household_type_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11016") 
-    household_type_size_data <- household_type_size_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_type_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(hh_size)) %>%
-      #mutate(numeric_in_family = as.numeric(substr(hh_size,1,1))) %>%
-      uncount(number_sams,.id = "family_id",.remove = TRUE) #%>% #has right size for number of households total!!! maybe family / non-family mixed don't add in??
-    #      uncount(numeric_in_family,.id="num_family_id",.remove = FALSE) 
-#combine other things about hh_type to get good match on size before moving to sam...    
-    #from old apportioning:
-    hh_size_dt <- as.data.table(household_type_size_data)
-    
-    #add occupancy on same size
-    #concept: TENURE BY HOUSEHOLD SIZE (own or rent of HH - not second mortgage, etc)
-    housing_occup_hhsize_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25009") #of occup, own or rent by household size
-    housing_occup_hhsize_data <- housing_occup_hhsize_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(housing_occup_hhsize_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(hh_size) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_hhsize_id",.remove = TRUE)
-    
-    occup_size_dt <- as.data.table(housing_occup_hhsize_data)
-    #make sure testtables <- table(hh_size_dt$tract,hh_size_dt$hh_size)==table(occup_size_dt$tract,occup_size_dt$hh_size) and FALSE for FALSE %in% testtables
-    #create ids for matching - should have been a better way to assign on matching factors, but this was brute force
-    hh_size_dt[order(hh_size),("num_occup_id"):=paste0(tract,hh_size,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size)]
-    occup_size_dt[order(hh_size),("num_occup_id"):=paste0(tract,hh_size,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size)]
-    hh_size_dt[,c("own_rent") := occup_size_dt[.SD, list(own_rent), on = .(tract,hh_size,num_occup_id)]]
-    #testtables <- table(hh_size_dt$tract,hh_size_dt$own_rent,hh_size_dt$hh_size)==table(occup_size_dt$tract,occup_size_dt$own_rent,occup_size_dt$hh_size)
 
-    ##ADD IN HERE, MATCHES ON FAMILY_TYPE, ETC., SO DON'T GET 1-PERSON HOUSEHOLDS WITH 2 OR MORE PEOPLE!
-        
-    sam_hh[order(match(family,c("Family households","Nonfamily households")),
-                 #match(family_type,c("Householder living alone","Other family","Married-couple family","Householder not living alone"))
-                 ),
-        ("size_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)] #not sampling, but number ones in order
-    hh_size_dt[order(match(family,c("Family households","Nonfamily households"))),
-           ("size_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-                #if you do it with family in the id
-                #sam_hh[order(match(family,c("Family households","Nonfamily households"))),
-                #       ("size_id"):=paste0(tract,family,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,family,own_rent)] #not sampling, but number ones in order
-                #hh_size_dt[order(match(family,c("Family households","Nonfamily households"))),
-                #           ("size_id"):=paste0(tract,family,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,family,own_rent)]
-                #test <- table(hh_size_dt$tract,hh_size_dt$own_rent,hh_size_dt$hh_size)==table(sam_hh$tract,sam_hh$own_rent,sam_hh$hh_size)
-                #length(test[test==FALSE])/length(test) =.156
-    sam_hh[,c("hh_size") := hh_size_dt[.SD, list(hh_size), on = .(size_id)]]
-    #clean up some strays
-    sam_hh[family_type=="Householder living alone",("hh_size"):="1-person household"]
-    sam_hh[family_type=="Householder not living alone" & hh_size=="1-person household",("hh_size"):="2-person household"]
-    #table(hh_size_dt$tract,hh_size_dt$hh_size)==table(sam_hh$tract,sam_hh$hh_size)# - all true
-    #table(hh_size_dt$tract,hh_size_dt$family,hh_size_dt$hh_size)==table(sam_hh$tract,sam_hh$family,sam_hh$hh_size)# - all true
-    #test <- table(hh_size_dt$tract,hh_size_dt$own_rent,hh_size_dt$hh_size)==table(sam_hh$tract,sam_hh$own_rent,sam_hh$hh_size)# all true
-    #test <- table(hh_size_dt$tract,hh_size_dt$family,hh_size_dt$own_rent)==table(sam_hh$tract,sam_hh$family,sam_hh$own_rent)
     
     
     #put sex on sam_hh for matching
@@ -673,49 +608,22 @@ createHouseholds <- function() {
              hh_educ_dt[.SD, list(hh_education_level), on = .(educ_occup_id)]]
     #test: table(sam_hh$tract,sam_hh$hh_education_level)==table(hh_educ_dt$tract,hh_educ_dt$hh_education_level)
 
-    #concept is:  HOUSEHOLD SIZE BY VEHICLES AVAILABLE - get hh / 1562813
-    vehicles_household_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08201")
-    vehicles_household_data <- vehicles_household_size_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(vehicles_household_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("hh_size_4","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
-    vehicles_hh <- as.data.table(vehicles_household_data)
-    sam_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
-    sam_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-    vehicles_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-    sam_hh[,c("number_vehicles_in_hh") := 
-             vehicles_hh[.SD, list(number_vehicles_in_hh), on = .(vehicle_occup_id)]]
-    #test: table(sam_hh$tract,sam_hh$number_vehicles_in_hh)==table(vehicles_hh$tract,vehicles_hh$number_vehicles_in_hh)
-    
-    #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD !! has a different number of workers by tract!!!
-    household_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08202")
-    household_workers_data <- household_workers_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("hh_size_4","number_workers_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
-    #when adding age, workers need to be 18
-    hh_workers <- as.data.table(household_workers_data)
-    hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="3 or more workers"] #I think they made a mistake
-    #number in hh_size_dt has 7 factors; in workers, there's only 4 so collapse
-    #sam_workers[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
-    #create ids, just following order of how many in hh, so they can match
-    #the number of tracts aren't the same, so line them up so that it runs out on 3 or more workers
-    sam_hh[order(hh_size_4,-householder_age),
-           ("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-    hh_workers[order(hh_size_4,match(
-      number_workers_in_hh,c("No workers","1 worker","2 workers","3 or more workers"))),
-      ("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-    sam_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(num_workers_id)]]
-    #clean up strays
-    sam_hh[hh_size=="1-person household" & number_workers_in_hh=="2 workers",("number_workers_in_hh"):="1 worker"]
-    sam_hh[hh_size=="1-person household" & number_workers_in_hh=="3 or more workers",("number_workers_in_hh"):="1 worker"]
-    sam_hh[hh_size=="2-person household" & number_workers_in_hh=="3 or more workers",("number_workers_in_hh"):="2 workers"]
+
+                        hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="3 or more workers"] #I think they made a mistake
+                        #number in hh_size_dt has 7 factors; in workers, there's only 4 so collapse
+                        #sam_workers[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
+                        #create ids, just following order of how many in hh, so they can match
+                        #the number of tracts aren't the same, so line them up so that it runs out on 3 or more workers
+                        sam_hh[order(hh_size_4,-householder_age),
+                               ("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
+                        hh_workers[order(hh_size_4,match(
+                          number_workers_in_hh,c("No workers","1 worker","2 workers","3 or more workers"))),
+                          ("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
+                        sam_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(num_workers_id)]]
+                        #clean up strays
+                        sam_hh[hh_size=="1-person household" & number_workers_in_hh=="2 workers",("number_workers_in_hh"):="1 worker"]
+                        sam_hh[hh_size=="1-person household" & number_workers_in_hh=="3 or more workers",("number_workers_in_hh"):="1 worker"]
+                        sam_hh[hh_size=="2-person household" & number_workers_in_hh=="3 or more workers",("number_workers_in_hh"):="2 workers"]
     
     #equals "Renter occupied" on own_rent in Sam
     #gross rent is contract plus estimate for utilities, etc.
@@ -1130,16 +1038,7 @@ createHouseholds <- function() {
     
     #adults - 
                     #use number of workers and number of vehicles to match as expand
-                    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults??
-                    vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
-                    vehicles_workers_data <- vehicles_workers_from_census %>%
-                      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-                      filter(label != "Estimate!!Total") %>%
-                      pivot_longer(4:ncol(vehicles_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-                      separate(label, c("number_workers_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-                      filter(str_detect(number_workers_in_hh,"worker") & number_sams > 0) %>%
-                      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
-    
+                    
     
     #take them out of relations_dt and expand sam
     relations_dt_no_GQ <- relations_dt_no_hh[!relations_id %in% unique(gq2[,relations_id])]

@@ -18,7 +18,7 @@ library(ggplot2)
 #calling it a metric example to explain role of individuals in their tracts, with relations that identify them
 #a metric is an opportunity - something that can be expanded into; 
 #providing opportunities is what you do when you transform a category in relation to the original metrice
-z <- as.integer(10000000)
+z <- as.integer(100)
 y <- 1:z
 x <- as.integer(z/10)
 w <- as.integer(z/9)

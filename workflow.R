@@ -17,7 +17,7 @@ state = 48
 county = 201
 tract = "*"
 seed = 135
-set.seed(seed = seed) # I don't think that's permanent - have to reinvoke for each scope??
+set.seed(seed = seed) # I don't think that's permanent - have to reinvoke for each function call??
 
 #let's create SAM
 sam <- createBaseSAM(censusdir, housingdir, vintage, 
