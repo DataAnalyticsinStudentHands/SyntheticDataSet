@@ -70,7 +70,6 @@ exp_census <- function() {
       filter(race %in% acs_race_codes) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_race_id",.remove = TRUE)
     occupied_race_dt <- as.data.table(occupied_race_data)
-    rm(housing_occup_race_from_census)
     rm(occupied_race_data)
     
     occupied_eth_data <- housing_occup_race_from_census %>%
@@ -144,6 +143,7 @@ exp_census <- function() {
     hh_type_ethnicity_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE)]
     hh_type_eth_dt <- hh_type_ethnicity_dt[(tokeep)]
     rm(household_type_race_from_census)
+    rm(hh_type_ethnicity_dt)
     rm(household_type_ethnicity_data)
     #test <- table(hh_type_eth_dt$tract,hh_type_eth_dt$family_role,hh_type_eth_dt$single_hh_sex)==table(hh_type_race_dt$tract,hh_type_race_dt$family_role,hh_type_race_dt$single_hh_sex)
     #length(test[test==TRUE])/length(test)
@@ -208,7 +208,6 @@ exp_census <- function() {
     housing_units_eth_dt[housing_units=="Owner-occupied housing units" | housing_units=="Renter-occupied housing units",
                          ("housing_units"):=NA]
     housing_units_eth_dt <- housing_units_eth_dt[(tokeep)]
-    rm(housing_units_race_from_census)
     rm(housing_units_eth_data)
     
     #either get race or owner_renter - housing units comes for both
@@ -266,8 +265,6 @@ exp_census <- function() {
     housing_per_room_eth_data <- housing_per_room_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
-#      filter(label != "Owner occupied") %>%
-#      filter(label != "Renter occupied") %>%
       pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("num_per_room","empty"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(ethnicity = substr(name,7,7),
@@ -283,7 +280,6 @@ exp_census <- function() {
     housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract)]
     housing_per_room_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity)]
     housing_per_room_eth_dt <- housing_per_room_eth_dt[(tokeep)]
-    rm(housing_per_room_race_from_census)
     rm(housing_per_room_eth_data)
     
     #same one, for diff. part - five categories for per_room, but no diff. by race - could just move over by sampling...; it also has own_rent
@@ -328,7 +324,7 @@ exp_census <- function() {
     rm(housing_per_room_age_from_census)
     rm(housing_per_room_age_data)
                       
-    #should we compare this with hh_size times per_person_per_room??   
+    #should we compare this with hh_size times per_person_per_room??   #add in ways to coordinate with other measures???
     #TENURE BY ROOMS- 1562813
     housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
     housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
@@ -893,19 +889,18 @@ exp_census <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(household_type_relation_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("group_or_hh","family_or_non","relative","family_role","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("group_or_hh","family_or_non","relative","role_in_family","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
         group_quarters = if_else(str_detect(group_or_hh,"group"),TRUE,FALSE),
         nonfamily = if_else(str_detect(family_or_non,"nonfamily"),TRUE,FALSE),
-        #sex = if_else(str_detect(family_role,"ale"),if_else(!is.na(living_alone),family_role,'del'),'none'),
-        sex = if_else(str_detect(family_role,"ale"),family_role,'none'),
+        sex = if_else(str_detect(role_in_family,"ale"),role_in_family,'none'),
         sex = if_else(is.na(sex),'none',sex),
-        family_role = if_else(group_quarters,"in_group_quarters", #you can't define family_role in series...(except that is.na)
-                              if_else(relative=="Child" | relative=="Nonrelatives",if_else(is.na(family_role),'del',family_role),
-                                      if_else(relative=="Householder",relative,family_role))),
-        family_role = if_else(is.na(family_role),relative,family_role),
+        role_in_family = if_else(group_quarters,"in_group_quarters", #you can't define family_role in series...(except that is.na)
+                              if_else(relative=="Child" | relative=="Nonrelatives",if_else(is.na(role_in_family),'del',role_in_family),
+                                      if_else(relative=="Householder",relative,role_in_family))),
+        role_in_family = if_else(is.na(role_in_family),relative,role_in_family),
         del = if_else(sex == "Male" | sex == "Female" & is.na(living_alone),TRUE,if_else((sex == "Male" | sex == "Female") & nonfamily,TRUE,FALSE)),
-        del = if_else(family_role=="del",TRUE,del)
+        del = if_else(role_in_family=="del",TRUE,del)
       ) %>% #want each role to have 786 before uncount
       filter(!del) %>%
       filter(number_sams > 0) %>%

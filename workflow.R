@@ -1,5 +1,9 @@
 # Workflow controller for SAM creation
 source("BaseScripts/basesam.R")
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(data.table)
 
 #should change this so that state, county are part of the directory!
 
@@ -17,7 +21,7 @@ state = 48
 county = 201
 tract = "*"
 seed = 135
-set.seed(seed = seed) # I don't think that's permanent - have to reinvoke for each function call??
+set.seed(seed = seed) #  have to reinvoke for each function call, but haven't decided where yet
 
 #let's create SAM
 sam <- createBaseSAM(censusdir, housingdir, vintage, 
