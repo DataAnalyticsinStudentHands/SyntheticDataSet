@@ -184,7 +184,71 @@ sex_age_race[,c("education"):=
 sex_age_race[,("educ_id"):=NULL]
 
 
+#get other whole pop info
+hh_ages_all_dt <- rbindlist(list(kids_ages_dt,adults_relations[relation_age_range!="65 years and over"],sr_relations),fill = TRUE)
 
+hh_ages_dt <- rbindlist(list(kids_family_age_data,household_adults_relation_data),fill = TRUE)
+hh_relations_dt[relative=="Householder" | relative=="Spouse" | family_role=="Unmarried partner",
+                ("relations_merged"):= "Householder_partner"]
+hh_ages_dt[relation_hh=="Householder living with spouse or spouse of householder" |
+             relation_hh=="Householder living with unmarried partner or unmarried partner of householder" |
+             relation_hh=="Lives alone", #pick up and separate when merging with sam_hh
+           ("relations_merged"):= "Householder_partner"]
+hh_relations_dt[relative=="Child",("relations_merged"):="Child"]
+hh_ages_dt[relation_hh=="Child of householder",("relations_merged"):="Child"] #but over 18!
+hh_relations_dt[relative=="Nonrelatives",("relations_merged"):="Other nonrelatives"]
+hh_ages_dt[relation_hh=="Other nonrelatives",("relations_merged"):="Other nonrelatives"]
+hh_relations_dt[relative=="Brother or sister" | relative=="Grandchild" | 
+                  str_detect(relative, "in-law"),
+                ("relations_merged"):="Younger relatives"]
+hh_relations_dt[relative=="Brother or sister" | relative=="Parent" |
+                  str_detect(relative, "in-law"),
+                ("relations_merged"):="Other relatives"]
+hh_ages_dt[relation_hh=="Other relatives",("relations_merged"):="Other relatives"]
+hh_ages_dt[!is.na(kid_age),("relations_merged"):="Younger relatives"]
+sr_relations[relative=="Householder" | relative=="Spouse",
+             ("relations_merged"):= "Householder_partner"]
+sr_relations[relative=="Parent" | relative=="Parent-in-law",
+             ("relations_merged"):= "Other relatives"]
+sr_relations[group_or_hh=="In group quarters",("relations_merged"):="Group Quarters"] #just for sorting
+sr_relations[order(relations_merged),("sr_relations_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
+hh_ages_dt[order(relations_merged) & relation_age_range=="65 years and over",
+           ("sr_relations_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
+hh_sr_ages <- hh_ages_dt[sr_relations,on="sr_relations_id"]
+
+#hh_sr_ages <- sr_relations[hh_ages_dt,on="sr_relations_id"]
+hh_sr_ages[is.na(kid_age),("age_range"):=relation_age_range]
+hh_sr_ages[!is.na(kid_age),("age_range"):=kid_age]
+hh_ages_exp <- rbindlist(list(hh_sr_ages,hh_relations_dt[family_role=="Adopted child" |
+                                                           family_role=="Foster child" | 
+                                                           family_role=="Grandchild" | 
+                                                           family_role=="Stepchild"]),fill = TRUE)
+hh_ages_exp[is.na(age_range),("age_range"):="0 to 17 years"] #add to all moved over from hh_relations
+hh_ages_exp[is.na(age_range),("relations_merged"):="Younger relatives"]
+
+#hh_relations_dt[(group_quarters),("relations_merged"):="Group Quarters"]
+hh_ages_exp[is.na(tract),("tract"):=i.tract]
+hh_ages_exp[is.na(relations_merged),("relations_merged"):=i.relations_merged]
+hh_ages_exp[order(match(relations_merged,c("Child","Younger relatives","Householder_partner","Other nonrelatives","Other relatives"))),
+            ("ages_exp_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
+hh_relations_dt[order(match(relations_merged,c("Child","Younger relatives","Householder_partner","Other nonrelatives","Other relatives"))),
+                ("ages_exp_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
+
+##could we put them all together, and then pick the ones that respect original distribution on family_roles??
+##just do the count thing before assigning the ages_exp_id and keep the family_roles from relations.????
+full_relations_dt <- hh_relations_dt[hh_ages_exp,on=("ages_exp_id")]
+relations_dt <- full_relations_dt[!is.na(i.tract),
+                                  c("i.tract","group_or_hh","group_quarters","relative",
+                                    "family_or_non","family_role","age_range")]
+#then count on the ones that were in relations to begin with? 
+#    relations_dt <- hh_ages_exp[hh_relations_dt,on=("ages_exp_id")]
+
+#relations_dt[is.na(tract),("tract"):=if_else(is.na(i.tract),i.tract.1,i.tract)]
+relations_dt[,("tract"):=i.tract.1]
+relations_dt[is.na(family_role),c("group_or_hh","family_or_non","relative","family_role"):=
+               c(list(i.group_or_hh),list(i.family_or_non),list(i.relative),list(i.family_role))]
+relations_dt[is.na(age_range) & family_role=="Foster child",("age_range"):="0 to 17 years"]  
+relations_dt[is.na(age_range),("age_range"):="18 to 64 years"]
 
 
 

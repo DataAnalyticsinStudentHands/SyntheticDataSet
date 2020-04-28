@@ -594,34 +594,24 @@ exp_census <- function() {
       uncount(as.numeric(number_sams),.id = "partner_id",.remove = TRUE)
     #unmarried partners who are not householders are not counted here!!
     hh_partner_dt <- as.data.table(household_type_partners_data)
-    hh_partner_dt[is.na(partner_type),("partner_type") := "Not a partner household"] 
-    #make partner_ids, with Other family from family_type
-    #frustrating because some partner households are listed as married couples - I think it's just the numbers game. I chose to put them as unmarried partners
-    hh_partner_dt[order(match(unmarried,c("Unmarried-partner households","All other households"))),
-                  ("partner_type_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    sam_hh[order(match(family_type,c("Other family","Householder not living alone","Householder living alone","Married-couple family"))),
-           ("partner_type_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
-    setkey(sam_hh,partner_type_id)
-    setkey(hh_partner_dt,partner_type_id)
-    sam_partners <- hh_partner_dt[sam_hh,]
-    #matches are very slightly off - same total, distributed on edges differently
-    sam_partners[is.na(partner_type),("partner_type"):="Not a partner household"]
-    sam_partners[partner_type == "Female householder and female partner",("sex_partner") := "Female"]
-    sam_partners[partner_type == "Male householder and male partner",("sex_partner") := "Male"]
-    sam_partners[partner_type == "Male householder and female partner",("sex_partner") := "Female"]
-    sam_partners[partner_type == "Female householder and male partner",("sex_partner") := "Male"]
-    sam_partners[partner_type == "Female householder and female partner",("sex") := "Female"]
-    sam_partners[partner_type == "Male householder and male partner",("sex") := "Male"]
-    sam_partners[partner_type == "Male householder and female partner",("sex") := "Male"]
-    sam_partners[partner_type == "Female householder and male partner",("sex") := "Female"]
-
-    sam_hh <- sam_partners[,c("tract","sex","race","ethnicity","family","family_type","single_hh_sex","family_role","hh_size","hh_size_4",
-                              "householder_age","householder_age_9","own_rent","housing_units","person_per_room","SNAP",
-                              "rent_cash","rent_gross","rent_gross_high","rent_gross_low","hh_income_renters", #eventually assign numbers to rent and income
-                              "hh_income_level","income_high","income_low","hh_education_level","number_vehicles_in_hh",
-                              "number_workers_in_hh","partner_type","sex_partner")]
     
-    #do full age_race here - there are more married couples than married-couple householders, etc. - then rejoin race and ethnicity
+    #concept: FAMILY TYPE BY PRESENCE AND AGE OF RELATED CHILDREN UNDER 18 YEARS 1066649 = sam_hh[family=="Family households"]
+    #gives amount equal to hh_relation_dt[family_role=="Householder",family_or_non], In family households (1066649); In nonfamily households, at 496164 gets up to 1562813 total for households
+    household_related_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11004")
+    household_related_kids_data <- household_related_kids_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_related_kids_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family_or_non","family_role","related_kids","age"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(
+        age = if_else(family_or_non=="Married-couple family",related_kids,age),
+        kid_age = if_else(str_detect(related_kids,"No related") | str_detect(family_role,"No related"),"No children",age),
+        family_role = if_else(family_or_non=="Married-couple family","Married-couple family",family_role)
+      ) %>%
+      filter(!is.na(kid_age)) %>%
+      filter(number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "related_kids_id")
+    hh_kids <- as.data.table(household_related_kids_data)
     
     #go back to the most detailed individual level without duplication to assign missing pieces from build
     #concept is SEX BY AGE for each race / ethnicity - 4525519 2017 Harris County
@@ -884,6 +874,7 @@ exp_census <- function() {
       separate(label, c("relation_age_range","relation_hh"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(relation_hh)) %>%
       uncount(as.numeric(number_sams),.id = "family_id",.remove = TRUE) 
+    adults_relations <- as.data.table(household_adults_relation_data)
     
     #1223249 matches age_sex_race under 18
     #concept#HOUSEHOLD TYPE FOR CHILDREN UNDER 18 YEARS IN HOUSEHOLDS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
@@ -910,6 +901,7 @@ exp_census <- function() {
              kid_age = if_else(kid_age=="Under 3 years","0 to 3 years",kid_age)) %>%
       filter(!is.na(kid_age) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "kids_age_id",.remove = TRUE)
+    kids_ages_dt <- as.data.table(kids_family_age_data)
     
     #GRANDCHILDREN UNDER 18 YEARS LIVING WITH A GRANDPARENT HOUSEHOLDER BY AGE OF GRANDCHILD - 103908 
     #nrow(hh_relations_dt[family_role=="Grandchild"]) - 126406 - this matches on role of grandparent with kids, some will have > 1 (22,500)
@@ -939,8 +931,8 @@ exp_census <- function() {
       separate(label, c("group_or_hh","family_or_non","relative","sex_sr_relations","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
       uncount(as.numeric(number_sams),.id = "sr_role_id",.remove = TRUE)
     sr_relations <- as.data.table(household_seniors_relation_data)
-    kids_ages_dt <- as.data.table(kids_family_age_data)
-    adults_relations <- as.data.table(household_adults_relation_data)
+    
+    
     hh_ages_all_dt <- rbindlist(list(kids_ages_dt,adults_relations[relation_age_range!="65 years and over"],sr_relations),fill = TRUE)
     
     hh_ages_dt <- rbindlist(list(kids_family_age_data,household_adults_relation_data),fill = TRUE)
@@ -1006,30 +998,6 @@ exp_census <- function() {
     relations_dt[is.na(age_range) & family_role=="Foster child",("age_range"):="0 to 17 years"]  
     relations_dt[is.na(age_range),("age_range"):="18 to 64 years"]
     
-        
-    #concept: FAMILY TYPE BY PRESENCE AND AGE OF RELATED CHILDREN UNDER 18 YEARS 1066649 = sam_hh[family=="Family households"]
-    #gives amount equal to hh_relation_dt[family_role=="Householder",family_or_non], In family households (1066649); In nonfamily households, at 496164 gets up to 1562813 total for households
-    household_related_kids_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11004")
-    household_related_kids_data <- household_related_kids_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_related_kids_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("family_or_non","family_role","related_kids","age"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(
-        age = if_else(family_or_non=="Married-couple family",related_kids,age),
-        kid_age = if_else(str_detect(related_kids,"No related") | str_detect(family_role,"No related"),"No children",age),
-        family_role = if_else(family_or_non=="Married-couple family","Married-couple family",family_role)
-      ) %>%
-      filter(!is.na(kid_age)) %>%
-      filter(number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "related_kids_id")
-    hh_kids <- as.data.table(household_related_kids_data)
-    #lost information because tracts were not right in original provided by census (780??)
-    hh_kids[order(family_role,match(kid_age,c("No children","Under 6 years only","6 to 17 years only","Under 6 years and 6 to 17 years"))),
-      ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
-    sam_hh[family=="Family households" & order(family_role,hh_size),
-           ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
-    sam_hh[family=="Family households",c("kids_by_age") := hh_kids[.SD, list(kid_age), on = .(hh_kids_id)]] #may have more than 1 in other categories
     
     #concept is: "PRESENCE OF UNMARRIED PARTNER OF HOUSEHOLDER BY HOUSEHOLD TYPE FOR CHILDREN UNDER 18 YEARS IN HOUSEHOLDS"
     #children come in at 1223249 - nrow(sex_age_race_latinx_dt[age<18]) = 1225059 - 1810 kids could be cps / foster waiting?
