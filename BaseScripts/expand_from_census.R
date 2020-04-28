@@ -415,7 +415,7 @@ exp_census <- function() {
     rm(vehicles_household_data)
     #test: table(sam_hh$tract,sam_hh$number_vehicles_in_hh)==table(vehicles_hh$tract,vehicles_hh$number_vehicles_in_hh)
     
-    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults??
+    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults over 21??
     vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
     vehicles_workers_data <- vehicles_workers_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -740,7 +740,7 @@ exp_census <- function() {
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%  #NA warnings in rows with only one; not a problem
-      mutate(age_range = str_replace(age_range,"Under 5 years","0  to  5 years"), #have to regularize and make possible to compare
+      mutate(age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), #have to regularize and make possible to compare
              age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
              age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
              age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to skew left when assigning.
@@ -751,11 +751,12 @@ exp_census <- function() {
       filter(number_sams > 0, race %in% acs_race_codes, !is.na(age_range)) %>%
       uncount(number_sams,.id = "sams_id") 
     sex_age_race <- as.data.table(sex_by_age_race_data)
-    sex_age_race[,("individual_id"):=paste0(tract,Sys.Date(),as.character(1000000000+seq.int(1:.N)))]
-    sex_age_race[age_range!="85 to 94 years",("age"):=
-                   as.numeric(sample(as.character(first_age:last_age),size=.N,replace = TRUE)),by=.(age_range)] #got warnings, but checked out
+    #assign age here (should decide where to do this):
+    sex_age_race[age_range!="85 to 94 years",("age"):= 
+                   as.numeric(sample(as.character(first_age[1]:last_age[1]),size=.N,replace = TRUE)),by=.(age_range,sex,race)] 
     sex_age_race[age_range=="85 to 94 years",("age"):=
                    as.numeric(sample(as.character(85:104),size=.N,prob=0.13-(1:20/174:155),replace = TRUE))] #looking for ~1300 centenarians in Houston
+    rm(sex_by_age_race_data)
     
     #for Latino population, see: https://www.pewsocialtrends.org/2015/06/11/chapter-7-the-many-dimensions-of-hispanic-racial-identity/
     sex_by_age_ethnicity_data <- sex_by_age_race_data_from_census %>%
@@ -763,10 +764,19 @@ exp_census <- function() {
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(age_range = str_replace(age_range,"Under 5 years","0  to  5 years"), #have to regularize and make possible to compare
+      mutate(age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), #have to regularize and make possible to compare
              age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
              age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
-             age_range = str_replace(age_range,"85 years and over","85 to 94 years"),
+             age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to skew left when assigning.
+             age_range = case_when(
+               age_range=="20 years" ~ "20 to 24 years",
+               age_range=="21 years" ~ "20 to 24 years",
+               age_range=="22 to 24 years" ~ "20 to 24 years",
+               TRUE ~ age_range
+             ),
+             first_age = as.numeric(substr(age_range,1,2)),
+             last_age = as.numeric(substr(age_range,7,8)),
+             age_range_length = last_age-first_age+1,
              ethnicity = substr(name,7,7)) %>% 
       filter(number_sams > 0, !ethnicity %in% acs_race_codes, !is.na(age_range)) %>%
       uncount(as.numeric(number_sams),.id = "sex_age_ethnicity_id")
@@ -776,6 +786,13 @@ exp_census <- function() {
     sex_by_age_ethnicity[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,sex)]
     sex_by_age_ethnicity[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE)]
     sex_by_age_eth <- sex_by_age_ethnicity[(tokeep)]
+    sex_by_age_eth[age_range!="85 to 94 years",("age"):= 
+                   as.numeric(sample(as.character(first_age[1]:last_age[1]),size=.N,replace = TRUE)),by=.(age_range,sex,ethnicity)] 
+    sex_by_age_eth[age_range=="85 to 94 years",("age"):=
+                   as.numeric(sample(as.character(85:104),size=.N,prob=0.13-(1:20/174:155),replace = TRUE))] #looking for ~1300 centenarians in Houston
+    rm(sex_by_age_ethnicity)
+    rm(sex_by_age_ethnicity_data)
+    rm(sex_by_age_race_data_from_census)
     
     #I think it has one for age and one for race; then join to age_race and join that to hh_type / eth and race, then put eth together?
     #concept:SEX BY MARITAL STATUS BY AGE FOR THE POPULATION 15 YEARS AND OVER == nrow(sex_age_race[age>14]) - 3494885
@@ -788,39 +805,38 @@ exp_census <- function() {
       pivot_longer(4:ncol(marital_status_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("sex","marital_status","spouse_present","separated","age_range_marital"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(race = substr(name,7,7),
-             age_range_marital = case_when(
-               str_detect(spouse_present,"years") ~ spouse_present,
-               str_detect(separated,"years") ~ separated,
-               TRUE ~ age_range_marital
+             marital_status = case_when(
+               marital_status=="Now married (except separated)" ~ "Now married",
+               marital_status=="Separated" ~ "Now married",
+               TRUE ~ marital_status
              )) %>%
       filter(race %in% acs_race_codes & is.na(age_range_marital)) %>%
       uncount(as.numeric(number_sams),.id = "marital_id",.remove = TRUE)
+    marital_status_race_data$spouse_present <- NULL
+    marital_status_race_data$separated <- NULL
+    marital_status_race_data$age_range_marital <- NULL
     marital_status_race_dt <- as.data.table(marital_status_race_data)
+    rm(marital_status_race_data)
     
     marital_status_eth_data <- marital_status_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
-      filter(label != "Male") %>%
-      filter(label != "Female") %>%
-      filter(label != "Male!!Now married") %>%
-      filter(label != "Female!!Now married") %>%
-      filter(label != "Male!!Now married!!Married spouse absent") %>%
-      filter(label != "Female!!Now married!!Married spouse absent") %>%
       pivot_longer(4:ncol(marital_status_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("sex","marital_status","spouse_present","separated","age_range_marital"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(ethnicity = substr(name,7,7),
-             age_range_marital = case_when(
-               str_detect(spouse_present,"years") ~ spouse_present,
-               str_detect(separated,"years") ~ separated,
-               TRUE ~ age_range_marital
+             marital_status = case_when(
+               marital_status=="Now married (except separated)" ~ "Now married",
+               marital_status=="Separated" ~ "Now married",
+               TRUE ~ marital_status
              )) %>%
-      filter(!ethnicity %in% acs_race_codes & is.na(age_range_marital)) %>%
+      filter(!ethnicity %in% acs_race_codes & !is.na(marital_status) & is.na(spouse_present)) %>%
       uncount(as.numeric(number_sams),.id = "marital_id",.remove = TRUE)
     marital_status_eth_dt <- as.data.table(marital_status_eth_data)
-    marital_status_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,marital_status)]
-    marital_status_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,marital_status)]
+    marital_status_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,sex,marital_status)]
+    marital_status_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,sex,marital_status)]
     marital_status_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE)]
     marital_status_eth_dt <- marital_status_eth_dt[(tokeep)]
+    rm(marital_status_eth_data)
     
     marital_status_age_data <- marital_status_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -832,10 +848,22 @@ exp_census <- function() {
                str_detect(spouse_present,"years") ~ spouse_present,
                str_detect(separated,"years") ~ separated,
                TRUE ~ age_range_marital
-             )) %>%
+             ),
+             spouse_present = case_when(
+               str_detect(spouse_present,"present") ~ spouse_present,
+               str_detect(spouse_present,"absent") ~ spouse_present,
+               TRUE ~ "no spouse"
+              ),
+             separated = case_when(
+                str_detect(separated,"Other") ~ "Other",
+                str_detect(separated,"Separated") ~ "Separated",
+                TRUE ~ "no absent spouse"
+              )) %>%
       filter(race=="_" & !is.na(age_range_marital)) %>%
       uncount(as.numeric(number_sams),.id = "marital_id",.remove = TRUE)
     marital_status_age_dt <- as.data.table(marital_status_age_data)
+    rm(marital_status_age_data)
+    rm(marital_status_data_from_census)
     
     #concept: WOMEN 15 TO 50 YEARS WHO HAD A BIRTH IN THE PAST 12 MONTHS BY MARITAL STATUS x race
     #1169007 - nrow(sex_age_race[age>=15 & age<=50 & sex=="Female"]) = 1165030 (i.e., 3977 women not in sex_age_race) - only doesn't match in oldest group; maybe make them over 50?
@@ -852,6 +880,7 @@ exp_census <- function() {
       filter(race %in% acs_race_codes) %>%  
       uncount(num,.remove = FALSE,.id="preg_race_id")
     preg_race_dt <- as.data.table(pregnancy_race)
+    rm(pregnancy_race)
     
     pregnancy_eth <- pregnancy_data_race_marriage_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!"),
@@ -865,10 +894,11 @@ exp_census <- function() {
       filter(!ethnicity %in% acs_race_codes) %>%  
       uncount(num,.remove = FALSE,.id="preg_race_id")
     preg_eth_dt <- as.data.table(pregnancy_eth)
-    preg_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,married)]
-    preg_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,married)]
-    preg_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,married)]
+    preg_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,birth_label,married)]
+    preg_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,birth_label,married)]
+    preg_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,birth_label,married)]
     preg_eth_dt <- preg_eth_dt[(tokeep)]
+    rm(pregnancy_eth)
     
     pregnancy_age <- pregnancy_data_race_marriage_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!"),
@@ -882,6 +912,8 @@ exp_census <- function() {
       filter(!is.na(preg_age_range)) %>%  
       uncount(num,.remove = FALSE,.id="preg_age_id")
     preg_age_dt <- as.data.table(pregnancy_age)
+    rm(pregnancy_age)
+    rm(pregnancy_data_race_marriage_from_census)
     
     #concept: HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP gives exact number (4525519) - it's a mess in the mutate; should be able to fix
     household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 

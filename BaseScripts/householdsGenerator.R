@@ -386,35 +386,15 @@ createHouseholds <- function() {
     
 #    saveRDS(sam_eth_hh,file = paste0(housingdir, vintage, "/sam_eth_hh.419",Sys.Date(),".RDS"))
 #    saveRDS(sam_race_hh,file = paste0(housingdir, vintage, "/sam_race_hh.420",Sys.Date(),".RDS"))
-    
-#    sam_race_hh[,("eth_reorder"):=if_else(
-#      race == "A", as.integer(1),if_else(
-#        race == "B", sample(c(as.integer(2),as.integer(3),as.integer(4)),size=.N,prob = (c(.1,.8,.1)),replace=TRUE),if_else(
-#          race == "C", sample(c(as.integer(2),as.integer(3),as.integer(4)),size=.N,prob = (c(.1,.4,.5)),replace=TRUE),if_else(
-#            race == "D", sample(c(as.integer(2),as.integer(3),as.integer(4)),size=.N,prob = (c(.01,.1,.89)),replace=TRUE),if_else(
-#              race == "E", sample(c(as.integer(2),as.integer(3),as.integer(4)),size=.N,prob = (c(.01,.1,.89)),replace=TRUE),if_else(
-#                race == "F", sample(c(as.integer(2),as.integer(3),as.integer(4)),size=.N,prob = (c(.95,.01,.04)),replace=TRUE),if_else(
-#                  race == "G", sample(c(as.integer(2),as.integer(3),as.integer(4)),size=.N,prob = (c(.95,.01,.04)),replace=TRUE),
-#                  as.integer(3)
-#               )))))))]
-#the complicate reorders don't do any better than match on race by order given here - which is interesting...
+
+#the complicated reorders don't do any better than match on race by order given here - which is interesting...
 #bring sam_eth_hh and sam_race_hh together again (colnames for each...)
-    sam_race_hh[order(#match(own_rent,c("Owner occupied","Renter occupied")),
-                      #match(family_type,c("Householder living alone","Householder not living alone",
-                       #                   "Married-couple family","Other family")),
-                      #match(single_hh_sex,c("Female householder no husband present",
-                     #                       "Male householder no wife present")),
-      match(race,c("A","F","G","C","B","E","D"))), #
+    sam_race_hh[order(match(race,c("A","F","G","C","B","E","D"))), #
                 ("join_race_id"):=paste0(tract,own_rent,family_type,single_hh_sex,householder_age_3,
                                          as.character(1000000+seq.int(1:.N))),
                 by=.(tract,own_rent,family_type,single_hh_sex,householder_age_3)]
     #sam_eth_hh[ethnicity=="_",("ethnicity"):="none applied"]
-    sam_eth_hh[order(#match(own_rent,c("Owner occupied","Renter occupied")),
-                     #match(family_type,c("Householder living alone","Householder not living alone",
-                    #                     "Married-couple family","Other family")),
-                    # match(single_hh_sex,c("Female householder no husband present",
-                     #                      "Male householder no wife present")),
-                     match(ethnicity,c("H","I","_"))),
+    sam_eth_hh[order(match(ethnicity,c("H","I","_"))),
                ("join_race_id"):=paste0(tract,own_rent,family_type,single_hh_sex,householder_age_3,
                                         as.character(1000000+seq.int(1:.N))),
                by=.(tract,own_rent,family_type,single_hh_sex,householder_age_3)]
@@ -500,79 +480,191 @@ createHouseholds <- function() {
     sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
     sam_hh[is.na(sex),("sex"):="Male"]
     
+    #give all households an id
+    sam_hh[,("household_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    #ADD ALL THE OTHER HH STUFF, LIKE BEFORE, THEN GO TO HH
+    
+    
+    
+    
     #merge the ones with race first then the ones with ethnicity, then do a merge on all those factors for ethnicity back to race...
-    sex_age_race
-    sex_by_age_eth
-    
-    marital_status_race_dt
-    marital_status_eth_dt
-    marital_status_age_dt
-    ##do some matching between households and marital status, to get first clues...
-    #JOIN sex_age by race to marital, then by age (descending on age, not age_range) to sex_age
-    #then join sex_age by ethnicity to marital, then by age to sex_age
-    #then join sex_age to household stuff....
+    sex_age_race[,"individual_id":=paste0(tract,as.character(2000000+sample(.N))),by=.(tract)]
     
     
-    #SNAP - should follow rules for sub-setting that have to do with requirements by feds...
-    #do food_stamps as last with ethnicity and race separate for households (others, below, on full sam)
-    #have background sorting include broad indicators of income, but not too much - all you get on this is race/eth and food_stamps
-    sam_race_hh[order(people_per_room,match(own_rent,c("Owner occupied","Renter occupied"))),
-                ("join_snap_id"):=paste0(tract,race,as.character(1000000+seq.int(1:.N))),
-                by=.(tract,race)]
-    food_stamps_race_dt[,
-                        ("join_snap_id"):=paste0(tract,race,as.character(1000000+seq.int(1:.N))),
-                        by=.(tract,race)]
-    sam_race_hh[,c("SNAP"):=
-                  food_stamps_race_dt[.SD, list(food_stamps), on = .(join_snap_id)]]
-    sam_race_hh[,("join_snap_id"):=NULL]
-    sam_eth_hh[order(people_per_room,match(own_rent,c("Owner occupied","Renter occupied"))),
-               ("join_snap_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
-               by=.(tract,ethnicity)]
-    food_stamps_eth_dt[,
-                       ("join_snap_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
-                       by=.(tract,ethnicity)]
-    sam_eth_hh[,c("SNAP"):=
-                 food_stamps_eth_dt[.SD, list(food_stamps), on = .(join_snap_id)]]
-    sam_eth_hh[,("join_snap_id"):=NULL]
+#put marital_status temp on sex_age_race by sex and race; put age on marital_status_race; then use that to match with marital_status_age, then put final marital_status, etc. on
+    #add more age categories and race to marital_status_age and preg_age, for better matching
+    #move preg data to sex_age_race - sort by age, since it's not even on age_ranges, and sampling for age isn't exact for sex_age_race
+    sex_age_race[age>14 & order(age),
+                 ("married_id"):=paste0(tract,sex,race,
+                                        as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,sex,race)]
+    marital_status_race_dt[,
+                           ("married_id"):=paste0(tract,sex,race,
+                                                  as.character(1000000+sample(.N))),
+                           by=.(tract,sex,race)]
+    sex_age_race[,c("marital_status_tmp"):=
+                  marital_status_race_dt[.SD, list(marital_status), on = .(married_id)]]
+    marital_status_race_dt[,c("age"):=
+                             sex_age_race[.SD, list(age), on = .(married_id)]]
+    sex_by_age_eth[age>14 & order(age),
+                 ("married_id"):=paste0(tract,sex,ethnicity,
+                                        as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,sex,ethnicity)]
+    marital_status_eth_dt[,
+                           ("married_id"):=paste0(tract,sex,ethnicity,
+                                                  as.character(1000000+sample(.N))),
+                           by=.(tract,sex,ethnicity)]
+    sex_by_age_eth[,c("marital_status_tmp"):=
+                   marital_status_eth_dt[.SD, list(marital_status), on = .(married_id)]]
+#age is a mess on eth - many different categories for some reason    
+    marital_status_eth_dt[,c("age"):=
+                            sex_by_age_eth[.SD, list(substr(age_range,1,2)), on = .(married_id)]] 
+    sex_age_race$married_id <- NULL
+    sex_by_age_eth$married_id <- NULL
     
-    #bring sam_eth_hh and sam_race_hh together again
-    sam_race_hh[order(match(own_rent,c("Owner occupied","Renter occupied")),
-                      match(family_type,c("Householder living alone","Householder not living alone",
-                                          "Married-couple family","Other family")),
-                      match(single_hh_sex,c("Female householder no husband present",
-                                            "Male householder no wife present"))),#trying without specifying order for householder_age_9
-                ("join_race_id"):=paste0(tract,own_rent,family_type,single_hh_sex,householder_age_9,
-                                         housing_units,people_per_room,SNAP,as.character(1000000+sample(.N))),
-                by=.(tract,own_rent,family_type,single_hh_sex,householder_age_9,housing_units,people_per_room,SNAP)]
-    sam_eth_hh[order(match(own_rent,c("Owner occupied","Renter occupied")),
-                     match(family_type,c("Householder living alone","Householder not living alone",
-                                         "Married-couple family","Other family")),
-                     match(single_hh_sex,c("Female householder no husband present",
-                                           "Male householder no wife present"))),
-               ("join_race_id"):=paste0(tract,own_rent,family_type,single_hh_sex,householder_age_9,
-                                        housing_units,people_per_room,SNAP,as.character(1000000+sample(.N))),
-               by=.(tract,own_rent,family_type,single_hh_sex,householder_age_9,housing_units,people_per_room,SNAP)]
-    sam_race_hh[,c("ethnicity"):=
-                  sam_eth_hh[.SD, list(ethnicity), on = .(join_race_id)]]
-    sam_race_hh[,("join_race_id"):=NULL]
+    #add race/eth to marital_status_age from sex_age_race/eth
+    marital_status_age_dt[order(age_range_marital),
+                          ("married_id1"):=paste0(tract,sex,marital_status,
+                                                 as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,sex,marital_status)]
+    sex_age_race[order(age) & !is.na(marital_status_tmp),
+                          ("married_id1"):=paste0(tract,sex,marital_status_tmp,
+                                                  as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,sex,marital_status_tmp)]
+    marital_status_age_dt[,c("race"):=
+                            sex_age_race[.SD, list(race), on = .(married_id1)]]
+    sex_by_age_eth[order(as.numeric(substr(age_range,1,2))) & !is.na(marital_status_tmp),
+                 ("married_id1"):=paste0(tract,sex,marital_status_tmp,
+                                         as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,sex,marital_status_tmp)]
+    marital_status_age_dt[,c("ethnicity"):=
+                            sex_by_age_eth[.SD, list(ethnicity), on = .(married_id1)]]
+    sex_age_race$married_id1 <- NULL
+    sex_by_age_eth$married_id1 <- NULL
+    
+#put together preg and marital_status by race and age - slightly more women by age in oldest group for pregnant_age women, b/c of how sampling is done on sex_age_race and non-overlapping categories
+    marital_status_race_dt[order(age),("married2_id"):=paste0(tract,sex,marital_status,race,
+                                      as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,sex,marital_status,race)]
+    marital_status_eth_dt[order(age),("married3_id"):=paste0(tract,sex,marital_status,ethnicity,
+                                     as.character(1000000+seq.int(1:.N))),
+                by=.(tract,sex,marital_status,ethnicity)]
+    marital_status_age_dt[order(age_range_marital),("married2_id"):=paste0(tract,sex,marital_status,race,
+                                     as.character(1000000+seq.int(1:.N))),
+                by=.(tract,sex,marital_status,race)]
+    marital_status_age_dt[order(age_range_marital),("married3_id"):=paste0(tract,sex,marital_status,ethnicity,
+                                                                           as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,sex,marital_status,ethnicity)]
+    marital_status_race_dt[,c("spouse_present","separated","age_range_marital"):=
+                             marital_status_age_dt[.SD, c(list(spouse_present),list(separated),list(age_range_marital)), on = .(married2_id)]]
+    marital_status_eth_dt[,c("spouse_present","separated","age_range_marital"):=
+                  marital_status_age_dt[.SD, c(list(spouse_present),list(separated),list(age_range_marital)), on = .(married3_id)]]
+    marital_status_age_dt[,
+                          c("missing"):=
+                            marital_status_eth_dt[.SD, list(age_range_marital), on = .(married3_id)]]
+    marital_status_eth_dt[is.na(age_range_marital),
+                          ("married4_id"):=paste0(tract,sex,marital_status,
+                                                  as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,sex,marital_status)]
+    marital_status_age_dt[is.na(missing),
+                          ("married4_id"):=paste0(tract,sex,marital_status,
+                                                  as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,sex,marital_status)]
+    marital_status_eth_dt[is.na(age_range_marital),c("spouse_present","separated","age_range_marital"):=
+                            marital_status_age_dt[.SD, c(list(spouse_present),list(separated),list(age_range_marital)), on = .(married4_id)]]
+    marital_status_race_dt[,("married2_id"):=NULL]
+    marital_status_eth_dt[,("married3_id"):=NULL]
+    marital_status_eth_dt[,("married4_id"):=NULL]
+    #test <- table(marital_status_age_dt$tract,marital_status_age_dt$sex,marital_status_age_dt$marital_status,marital_status_age_dt$spouse_present,marital_status_age_dt$separated,marital_status_age_dt$age_range_marital)==
+     # table(marital_status_race_dt$tract,marital_status_race_dt$sex,marital_status_race_dt$marital_status,marital_status_race_dt$spouse_present,marital_status_race_dt$separated,marital_status_race_dt$age_range_marital)
+    
+    preg_race_dt[,("preg_id"):=paste0(tract,birth_label,married,
+                                      as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,birth_label,married)]
+    preg_eth_dt[,("preg_id"):=paste0(tract,birth_label,married,
+                                     as.character(1000000+seq.int(1:.N))),
+                by=.(tract,birth_label,married)]
+    preg_age_dt[,("preg_id"):=paste0(tract,birth_label,married,
+                                     as.character(1000000+seq.int(1:.N))),
+                by=.(tract,birth_label,married)]
+    preg_race_dt[,c("preg_age_range"):=
+                   preg_age_dt[.SD, list(preg_age_range), on = .(preg_id)]]
+    preg_eth_dt[,c("preg_age_range"):=
+                  preg_age_dt[.SD, list(preg_age_range), on = .(preg_id)]]
+    preg_race_dt[,("preg_id"):=NULL]
+    preg_eth_dt[,("preg_id"):=NULL]
     
     
-    #clean up and save sam_hh
-    sam_hh <- hh_type_race_dt[,c("race","ethnicity","tract","family","family_type","hh_role","family_role",
-                                 "householder_age","own_rent","housing_units","person_per_room","SNAP")]
+    marital_status_race_dt[order(age_range_marital),
+                           ("married_preg_id"):=paste0(tract,race,sex,if_else(str_detect(marital_status,"Now"),"Now","Not_now"),
+                                                       as.character(1000000+seq.int(1:.N))),
+                           by=.(tract,race,sex,str_detect(marital_status,"Now"))]
+    preg_race_dt[order(preg_age_range),
+                           ("married_preg_id"):=paste0(tract,race,sex,if_else(str_detect(married,"Now"),"Now","Not_now"),
+                                                       as.character(1000000+seq.int(1:.N))),
+                           by=.(tract,race,sex,str_detect(married,"Now"))]
+    marital_status_race_dt[,c("pregnant"):=
+                             preg_race_dt[.SD, list(birth_label), on = .(married_preg_id)]]
+    
+    marital_status_eth_dt[order(age_range_marital),
+                          ("married_preg_id"):=paste0(tract,ethnicity,sex,if_else(str_detect(marital_status,"Now"),"Now","Not_now"),
+                                                      as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,ethnicity,sex,str_detect(marital_status,"Now"))]
+    preg_eth_dt[order(preg_age_range),
+                 ("married_preg_id"):=paste0(tract,ethnicity,sex,if_else(str_detect(married,"Now"),"Now","Not_now"),
+                                             as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,ethnicity,sex,str_detect(married,"Now"))]
+    marital_status_eth_dt[,c("pregnant"):=
+                             preg_eth_dt[.SD, list(birth_label), on = .(married_preg_id)]]
+    
+    #join marital data to sex_age_race/eth
+    sex_age_race[order(as.numeric(substr(age_range,1,2))),
+                 ("married_join_id"):=paste0(tract,race,sex,
+                                                      as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,race,sex)]
+    marital_status_race_dt[order(age_range_marital),
+                ("married_join_id"):=paste0(tract,race,sex,
+                                            as.character(1000000+seq.int(1:.N))),
+                by=.(tract,race,sex)]
+    sex_age_race[,c("marital_status","spouse_present","separated","pregnant"):=
+        marital_status_race_dt[.SD, c(list(marital_status),list(spouse_present),list(separated),list(pregnant)), 
+                              on = .(married_join_id)]]
+    
+    sex_by_age_eth[order(as.numeric(substr(age_range,1,2))),
+                   ("married_join_id"):=paste0(tract,ethnicity,sex,
+                                               as.character(1000000+seq.int(1:.N))),
+                   by=.(tract,ethnicity,sex)]
+    marital_status_eth_dt[order(age_range_marital),
+                          ("married_join_id"):=paste0(tract,ethnicity,sex,
+                                                      as.character(1000000+seq.int(1:.N))),
+                          by=.(tract,ethnicity,sex)]
+    sex_by_age_eth[,c("marital_status","spouse_present","separated","pregnant"):=
+                     marital_status_eth_dt[.SD, c(list(marital_status),list(spouse_present),list(separated),list(pregnant)), 
+                                           on = .(married_join_id)]]
+    
+    
+    #join back into sex_age_race - if you also match on pregnant, you get some missing - not sure what's going on so pulled pregnant from eth
+    sex_age_race[order(match(race,c("A","F","G","C","B","E","D"))), #
+                ("join_race_id"):=paste0(tract,sex,marital_status,spouse_present,separated,
+                                         as.character(1000000+seq.int(1:.N))),
+                by=.(tract,sex,marital_status,spouse_present,separated)]
+    sex_by_age_eth[order(match(ethnicity,c("H","I","_"))),
+               ("join_race_id"):=paste0(tract,sex,marital_status,spouse_present,separated,
+                                        as.character(1000000+seq.int(1:.N))),
+               by=.(tract,sex,marital_status,spouse_present,separated)]
+    sex_age_race[,c("ethnicity","pregnant"):=
+                   sex_by_age_eth[.SD, c(list(ethnicity),list(pregnant)), on = .(join_race_id)]]
+    sex_age_race[,("join_race_id"):=NULL]
+    
+    
+    ##hh_workers, below, matches hh and on hh_size is pretty reasonable
+    ##
+ 
+
 #    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.427",Sys.Date(),".RDS"))
     
 
     
-    
-    #put sex on sam_hh for matching
-    sam_hh[str_detect(family_role,"Female"),("sex"):="Female"]
-    sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
-    sam_hh[is.na(sex),("sex"):="Male"]
-    
-    #saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
-    
-    #match income on own_rent, sorted by Foodstamps
     #concept: TENURE BY HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2017 INFLATION-ADJUSTED DOLLARS) - 1562813hh
     housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
     housing_occup_income_data <- housing_occup_income_from_census %>%
@@ -608,13 +700,6 @@ createHouseholds <- function() {
       filter(!is.na(hh_income_level) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hhincome_id",.remove = TRUE)
     hh_income_dt <- as.data.table(housing_occup_income_data)
-    sam_hh[order(-SNAP),
-           ("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    hh_income_dt[order(income_low),("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    sam_hh[,c("hh_income_level","income_low","income_high") := 
-             hh_income_dt[.SD, c(list(hh_income_level),list(income_low),list(income_high)), on = .(income_occup_id)]]
-    #just to adjust by a bit - fewer than 5t affected
-    sam_hh[income_low>30000,("SNAP"):="Household did not receive Food Stamps/SNAP in the past 12 months"]
     
     #concept: TENURE BY EDUCATIONAL ATTAINMENT OF HOUSEHOLDER 1562813hh
     housing_occup_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25013") #of occup, own or rent by educ attainment
@@ -772,32 +857,53 @@ createHouseholds <- function() {
       ) %>%
       uncount(as.numeric(number_sams),.id = "income_gross_rent_id",.remove = TRUE)
     income_gross_rent_hh <- as.data.table(income_gross_rent_data)
-    gross_rent_hh[rent_cash=="With cash rent",("gross_inc_id"):=
-                    paste0(tract,gross_rent_high2,as.character(1000000+seq.int(1:.N))),by=.(tract,gross_rent_high2)]
-    income_gross_rent_hh[,("gross_inc_id"):=
-                           paste0(tract,gross_rent_high2,as.character(1000000+seq.int(1:.N))),by=.(tract,gross_rent_high2)]
-    setkey(income_gross_rent_hh,gross_inc_id)
-    setkey(gross_rent_hh,gross_inc_id)
-    gross_rent_income <- income_gross_rent_hh[gross_rent_hh,]
+                      gross_rent_hh[rent_cash=="With cash rent",("gross_inc_id"):=
+                                      paste0(tract,gross_rent_high2,as.character(1000000+seq.int(1:.N))),by=.(tract,gross_rent_high2)]
+                      income_gross_rent_hh[,("gross_inc_id"):=
+                                             paste0(tract,gross_rent_high2,as.character(1000000+seq.int(1:.N))),by=.(tract,gross_rent_high2)]
+                      setkey(income_gross_rent_hh,gross_inc_id)
+                      setkey(gross_rent_hh,gross_inc_id)
+                      gross_rent_income <- income_gross_rent_hh[gross_rent_hh,]
+                      
+                      #just correlating with income - could get more complicated in future iterations
+                      sam_hh[order(-own_rent,income_low),
+                             ("gross_rent_hh_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract)]
+                      gross_rent_income[order(gross_rent_high2),("gross_rent_hh_id"):=paste0(tract,"Renter occupied",as.character(1000000+seq.int(1:.N))),by=.(tract)]
+                      setkey(sam_hh,gross_rent_hh_id)
+                      setkey(gross_rent_income,gross_rent_hh_id)
+                      sam_rent <- gross_rent_income[sam_hh,]
+                      #test: table(sam_rent[own_rent=="Renter occupied"]$tract,sam_rent[own_rent=="Renter occupied"]$gross_rent)==table(gross_rent_hh$tract,gross_rent_hh$gross_rent)
+                      #perhaps looking at systematically, there's good but appropriately not perfect correlation: table(sam_rent$i.gross_rent,sam_rent$gross_rent)
+                      #keep only gross_rent with 25 categories
+                      sam_rent[,c("rent_gross","rent_gross_high","rent_gross_low"):=c(list(i.gross_rent),list(i.gross_rent_high2),list(gross_rent_low))]
+                      sam_rent[is.na(tract),("tract"):=i.tract.1]
+                      sam_hh <- sam_rent[,c("tract","sex","race","ethnicity","family","family_type","hh_role","family_role","hh_size","hh_size_4",
+                                            "householder_age","householder_age_9","own_rent","housing_units","person_per_room","SNAP",
+                                            "rent_cash","rent_gross","rent_gross_high","rent_gross_low","hh_income_renters", #eventually assign numbers to rent and income
+                                            "hh_income_level","income_high","income_low","hh_education_level","number_vehicles_in_hh",
+                                            "number_workers_in_hh")]
     
-    #just correlating with income - could get more complicated in future iterations
-    sam_hh[order(-own_rent,income_low),
-           ("gross_rent_hh_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    gross_rent_income[order(gross_rent_high2),("gross_rent_hh_id"):=paste0(tract,"Renter occupied",as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    setkey(sam_hh,gross_rent_hh_id)
-    setkey(gross_rent_income,gross_rent_hh_id)
-    sam_rent <- gross_rent_income[sam_hh,]
-    #test: table(sam_rent[own_rent=="Renter occupied"]$tract,sam_rent[own_rent=="Renter occupied"]$gross_rent)==table(gross_rent_hh$tract,gross_rent_hh$gross_rent)
-    #perhaps looking at systematically, there's good but appropriately not perfect correlation: table(sam_rent$i.gross_rent,sam_rent$gross_rent)
-    #keep only gross_rent with 25 categories
-    sam_rent[,c("rent_gross","rent_gross_high","rent_gross_low"):=c(list(i.gross_rent),list(i.gross_rent_high2),list(gross_rent_low))]
-    sam_rent[is.na(tract),("tract"):=i.tract.1]
-    sam_hh <- sam_rent[,c("tract","sex","race","ethnicity","family","family_type","hh_role","family_role","hh_size","hh_size_4",
-                          "householder_age","householder_age_9","own_rent","housing_units","person_per_room","SNAP",
-                          "rent_cash","rent_gross","rent_gross_high","rent_gross_low","hh_income_renters", #eventually assign numbers to rent and income
-                          "hh_income_level","income_high","income_low","hh_education_level","number_vehicles_in_hh",
-                          "number_workers_in_hh")]
-    
+    #SNAP - should follow rules for sub-setting that have to do with requirements by feds...
+    #do food_stamps as last with ethnicity and race separate for households (others, below, on full sam)
+    #have background sorting include broad indicators of income, but not too much - all you get on this is race/eth and food_stamps
+    sam_race_hh[order(people_per_room,match(own_rent,c("Owner occupied","Renter occupied"))),
+                ("join_snap_id"):=paste0(tract,race,as.character(1000000+seq.int(1:.N))),
+                by=.(tract,race)]
+    food_stamps_race_dt[,
+                        ("join_snap_id"):=paste0(tract,race,as.character(1000000+seq.int(1:.N))),
+                        by=.(tract,race)]
+    sam_race_hh[,c("SNAP"):=
+                  food_stamps_race_dt[.SD, list(food_stamps), on = .(join_snap_id)]]
+    sam_race_hh[,("join_snap_id"):=NULL]
+    sam_eth_hh[order(people_per_room,match(own_rent,c("Owner occupied","Renter occupied"))),
+               ("join_snap_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
+               by=.(tract,ethnicity)]
+    food_stamps_eth_dt[,
+                       ("join_snap_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
+                       by=.(tract,ethnicity)]
+    sam_eth_hh[,c("SNAP"):=
+                 food_stamps_eth_dt[.SD, list(food_stamps), on = .(join_snap_id)]]
+    sam_eth_hh[,("join_snap_id"):=NULL]
     
     #just in case
 #    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.768",Sys.Date(),".RDS")) #"2020-04-15"
