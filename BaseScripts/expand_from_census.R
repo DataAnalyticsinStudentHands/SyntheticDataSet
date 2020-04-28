@@ -915,6 +915,17 @@ exp_census <- function() {
     rm(pregnancy_age)
     rm(pregnancy_data_race_marriage_from_census)
     
+    #concept:SEX BY AGE BY EDUCATIONAL ATTAINMENT FOR THE POPULATION 18 YEARS AND OVER - 
+    sex_age_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B15001") 
+    sex_age_educ_data <- sex_age_educ_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(sex_age_educ_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("sex","age","education_level"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(education_level) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "sex_age_hheduc_id",.remove = TRUE)
+    sex_age_educ_dt <- as.data.table(sex_age_educ_data)
+    
     #concept: HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP gives exact number (4525519) - it's a mess in the mutate; should be able to fix
     household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 
     household_type_relation_data <- household_type_relation_from_census %>%
@@ -1499,16 +1510,7 @@ exp_census <- function() {
 
     #add own_rent to sex_age, by education_level, sampling inside the ids by age and counting if it's over...
     
-    #concept:SEX BY AGE BY EDUCATIONAL ATTAINMENT FOR THE POPULATION 18 YEARS AND OVER - 
-    sex_age_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B15001") 
-    sex_age_educ_data <- sex_age_educ_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(sex_age_educ_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("sex","age","education_level"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(education_level) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "sex_age_hheduc_id",.remove = TRUE)
-    sex_age_educ_dt <- as.data.table(sex_age_educ_data)
+    
     
     
     

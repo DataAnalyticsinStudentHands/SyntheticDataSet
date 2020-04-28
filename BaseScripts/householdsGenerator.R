@@ -656,14 +656,42 @@ createHouseholds <- function() {
                    sex_by_age_eth[.SD, c(list(ethnicity),list(pregnant)), on = .(join_race_id)]]
     sex_age_race[,("join_race_id"):=NULL]
     
+#could put in published stuff correlating preg and educ, but I think the tract level stuff is carrying more info
+    #add educ to sex_age_race, in order to match better with hh
+    sex_age_race[age>17 & order(age),
+                 ("educ_id"):=paste0(tract,sex,
+                                          as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,sex)]
+    sex_age_educ_dt[order(age),
+                 ("educ_id"):=paste0(tract,sex,
+                                     as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,sex)]
+    sex_age_race[,c("education"):=
+                   sex_age_educ_dt[.SD, list(education_level), on = .(educ_id)]]
+    sex_age_race[,("educ_id"):=NULL]
     
     ##hh_workers, below, matches hh and on hh_size is pretty reasonable
-    ##
- 
+    ##put it in, above, as part of making sam_hh - then do type_relation here, and match, and then pull over
+ #before matching on relations_dt, will want to take out hh
 
 #    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.427",Sys.Date(),".RDS"))
     
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     #concept: TENURE BY HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2017 INFLATION-ADJUSTED DOLLARS) - 1562813hh
     housing_occup_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25118") #of occup, own or rent by income
