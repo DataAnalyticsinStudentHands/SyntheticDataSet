@@ -406,29 +406,9 @@ exp_census <- function() {
       filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
     vehicles_hh <- as.data.table(vehicles_household_data)
-#                  sam_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
-#                  sam_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-#                  vehicles_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-#                 sam_hh[,c("number_vehicles_in_hh") := 
-#                           vehicles_hh[.SD, list(number_vehicles_in_hh), on = .(vehicle_occup_id)]]
     rm(vehicles_household_size_from_census)
     rm(vehicles_household_data)
     #test: table(sam_hh$tract,sam_hh$number_vehicles_in_hh)==table(vehicles_hh$tract,vehicles_hh$number_vehicles_in_hh)
-    
-    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults over 21??
-    vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
-    vehicles_workers_data <- vehicles_workers_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(vehicles_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("number_workers_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(str_detect(number_workers_in_hh,"worker") & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
-    vehicles_workers_dt <- as.data.table(vehicles_workers_data)
-    rm(vehicles_workers_from_census)
-    rm(vehicles_workers_data)
-    
-
     
     #saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
     
@@ -468,13 +448,6 @@ exp_census <- function() {
       filter(!is.na(hh_income_level) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hhincome_id",.remove = TRUE)
     hh_income_dt <- as.data.table(housing_occup_income_data)
-    sam_hh[order(-SNAP),
-           ("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    hh_income_dt[order(income_low),("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    sam_hh[,c("hh_income_level","income_low","income_high") := 
-             hh_income_dt[.SD, c(list(hh_income_level),list(income_low),list(income_high)), on = .(income_occup_id)]]
-    #just to adjust by a bit - fewer than 5t affected
-    sam_hh[income_low>30000,("SNAP"):="Household did not receive Food Stamps/SNAP in the past 12 months"]
     
     #concept: TENURE BY EDUCATIONAL ATTAINMENT OF HOUSEHOLDER 1562813hh
     housing_occup_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25013") #of occup, own or rent by educ attainment
@@ -486,61 +459,6 @@ exp_census <- function() {
       filter(!is.na(hh_education_level) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
     hh_educ_dt <- as.data.table(housing_occup_educ_data)
-    #make same variable categories with sam_hh
-    hh_educ_dt[str_detect(own_rent,"Owner"),("own_rent"):="Owner occupied"]
-    hh_educ_dt[str_detect(own_rent,"Renter"),("own_rent"):="Renter occupied"]
-    sam_hh[order(income_low),
-           ("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    hh_educ_dt[order(match(hh_education_level,c("Less than high school graduate","High school graduate (including equivalency)",
-                                                "Some college or associate's degree","Bachelor's degree or higher"))),
-                     ("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    sam_hh[,c("hh_education_level") := 
-             hh_educ_dt[.SD, list(hh_education_level), on = .(educ_occup_id)]]
-    #test: table(sam_hh$tract,sam_hh$hh_education_level)==table(hh_educ_dt$tract,hh_educ_dt$hh_education_level)
-
-    #concept is:  HOUSEHOLD SIZE BY VEHICLES AVAILABLE - get hh / 1562813
-    vehicles_household_size_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08201")
-    vehicles_household_data <- vehicles_household_size_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(vehicles_household_size_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("hh_size_4","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_vehicles_in_hh) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "vehicles_id",.remove = TRUE)
-    vehicles_hh <- as.data.table(vehicles_household_data)
-    sam_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
-    sam_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-    vehicles_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-    sam_hh[,c("number_vehicles_in_hh") := 
-             vehicles_hh[.SD, list(number_vehicles_in_hh), on = .(vehicle_occup_id)]]
-    #test: table(sam_hh$tract,sam_hh$number_vehicles_in_hh)==table(vehicles_hh$tract,vehicles_hh$number_vehicles_in_hh)
-    
-    #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD !! has a different number of workers by tract!!!
-    household_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08202")
-    household_workers_data <- household_workers_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("hh_size_4","number_workers_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(number_workers_in_hh) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
-    #when adding age, workers need to be 18
-    hh_workers <- as.data.table(household_workers_data)
-    hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="3 or more workers"] #I think they made a mistake
-    #number in hh_size_dt has 7 factors; in workers, there's only 4 so collapse
-    #sam_workers[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
-    #create ids, just following order of how many in hh, so they can match
-    #the number of tracts aren't the same, so line them up so that it runs out on 3 or more workers
-    sam_hh[order(hh_size_4,-householder_age),
-           ("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-    hh_workers[order(hh_size_4,match(
-      number_workers_in_hh,c("No workers","1 worker","2 workers","3 or more workers"))),
-      ("num_workers_id"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-    sam_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(num_workers_id)]]
-    #clean up strays
-    sam_hh[hh_size=="1-person household" & number_workers_in_hh=="2 workers",("number_workers_in_hh"):="1 worker"]
-    sam_hh[hh_size=="1-person household" & number_workers_in_hh=="3 or more workers",("number_workers_in_hh"):="1 worker"]
-    sam_hh[hh_size=="2-person household" & number_workers_in_hh=="3 or more workers",("number_workers_in_hh"):="2 workers"]
     
     #equals "Renter occupied" on own_rent in Sam
     #gross rent is contract plus estimate for utilities, etc.
@@ -659,33 +577,7 @@ exp_census <- function() {
       ) %>%
       uncount(as.numeric(number_sams),.id = "income_gross_rent_id",.remove = TRUE)
     income_gross_rent_hh <- as.data.table(income_gross_rent_data)
-    gross_rent_hh[rent_cash=="With cash rent",("gross_inc_id"):=
-                    paste0(tract,gross_rent_high2,as.character(1000000+seq.int(1:.N))),by=.(tract,gross_rent_high2)]
-    income_gross_rent_hh[,("gross_inc_id"):=
-                           paste0(tract,gross_rent_high2,as.character(1000000+seq.int(1:.N))),by=.(tract,gross_rent_high2)]
-    setkey(income_gross_rent_hh,gross_inc_id)
-    setkey(gross_rent_hh,gross_inc_id)
-    gross_rent_income <- income_gross_rent_hh[gross_rent_hh,]
-    
-    #just correlating with income - could get more complicated in future iterations
-    sam_hh[order(-own_rent,income_low),
-           ("gross_rent_hh_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    gross_rent_income[order(gross_rent_high2),("gross_rent_hh_id"):=paste0(tract,"Renter occupied",as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    setkey(sam_hh,gross_rent_hh_id)
-    setkey(gross_rent_income,gross_rent_hh_id)
-    sam_rent <- gross_rent_income[sam_hh,]
-    #test: table(sam_rent[own_rent=="Renter occupied"]$tract,sam_rent[own_rent=="Renter occupied"]$gross_rent)==table(gross_rent_hh$tract,gross_rent_hh$gross_rent)
-    #perhaps looking at systematically, there's good but appropriately not perfect correlation: table(sam_rent$i.gross_rent,sam_rent$gross_rent)
-    #keep only gross_rent with 25 categories
-    sam_rent[,c("rent_gross","rent_gross_high","rent_gross_low"):=c(list(i.gross_rent),list(i.gross_rent_high2),list(gross_rent_low))]
-    sam_rent[is.na(tract),("tract"):=i.tract.1]
-    sam_hh <- sam_rent[,c("tract","sex","race","ethnicity","family","family_type","single_hh_sex","family_role","hh_size","hh_size_4",
-                          "householder_age","householder_age_9","own_rent","housing_units","person_per_room","SNAP",
-                          "rent_cash","rent_gross","rent_gross_high","rent_gross_low","hh_income_renters", #eventually assign numbers to rent and income
-                          "hh_income_level","income_high","income_low","hh_education_level","number_vehicles_in_hh",
-                          "number_workers_in_hh")]
-    
-    
+
     #just in case
 #    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.768",Sys.Date(),".RDS")) #"2020-04-15"
 #    saveRDS(sam_rent,file = paste0(housingdir, vintage, "/sam_rent_",Sys.Date(),".RDS")) #"2020-04-06"
@@ -1535,7 +1427,20 @@ exp_census <- function() {
      
     
     
-
+    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults over 21??
+    vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
+    vehicles_workers_data <- vehicles_workers_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(vehicles_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("number_workers_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(str_detect(number_workers_in_hh,"worker") & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
+    vehicles_workers_dt <- as.data.table(vehicles_workers_data)
+    rm(vehicles_workers_from_census)
+    rm(vehicles_workers_data)
+    
+    
 
     #means of transportation to work - perhaps use for 
     #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few
