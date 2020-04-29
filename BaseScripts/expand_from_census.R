@@ -195,20 +195,22 @@ exp_census <- function() {
     housing_units_eth_data <- housing_units_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
+      filter(label != "Owner-occupied housing units") %>%
+      filter(label != "Renter-occupied housing units") %>%
       pivot_longer(4:ncol(housing_units_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(ethnicity = substr(name,7,7)) %>%
       separate(label, c("housing_units","empty"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!ethnicity %in% acs_race_codes & is.na(empty)) %>%
+      mutate(ethnicity = substr(name,7,7),
+             housing_units = if_else(!is.na(empty),empty,housing_units)
+      ) %>%
+      filter(!ethnicity %in% acs_race_codes) %>%
       uncount(as.numeric(number_sams),.id = "housing_units_race_id",.remove = TRUE)
     housing_units_eth_dt <- as.data.table(housing_units_eth_data)
-    housing_units_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract)]
-    housing_units_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract)]
-    housing_units_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity)]
-    #clean up weirdness
-    housing_units_eth_dt[housing_units=="Owner-occupied housing units" | housing_units=="Renter-occupied housing units",
-                         ("housing_units"):=NA]
+    housing_units_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,housing_units)]
+    housing_units_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,housing_units)]
+    housing_units_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,housing_units)]
     housing_units_eth_dt <- housing_units_eth_dt[(tokeep)]
     rm(housing_units_eth_data)
+    #test <- table(housing_units_eth_dt$tract,housing_units_eth_dt$housing_units)==table(housing_units_race_dt$tract,housing_units_race_dt$housing_units)
     
     #either get race or owner_renter - housing units comes for both
     housing_units_rent_data <- housing_units_race_from_census %>%
@@ -265,20 +267,32 @@ exp_census <- function() {
     housing_per_room_eth_data <- housing_per_room_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
+      filter(label != "Owner occupied") %>%
+      filter(label != "Renter occupied") %>%
       pivot_longer(4:ncol(housing_per_room_race_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("num_per_room","empty"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(ethnicity = substr(name,7,7),
              num_per = case_when(
+               empty=="0.50 or less occupants per room" ~ "<1",
+               empty=="0.51 to 1.00 occupants per room" ~ "<1",
+               empty=="1.01 to 1.50 occupants per room" ~ ">1",
+               empty=="1.51 to 2.00 occupants per room" ~ ">1",
+               empty=="2.01 or more occupants per room" ~ ">1",
                num_per_room=="1.00 or less occupants per room" ~ "<1",
-               num_per_room=="1.01 or more occupants per room" ~ ">1",
-               TRUE ~ "none given"
-             )) %>%
-      filter(!ethnicity %in% acs_race_codes & is.na(empty)) %>%
+               num_per_room=="1.01 or more occupants per room" ~ ">1"
+             ),
+             num_per_room = case_when(
+               !is.na(empty) & str_detect(empty,"0.5") ~ "1.00 or less occupants per room",
+               !is.na(empty) & !str_detect(empty,"0.5") ~ "1.01 or more occupants per room",
+               TRUE ~ num_per_room
+             )
+             ) %>%
+      filter(!ethnicity %in% acs_race_codes) %>% 
       uncount(as.numeric(number_sams),.id = "per_room_ethnicity_race_id",.remove = TRUE)
     housing_per_room_eth_dt <- as.data.table(housing_per_room_eth_data)
-    housing_per_room_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract)]
-    housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract)]
-    housing_per_room_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity)]
+    housing_per_room_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,num_per_room)]
+    housing_per_room_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,num_per_room)]
+    housing_per_room_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,num_per)]
     housing_per_room_eth_dt <- housing_per_room_eth_dt[(tokeep)]
     rm(housing_per_room_eth_data)
     
@@ -645,32 +659,48 @@ exp_census <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), #have to regularize and make possible to compare
-             age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
-             age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
-             age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to skew left when assigning.
+      separate(label, c("sex","age_range_29"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(age_range_29 = str_replace(age_range_29,"Under 5 years","0  to  4 years"), #have to regularize and make possible to compare
+             age_range_29 = str_replace(age_range_29,"5 to 9 years","5  to  9 years"),
+             age_range_29 = str_replace(age_range_29,"18 and 19 years","18 to 19 years"),
+             age_range_29 = str_replace(age_range_29,"20 years","20 to 20 years"),
+             age_range_29 = str_replace(age_range_29,"21 years","21 to 21 years"),
+             age_range_29 = str_replace(age_range_29,"60 and 61 years","60 to 61 years"),
+             age_range_29 = str_replace(age_range_29,"65 and 66 years","65 to 66 years"),
+             age_range_29 = str_replace(age_range_29,"85 years and over","85 to 94 years"),  #have to skew left when assigning.
              age_range = case_when(
-               age_range=="20 years" ~ "20 to 24 years",
-               age_range=="21 years" ~ "20 to 24 years",
-               age_range=="22 to 24 years" ~ "20 to 24 years",
-               TRUE ~ age_range
+               age_range_29=="20 to 20 years" ~ "20 to 24 years",
+               age_range_29=="21 to 21 years" ~ "20 to 24 years",
+               age_range_29=="22 to 24 years" ~ "20 to 24 years",
+               age_range_29=="35 to 39 years" ~ "35 to 44 years",
+               age_range_29=="40 to 44 years" ~ "35 to 44 years",
+               age_range_29=="45 to 49 years" ~ "45 to 54 years",
+               age_range_29=="50 to 54 years" ~ "45 to 54 years",
+               age_range_29=="55 to 59 years" ~ "55 to 64 years",
+               age_range_29=="60 to 61 years" ~ "55 to 64 years",
+               age_range_29=="62 to 64 years" ~ "55 to 64 years",
+               age_range_29=="65 to 66 years" ~ "65 to 74 years",
+               age_range_29=="67 to 69 years" ~ "65 to 74 years",
+               age_range_29=="70 to 74 years" ~ "65 to 74 years",
+               age_range_29=="75 to 79 years" ~ "75 to 84 years",
+               age_range_29=="80 to 84 years" ~ "75 to 84 years",
+               TRUE ~ age_range_29
              ),
-             first_age = as.numeric(substr(age_range,1,2)),
-             last_age = as.numeric(substr(age_range,7,8)),
+             first_age = as.numeric(substr(age_range_29,1,2)),
+             last_age = as.numeric(substr(age_range_29,7,8)),
              age_range_length = last_age-first_age+1,
              ethnicity = substr(name,7,7)) %>% 
       filter(number_sams > 0, !ethnicity %in% acs_race_codes, !is.na(age_range)) %>%
       uncount(as.numeric(number_sams),.id = "sex_age_ethnicity_id")
     #do the id trick so that whitealone, but order ethnicity by H, I and then order race_adj by A,F,G,etc. with percentages of each, then the remaining
     sex_by_age_ethnicity <- as.data.table(sex_by_age_ethnicity_data)
-    sex_by_age_ethnicity[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,sex)]
-    sex_by_age_ethnicity[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,sex)]
+    sex_by_age_ethnicity[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,age_range,sex)]
+    sex_by_age_ethnicity[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,age_range,sex)]
     sex_by_age_ethnicity[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE)]
     sex_by_age_eth <- sex_by_age_ethnicity[(tokeep)]
-    sex_by_age_eth[age_range!="85 to 94 years",("age"):= 
-                   as.numeric(sample(as.character(first_age[1]:last_age[1]),size=.N,replace = TRUE)),by=.(age_range,sex,ethnicity)] 
-    sex_by_age_eth[age_range=="85 to 94 years",("age"):=
+    sex_by_age_eth[age_range_29!="85 to 94 years",("age"):= 
+                   as.numeric(sample(as.character(first_age[1]:last_age[1]),size=.N,replace = TRUE)),by=.(age_range_29,sex,ethnicity)] 
+    sex_by_age_eth[age_range_29=="85 to 94 years",("age"):=
                    as.numeric(sample(as.character(85:104),size=.N,prob=0.13-(1:20/174:155),replace = TRUE))] #looking for ~1300 centenarians in Houston
     rm(sex_by_age_ethnicity)
     rm(sex_by_age_ethnicity_data)
@@ -719,6 +749,7 @@ exp_census <- function() {
     marital_status_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE)]
     marital_status_eth_dt <- marital_status_eth_dt[(tokeep)]
     rm(marital_status_eth_data)
+    #marital_status matches race, but spouse_present does not; should use from race!!!!
     
     marital_status_age_data <- marital_status_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -811,6 +842,7 @@ exp_census <- function() {
     
     
     #this gets you adults and seniors, too - slightly different totals from one with just seniors, for some reason, by 3 part age_range
+    #concept:LIVING ARRANGEMENTS OF ADULTS 18 YEARS AND OVER BY AGE - have to add in group_quarters to get right total
     household_adults_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09021")
     household_adults_relation_data <- household_adults_relation_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -820,6 +852,8 @@ exp_census <- function() {
       filter(!is.na(relation_hh)) %>%
       uncount(as.numeric(number_sams),.id = "family_id",.remove = TRUE) 
     adults_relations <- as.data.table(household_adults_relation_data)
+    rm(household_adults_relation_from_census)
+    rm(household_adults_relation_data)
     
     #1223249 matches age_sex_race under 18
     #concept#HOUSEHOLD TYPE FOR CHILDREN UNDER 18 YEARS IN HOUSEHOLDS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
@@ -833,6 +867,8 @@ exp_census <- function() {
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "type_kids_id")
     hh_type_kids <- as.data.table(household_type_kids_data)
+    rm(household_type_kids_from_census)
+    rm(household_type_kids_data)
     
     #nrow(sex_age_race[age_range=="0  to  5 years" | age_range=="5  to  9 years" | age_range=="10 to 14 years" | age_range=="15 to 17 years"]) - 1225059
     #concept is:"OWN CHILDREN UNDER 18 YEARS BY FAMILY TYPE AND AGE" - each kid, not each hh - 1065925
@@ -847,6 +883,8 @@ exp_census <- function() {
       filter(!is.na(kid_age) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "kids_age_id",.remove = TRUE)
     kids_ages_dt <- as.data.table(kids_family_age_data)
+    rm(kids_family_age_from_census)
+    rm(kids_family_age_data)
     
     #GRANDCHILDREN UNDER 18 YEARS LIVING WITH A GRANDPARENT HOUSEHOLDER BY AGE OF GRANDCHILD - 103908 
     #nrow(hh_relations_dt[family_role=="Grandchild"]) - 126406 - this matches on role of grandparent with kids, some will have > 1 (22,500)
@@ -859,6 +897,9 @@ exp_census <- function() {
       rename(grandkid_age = label) %>%
       uncount(as.numeric(number_sams),.id = "kids_grandparents_id",.remove = TRUE)
     kids_grand_age <- as.data.table(kids_grandparents_age_data)
+    rm(kids_age_grandparents_from_census)
+    rm(kids_grandparents_age_data)
+    
     #get seniors by role
     #concept: RELATIONSHIP BY HOUSEHOLD TYPE (INCLUDING LIVING ALONE) FOR THE POPULATION 65 YEARS AND OVER
     household_seniors_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09020")
@@ -876,7 +917,8 @@ exp_census <- function() {
       separate(label, c("group_or_hh","family_or_non","relative","sex_sr_relations","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
       uncount(as.numeric(number_sams),.id = "sr_role_id",.remove = TRUE)
     sr_relations <- as.data.table(household_seniors_relation_data)
-    
+    rm(household_seniors_relation_from_census)
+    rm(household_seniors_relation_data)
     
     #concept: HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP gives exact number (4525519) - it's a mess in the mutate; should be able to fix
     household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 
@@ -901,6 +943,8 @@ exp_census <- function() {
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "role_id") #not sure why it needed as.numeric this time, but still works on filter above...
     hh_relations_dt <- as.data.table(household_type_relation_data)
+    rm(household_type_relation_from_census)
+    rm(household_type_relation_data)
     
     #concept:HOUSEHOLD TYPE BY RELATIVES AND NONRELATIVES FOR POPULATION IN HOUSEHOLDS by acs_race_codes
     #population in total gives 4484299 (total population in HH, plus 41220 in group quarters gives 4525519)
@@ -927,10 +971,13 @@ exp_census <- function() {
       uncount(as.numeric(number_sams),.id = "household_relatives_id",.remove = TRUE)
     household_relatives_eth_dt <- as.data.table(household_relatives_eth_data) 
     #find right one
-    household_relatives_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract)]
-    household_relatives_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract)]
-    household_relatives_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity)]
+    household_relatives_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,family_or_non,family_role_3)]
+    household_relatives_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,family_or_non,family_role_3)]
+    household_relatives_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,family_or_non,family_role_3,ethnicity)]
     household_relatives_eth_dt <- household_relatives_eth_dt[(tokeep)]
+    rm(household_relatives_data_from_census)
+    rm(household_relatives_data)
+    rm(household_relatives_eth_data)
     
     
     #NOT USED YET
