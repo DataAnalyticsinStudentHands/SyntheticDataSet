@@ -243,34 +243,7 @@ createHouseholds <- function() {
     sam_eth_hh[,("hh_units_id"):=NULL]
 #    test <- table(sam_eth_hh$tract,sam_eth_hh$ethnicity,sam_eth_hh$own_rent,sam_eth_hh$family_role_4,sam_eth_hh$housing_units)==
  #     table(hh_units_rent_eth$tract,hh_units_rent_eth$ethnicity,hh_units_rent_eth$own_rent,hh_units_rent_eth$family_role_4,hh_units_rent_eth$housing_units)
-    
-    #bring sam_eth_hh and sam_race_hh together again
-#    sam_race_hh[order(match(own_rent,c("Owner occupied","Renter occupied")),
-#                      match(family_type,c("Householder living alone","Householder not living alone",
-#                                          "Married-couple family","Other family")),
-#                      match(single_hh_sex,c("Female householder no husband present",
-#                                            "Male householder no wife present"))),#trying without specifying order for householder_age_9
-#                ("join_race_id"):=paste0(tract,own_rent,family_type,single_hh_sex,householder_age_9,
-#                                         housing_units,as.character(1000000+sample(.N))),
-#                by=.(tract,own_rent,family_type,single_hh_sex,householder_age_9,housing_units)]
-#    sam_eth_hh[order(match(own_rent,c("Owner occupied","Renter occupied")),
-#                     match(family_type,c("Householder living alone","Householder not living alone",
-#                                         "Married-couple family","Other family")),
-#                     match(single_hh_sex,c("Female householder no husband present",
-#                                           "Male householder no wife present"))),
-#               ("join_race_id"):=paste0(tract,own_rent,family_type,single_hh_sex,householder_age_9,
-#                                        housing_units,as.character(1000000+sample(.N))),
-#               by=.(tract,own_rent,family_type,single_hh_sex,householder_age_9,housing_units)]
-#    sam_race_hh[,c("ethnicity"):=
-#                  sam_eth_hh[.SD, list(ethnicity), on = .(join_race_id)]]
-#    sam_race_hh[,("join_race_id"):=NULL]
-    #test <- table(sam_eth_hh$tract,sam_eth_hh$ethnicity,sam_eth_hh$family_type)==table(sam_race_hh$tract,sam_race_hh$ethnicity,sam_race_hh$family_type)
-    
-    #separate into sam_race_hh and sam_eth_hh to track the other stuff easier (they are just subsets, so could be done together, but want them to run separately until consumed all the ones that have them separate)
-#    sam_eth_hh <- sam_race_hh
-#    sam_eth_hh[,("race"):=NULL]
-#    sam_race_hh[,("ethnicity"):=NULL]
-    
+
     #per_room has race, own_rent, and age - build from matching with sam_hh, then match per_room
     
 #then add per_room  with own_rent, race and age_range_3 to match - 
@@ -477,8 +450,10 @@ createHouseholds <- function() {
         
     #put sex on sam_hh for matching
     sam_hh[str_detect(family_role,"Female"),("sex"):="Female"]
-    sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
-    sam_hh[is.na(sex),("sex"):="Male"]
+    sam_hh[str_detect(family_role,"Male"),("sex"):="Male"]
+#assign sex from sex_age_race
+#    sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
+#    sam_hh[is.na(sex),("sex"):="Male"]
     
     #give all households an id
     sam_hh[,("household_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
@@ -554,12 +529,24 @@ createHouseholds <- function() {
     hh_partner_dt[partner_type == "Male householder and female partner",("sex") := "Male"]
     hh_partner_dt[partner_type == "Female householder and male partner",("sex") := "Female"]
     hh_partner_dt[unmarried=="Unmarried-partner households",
-                  ("partner_type_id"):=paste0(tract,sex,as.character(1000000+seq.int(1:.N))),by=.(tract,sex)]
-    sam_hh[family_type=="Other family" | family_type=="Householder not living alone", #lose just under a thousand...
-           ("partner_type_id"):=paste0(tract,sex,as.character(1000000+sample(.N))),by=.(tract,sex)]
-    sam_hh[,c("partner_type","sex_partner") := 
-             hh_partner_dt[.SD, c(list(partner_type),list(sex_partner)), on = .(partner_type_id)]]
+                  ("partner_type_id"):=paste0(tract,sex,as.character(1000000+sample(.N))),by=.(tract,sex)]
+    sam_hh[family_type=="Other family",# lose 2627 of 92975 in first pass - not sure where else to put them
+           ("partner_type_id"):=paste0(tract,if_else(is.na(sex),"none",sex),as.character(1000000+sample(.N))),by=.(tract,sex)]
+    sam_hh[family_type=="Other family",
+           c("partner_type","sex_partner","sex") := 
+             hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(partner_type_id)]]
+    hh_partner_dt[unmarried=="Unmarried-partner households",
+           c("matched") := 
+             sam_hh[.SD, c(list(partner_type)), on = .(partner_type_id)]]
+    hh_partner_dt[unmarried=="Unmarried-partner households" & is.na(matched),
+                  ("second_join_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_hh[family_type=="Householder not living alone",
+           ("second_join_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_hh[family_type=="Householder not living alone",
+           c("partner_type","sex_partner","sex") := 
+             hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(second_join_id)]]
     sam_hh$partner_type_id <- NULL
+    sam_hh$second_join_id <- NULL
 
     #add related kids age_ranges (can be more than one kid in category, but does give you "no children")
     hh_kids[order(family_role,match(kid_age,c("No children","Under 6 years only","6 to 17 years only","Under 6 years and 6 to 17 years"))),
@@ -569,8 +556,16 @@ createHouseholds <- function() {
     sam_hh[family=="Family households",c("kids_by_age") := hh_kids[.SD, list(kid_age), on = .(hh_kids_id)]] #may have more than 1 in other categories
     sam_hh$hh_kids_id <- NULL
     
-    #household_id
-    sam_hh[,c("household_id") := list(paste0(state,county,tract,as.character(2000000+sample(.N)))),by=.(tract)] #sample defaults to replace=FALSE
+    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.572",Sys.Date(),".RDS")) #through line 625 of expand_from_census
+    
+    
+    
+    
+    
+    
+    
+    #move this into apportioning
+    
     sam_hh[,c("hh_1_role") := "self"]
     sam_hh[,c("householder") := TRUE]
     sam_hh[,("age_range"):=householder_age_9]
@@ -620,7 +615,7 @@ createHouseholds <- function() {
     sam_hh[hh_2_role=="Unmarried partner" & as.numeric(substr(hh_size,1,1))==1,("hh_size"):="2-person household"]
     sam_hh[hh_2_role=="Unmarried partner" & as.numeric(substr(hh_size_4,1,1))==1,("hh_size_4"):="2-person household"]
     sam_hh[family_type=="Married-couple family",
-           ("hh_2_role"):="Spouse"] #will be only Female
+           ("hh_2_role"):="Spouse"] 
      #so that the spouses and the hh will be close in age, once we randomize
     
     

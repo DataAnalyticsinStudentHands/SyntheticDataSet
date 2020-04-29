@@ -808,61 +808,6 @@ exp_census <- function() {
       uncount(as.numeric(number_sams),.id = "sex_age_hheduc_id",.remove = TRUE)
     sex_age_educ_dt <- as.data.table(sex_age_educ_data)
     
-    #concept: HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP gives exact number (4525519) - it's a mess in the mutate; should be able to fix
-    household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 
-    household_type_relation_data <- household_type_relation_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_type_relation_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("group_or_hh","family_or_non","relative","role_in_family","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(
-        group_quarters = if_else(str_detect(group_or_hh,"group"),TRUE,FALSE),
-        nonfamily = if_else(str_detect(family_or_non,"nonfamily"),TRUE,FALSE),
-        sex = if_else(str_detect(role_in_family,"ale"),role_in_family,'none'),
-        sex = if_else(is.na(sex),'none',sex),
-        role_in_family = if_else(group_quarters,"in_group_quarters", #you can't define family_role in series...(except that is.na)
-                              if_else(relative=="Child" | relative=="Nonrelatives",if_else(is.na(role_in_family),'del',role_in_family),
-                                      if_else(relative=="Householder",relative,role_in_family))),
-        role_in_family = if_else(is.na(role_in_family),relative,role_in_family),
-        del = if_else(sex == "Male" | sex == "Female" & is.na(living_alone),TRUE,if_else((sex == "Male" | sex == "Female") & nonfamily,TRUE,FALSE)),
-        del = if_else(role_in_family=="del",TRUE,del)
-      ) %>% #want each role to have 786 before uncount
-      filter(!del) %>%
-      filter(number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "role_id") #not sure why it needed as.numeric this time, but still works on filter above...
-    hh_relations_dt <- as.data.table(household_type_relation_data)
-    
-    #concept:HOUSEHOLD TYPE BY RELATIVES AND NONRELATIVES FOR POPULATION IN HOUSEHOLDS by acs_race_codes
-    #population in total gives 4484299 (total population in HH, plus 41220 in group quarters gives 4525519)
-    household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
-    household_relatives_data <- household_relatives_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_relatives_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("family_or_non","family_role_3","relative_or_non"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(race = substr(name,7,7)) %>% 
-      filter(!is.na(relative_or_non) | family_or_non=="In nonfamily households") %>%
-      filter(race %in% acs_race_codes) %>% 
-      uncount(as.numeric(number_sams),.id = "household_relatives_id",.remove = TRUE)
-    household_relatives_race_dt <- as.data.table(household_relatives_data)
-    
-    household_relatives_eth_data <- household_relatives_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(household_relatives_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("family_or_non","family_role_3","relative_or_non"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(ethnicity = substr(name,7,7)) %>%
-      filter(!is.na(relative_or_non) | family_or_non=="In nonfamily households") %>%
-      filter(!ethnicity %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "household_relatives_id",.remove = TRUE)
-    household_relatives_eth_dt <- as.data.table(household_relatives_eth_data) 
-    #find right one
-    household_relatives_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract)]
-    household_relatives_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract)]
-    household_relatives_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity)]
-    household_relatives_eth_dt <- household_relatives_eth_dt[(tokeep)]
-    
-    
     
     
     #this gets you adults and seniors, too - slightly different totals from one with just seniors, for some reason, by 3 part age_range
@@ -933,72 +878,62 @@ exp_census <- function() {
     sr_relations <- as.data.table(household_seniors_relation_data)
     
     
-    hh_ages_all_dt <- rbindlist(list(kids_ages_dt,adults_relations[relation_age_range!="65 years and over"],sr_relations),fill = TRUE)
+    #concept: HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP gives exact number (4525519) - it's a mess in the mutate; should be able to fix
+    household_type_relation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09019") 
+    household_type_relation_data <- household_type_relation_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_type_relation_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("group_or_hh","family_or_non","relative","role_in_family","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(
+        group_quarters = if_else(str_detect(group_or_hh,"group"),TRUE,FALSE),
+        nonfamily = if_else(str_detect(family_or_non,"nonfamily"),TRUE,FALSE),
+        sex = if_else(str_detect(role_in_family,"ale"),role_in_family,'none'),
+        sex = if_else(is.na(sex),'none',sex),
+        role_in_family = if_else(group_quarters,"in_group_quarters", #you can't define family_role in series...(except that is.na)
+                              if_else(relative=="Child" | relative=="Nonrelatives",if_else(is.na(role_in_family),'del',role_in_family),
+                                      if_else(relative=="Householder",relative,role_in_family))),
+        role_in_family = if_else(is.na(role_in_family),relative,role_in_family),
+        del = if_else(sex == "Male" | sex == "Female" & is.na(living_alone),TRUE,if_else((sex == "Male" | sex == "Female") & nonfamily,TRUE,FALSE)),
+        del = if_else(role_in_family=="del",TRUE,del)
+      ) %>% #want each role to have 786 before uncount
+      filter(!del) %>%
+      filter(number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "role_id") #not sure why it needed as.numeric this time, but still works on filter above...
+    hh_relations_dt <- as.data.table(household_type_relation_data)
     
-    hh_ages_dt <- rbindlist(list(kids_family_age_data,household_adults_relation_data),fill = TRUE)
-    hh_relations_dt[relative=="Householder" | relative=="Spouse" | family_role=="Unmarried partner",
-                    ("relations_merged"):= "Householder_partner"]
-    hh_ages_dt[relation_hh=="Householder living with spouse or spouse of householder" |
-                   relation_hh=="Householder living with unmarried partner or unmarried partner of householder" |
-                 relation_hh=="Lives alone", #pick up and separate when merging with sam_hh
-                 ("relations_merged"):= "Householder_partner"]
-    hh_relations_dt[relative=="Child",("relations_merged"):="Child"]
-    hh_ages_dt[relation_hh=="Child of householder",("relations_merged"):="Child"] #but over 18!
-    hh_relations_dt[relative=="Nonrelatives",("relations_merged"):="Other nonrelatives"]
-    hh_ages_dt[relation_hh=="Other nonrelatives",("relations_merged"):="Other nonrelatives"]
-    hh_relations_dt[relative=="Brother or sister" | relative=="Grandchild" | 
-                      str_detect(relative, "in-law"),
-                    ("relations_merged"):="Younger relatives"]
-    hh_relations_dt[relative=="Brother or sister" | relative=="Parent" |
-                      str_detect(relative, "in-law"),
-                    ("relations_merged"):="Other relatives"]
-    hh_ages_dt[relation_hh=="Other relatives",("relations_merged"):="Other relatives"]
-    hh_ages_dt[!is.na(kid_age),("relations_merged"):="Younger relatives"]
-    sr_relations[relative=="Householder" | relative=="Spouse",
-                    ("relations_merged"):= "Householder_partner"]
-    sr_relations[relative=="Parent" | relative=="Parent-in-law",
-                 ("relations_merged"):= "Other relatives"]
-    sr_relations[group_or_hh=="In group quarters",("relations_merged"):="Group Quarters"] #just for sorting
-    sr_relations[order(relations_merged),("sr_relations_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    hh_ages_dt[order(relations_merged) & relation_age_range=="65 years and over",
-               ("sr_relations_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    hh_sr_ages <- hh_ages_dt[sr_relations,on="sr_relations_id"]
+    #concept:HOUSEHOLD TYPE BY RELATIVES AND NONRELATIVES FOR POPULATION IN HOUSEHOLDS by acs_race_codes
+    #population in total gives 4484299 (total population in HH, plus 41220 in group quarters gives 4525519)
+    household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
+    household_relatives_data <- household_relatives_data_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_relatives_data_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("family_or_non","family_role_3","relative_or_non"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(race = substr(name,7,7)) %>% 
+      filter(!is.na(relative_or_non) | family_or_non=="In nonfamily households") %>%
+      filter(race %in% acs_race_codes) %>% 
+      uncount(as.numeric(number_sams),.id = "household_relatives_id",.remove = TRUE)
+    household_relatives_race_dt <- as.data.table(household_relatives_data)
     
-    #hh_sr_ages <- sr_relations[hh_ages_dt,on="sr_relations_id"]
-    hh_sr_ages[is.na(kid_age),("age_range"):=relation_age_range]
-    hh_sr_ages[!is.na(kid_age),("age_range"):=kid_age]
-    hh_ages_exp <- rbindlist(list(hh_sr_ages,hh_relations_dt[family_role=="Adopted child" |
-                                                          family_role=="Foster child" | 
-                                                          family_role=="Grandchild" | 
-                                                          family_role=="Stepchild"]),fill = TRUE)
-    hh_ages_exp[is.na(age_range),("age_range"):="0 to 17 years"] #add to all moved over from hh_relations
-    hh_ages_exp[is.na(age_range),("relations_merged"):="Younger relatives"]
-    
-    #hh_relations_dt[(group_quarters),("relations_merged"):="Group Quarters"]
-    hh_ages_exp[is.na(tract),("tract"):=i.tract]
-    hh_ages_exp[is.na(relations_merged),("relations_merged"):=i.relations_merged]
-    hh_ages_exp[order(match(relations_merged,c("Child","Younger relatives","Householder_partner","Other nonrelatives","Other relatives"))),
-                ("ages_exp_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    hh_relations_dt[order(match(relations_merged,c("Child","Younger relatives","Householder_partner","Other nonrelatives","Other relatives"))),
-                ("ages_exp_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    
-    ##could we put them all together, and then pick the ones that respect original distribution on family_roles??
-    ##just do the count thing before assigning the ages_exp_id and keep the family_roles from relations.????
-    full_relations_dt <- hh_relations_dt[hh_ages_exp,on=("ages_exp_id")]
-    relations_dt <- full_relations_dt[!is.na(i.tract),
-                                      c("i.tract","group_or_hh","group_quarters","relative",
-                                        "family_or_non","family_role","age_range")]
-    #then count on the ones that were in relations to begin with? 
-#    relations_dt <- hh_ages_exp[hh_relations_dt,on=("ages_exp_id")]
-
-    #relations_dt[is.na(tract),("tract"):=if_else(is.na(i.tract),i.tract.1,i.tract)]
-    relations_dt[,("tract"):=i.tract.1]
-    relations_dt[is.na(family_role),c("group_or_hh","family_or_non","relative","family_role"):=
-                   c(list(i.group_or_hh),list(i.family_or_non),list(i.relative),list(i.family_role))]
-    relations_dt[is.na(age_range) & family_role=="Foster child",("age_range"):="0 to 17 years"]  
-    relations_dt[is.na(age_range),("age_range"):="18 to 64 years"]
+    household_relatives_eth_data <- household_relatives_data_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(household_relatives_data_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("family_or_non","family_role_3","relative_or_non"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(ethnicity = substr(name,7,7)) %>%
+      filter(!is.na(relative_or_non) | family_or_non=="In nonfamily households") %>%
+      filter(!ethnicity %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "household_relatives_id",.remove = TRUE)
+    household_relatives_eth_dt <- as.data.table(household_relatives_eth_data) 
+    #find right one
+    household_relatives_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract)]
+    household_relatives_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract)]
+    household_relatives_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity)]
+    household_relatives_eth_dt <- household_relatives_eth_dt[(tokeep)]
     
     
+    #NOT USED YET
     #concept is: "PRESENCE OF UNMARRIED PARTNER OF HOUSEHOLDER BY HOUSEHOLD TYPE FOR CHILDREN UNDER 18 YEARS IN HOUSEHOLDS"
     #children come in at 1223249 - nrow(sex_age_race_latinx_dt[age<18]) = 1225059 - 1810 kids could be cps / foster waiting?
     household_unmarried_children_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09008")
@@ -1011,7 +946,7 @@ exp_census <- function() {
       filter(!is.na(family_type) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "hh_unmarried_kids_id",.remove = TRUE)
     
-    
+    #not used yet
     #foodstamps B22005 race of HH
     #join with nat'l SNAP data? https://host76.mathematica-mpr.com/fns/Download.aspx?, but looks like a pain
     #FSBEN Unit SNAP benefit
@@ -1377,6 +1312,29 @@ exp_census <- function() {
     
     #unique(place_born) - "Born in state of residence" "Born in other state in the United States" "Native; born outside the United States"   "Foreign born" 
     place_born_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06004")
+    place_born_race_data <- place_born_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_born_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(place_born = label) %>%
+      filter(race %in% acs_race_codes & number_sams>0) %>%
+      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
+    place_born_eth_data <- place_born_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_born_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(ethnicity = substr(name,7,7)) %>%
+      rename(place_born = label) %>%
+      #      filter(!ethnicity %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
+    place_born_race_dt <- as.data.table(transport_race_data)
+    place_born_eth_dt <- as.data.table(transport_eth_data)
+    place_born_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,transport_to_work)]
+    place_born_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,transport_to_work)]
+    place_born_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,transport_to_work)]
+    place_born_eth_dt <- transport_eth_dt[(tokeep)]
+    
     #should do it by households, too??? would match on hh_size, then on race, etc., 
     #    place_born_race_data <- place_born_race_from_census %>% #right total - 4525519
     
@@ -1410,7 +1368,7 @@ exp_census <- function() {
     
     
 
-    #means of transportation to work - perhaps use for 
+    #means of transportation to work - perhaps use for all of the ones at bottom??
     #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few
     transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
     transport_race_data <- transport_race_from_census %>%
@@ -1567,7 +1525,7 @@ exp_census <- function() {
     
     
     
-        #has population of 4458402
+        #has population of 4458402 -- should do whole group of them!!!
     moved_1yr_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07004")
     moved_1yr_race_data <- moved_1yr_race_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -1974,7 +1932,6 @@ transport_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, s
 
 transport_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08113")
 transport_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08119")
-transport_occupation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08124")
 transport_industry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08126")
 transport_time_work_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08134")
 when_go_work_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08011")

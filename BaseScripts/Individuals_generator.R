@@ -1,5 +1,7 @@
 #https://www2.census.gov/programs-surveys/decennial/2020/program-management/census-research/predictive-models-audience-segmentation-report.pdf
 
+##SEPARATE OUT INTO A FUNCTION CALL???
+
 #merge the ones with race first then the ones with ethnicity, then do a merge on all those factors for ethnicity back to race...
 sex_age_race[,"individual_id":=paste0(tract,as.character(2000000+sample(.N))),by=.(tract)]
 
@@ -157,6 +159,7 @@ sex_by_age_eth[,c("marital_status","spouse_present","separated","pregnant"):=
 
 
 #join back into sex_age_race - if you also match on pregnant, you get some missing - not sure what's going on so pulled pregnant from eth
+#pregnant should count as having one child - maybe give them birthdates??
 sex_age_race[order(match(race,c("A","F","G","C","B","E","D"))), #
              ("join_race_id"):=paste0(tract,sex,marital_status,spouse_present,separated,
                                       as.character(1000000+seq.int(1:.N))),
@@ -183,11 +186,101 @@ sex_age_race[,c("education"):=
                sex_age_educ_dt[.SD, list(education_level), on = .(educ_id)]]
 sex_age_race[,("educ_id"):=NULL]
 
+#saveRDS(sex_age_race,file = paste0(housingdir, vintage, "/sex_age_race_l.189_",Sys.Date(),".RDS"))
+#get householders into and marked on sex_age_race - sex, age, race, eth, marital/family_type, education? - may have to do HH first
 
-#get other whole pop info
-hh_ages_all_dt <- rbindlist(list(kids_ages_dt,adults_relations[relation_age_range!="65 years and over"],sr_relations),fill = TRUE)
+#make congruent categories
+sex_age_race[,("education_4") := case_when(
+  education=="Less than 9th grade" ~ "Less than high school graduate",
+  education=="9th to 12th grade no diploma" ~ "Less than high school graduate",
+  education=="High school graduate (includes equivalency)" ~ "High school graduate (including equivalency)",
+  education=="Some college no degree" ~ "Some college or associate's degree",
+  education=="Associate's degree" ~ "Some college or associate's degree",
+  education=="Bachelor's degree" ~ "Bachelor's degree or higher",
+  education=="Graduate or professional degree" ~ "Bachelor's degree or higher"
+  )]
+sex_age_race[age>14,("householder_age_9") := case_when(
+  age < 25 ~ "Householder 15 to 24 years",
+  age > 24 & age < 35 ~ "Householder 25 to 34 years",
+  age > 34 & age < 45 ~ "Householder 35 to 44 years",
+  age > 44 & age < 55 ~ "Householder 45 to 54 years",
+  age > 54 & age < 59 ~ "Householder 55 to 59 years",
+  age > 59 & age < 65 ~ "Householder 60 to 64 years",
+  age > 64 & age < 75 ~ "Householder 65 to 74 years",
+  age > 74 & age < 85 ~ "Householder 75 to 84 years",
+  age > 84 ~ "Householder 85 years and over",
+)]
+#add ids for matching
+#do the sam_hh where the sex is known - there's some very strange things with the matching; this gets a majority.
+sex_age_race[,("hh_join_id"):=paste0(tract,sex,race,ethnicity,householder_age_9,education_4,
+                                    as.character(1000000+sample(.N))),
+             by=.(tract,sex,race,ethnicity,householder_age_9,education_4)]
+sam_hh[,("hh_join_id"):=paste0(tract,if_else(is.na(sex),"none",sex),race,ethnicity,householder_age_9,hh_education_level,
+                                     as.character(1000000+sample(.N))),
+             by=.(tract,is.na(sex),race,ethnicity,householder_age_9,hh_education_level)]
+#move to each side - householder_id, individual_id, some info for later matching...
+sam_hh[,c("individual_id","sex","marital_status","spouse_present","separated") := 
+         sex_age_race[.SD, c(list(individual_id),list(sex),list(marital_status),list(spouse_present),list(separated)), on = .(hh_join_id)]]
 
-hh_ages_dt <- rbindlist(list(kids_family_age_data,household_adults_relation_data),fill = TRUE)
+sex_age_race[age>14,
+             c("household_id","hh_income_level","kids_by_age","number_workers_in_hh","number_vehicles_in_hh") := 
+               sam_hh[.SD, c(list(household_id),list(hh_income_level),list(kids_by_age),list(number_workers_in_hh),list(number_vehicles_in_hh)), 
+                      on = .(hh_join_id)]]
+sam_hh$hh_join_id <- NULL
+sex_age_race$hh_join_id <- NULL
+#then pick up others, with bias toward putting males as householders (following census; but not absolute)
+sex_age_race_1_hh <- sex_age_race[is.na(household_id)] #since I can't get the i to order and to subset
+sex_age_race_1_hh[order(-sex),
+#sex_age_race[is.na(household_id),
+             ("second_join_id"):=paste0(tract,householder_age_9,education_4,
+                                     as.character(1000000+seq.int(1:.N))),
+             by=.(tract,householder_age_9,education_4)]
+sam_hh[is.na(individual_id),("second_join_id"):=paste0(tract,householder_age_9,hh_education_level,
+                               as.character(1000000+seq.int(1:.N))),
+       by=.(tract,householder_age_9,hh_education_level)]
+sam_hh[is.na(individual_id),c("individual_id","sex","race","ethnicity","marital_status","spouse_present","separated") := 
+         sex_age_race_1_hh[.SD, c(list(individual_id),list(sex),list(race),list(ethnicity),
+                                  list(marital_status),list(spouse_present),list(separated)), on = .(second_join_id)]]
+
+sex_age_race[age>14 & is.na(household_id),
+             c("household_id","hh_income_level","kids_by_age","number_workers_in_hh","number_vehicles_in_hh") := 
+               sam_hh[.SD, c(list(household_id),list(hh_income_level),list(kids_by_age),list(number_workers_in_hh),list(number_vehicles_in_hh)), 
+                             on = .(individual_id)]]
+rm(sex_age_race_1_hh)
+sam_hh$second_join_id <- NULL
+#sex_age_race$second_join_id <- NULL
+#pick up last 100k on education_level
+sex_age_race[is.na(household_id),
+             ("third_join_id"):=paste0(tract,education_4,
+                                        as.character(1000000+sample(.N))),
+             by=.(tract,education_4)]
+sam_hh[is.na(individual_id),("third_join_id"):=paste0(tract,hh_education_level,
+                                                       as.character(1000000+sample(.N))),
+       by=.(tract,hh_education_level)]
+sam_hh[is.na(individual_id),c("individual_id","sex","race","ethnicity","marital_status","spouse_present","separated") := 
+         sex_age_race[.SD, c(list(individual_id),list(sex),list(race),list(ethnicity),
+                             list(marital_status),list(spouse_present),list(separated)), on = .(third_join_id)]]
+
+sex_age_race[age>14 & is.na(household_id),
+             c("household_id","hh_income_level","kids_by_age","number_workers_in_hh","number_vehicles_in_hh") := 
+               sam_hh[.SD, c(list(household_id),list(hh_income_level),list(kids_by_age),list(number_workers_in_hh),list(number_vehicles_in_hh)), 
+                      on = .(individual_id)]]
+sam_hh$third_join_id <- NULL
+sex_age_race$third_join_id <- NULL
+#should either move 
+#test nrow(sam_hh[is.na(individual_id)])==0 ; nrow(sex_age_race[!is.na(household_id)])==nrow(sam_hh)
+
+#get relations info back and forth with sam_hh
+sex_age_race[!is.na(household_id),("relation_householder"):="self"]
+
+
+
+
+#instead of below, add straight into sex_age_race / sam
+ages_all_dt <- rbindlist(list(kids_ages_dt,adults_relations[relation_age_range!="65 years and over"],sr_relations),fill = TRUE)
+
+ages_dt <- rbindlist(list(kids_family_age_data,household_adults_relation_data),fill = TRUE)
+
 hh_relations_dt[relative=="Householder" | relative=="Spouse" | family_role=="Unmarried partner",
                 ("relations_merged"):= "Householder_partner"]
 hh_ages_dt[relation_hh=="Householder living with spouse or spouse of householder" |
