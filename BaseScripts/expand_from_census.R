@@ -627,6 +627,8 @@ exp_census <- function() {
       uncount(as.numeric(number_sams),.id = "related_kids_id")
     hh_kids <- as.data.table(household_related_kids_data)
     
+###COULD END THIS AND CALL IT EXPAND_HH_FROM_CENSUS; THEN HAVE THE OTHER? THEY'RE NOT COMPLETELY SEPARATE, THOUGH
+    
     #go back to the most detailed individual level without duplication to assign missing pieces from build
     #concept is SEX BY AGE for each race / ethnicity - 4525519 2017 Harris County
     sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")

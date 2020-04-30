@@ -273,6 +273,17 @@ sex_age_race$third_join_id <- NULL
 #get relations info back and forth with sam_hh
 sex_age_race[!is.na(household_id),("relation_householder"):="self"]
 
+#add age to type_relations - triangulating with sex_age_race
+#we have household type by kids, household type by seniors and household type by whole population, - can also get family_type from sam_hh by age, but this may be something to write back over... 
+hh_type_kids
+kids_ages_dt
+
+adults_relations
+#relatives total is same as group_or_hh=="In households" in hh_relations / then family_or_non match
+household_relatives_race_dt
+household_relatives_eth_data
+
+hh_relations_dt
 
 
 
