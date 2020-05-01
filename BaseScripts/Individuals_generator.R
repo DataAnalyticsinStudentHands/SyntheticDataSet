@@ -119,6 +119,110 @@ marital_status_eth_dt[,c("pregnant"):=
 #test <- nrow(marital_status_eth_dt[!is.na(pregnant)]) == nrow(preg_eth_dt)
 #test <- nrow(marital_status_race_dt[!is.na(pregnant)]) == nrow(preg_race_dt)
 
+#adding relation data before matching back on eth and race
+#add to sex_age_race, before getting householders out??
+
+
+#add marital_status, based on race
+#catch the subset who match
+#marital_status_race_dt[,("family_role_3"):=if_else(marital_status=="Now married","In married-couple family","not determined")]
+#marital_status_eth_dt[,("family_role_3"):=if_else(marital_status=="Now married","In married-couple family","not determined")]
+
+#family_or_non matches on hh_relations_dt[group_or_hh=="In households"] - only family
+household_relatives_race_dt[,("rel_marital_id"):= 
+                              paste0(tract,race,if_else(family_role_3=="In married-couple family","Now married","not determined"),
+                                     as.character(1000000+sample(.N))),
+                            by=.(tract,race,marital_status=="Now married")]
+marital_status_race_dt[,("rel_marital_id"):=
+                         paste0(tract,race,if_else(marital_status=="Now married","In married-couple family","not determined"),
+                                as.character(1000000+sample(.N))),
+                       by=.(tract,race,marital_status=="Now married")]
+marital_status_race_dt[,c("family_or_non","family_role_3","relative_or_non"):=
+                         household_relatives_race_dt[.SD, c(list(family_or_non),list(family_role_3),list(relative_or_non)), 
+                                                     on = .(rel_marital_id)]]
+household_relatives_eth_data[,("rel_marital_id"):= 
+                               paste0(tract,ethnicity,if_else(family_role_3=="In married-couple family","Now married","not determined"),
+                                      as.character(1000000+sample(.N))),
+                             by=.(tract,ethnicity,marital_status=="Now married")]
+marital_status_eth_dt[,("rel_marital_id"):=
+                         paste0(tract,ethnicity,if_else(marital_status=="Now married","In married-couple family","not determined"),
+                                as.character(1000000+sample(.N))),
+                       by=.(tract,ethnicity,marital_status=="Now married")]
+marital_status_eth_dt[,c("family_or_non","family_role_3","relative_or_non"):=
+                         household_relatives_eth_data[.SD, c(list(family_or_non),list(family_role_3),list(relative_or_non)), 
+                                                     on = .(rel_marital_id)]]
+
+#to match sr_relations$relative
+hh_relations_dt[,("relative_sr"):=case_when(
+  relative=="Householder" ~ "Householder",
+  relative=="Spouse" ~ "Spouse",
+  relative=="Nonrelatives" ~ "Nonrelatives",
+  relative=="Parent" ~ "Parent",
+  relative=="Parent-in-law" ~ "Parent-in-law",
+  relative=="Other relatives" | relative=="Child" | relative=="Brother or sister" | 
+    relative=="Grandchild" ~ "Other relatives",
+  TRUE ~ "not determined"
+)]
+hh_relations_dt[,("rel_sr_id"):=
+                  paste0(tract,group_or_hh,family_or_non,relative_sr,
+                         as.character(1000000+sample(.N))),
+                by=.(tract,group_or_hh,family_or_non,relative_sr)]
+sr_relations[,("rel_sr_id"):=
+               paste0(tract,group_or_hh,family_or_non,relative,
+                      as.character(1000000+sample(.N))),
+             by=.(tract,group_or_hh,family_or_non,relative)]
+hh_relations_dt[,c("sex_sr_hh","living_alone","age_range_3"):=
+                  sr_relations[.SD, c(list(family_or_non),list(family_role_3),"Householder 65 years and over"), 
+                               on = .(rel_sr_id)]]
+
+#many are not uniquely determined - mostly matches adults_relations$relation_hh, for age>17 - only get to add an age_range with 3
+hh_relations_dt[,("relation_hh"):=case_when(
+  relative=="Child" ~ "Child of householder", #but only for adults; Foster child is non-relative
+  relative=="Spouse" ~ "Householder living with spouse or spouse of householder",
+  role_in_family=="Unmarried partner" ~ "Householder living with unmarried partner or unmarried partner of householder",
+  relative=="Nonrelatives" | relative=="Parent-in-law" ~ "Other nonrelatives",
+  relative=="Other relatives" | relative =="Parent" | relative=="Brother or sister" | relative=="Grandchild" ~ "Other relatives",
+  TRUE ~ "not determined"
+)]
+hh_relations_dt[age_range_3!="Householder 65 years and over",
+                ("rel_adults_id"):=
+                  paste0(tract,relation_hh,
+                         as.character(1000000+sample(.N))),
+                by=.(tract,relation_hh)]
+adults_relations[age_range_3!="Householder 65 years and over",
+                 ("rel_adults_id"):=
+               paste0(tract,relation_hh,
+                      as.character(1000000+sample(.N))),
+             by=.(tract,relation_hh)]
+hh_relations_dt[age_range_3!="Householder 65 years and over",c("age_range_3"):=
+                  sr_relations[.SD, list(age_range_3), 
+                               on = .(rel_adults_id)]]
+#to match household_relatives_race/eth_dt - relative_or_non - only Nonrelatives in family households!!!
+hh_relations_dt[,("relative_or_non"):=case_when(
+  relative=="Nonrelatives" | relative=="Parent-in-law" | relative=="Son-in-law or daughter-in-law" ~ "Nonrelatives",
+  relative=="Other relatives" | relative=="Brother or sister" | relative=="Parent" | relative=="Spouse" |
+    relative=="Householder" | relative=="Grandchild" | relative=="Child" ~ "Relatives"
+)]
+hh_relations_dt[,
+                ("rel_marital_id"):=
+                  paste0(tract,race,family_or_non,family_role_3,relative_or_non,
+                         as.character(1000000+sample(.N))),
+                by=.(tract,race,family_or_non,family_role_3,relative_or_non)]
+marital_status_race_dt[,
+                 ("rel_marital_id"):=
+                   paste0(tract,race,family_or_non,family_role_3,relative_or_non,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract,race,family_or_non,family_role_3,relative_or_non)]
+marital_status_race_dt[,c(""):=
+                         hh_relations_dt[.SD, list(family_role_3), #all the things that will fit!!
+                               on = .(rel_marital_id)]]
+
+
+
+
+
+
+
 #join marital data to sex_age_race/eth
 sex_age_race[order(as.numeric(substr(age_range,1,2))),
              ("married_join_id"):=paste0(tract,race,sex,
@@ -156,6 +260,7 @@ sex_by_age_eth[,c("marital_status","spouse_present","separated","pregnant"):=
 #length(test[test==F])/length(test) #96% false
 sex_age_race$marital_status_tmp <- NULL
 sex_by_age_eth$marital_status_tmp <- NULL
+
 
 
 #join back into sex_age_race - if you also match on pregnant, you get some missing - not sure what's going on so pulled pregnant from eth
@@ -316,24 +421,13 @@ sex_age_race$fourth_join_id <- NULL
 
 #get relations info back and forth with sam_hh
 sex_age_race[!is.na(household_id),("relation_householder"):="self"]
-saveRDS(sex_age_race,file = paste0(housingdir, vintage, "/sex_age_race_l.319_",Sys.Date(),".RDS"))
-saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.320_",Sys.Date(),".RDS"))
+
+#saveRDS(sex_age_race,file = paste0(housingdir, vintage, "/sex_age_race_l.319_",Sys.Date(),".RDS"))
+#saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.320_",Sys.Date(),".RDS"))
 
 
 
 
-
-#add age to type_relations - triangulating with sex_age_race
-#we have household type by kids, household type by seniors and household type by whole population, - can also get family_type from sam_hh by age, but this may be something to write back over... 
-hh_type_kids
-kids_ages_dt
-
-adults_relations
-#relatives total is same as group_or_hh=="In households" in hh_relations / then family_or_non match
-household_relatives_race_dt
-household_relatives_eth_data
-
-hh_relations_dt
 
 
 

@@ -89,18 +89,7 @@ exp_census <- function() {
     rm(occupied_eth_data)
     #test <- table(occupied_eth_dt$tract,occupied_eth_dt$own_rent)==table(occupied_race_dt$tract,occupied_race_dt$own_rent)
     #length(test[test==TRUE])/length(test)
-    
-                                  #this is what I did when trying to keep race and ethnicity together - lost a lot of granularity, but better than just by percentages
-                                  #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
-                         #         occupied_race_dt[order(match(race,c("A","F","G","C","B","E","D"))),
-                          #                         ("num_eth_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-                           #       occupied_eth_dt[order(match(ethnicity,c("H","I","_"))),
-                            #                      ("num_eth_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-                             #     occupied_race_dt[,c("ethnicity") := occupied_eth_dt[.SD, list(ethnicity), on = .(tract,own_rent,num_eth_id)]]
-                                  #test <- table(occupied_race_dt$tract,occupied_race_dt$race,occupied_race_dt$ethnicity)==table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$ethnicity)
-                                  #then match on race, ethnicity both each time - if tables don't match, need an overarching count that can be matched...like just ethnicity
-    
-    
+
     #concept: "HOUSEHOLD TYPE (INCLUDING LIVING ALONE) for acs_race_codes"
     household_type_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11001") #vgl. B25006??
     household_type_race_data <- household_type_race_from_census %>%
@@ -317,10 +306,6 @@ exp_census <- function() {
     
     #concept is: TENURE BY AGE OF HOUSEHOLDER BY OCCUPANTS PER ROOM
     #num_per_room is different, but can be aggregated to match above 
-    #                                       1.00 or less occupants per room 1.01 to 1.50 occupants per room 1.51 or more occupants per room
-    #Householder 15 to 34 years                             350128                           22772                            8214
-    #Householder 35 to 64 years                             871976                           39863                           14692
-    #Householder 65 years and over                          251823                            2277                            1068
     housing_per_room_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25015") #ratio per tract occup per/room/race
     housing_per_room_age_data <- housing_per_room_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -338,7 +323,6 @@ exp_census <- function() {
     rm(housing_per_room_age_from_census)
     rm(housing_per_room_age_data)
                       
-    #should we compare this with hh_size times per_person_per_room??   #add in ways to coordinate with other measures???
     #TENURE BY ROOMS- 1562813
     housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
     housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
@@ -423,6 +407,61 @@ exp_census <- function() {
     rm(vehicles_household_size_from_census)
     rm(vehicles_household_data)
     #test: table(sam_hh$tract,sam_hh$number_vehicles_in_hh)==table(vehicles_hh$tract,vehicles_hh$number_vehicles_in_hh)
+    
+    #concept:PRESENCE OF OWN CHILDREN UNDER 18 YEARS BY FAMILY TYPE BY EMPLOYMENT STATUS
+    #wife of a husband not in labor force is not listed as existing
+    #attaches to family households, under sam_hh$family - Estimate!!Total gives 1062265 (which is 4384 short of Family households; all missing are family_type: Married couples)
+    family_employment_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B23007")
+    family_employment_data <- family_employment_data_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces!!Wife in labor force") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed!!Wife in labor force") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces!!Wife in labor force") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed!!Wife in labor force") %>%
+      filter(label != "With own children under 18 years!!Other family!!Male householder no wife present!!In labor force") %>%
+      filter(label != "With own children under 18 years!!Other family!!Male householder no wife present") %>%
+      filter(label != "With own children under 18 years!!Other family!!Female householder no husband present!!In labor force") %>%
+      filter(label != "With own children under 18 years!!Other family!!Female householder no husband present") %>%
+      filter(label != "No children under 18 years!!Other family!!Male householder no wife present!!In labor force") %>%
+      filter(label != "No children under 18 years!!Other family!!Male householder no wife present") %>%
+      filter(label != "No children under 18 years!!Other family!!Female householder no husband present!!In labor force") %>%
+      filter(label != "No children under 18 years!!Other family!!Female householder no husband present") %>%
+      filter(label != "With own children under 18 years!!Other family") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband not in labor force") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force") %>%
+      filter(label != "With own children under 18 years!!Married-couple family") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces") %>%
+      filter(label != "With own children under 18 years") %>%
+      filter(label != "No children under 18 years!!Other family") %>%
+      filter(label != "No children under 18 years") %>%
+      filter(label != "No children under 18 years!!Married-couple family") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband not in labor force!!Wife in labor force") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband not in labor force!!Wife in labor force") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband not in labor force") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force") %>%
+      pivot_longer(4:ncol(family_employment_data_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("own_kids","family_type","family_role","employed","husband_employ","wife_employed"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(#hh_employ=if_else(family_role=="Husband in labor force",employed,husband_employ),
+        single_hh_employ=if_else(family_type=="Other family",employed,NULL),
+        single_hh_employ=if_else(single_hh_employ=="In labor force",husband_employ,single_hh_employ),
+        husband_employed=if_else(family_role=="Husband in labor force",employed,family_role),
+        husband_employed=if_else(family_type=="Married-couple family",husband_employed,NULL),
+        wife_employed=if_else(husband_employ=="Wife in labor force",wife_employed,husband_employ),
+        wife_employed=if_else(family_type=="Married-couple family",wife_employed,NULL),
+        family_role=if_else(str_detect(family_role,"householder"),family_role,family_type)
+             ) %>%
+      #     filter(family_type=="Other family" | !is.na(husband_employ) & number_sams > 0) %>%
+      #      filter(!is.na(husband_employ) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "family_employ_id",.remove = TRUE)
+    family_employment_data$husband_employ<-NULL
+    family_employment_data$employed<-NULL
+    family_employment_dt <- as.data.table(family_employment_data)
+    rm(family_employment_data_from_census)
+    rm(family_employment_data)
     
     #saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
     
@@ -850,7 +889,7 @@ exp_census <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(household_adults_relation_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("relation_age_range","relation_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("age_range_3","relation_hh"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(relation_hh)) %>%
       uncount(as.numeric(number_sams),.id = "family_id",.remove = TRUE) 
     adults_relations <- as.data.table(household_adults_relation_data)
@@ -865,7 +904,7 @@ exp_census <- function() {
       filter(label != "Estimate!!Total") %>%
       filter(label != "In family households") %>%
       pivot_longer(4:ncol(household_type_kids_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("family_or_non","family_type"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("family_or_non","family_role_3"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "type_kids_id")
     hh_type_kids <- as.data.table(household_type_kids_data)
@@ -877,12 +916,13 @@ exp_census <- function() {
     kids_family_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B09002")
     kids_family_age_data <- kids_family_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% 
-      filter(label != "Estimate!!Total") %>%
+      filter(label == "Estimate!!Total") %>%
       pivot_longer(4:ncol(kids_family_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("family","family_type","kid_age"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(kid_age = if_else(family=="In married-couple families",family_type,kid_age),
-             kid_age = if_else(kid_age=="Under 3 years","0 to 3 years",kid_age)) %>%
-      filter(!is.na(kid_age) & number_sams > 0) %>%
+             kid_age = if_else(kid_age=="Under 3 years","0 to 3 years",kid_age),
+             family_type = if_else(family=="In other families",family_type,"In married-couple family")) %>%
+#      filter(!is.na(kid_age) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "kids_age_id",.remove = TRUE)
     kids_ages_dt <- as.data.table(kids_family_age_data)
     rm(kids_family_age_from_census)
@@ -980,6 +1020,13 @@ exp_census <- function() {
     rm(household_relatives_data_from_census)
     rm(household_relatives_data)
     rm(household_relatives_eth_data)
+    
+    
+    
+    
+    
+    
+    
     
     
     #NOT USED YET
@@ -1530,49 +1577,7 @@ exp_census <- function() {
       uncount(as.numeric(number_sams),.id = "own_rent_date_id",.remove = TRUE)
     
     
-    #concept:PRESENCE OF OWN CHILDREN UNDER 18 YEARS BY FAMILY TYPE BY EMPLOYMENT STATUS
-    #wife of a husband not in labor force is not listed as existing
-    #attaches to family households, under sam_hh$family - 1062265
-    family_employment_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B23007")
-    family_employment_data <- family_employment_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces!!Wife in labor force") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed!!Wife in labor force") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces!!Wife in labor force") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed!!Wife in labor force") %>%
-      filter(label != "With own children under 18 years!!Other family!!Male householder no wife present!!In labor force") %>%
-      filter(label != "With own children under 18 years!!Other family!!Male householder no wife present") %>%
-      filter(label != "With own children under 18 years!!Other family!!Female householder no husband present!!In labor force") %>%
-      filter(label != "With own children under 18 years!!Other family!!Female householder no husband present") %>%
-      filter(label != "No children under 18 years!!Other family!!Male householder no wife present!!In labor force") %>%
-      filter(label != "No children under 18 years!!Other family!!Male householder no wife present") %>%
-      filter(label != "No children under 18 years!!Other family!!Female householder no husband present!!In labor force") %>%
-      filter(label != "No children under 18 years!!Other family!!Female householder no husband present") %>%
-      filter(label != "With own children under 18 years!!Other family") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband not in labor force") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force") %>%
-      filter(label != "With own children under 18 years!!Married-couple family") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces") %>%
-      filter(label != "With own children under 18 years") %>%
-      filter(label != "No children under 18 years!!Other family") %>%
-      filter(label != "No children under 18 years") %>%
-      filter(label != "No children under 18 years!!Married-couple family") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband not in labor force!!Wife in labor force") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband not in labor force!!Wife in labor force") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband not in labor force") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force") %>%
-      pivot_longer(4:ncol(family_employment_data_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("own_kids","family_type","hh_worker_role","employed","husband_employ","wife_employ"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(hh_employ=if_else(hh_worker_role=="Husband in labor force",employed,husband_employ)) %>%
-#     filter(family_type=="Other family" | !is.na(husband_employ) & number_sams > 0) %>%
-#      filter(!is.na(husband_employ) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "family_employ_id",.remove = TRUE)
-    
-    
+        
     
         #has population of 4458402 -- should do whole group of them!!!
     moved_1yr_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07004")
