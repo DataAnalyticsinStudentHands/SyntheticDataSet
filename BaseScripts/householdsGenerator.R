@@ -431,6 +431,14 @@ createHouseholds <- function() {
     sam_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(worker_id)]]
     sam_hh$worker_id <- NULL
     
+    #add related kids age_ranges (can be more than one kid in category, but does give you "no children")
+    hh_kids[order(family_role,match(kid_age,c("No children","Under 6 years only","6 to 17 years only","Under 6 years and 6 to 17 years"))),
+            ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
+    sam_hh[family=="Family households" & order(family_role,hh_size),
+           ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
+    sam_hh[family=="Family households",c("kids_by_age") := hh_kids[.SD, list(kid_age), on = .(hh_kids_id)]] #may have more than 1 in other categories
+    sam_hh$hh_kids_id <- NULL
+    
     #add employment for family - census file is misssing 4384, all married couple families...
     #assumes ALL householders who are married are male
     #get categories straight
@@ -557,20 +565,18 @@ createHouseholds <- function() {
     sam_hh$partner_type_id <- NULL
     sam_hh$second_join_id <- NULL
 
-    #add related kids age_ranges (can be more than one kid in category, but does give you "no children")
-    hh_kids[order(family_role,match(kid_age,c("No children","Under 6 years only","6 to 17 years only","Under 6 years and 6 to 17 years"))),
-      ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
-    sam_hh[family=="Family households" & order(family_role,hh_size),
-           ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
-    sam_hh[family=="Family households",c("kids_by_age") := hh_kids[.SD, list(kid_age), on = .(hh_kids_id)]] #may have more than 1 in other categories
-    sam_hh$hh_kids_id <- NULL
+    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.568",Sys.Date(),".RDS")) 
+#    rm(list = setdiff(ls(),"sam_hh")) # or just the ones that are in the list that is passed from expand_hh_from_census
+    #when go through and set break if error points, also remove after using - just to clean up space
+  #END BASE_HH_GEN here
+  }   
+}
     
-    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.572",Sys.Date(),".RDS")) 
-    
-    
+
+
     #should remember kids_grand_age, too
     #we have household type by kids, household type by seniors and household type by whole population, - can also get family_type from sam_hh by age, but this may be something to write back over... 
-    hh_type_kids #very close to sex_age_race <18yo, but have to add after sam_hh is added to say who has or doesn't have children!!
+#    hh_type_kids #very close to sex_age_race <18yo, but have to add after sam_hh is added to say who has or doesn't have children!!
     #on sam_hh already kids_ages_dt #5 age range, family_type - F/M householder or married couple - only own_kids - needs related kids to find
     
     

@@ -8,6 +8,8 @@ library(data.table)
 #should change this so that state, county are part of the directory!
 
 # before we get started, setup directories and parameters
+
+##NEED TO BE RESTRUCTURED FOR EXPANDING TO OTHER LOCATIONS AND DATES
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
@@ -27,6 +29,9 @@ set.seed(seed = seed) #  have to reinvoke for each function call, but haven't de
 sam <- createBaseSAM(censusdir, housingdir, vintage, 
                      housingStockFromRDS, 
                      numberOfCores = numberOfCores, state = state, county = county, tract = tract)
+
+#createBaseSAM will need to call exp_census_hh, prob. from within householdsGenerator.; then exp_census from within Individuals_generator
+#HCAD_merge and HCAD_geo have not been functioned; all need error handling and sanity checks internally
 
 # do some sanity checks and more columns
 if (sanityChecks(sam)) {
