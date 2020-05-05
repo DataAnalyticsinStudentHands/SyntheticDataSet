@@ -290,10 +290,10 @@ exp_census <- function() {
       filter(label != "Estimate!!Total") %>%
       filter(label != "In family households") %>%
       pivot_longer(4:ncol(household_type_kids_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("family_or_non","in_family_role"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(family_role_3=(if_else(in_family_role=="In male householder no wife present family","Male householder no wife present",
-                                    if_else(in_family_role=="In female householder no husband present family",
-                                            "Female householder no husband present",in_family_role)))) %>%
+      separate(label, c("family_or_non","in_family_type"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(family_role_3=(if_else(in_family_type=="In male householder no wife present family","Male householder no wife present",
+                                    if_else(in_family_type=="In female householder no husband present family",
+                                            "Female householder no husband present",in_family_type)))) %>%
       filter(number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "type_kids_id")
     hh_type_kids <- as.data.table(household_type_kids_data)
@@ -504,6 +504,7 @@ exp_census <- function() {
     place_born_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,place_born)]
     place_born_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,place_born)]
     place_born_eth_dt <- place_born_eth_dt[(tokeep)]
+    place_born_eth_dt[ethnicity!="H" & ethnicity !="I",("ethnicity"):=list("_")]
     rm(place_born_eth_data)
     rm(place_born_race_data)
     rm(place_born_race_from_census)
@@ -526,10 +527,21 @@ exp_census <- function() {
       filter(label != "Native; born outside the United States") %>%
       pivot_longer(4:ncol(place_born_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("age_range","empty"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(
+        age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), #have to make sort in order
+        age_range = str_replace(age_range,"5 to 17 years","05 to 17 years"),
+        age_range = str_replace(age_range,"60 and 61 years","60 to 62 years"),
+        age_range = str_replace(age_range,"75 years and over","75 to 89 years")
+      )%>%
       filter(as.numeric(number_sams) > 0) %>%  
       filter(is.na(empty)) %>%
       uncount(as.numeric(number_sams),.id = "place_born_age_id") 
     place_born_age_full_dt <- as.data.table(place_born_age_data)
+    place_born_age_full_dt[age_range!="75 to 89 years",("age"):= 
+                     as.numeric(sample(as.character(first_age[1]:last_age[1]),size=.N,replace = TRUE)),by=.(tract,age_range)] 
+    place_born_age_full_dt[age_range=="75 to 89 years",("age"):=
+                     as.numeric(sample(as.character(75:104),size=.N,prob=0.23-(1:30/174:145),replace = TRUE))] #looking for ~1300 centenarians in Houston
+    
         
     place_born_age2_data <- place_born_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -700,18 +712,18 @@ exp_census <- function() {
     rm(place_born_marital_data)
     rm(place_born_marital_from_census)
     
-#    #population of 25 and over: 2923369 folks - count all people over 25 in place_born_age you get 2860024 (63345 too many in educ?)
-#    place_born_education_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06009")
-#    place_born_education_data <- place_born_education_from_census %>%
-#      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-#      filter(label != "Estimate!!Total") %>%
-#      pivot_longer(4:ncol(place_born_education_from_census),names_to = "tract", values_to = "number_sams") %>% 
-#      separate(label, c("place_born","educational_status"), sep = "!!", remove = F, convert = FALSE) %>%
-#      filter(number_sams > 0 & !is.na(educational_status)) %>%
-#      uncount(as.numeric(number_sams),.id = "place_born_education_id")
-#    place_born_education_dt <- as.data.table(place_born_education_data)
-#    rm(place_born_education_from_census)
-#    rm(place_born_education_data)
+    #population of 25 and over: 2923369 folks - count all people over 25 in place_born_age you get 2860024 (63345 too many in educ?)
+    place_born_education_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06009")
+    place_born_education_data <- place_born_education_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(place_born_education_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("place_born","educational_status"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(number_sams > 0 & !is.na(educational_status)) %>%
+      uncount(as.numeric(number_sams),.id = "place_born_education_id")
+    place_born_education_dt <- as.data.table(place_born_education_data)
+    rm(place_born_education_from_census)
+    rm(place_born_education_data)
     
     #unique on date_entered: "Entered 2010 or later" "Entered before 1990"   "Entered 2000 to 2009"  "Entered 1990 to 1999"
     #hard to line up with exact, but total comes close to foreign_born in place_born (24892 off)
@@ -1240,7 +1252,16 @@ exp_census <- function() {
       mutate(own_rent = if_else(str_detect(owner_renter,"owner"),"Owner occupied","Renter occupied")) %>%
       uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
     
-
+    #concept:MEANS OF TRANSPORTATION TO WORK BY INDUSTRY
+    transport_industry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08126")
+    
+    transport_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08006")
+    transport_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08101")
+    
+    transport_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08113")
+    transport_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08119")
+    
+    transport_time_work_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08134")
     
 
     
@@ -1550,13 +1571,6 @@ moved_1yr_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintag
 moved_1yr_marital_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07008")
 moved_1yr_education_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07009")
 moved_1yr_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07010")
-transport_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08006")
-transport_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08101")
-
-transport_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08113")
-transport_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08119")
-transport_industry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08126")
-transport_time_work_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08134")
 when_go_work_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08011")
 time_to_work_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08012")
 vehicles_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08014")

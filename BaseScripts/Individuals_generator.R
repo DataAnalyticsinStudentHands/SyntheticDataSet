@@ -311,22 +311,24 @@ createIndividuals <- function() {
       age_range=="5 to 9 years" ~ "05  to 9 years",
       TRUE ~ age_range
     )]
-    #get sex from seniors
-    hh_relations_dt[order(age_range_4),("sn_id"):= 
+    #get sex from seniors - sex_sr_hh on to sn_sex
+    hh_relations_dt[age_range_3=="65 years and over",("sn_id"):= 
                       paste0(tract,place_born,sex_sr_hh,
                              as.character(1000000+seq.int(1:.N))),
                     by=.(tract,place_born,sex_sr_hh)]
-    sex_nativity_age_dt[,("sn_id"):= 
+    sex_nativity_age_dt[as.numeric(substr(age_range,1,2))>64,("sn_id"):= 
                      paste0(tract,"Foreign born",sex,
                             as.character(1000000+seq.int(1:.N))),
                    by=.(tract,sex)]
     hh_relations_dt[place_born=="Foreign born",c("sn_age_range","sn_sex"):=
                       sex_nativity_age_dt[.SD, c(list(age_range),list(sex)), 
                                           on = .(sn_id)]]
-    sex_nativity_age_dt[,c("missing"):=
+    sex_nativity_age_dt[as.numeric(substr(age_range,1,2))>64,c("missing"):=
                           hh_relations_dt[.SD, c(list(sn_sex)), 
                                           on = .(sn_id)]]
     #then rest from sex_nativity
+    
+#NEED TO KEEP MATCHING ON SEX!!
     hh_relations_dt[is.na(sn_age_range) & place_born=="Foreign born",("sn2_id"):= 
                       paste0(as.character(100000000+sample(.N)))]
     sex_nativity_age_dt[is.na(missing),("sn2_id"):= 
@@ -335,6 +337,8 @@ createIndividuals <- function() {
                     c("sn_age_range","sn_sex"):=
                       sex_nativity_age_dt[.SD, c(list(age_range),list(sex)), 
                                      on = .(sn2_id)]]
+    test <- table(hh_relations_dt[place_born=="Foreign born",sn_sex])==table(sex_nativity_age_dt$sex)
+    test <- nrow(hh_relations_dt[place_born=="Foreign born" & age_range_3=="65 years and over"])
     
     #put citizen data on sex_place_when and keep_date_entered from place_period_citizen
     place_period_citizen_dt[,("date_entered_match"):=
@@ -372,8 +376,9 @@ createIndividuals <- function() {
                           paste0(tract,sex,fb_origin_region,
                                  as.character(1000000+seq.int(1:.N))),
                         by=.(tract,sex,fb_origin_region)]
-    hh_relations_dt[place_born=="Foreign born",c("fb_date_entered","when_origin_country"):= #raw numbers don't match in census files!!! need to check and choose!!
-                      sex_place_when_dt[.SD, c(list(date_entered),list(origin_country)), 
+    hh_relations_dt[place_born=="Foreign born",
+                    c("fb_date_entered","when_origin_country","fb_citizen"):= #raw numbers don't match in census files!!! need to check and choose!!
+                      sex_place_when_dt[.SD, c(list(date_entered),list(origin_country),list(fb_citizen)), 
                                           on = .(when_id)]]
     #and pick up stragglers without matching on tract or sex - means that the totals won't match, but that everyone has a plausible one
     hh_relations_dt[place_born=="Foreign born" & is.na(fb_date_entered),("when2_id"):= 
@@ -385,27 +390,12 @@ createIndividuals <- function() {
                                as.character(1000000+seq.int(1:.N))),
                       by=.(fb_origin_region)]
     hh_relations_dt[place_born=="Foreign born" & is.na(fb_date_entered),
-                    c("fb_date_entered","when_origin_country","fb_citizen"):= 
-                      sex_place_when_dt[.SD, c(list(date_entered),list(origin_country),list(fb_citizen)), 
+                    c("sn_sex","fb_date_entered","when_origin_country","fb_citizen"):= 
+                      sex_place_when_dt[.SD, c(list(sex),list(date_entered),list(origin_country),list(fb_citizen)), 
                                         on = .(when2_id)]]
     
     #have to think about how to add pb_education
-    #then pb_marital  
-    hh_relations_dt[,("pbm_id"):= 
-                      paste0(tract,place_born,
-                             as.character(1000000+sample(.N))),
-                    by=.(tract,place_born)]
-    place_born_marital_dt[,("pbm_id"):= 
-                          paste0(tract,place_born,
-                                 as.character(1000000+sample(.N))),
-                        by=.(tract,place_born)]
-    hh_relations_dt[,c("marital_status_pb"):=
-                      place_born_marital_dt[.SD, c(list(marital_status)), 
-                                          on = .(pbm_id)]]
-    #test <- table(place_born_marital_dt$marital_status)==table(hh_relations_dt$marital_status_pb)
     
-    #have to think about how to add pb_education
-    #then pb_marital  
     hh_relations_dt[order(match(fb_date_entered,c("Entered before 2000","Entered 2000 to 2009","Entered 2010 or later"))),
                     ("pbl_id"):= 
                       paste0(tract,place_born,
@@ -420,80 +410,144 @@ createIndividuals <- function() {
                                             on = .(pbl_id)]]
     #test <- table(place_born_language_dt$fb_language_at_home)==table(hh_relations_dt$fb_language_at_home)
     #there are some surprising things in the original data, like 140051 born here who speak English less than very well
-    #I copied it over - perhaps should tie to ethnicity and language?
+    #I copied it over - perhaps should tie to ethnicity and language? have to see how much the tract differences help!!!
     
-#add pb_eth/race to hh_relations, etc., then still break up as below - add latin_x to the ethnicity thread....
-    #because relatives is screwy, this only gives us some family_role info for the kids and a bit for seniors 
+#add pb_eth/race to hh_relations, etc., then still break up as below - add latin_x to the ethnicity thread.... 
+    #transportation? allows a match on language, and gives you industry to go along with employment, but could do after this
+    hh_relations_dt[,("pb_race_id"):=paste0(tract,place_born,
+                                                                     as.character(1000000+sample(.N))),
+                    by=.(tract,place_born)]
+    place_born_race_dt[,("pb_race_id"):=paste0(tract,place_born,
+                                                            as.character(1000000+sample(.N))),
+                                by=.(tract,place_born)]
+    place_born_eth_dt[,("pb_race_id"):=paste0(tract,place_born,
+                                               as.character(1000000+sample(.N))),
+                       by=.(tract,place_born)]
+    hh_relations_dt[,c("pb_race"):=
+                      place_born_race_dt[.SD,list(race),
+                                                  on = .(pb_race_id)]]
+    hh_relations_dt[,c("pb_ethnicity"):=   #adding both to hh_relations, then separating to rejoin later
+                      place_born_eth_dt[.SD,list(ethnicity),
+                                         on = .(pb_race_id)]]
+    
+    #because relatives is screwy, this only gives us some family_role info for the kids and a bit for seniors; basically had to abandon the relatives vs. non-relatives 
     #join relatives_race/eth to hh_relations - match on family_role_3 for the kids and on age_range_4 and race for others
-    hh_relations_dt[!is.na(family_role_3),("kids_hh_rel_id"):=paste0(tract,family_role_3,
+    hh_relations_dt[!is.na(family_role_3),("hh_race1_id"):=paste0(tract,family_role_3,pb_race,
                                                                      as.character(1000000+sample(.N))),
-                    by=.(tract,family_role_3)]
-    household_relatives_race_dt[,("kids_hh_rel_id"):=paste0(tract,family_role_3,
+                    by=.(tract,family_role_3,pb_race)]
+    household_relatives_race_dt[,("hh_race1_id"):=paste0(tract,family_role_3,race,
                                                                      as.character(1000000+sample(.N))),
-                    by=.(tract,family_role_3)]
+                    by=.(tract,family_role_3,race)]
     hh_relations_dt[!is.na(family_role_3),c("race"):=
                       household_relatives_race_dt[.SD,list(race),
-                                                  on = .(kids_hh_rel_id)]]
+                                                  on = .(hh_race1_id)]]
     household_relatives_race_dt[,c("used"):=
                                   hh_relations_dt[.SD,list(race),
-                                                  on = .(kids_hh_rel_id)]]
-    #test <- nrow(household_relatives_race_dt[!is.na(used)])==nrow(hh_type_kids[family_or_non=="In family households"])
-#because the numbers on household_relatives make no sense at all, just matching on race
-    hh_relations_dt[is.na(race),("rest_hh_race_id"):=paste0(tract,as.character(1000000+sample(.N))),
-                    by=.(tract)]
-    household_relatives_race_dt[is.na(used),("rest_hh_race_id"):=paste0(tract,as.character(1000000+sample(.N))),
-                                by=.(tract)]
-#    hh_relations_dt[is.na(race),c("race"):=
- #                     household_relatives_race_dt[.SD,list(race),
-#                                                  on = .(rest_hh_race_id)]]
-    #test <- table(hh_relations_dt$race)==table(household_relatives_race_dt$race)
-  #  hh_relations_dt[!is.na(family_role_3),("kids_hh_rel_id"):=paste0(tract,family_role_3,
- #                                                                    as.character(1000000+sample(.N))),
-#                    by=.(tract,family_role_3)]
-    household_relatives_eth_dt[,("kids_hh_rel_id"):=paste0(tract,family_role_3,
+                                                  on = .(hh_race1_id)]]
+#caught 96% of available matches on family_role_3 and race- do without family_role, so have race by tract by pb - just finishing; will match on it again, second time 
+    hh_relations_dt[is.na(race),("hh_race2_id"):=paste0(tract,family_or_non,pb_race,
+                                                                     as.character(1000000+sample(.N))),
+                    by=.(tract,family_or_non,pb_race)]
+    household_relatives_race_dt[is.na(used),("hh_race2_id"):=paste0(tract,family_or_non,race,
                                                             as.character(1000000+sample(.N))),
-                                by=.(tract,family_role_3)]
+                                by=.(tract,family_or_non,race)]
+    hh_relations_dt[is.na(race),c("race"):=
+                      household_relatives_race_dt[.SD,list(race),
+                                                  on = .(hh_race2_id)]]
+    #about 250k didn't match for some reason
+    hh_relations_dt[is.na(race),("race"):=pb_race]
+    #now same for ethnicity
+    hh_relations_dt[!is.na(family_role_3),("hh_eth1_id"):=paste0(tract,family_role_3,pb_ethnicity,
+                                                                  as.character(1000000+sample(.N))),
+                    by=.(tract,family_role_3,pb_ethnicity)]
+    household_relatives_eth_dt[,("hh_eth1_id"):=paste0(tract,family_role_3,ethnicity,
+                                                         as.character(1000000+sample(.N))),
+                                by=.(tract,family_role_3,ethnicity)]
     hh_relations_dt[!is.na(family_role_3),c("ethnicity"):=
                       household_relatives_eth_dt[.SD,list(ethnicity),
-                                                  on = .(kids_hh_rel_id)]]
+                                                  on = .(hh_eth1_id)]]
     household_relatives_eth_dt[,c("used_eth"):=
-                                  hh_relations_dt[.SD,list(ethnicity),
-                                                  on = .(kids_hh_rel_id)]]
-    #test <- nrow(household_relatives_eth_dt[!is.na(used)])==nrow(hh_type_kids[family_or_non=="In family households"])
-    #because the numbers on household_relatives make no sense at all, just matching on ethnicity
-    hh_relations_dt[is.na(ethnicity),("rest_hh_ethnicity_id"):=paste0(tract,as.character(1000000+sample(.N))),
-                    by=.(tract)]
-    household_relatives_eth_dt[is.na(used),("rest_hh_ethnicity_id"):=paste0(tract,as.character(1000000+sample(.N))),
-                                by=.(tract)]
-    #test <- table(hh_relations_dt$ethnicity)==table(household_relatives_eth_dt$ethnicity)
+                                  hh_relations_dt[.SD,list(race),
+                                                  on = .(hh_eth1_id)]]
+    hh_relations_dt[is.na(ethnicity),("hh_eth2_id"):=paste0(tract,family_or_non,pb_ethnicity,
+                                                        as.character(1000000+sample(.N))),
+                    by=.(tract,family_or_non,pb_ethnicity)]
+    household_relatives_eth_dt[is.na(used_eth),("hh_eth2_id"):=paste0(tract,family_or_non,ethnicity,
+                                                                    as.character(1000000+sample(.N))),
+                                by=.(tract,family_or_non,ethnicity)]
+    hh_relations_dt[is.na(ethnicity),c("ethnicity"):=
+                      household_relatives_eth_dt[.SD,list(ethnicity),
+                                                  on = .(hh_eth2_id)]]
+    hh_relations_dt[is.na(ethnicity),("ethnicity"):=pb_ethnicity]
+    
+    #then pb_marital  
+#    place_born_marital_dt[,("marital_status"):=if_else(str_detect(marital_status,"eparated"),"Now married",marital_status)]
+#    hh_relations_dt[,("pbm_id"):= 
+#                      paste0(tract,place_born,
+#                             as.character(1000000+sample(.N))),
+#                    by=.(tract,place_born)]
+#    place_born_marital_dt[,("pbm_id"):= 
+#                            paste0(tract,place_born,
+#                                   as.character(1000000+sample(.N))),
+#                          by=.(tract,place_born)]
+#    hh_relations_dt[,c("marital_status_pb"):=
+#                      place_born_marital_dt[.SD, c(list(marital_status)), 
+#                                            on = .(pbm_id)]]
+    #test <- table(place_born_marital_dt$marital_status)==table(hh_relations_dt$marital_status_pb)
+    
+    #add hh_relations eth and race to marital
+    #first time matching with sex, even though hh_relations_dt is missing more than half
+    #second time without sex, but still marital status
+    #third time, race (4th?);order by more internally, and then just count it out once???
+    hh_relations_dt[order(-age_range_11),("rel_marital_race_id"):= 
+                                  paste0(tract,race,
+                                         as.character(1000000+seq.int(1:.N))),
+                                by=.(tract,race)]
+    marital_status_race_dt[order(-age),("rel_marital_race_id"):=
+                             paste0(tract,race,
+                                    as.character(1000000+seq.int(1:.N))),
+                           by=.(tract,race)]
+    #go to marital_status and sort by -age to avoid getting folks under 15.
+    #then go back to get it on hh_relations...
+#    marital_status_race_dt[,c("group_or_hh","family_or_non","relative","role_in_family","relation_hh",
+#                              "sr_nonfamily_hh_living_alone","in_family_type","family_type_3", #changing family_role to type for clarity
+#                              "place_born","fb_origin_continent","fb_origin_area","fb_origin_region",
+#                              "fb_origin_country","fb_date_entered","fb_when_region","fb_citizen",
+#                              "language_at_home","English_proficiency"):=
+#                             hh_relations_dt[.SD,c(list(group_or_hh),list(family_or_non),list(relative),
+#                                                   list(role_in_family),list(relation_hh),list(living_alone),
+#                                                   list(in_family_role),list(family_role_3),list(place_born),
+#                                                   list(fb_origin_continent),list(fb_origin_area),
+#                                                   list(fb_origin_region),list(fb_origin_country),
+#                                                   list(fb_date_entered),list(when_origin_country),
+#                                                   list(fb_citizen),list(fb_language_at_home),
+#                                                   list(English_proficiency)), 
+#                                                    on = .(rel_marital_race_id)]]
+#    
+    #so - add all of the relevant parts of hh_relations to each of the maritals, then join to s.a.r, then take sam_hh out, then build
+    
+    
+    
+    
+    
     
     
     #adults_relations starts at 17 (3260555) and marital (3494885) starts at 15
-    household_relatives_race_dt[,("tmp_marital_2"):=if_else(family_role_3=="In married-couple family","Now married","other")]
-    marital_status_race_dt[,("tmp_marital_2"):=if_else(marital_status=="Now married","Now married","other")]
-    household_relatives_race_dt[,("rel_marital_id"):= 
-                                  paste0(tract,tmp_marital_2,race,
-                                         as.character(1000000+sample(.N))),
-                                by=.(tract,race,tmp_marital_2)]
-    marital_status_race_dt[,("rel_marital_id"):=
-                             paste0(tract,tmp_marital_2,race,
-                                    as.character(1000000+sample(.N))),
-                           by=.(tract,race,tmp_marital_2)]
+    
     marital_status_race_dt[,c("family_or_non","family_role_3","relative_or_non"):=
                              household_relatives_race_dt[.SD, c(list(family_or_non),list(family_role_3),list(relative_or_non)), 
                                                          on = .(rel_marital_id)]]
     household_relatives_eth_dt[,("rel_marital_id"):= 
-                                   paste0(tract,ethnicity,if_else(family_role_3=="In married-couple family","Now married","not determined"),
-                                          as.character(1000000+sample(.N))),
-                                 by=.(tract,ethnicity,family_role_3=="In married-couple family")]
+                                 paste0(tract,ethnicity,if_else(family_role_3=="In married-couple family","Now married","not determined"),
+                                        as.character(1000000+sample(.N))),
+                               by=.(tract,ethnicity,family_role_3=="In married-couple family")]
     marital_status_eth_dt[,("rel_marital_id"):=
                             paste0(tract,ethnicity,if_else(marital_status=="Now married","In married-couple family","not determined"),
                                    as.character(1000000+sample(.N))),
                           by=.(tract,ethnicity,marital_status=="Now married")]
     marital_status_eth_dt[,c("family_or_non","family_role_3","relative_or_non"):=
                             household_relatives_eth_dt[.SD, c(list(family_or_non),list(family_role_3),list(relative_or_non)), 
-                                                         on = .(rel_marital_id)]]
-    
+                                                       on = .(rel_marital_id)]]
     
     #to match household_relatives_race/eth_dt - relative_or_non - only Nonrelatives in family households!!!
     hh_relations_dt[,("relative_or_non"):=case_when(
@@ -631,6 +685,9 @@ createIndividuals <- function() {
     #table(sex_age_race$race,sex_age_race$ethnicity) has about .06% in categories they shouldn't be in - H being the weird one
     #could try to go longer on the separate builds, like in sam_hh, or could try to nudge it later - or just hand-tune (haven't done that yet)
     #could put in published stuff correlating preg and educ, but I think the tract level stuff is carrying more info
+    
+    #add place_born_education to sex_age_educ, then match to sex_age_race...
+    #population of 25 and over: 2923369 folks - count all people over 25 in place_born_age you get 2860024 (63345 too many in educ?)
     
     #add educ to sex_age_race, in order to match better with hh - definitely missing granularity, but matching on educ / family type or marital not available in census itself
     sex_age_race[order(age),

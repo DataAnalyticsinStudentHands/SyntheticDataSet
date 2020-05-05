@@ -574,6 +574,10 @@ createHouseholds <- function() {
     
 
 
+
+
+
+
     #should remember kids_grand_age, too
     #we have household type by kids, household type by seniors and household type by whole population, - can also get family_type from sam_hh by age, but this may be something to write back over... 
 #    hh_type_kids #very close to sex_age_race <18yo, but have to add after sam_hh is added to say who has or doesn't have children!!
@@ -1010,20 +1014,17 @@ createHouseholds <- function() {
     ##NEED TO REDO
     #used for percentages used other source for age because the place_born didn't match by tract, so couldn't combine!!
     place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")
-    #correct if do by either age or by category, but 465645 short if do by agesxcategories!! so I fudged it, with 1.6564 for that one category; all missing from foreign born, under age - foreign born by total is right
-    #could redistribute foreign_born by age category and total foreign_born?? excel B06001 work shows calculations.
-    #means that this cannot be used without checking for other years / counties
+    #correct if do by either age or by category, but 465645 short if do by agesxcategories!! so first time I fudged it, with 1.6564 for that one category; all missing from foreign born, under age - foreign born by total is right
+    #decided I could redistribute foreign_born by age category and total foreign_born?? excel B06001 work shows calculations.; 
+    #how I actually did it was playing with full vs. partial in ndividuals_generator.R
     place_born_age_data <- place_born_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(place_born_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("place_born","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-      #      mutate(age_range = if_else(place_born=="Foreign born" & is.na(age_range),"fb_age_total",age_range)) %>%
       filter(as.numeric(number_sams) > 0 & !is.na(age_range)) %>%
       mutate(number_sams = if_else(place_born=="Foreign born",round(number_sams*1.6564,digits = 0),number_sams)) %>% #fixing mistake in census data, but guessing it was consistent and not just a single age_group, etc.; gives 1 too many total
-      uncount(as.numeric(number_sams),.id = "place_born_age_id") # %>%
-    #      mutate(del = if_else(number_sams == max(number_sams) & place_born == "Foreign born" & place_born_age_id == number_sams,TRUE,FALSE)) %>%
-    #      filter(!del) #taking risk in future that there's only one extra...
+      uncount(as.numeric(number_sams),.id = "place_born_age_id") 
     place_born_age_dt <- as.data.table(place_born_age_data)
     
     
