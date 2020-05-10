@@ -441,17 +441,17 @@ exp_census <- function() {
     
     #concept:HOUSEHOLD TYPE BY RELATIVES AND NONRELATIVES FOR POPULATION IN HOUSEHOLDS by acs_race_codes
     #population in total gives 4484299 (total population in HH, plus 41220 in group quarters gives 4525519)
-    #relatives vs. non-relatives is way off vs. hh_relations_dt!!!! don't use.
+    #the totals by race are wonky, though - worse for ethnicity
     household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
     household_relatives_data <- household_relatives_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(household_relatives_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("family_or_non","in_family_role","relative_or_non"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("family_or_non","in_family_type","relative_or_non"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(race = substr(name,7,7),
-             family_role_3=(if_else(in_family_role=="In male householder no wife present family","Male householder no wife present",
-                                    if_else(in_family_role=="In female householder no husband present family",
-                                            "Female householder no husband present",in_family_role)))) %>%
+             family_role_3=(if_else(in_family_type=="In male householder no wife present family","Male householder no wife present",
+                                    if_else(in_family_type=="In female householder no husband present family",
+                                            "Female householder no husband present",in_family_type)))) %>%
       filter(!is.na(relative_or_non) | family_or_non=="In nonfamily households") %>%
       filter(race %in% acs_race_codes) %>% 
       uncount(as.numeric(number_sams),.id = "household_relatives_id",.remove = TRUE)
@@ -461,19 +461,22 @@ exp_census <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(household_relatives_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("family_or_non","in_family_role","relative_or_non"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("family_or_non","in_family_type","relative_or_non"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(ethnicity = substr(name,7,7),
-             family_role_3=(if_else(in_family_role=="In male householder no wife present family","Male householder no wife present",
-                                    if_else(in_family_role=="In female householder no husband present family",
-                                            "Female householder no husband present",in_family_role)))) %>%
+             family_role_3=(if_else(in_family_type=="In male householder no wife present family","Male householder no wife present",
+                                    if_else(in_family_type=="In female householder no husband present family",
+                                            "Female householder no husband present",in_family_type)))) %>%
       filter(!is.na(relative_or_non) | family_or_non=="In nonfamily households") %>%
       filter(!ethnicity %in% acs_race_codes) %>%
       uncount(as.numeric(number_sams),.id = "household_relatives_id",.remove = TRUE)
     household_relatives_eth_dt <- as.data.table(household_relatives_eth_data) 
     #find right one
-    household_relatives_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,family_or_non,family_role_3)]
-    household_relatives_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,family_or_non,family_role_3)]
-    household_relatives_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,family_or_non,family_role_3,ethnicity)]
+    household_relatives_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),
+                               by=.(tract,family_or_non,relative_or_non,in_family_type)]
+    household_relatives_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),
+                               by=.(tract,family_or_non,relative_or_non,in_family_type)]
+    household_relatives_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),
+                               by=.(tract,family_or_non,relative_or_non,in_family_type,ethnicity)]
     household_relatives_eth_dt <- household_relatives_eth_dt[(tokeep)]
     rm(household_relatives_data_from_census)
     rm(household_relatives_data)
@@ -537,41 +540,41 @@ exp_census <- function() {
       filter(is.na(empty)) %>%
       uncount(as.numeric(number_sams),.id = "place_born_age_id") 
     place_born_age_full_dt <- as.data.table(place_born_age_data)
-    place_born_age_full_dt[age_range!="75 to 89 years",("age"):= 
-                     as.numeric(sample(as.character(first_age[1]:last_age[1]),size=.N,replace = TRUE)),by=.(tract,age_range)] 
-    place_born_age_full_dt[age_range=="75 to 89 years",("age"):=
-                     as.numeric(sample(as.character(75:104),size=.N,prob=0.23-(1:30/174:145),replace = TRUE))] #looking for ~1300 centenarians in Houston
+    #age_range totals match sex_age_race
     
-        
     place_born_age2_data <- place_born_age_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(place_born_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("place_born","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(
+        age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), #have to make sort in order
+        age_range = str_replace(age_range,"5 to 17 years","05 to 17 years"),
+        age_range = str_replace(age_range,"60 and 61 years","60 to 62 years"),
+        age_range = str_replace(age_range,"75 years and over","75 to 89 years")
+      )%>%
       filter(as.numeric(number_sams) > 0) %>%  # & !is.na(age_range)
       filter(!is.na(age_range)) %>%
       uncount(as.numeric(number_sams),.id = "place_born_age_id") 
     place_born_age_partial_dt <- as.data.table(place_born_age2_data)
+    place_born_age_partial_dt <- place_born_age_partial_dt[place_born!="Foreign born"] #tract totals are too far off
     rm(place_born_age_from_census)
     rm(place_born_age_data)
     rm(place_born_age2_data)
-    #fix missing foreign born ages
+    #fix missing foreign born ages - they don't match once you get to tract level, so just ordering
     place_born_age_full_dt[,("remake_pb_id"):=paste0(tract,age_range,
                                                      as.character(1000000+seq.int(1:.N))),
                            by=.(tract,age_range)]
     place_born_age_partial_dt[,("remake_pb_id"):=paste0(tract,age_range,
                                                         as.character(1000000+seq.int(1:.N))),
                               by=.(tract,age_range)]
-    place_born_age_full_dt[,("place_born"):=
+    place_born_age_full_dt[,c("place_born"):=
                              place_born_age_partial_dt[.SD,list(place_born),on = .(remake_pb_id)]]
     place_born_age_full_dt[is.na(place_born),("place_born"):="Foreign born"]
+    #I worry that these numbers are still wrong - it's getting what the acs provides, though
     rm(place_born_age_partial_dt)
 
-    
-    #I get 1083547 (91332) - it doesn't add up on the excel (with work in title), and I'm not sure how to fudge it, even, because I see no pattern to the errors
-    #first tried to add 1.1481 to the Americas, and .78286  to Europe, because I couldn't find a simple reason those two continents didn't match (others did).
-    #tried to do the full_partial trick from age - area_continent and area_region are right this way, and country is right for 85%, then sampled from right area for last bit
-    #origin_data_full has right numbers, but only continent and area; origin_data_partial is missing some from the Americas and put extra in Europe, but has countries
+    #PLACE OF BIRTH FOR THE FOREIGN-BORN POPULATION IN THE UNITED STATES - 1174879
     origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05006") #has PR at bottom
     origin_data_partial <- origin_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
@@ -1232,15 +1235,7 @@ exp_census <- function() {
     transport_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,transport_to_work)]
     transport_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,transport_to_work)]
     transport_eth_dt <- transport_eth_dt[(tokeep)]
-    #assign ids 
-#    transport_race_dt[order(match(race,c("A","F","G","C","B","E","D"))),
-#                      c("num_eth_id"):=paste0(tract,transport_to_work,as.character(1000000+seq.int(1:.N))),by=.(tract,transport_to_work)]
-#    transport_eth_dt[order(match(ethnicity,c("H","I","_"))),
-#                     c("num_eth_id"):=paste0(tract,transport_to_work,as.character(1000000+seq.int(1:.N))),by=.(tract,transport_to_work)]
-#    transport_race_dt[,c("ethnicity") := transport_eth_dt[.SD, list(ethnicity), on = .(tract,transport_to_work,num_eth_id)]]
-    #test <- table(transport_race_dt$ethnicity,transport_race_dt$race)
-    #then us to build multi-worker households
-    
+
     #concept: MEANS OF TRANSPORTATION TO WORK BY TENURE - for workers - 2135069
     transport_tenure_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08137")
     transport_tenure_data <- transport_tenure_from_census %>%
