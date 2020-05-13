@@ -1,5 +1,5 @@
 # Workflow controller for SAM creation
-source("BaseScripts/basesam.R")
+#source("BaseScripts/basesam.R")
 library(tidyr)
 library(dplyr)
 library(stringr)
