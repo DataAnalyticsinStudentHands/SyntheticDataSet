@@ -4,7 +4,7 @@ library(tidyr)
 library(dplyr)
 library(stringr)
 library(data.table)
-library(forcats)
+#library(forcats)
 
 #get HCAD_residences from HCAD_merge or from housingdir main level for desired vintage (by most recent date)
 #get others from household and individual generator scripts
@@ -23,6 +23,13 @@ HCADbus_dt <- HCADbus_dt[!is.na(improv_typ_real)]
 HCAD_bus <- HCADbus_dt[!duplicated(account)]
 
 #could do is.na(as.numeric(units)) on units in the apts in real and then create accounts for each apt., with value / units... 
+
+#get sam_hh and hh_relations_dt 
+#add them together and then add the things on workers that depend on hh_relations making sense
+#then put the hh into a house
+
+
+
 
 
 #a faster sample algorithm is available, with interesting papers on approaches to be uploaded along with

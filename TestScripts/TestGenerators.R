@@ -49,7 +49,7 @@ length(test[test==F])==0
 #test3a
 #there are 4 tracts from sr_relations not in hh_relations
 test<-table(hh_relations_dt[tract%in%unique(sr_relations$tract)]$tract,hh_relations_dt[tract%in%unique(sr_relations$tract)]$sex_sr_hh,
-            hh_relations_dt[tract%in%unique(sr_relations$tract)]$living_alone,hh_relations_dt[tract%in%unique(sr_relations$tract)]$race,
+            hh_relations_dt[tract%in%unique(sr_relations$tract)]$sr_hh_living_alone,hh_relations_dt[tract%in%unique(sr_relations$tract)]$race,
             hh_relations_dt[tract%in%unique(sr_relations$tract)]$ethnicity,hh_relations_dt[tract%in%unique(sr_relations$tract)]$eth_age_range)==
   table(sr_relations$tract,sr_relations$sex_sr_relations,sr_relations$living_alone,sr_relations$race,sr_relations$ethnicity,sr_relations$eth_age_range)
 length(test[test==F])==0
@@ -67,12 +67,35 @@ length(test[test==F])==0
 #test4
 nrow(hh_relations_dt[relation_hh=="Householder"])==nrow(hh_relations_dt[relative=="Householder"])
 
+#test 5 [[need to think through better testing on relations]]
+test<-nrow(hh_relations_dt[is.na(ind_id_eth)])==0
+
+#test 5b
+test<-nrow(hh_relations_dt[is.na(individual_id)])==0
+test <- length(unique(hh_relations_dt$individual_id))==nrow(sex_age_race)
+test <- length(unique(hh_relations_dt$ind_id_eth))==nrow(sex_by_age_eth)
+test <- table(sex_age_race$tract,sex_age_race$race,sex_age_race$sex,sex_age_race$age_range)==
+  table(hh_relations_dt$tract,hh_relations_dt$race,hh_relations_dt$race_sex_relations,hh_relations_dt$race_age_range)
+length(test[test==F])==0
+test <- table(sex_by_age_eth$tract,sex_by_age_eth$ethnicity,sex_by_age_eth$sex,sex_by_age_eth$age_range)==
+  table(hh_relations_dt$tract,hh_relations_dt$ethnicity,hh_relations_dt$eth_sex_relations,hh_relations_dt$eth_age_range)
+length(test[test==F])==0
+
+#test 6 - failed #10888 didn't match; they are in right order for total, however, and no NA
+test <- table(place_born_age_full_dt[place_born=="Foreign born"]$tract,place_born_age_full_dt[place_born=="Foreign born"]$age_range_18)==
+  table(sex_nativity_age_dt$tract,sex_nativity_age_dt$age_range)
+length(test[test==F]) #failed
 
 
+#test 6b
+test <- nrow(hh_relations_dt[is.na(place_born)])==0
 
+#test 6c
+test <- table(hh_relations_dt[place_born=="Foreign born",eth_sex_relations])==table(sex_nativity_age_dt$sex)
+#need a good final test - not sure what would work
+test <- nrow(hh_relations_dt[place_born=="Foreign born" & age_range_3=="65 years and over"])
 
-
-
-
+#test 6d
+test <- table(hh_relations_dt$fb_origin_region)==table(sex_place_when_dt$fb_origin_region) #since tract has that extra one
 
 
