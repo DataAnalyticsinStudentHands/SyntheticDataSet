@@ -90,7 +90,7 @@ exp_census <- function() {
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("sex","age_range_29"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(age_range_29 = str_replace(age_range_29,"Under 5 years","0  to  4 years"), #have to regularize and make possible to compare
-             age_range_29 = str_replace(age_range_29,"5 to 9 years","5  to  9 years"),
+             age_range_29 = str_replace(age_range_29,"5 to 9 years","05  to  9 years"),
              age_range_29 = str_replace(age_range_29,"18 and 19 years","18 to 19 years"),
              age_range_29 = str_replace(age_range_29,"20 years","20 to 20 years"),
              age_range_29 = str_replace(age_range_29,"21 years","21 to 21 years"),
