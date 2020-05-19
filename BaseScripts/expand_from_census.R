@@ -746,15 +746,16 @@ exp_census <- function() {
     rm(place_period_citizen_from_census)
     rm(place_period_citizen_data)
     
-    sex_place_when_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05008")
     #right number - 1174879 
+    sex_place_when_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05008")
     sex_place_when_data <- sex_place_when_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(sex_place_when_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("sex","origin_area","origin_region","origin_country","date_entered"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(date_entered = if_else(str_detect(origin_region,"Entered") & origin_area!="Latin America",origin_region,
-                                    if_else(str_detect(origin_country,"Entered"),origin_country,date_entered)),
+                                    if_else(str_detect(origin_country,"Entered"),origin_country,
+                                            if_else(str_detect(origin_area,"Entered"),origin_area,date_entered))),
              origin_country = if_else(str_detect(origin_country,"Entered"),origin_region,
                                       if_else(str_detect(origin_region,"Central"),origin_region,date_entered)),
              origin_country = if_else(is.na(origin_country),origin_area,origin_country),

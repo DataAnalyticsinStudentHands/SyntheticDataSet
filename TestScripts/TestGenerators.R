@@ -108,6 +108,18 @@ test <- table(tester$tract,tester$fb_origin_area,tester$fb_origin_country)==
   table(origin_data_dt$tract,origin_data_dt$origin_area,origin_data_dt$origin_country)
 length(test[test==F])==0
 
+
+#test 7b
+test <- table(place_period_citizen_dt$tract,place_period_citizen_dt$date_entered,place_period_citizen_dt$citizen)==
+  table(sex_place_when_dt$tract,sex_place_when_dt$fb_date_entered,sex_place_when_dt$fb_citizen)
+length(test[test==F])==0
+
+#test 7c
+tester <- hh_relations_eth[tract%in%unique(sex_place_when_dt$tract)]#since tract has that extra one
+tester <- hh_relations_race[tract%in%unique(sex_place_when_dt$tract)]
+test <- table(tester$tract,tester$fb_origin_region)==table(sex_place_when_dt$tract,sex_place_when_dt$fb_origin_region) 
+length(test[test==F])==0
+
 #test 8  
 test <- table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations)==
   table(hh_relations_race$tract,hh_relations_race$race_sex_relations)
@@ -121,13 +133,29 @@ length(test[test==F])==0
 ##the crosstab is false - ugh!!! I dropped it somewhere!!
 test <- table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations,hh_relations_eth$age_range_14_eth)==
   table(hh_relations_race$tract,hh_relations_race$race_sex_relations,hh_relations_race$age_range_14_race)
-length(test[test==F])/length(test)#55% of tracts are off by just a handful - can be explained by sampling
-#but these are true, so much better
+length(test[test==F])/length(test)#55% of tracts are off by just a handful - can be explained by sampling to age_range_14
+#but these each are true, so much better
 test <- table(sex_by_age_eth$tract,sex_by_age_eth$ethnicity,sex_by_age_eth$sex,sex_by_age_eth$age_range)==
   table(hh_relations_eth$tract,hh_relations_eth$ethnicity,hh_relations_eth$eth_sex_relations,hh_relations_eth$eth_age_range)
 length(test[test==F])==0
 test <- table(sex_age_race$tract,sex_age_race$race,sex_age_race$sex,sex_age_race$age_range)==
   table(hh_relations_race$tract,hh_relations_race$race,hh_relations_race$race_sex_relations,hh_relations_race$race_age_range)
 length(test[test==F])==0
+
+#test 8b
+nrow(hh_relations_race[place_born_race=="Foreign born" & as.numeric(substr(race_age_range,1,2))<30])-
+  nrow(hh_relations_race[!is.na(fb_date_entered)])  #~8k of ~295k
+nrow(hh_relations_eth[place_born_eth=="Foreign born" & as.numeric(substr(eth_age_range,1,2))<30])-
+  nrow(hh_relations_eth[!is.na(fb_date_entered)])  #~8k of ~295k
+
+#test 8c
+test <- table(hh_pwr$tract,hh_pwr$fb_origin_region) == table(spwr$tract,spwr$fb_origin_region)
+test <- table(hh_pwe$tract,hh_pwe$fb_origin_region) == table(spwe$tract,spwe$fb_origin_region)
+length(test[test==F])==0
+
+#test 8d
+test <- nrow(hh_relations_eth[!is.na(fb_date_entered)])==nrow(sex_place_when_dt[!is.na(fb_date_entered)])
+
+
 
 
