@@ -67,24 +67,97 @@ length(test[test==F])==0
 #test4
 nrow(hh_relations_dt[relation_hh=="Householder"])==nrow(hh_relations_dt[relative=="Householder"])
 
-#test 5 [[need to think through better testing on relations]]
-test<-nrow(hh_relations_dt[is.na(ind_id_eth)])==0
+#test 4a
+test <- table(hh_relations_dt$eth_age_range,hh_relations_dt$age_range_4)
+sum(colSums(test==0/nrow(test)*100))==42
+test <- table(hh_relations_dt$race_age_range,hh_relations_dt$age_range_4)
+sum(colSums(test==0/nrow(test)*100))==42
 
-#test 5b
+#test 5
+test<-nrow(hh_relations_dt[is.na(ind_id_eth)])==0
+test<-nrow(hh_relations_dt[is.na(eth_age_range)])==0
 test<-nrow(hh_relations_dt[is.na(individual_id)])==0
-test <- length(unique(hh_relations_dt$individual_id))==nrow(sex_age_race)
-test <- length(unique(hh_relations_dt$ind_id_eth))==nrow(sex_by_age_eth)
-test <- table(sex_age_race$tract,sex_age_race$race,sex_age_race$sex,sex_age_race$age_range)==
-  table(hh_relations_dt$tract,hh_relations_dt$race,hh_relations_dt$race_sex_relations,hh_relations_dt$race_age_range)
+test<-nrow(hh_relations_dt[is.na(race_age_range)])==0
+#redo 4a
+test<-table(hh_relations_dt$tract,hh_relations_dt$eth_age_range,hh_relations_dt$ethnicity,hh_relations_dt$eth_sex_relations)==
+  table(sex_by_age_eth$tract,sex_by_age_eth$age_range,sex_by_age_eth$ethnicity,sex_by_age_eth$sex)
 length(test[test==F])==0
-test <- table(sex_by_age_eth$tract,sex_by_age_eth$ethnicity,sex_by_age_eth$sex,sex_by_age_eth$age_range)==
-  table(hh_relations_dt$tract,hh_relations_dt$ethnicity,hh_relations_dt$eth_sex_relations,hh_relations_dt$eth_age_range)
+test<-table(hh_relations_dt$tract,hh_relations_dt$race_age_range,hh_relations_dt$race,hh_relations_dt$race_sex_relations)==
+  table(sex_age_race$tract,sex_age_race$age_range,sex_age_race$race,sex_age_race$sex)
+length(test[test==F])==0
+
+#test 6
+test <- table(sex_place_when_dt$tract,sex_place_when_dt$sex,sex_place_when_dt$sn_age_range)==
+  table(sex_nativity_age_dt$tract,sex_nativity_age_dt$sex,sex_nativity_age_dt$age_range)
 length(test[test==F])==0
 
 #test 6 
 test <- table(place_born_age_full_dt[place_born=="Foreign born"]$tract,place_born_age_full_dt[place_born=="Foreign born"]$age_range_18)==
   table(sex_nativity_age_dt$tract,sex_nativity_age_dt$age_range)
 length(test[test==F]) == 0
+
+#test 6b
+test <- table(place_period_citizen_dt$tract,
+              place_period_citizen_dt$date_entered,
+              place_period_citizen_dt$fb_origin_country,
+              place_period_citizen_dt$citizen)==
+  table(sex_place_when_dt$tract,
+        sex_place_when_dt$fb_date_entered,
+        sex_place_when_dt$fb_origin_place,
+        sex_place_when_dt$fb_citizen)
+length(test[test==F])==0
+
+#test 6c
+test <- nrow(sex_place_when_dt[!is.na(sn_age_range)])==nrow(sex_nativity_age_dt[substr(age_range_14,1,2)<10])
+
+#test 6c1
+test <- table(sex_place_when_dt$tract,
+              sex_place_when_dt$sn_age_range,
+              sex_place_when_dt$age_range_14,
+              sex_place_when_dt$sex)==
+  table(sex_nativity_age_dt$tract,
+        sex_nativity_age_dt$age_range,
+        sex_nativity_age_dt$age_range_14,
+        sex_nativity_age_dt$sex)
+length(test[test==F]) #it's a little under 2% off, because of that secondary matching above, but unavoidable and right totals.
+
+#test 6d
+test <- nrow(sex_place_when_dt[is.na(fb_origin_continent)])==0
+
+#test 7
+test<-table(sex_place_when_dt$tract,
+            sex_place_when_dt$fb_origin_continent)==
+  table(place_born_age_full_dt[place_born=="Foreign born",tract],
+        place_born_age_full_dt[place_born=="Foreign born",fb_origin_continent])
+length(test[test==F])==2361
+
+#test 8
+test <- table(place_born_age_full_dt$tract,
+              place_born_age_full_dt$place_born,
+              place_born_age_full_dt$ethnicity,
+              place_born_age_full_dt$age_range_14)==
+  table(place_born_eth_dt$tract,
+        place_born_eth_dt$place_born,
+        place_born_eth_dt$ethnicity,
+        place_born_eth_dt$age_range_14)
+length(test[test==F])==0
+
+#test 8b
+test <- table(place_born_age_full_dt$tract,
+              place_born_age_full_dt$place_born,
+              place_born_age_full_dt$ethnicity,
+              place_born_age_full_dt$age_range_14)==
+  table(place_born_race_dt$tract,
+        place_born_race_dt$place_born,
+        place_born_race_dt$ethnicity,
+        place_born_race_dt$age_range_14)
+length(test[test==F])==0     
+
+#test6a
+test <- table(hh_relations_dt$eth_age_range,hh_relations_dt$age_range_14_eth)
+sum(colSums(test==0/nrow(test)*100))==182
+test <- table(hh_relations_dt$race_age_range,hh_relations_dt$age_range_14_race)
+sum(colSums(test==0/nrow(test)*100))==169
 
 #test 6b
 test <- nrow(hh_relations_dt[is.na(place_born_race)])==0
@@ -109,10 +182,7 @@ test <- table(tester$tract,tester$fb_origin_area,tester$fb_origin_country)==
 length(test[test==F])==0
 
 
-#test 7b
-test <- table(place_period_citizen_dt$tract,place_period_citizen_dt$date_entered,place_period_citizen_dt$citizen)==
-  table(sex_place_when_dt$tract,sex_place_when_dt$fb_date_entered,sex_place_when_dt$fb_citizen)
-length(test[test==F])==0
+
 
 #test 7c
 tester <- hh_relations_eth[tract%in%unique(sex_place_when_dt$tract)]#since tract has that extra one

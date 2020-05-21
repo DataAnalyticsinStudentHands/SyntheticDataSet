@@ -90,7 +90,7 @@ exp_census <- function() {
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("sex","age_range_29"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(age_range_29 = str_replace(age_range_29,"Under 5 years","0  to  4 years"), #have to regularize and make possible to compare
-             age_range_29 = str_replace(age_range_29,"5 to 9 years","05  to  9 years"),
+             age_range_29 = str_replace(age_range_29,"5 to 9 years","05 to  9 years"),
              age_range_29 = str_replace(age_range_29,"18 and 19 years","18 to 19 years"),
              age_range_29 = str_replace(age_range_29,"20 years","20 to 20 years"),
              age_range_29 = str_replace(age_range_29,"21 years","21 to 21 years"),
@@ -576,6 +576,7 @@ exp_census <- function() {
 
     #PLACE OF BIRTH FOR THE FOREIGN-BORN POPULATION IN THE UNITED STATES - 1174879
     origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05006") #has PR at bottom
+    #very odd missing data, redistributed through a partial vs. full
     origin_data_partial <- origin_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%  
@@ -585,7 +586,7 @@ exp_census <- function() {
       pivot_longer(4:ncol(origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("origin_continent","origin_area","origin_region","origin_country"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
-        origin_country = if_else(is.na(origin_country),if_else(str_detect(origin_area,"n.e.c") | 
+        origin_country_2 = if_else(is.na(origin_country),if_else(str_detect(origin_area,"n.e.c") | 
                                                                  origin_area=="Fiji",origin_area,origin_region),origin_country)
       ) %>%
       filter(number_sams > 0 & !is.na(origin_country)) %>%
@@ -602,7 +603,7 @@ exp_census <- function() {
       pivot_longer(4:ncol(origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("origin_continent","origin_area","origin_region","origin_country"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
-        origin_country = if_else(is.na(origin_country),if_else(str_detect(origin_area,"n.e.c") | 
+        origin_country2 = if_else(is.na(origin_country),if_else(str_detect(origin_area,"n.e.c") | 
                                                                  origin_area=="Fiji",origin_area,origin_region),origin_country)
       ) %>%
       filter(number_sams > 0 & is.na(origin_region)) %>%
@@ -625,11 +626,11 @@ exp_census <- function() {
                              paste0(tract,origin_area,
                                     as.character(1000000+sample(.N))),
                            by=.(tract,origin_area)]
-    origin_data_full_dt[is.na(origin_country),("oc2_id"):=
+    origin_data_full_dt[is.na(origin_region),("oc2_id"):=
                           paste0(tract,origin_area,
                                  as.character(1000000+sample(.N))),
                         by=.(tract,origin_area)]
-    origin_data_full_dt[is.na(origin_country),c("origin_region","origin_country"):=
+    origin_data_full_dt[is.na(origin_region),c("origin_region","origin_country"):=
                           origin_data_partial_dt[.SD, c(list(origin_region),list(origin_country)),
                                                  on = .(oc2_id)]]
 #third time for last little bit, with no tracts
@@ -637,13 +638,14 @@ exp_census <- function() {
                              paste0(origin_area,
                                     as.character(1000000+sample(.N))),
                            by=.(origin_area)]
-    origin_data_full_dt[is.na(origin_country),("oc3_id"):=
+    origin_data_full_dt[is.na(origin_region),("oc3_id"):=
                           paste0(origin_area,
                                  as.character(1000000+sample(.N))),
                         by=.(origin_area)]
-    origin_data_full_dt[is.na(origin_country),c("origin_region","origin_country"):=
+    origin_data_full_dt[is.na(origin_region),c("origin_region","origin_country"):=
                           origin_data_partial_dt[.SD, c(list(origin_region),list(origin_country)),
                                                  on = .(oc3_id)]]
+    origin_data_full_dt[is.na(origin_country),("origin_country"):=origin_region]
     origin_data_dt <- origin_data_full_dt
     rm(origin_from_census)
     rm(origin_data_full)
@@ -730,6 +732,7 @@ exp_census <- function() {
     
     #unique on date_entered: "Entered 2010 or later" "Entered before 1990"   "Entered 2000 to 2009"  "Entered 1990 to 1999"
     #hard to line up with exact, but total comes close to foreign_born in place_born (24892 off)
+    #origin_region is messed up
     place_period_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05007")
     place_period_citizen_data <- place_period_citizen_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
