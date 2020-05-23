@@ -441,7 +441,7 @@ exp_census <- function() {
     
     #concept:HOUSEHOLD TYPE BY RELATIVES AND NONRELATIVES FOR POPULATION IN HOUSEHOLDS by acs_race_codes
     #population in total gives 4484299 (total population in HH, plus 41220 in group quarters gives 4525519)
-    #the totals by race are wonky, though - worse for ethnicity
+    #the totals by race are wonky, though - worse for ethnicity - not using now except for in_family_type
     household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
     household_relatives_data <- household_relatives_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%

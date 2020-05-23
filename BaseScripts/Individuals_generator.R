@@ -607,14 +607,6 @@ createIndividuals <- function() {
     #  table(sex_age_race$tract,sex_age_race$age_range,sex_age_race$race,sex_age_race$sex)
     #length(test[test==F])==0
     
-    #divide up eth/race for ease (should have done earlier)
-    hh_relations_eth <- hh_relations_dt[,c("ind_id_eth","tract","ethnicity","eth_sex_relations","eth_age_range","age_range_3","age_range_4",
-                                           "group_or_hh","family_or_non","relative","role_in_family","relation_hh",
-                                           "sr_hh_living_alone","in_family_type")]
-    hh_relations_race <- hh_relations_dt[,c("individual_id","tract","race","race_sex_relations","race_age_range","age_range_3","age_range_4",
-                                            "group_or_hh","family_or_non","relative","role_in_family","relation_hh",
-                                            "sr_hh_living_alone","in_family_type")]
-    
     #now do place_born as a separate thread
     #sample for some, in order to get factor names to match; will over-write later
     sex_nativity_age_dt[,("age_range_14"):=case_when(
@@ -909,17 +901,20 @@ createIndividuals <- function() {
                       by=.(tract,age_range_14)]
     place_born_age_full_dt[place_born=="Foreign born",
                            c("age_range_18","fb_sex","fb_citizen","fb_origin_continent",
-                              "fb_origin_area","fb_origin_place","fb_origin_country"):=
+                              "fb_origin_area","fb_origin_place","fb_origin_country","fb_date_entered"):=
                              sex_place_when_dt[.SD, c(list(sn_age_range),list(sex),list(fb_citizen),
                                                       list(fb_origin_continent),list(fb_origin_area),
-                                                      list(fb_origin_place),list(fb_origin_country)), 
+                                                      list(fb_origin_place),list(fb_origin_country),
+                                                      list(fb_date_entered)), 
                                 on = .(pb_age_fb_id)]]
     #test 7
-    #test<-table(sex_place_when_dt$tract,
-    #            sex_place_when_dt$fb_origin_continent)==
-    #  table(place_born_age_full_dt[place_born=="Foreign born",tract],
-    #        place_born_age_full_dt[place_born=="Foreign born",fb_origin_continent])
-    #length(test[test==F])==2361
+    test<-table(sex_place_when_dt$tract,
+                sex_place_when_dt$fb_origin_continent,
+                sex_place_when_dt$fb_date_entered)==
+      table(place_born_age_full_dt[place_born=="Foreign born",tract],
+            place_born_age_full_dt[place_born=="Foreign born",fb_origin_continent],
+            place_born_age_full_dt[place_born=="Foreign born",fb_date_entered])
+    length(test[test==F])
     
     #add ethnicity from latinx
     latinx_dt[,("ethnicity"):=if_else(latinx=="Hispanic or Latino","I",NULL)]
@@ -995,12 +990,12 @@ createIndividuals <- function() {
     place_born_eth_dt[,c("age_range_14","fb_sex","fb_citizen",
                          "fb_origin_continent","fb_origin_area",
                          "fb_origin_place","fb_origin_country",
-                         "family_origin","latinx_family_origin",
+                         "fb_date_entered","family_origin","latinx_family_origin",
                          "latinx","ethnicity"):=
                         place_born_age_full_dt[.SD, c(list(age_range_14),
                                                       list(fb_sex),list(fb_citizen),list(fb_origin_continent),
                                                       list(fb_origin_area),list(fb_origin_place),list(fb_origin_country),
-                                                      list(family_origin),list(latinx_family_origin),
+                                                      list(fb_date_entered),list(family_origin),list(latinx_family_origin),
                                                       list(latinx),list(ethnicity)), 
                                                on = .(pbea_id)]]
     place_born_age_full_dt[,c("missed_eth"):=
@@ -1017,12 +1012,12 @@ createIndividuals <- function() {
     place_born_eth_dt[is.na(age_range_14),c("age_range_14","fb_sex","fb_citizen",
                          "fb_origin_continent","fb_origin_area",
                          "fb_origin_place","fb_origin_country",
-                         "family_origin","latinx_family_origin",
+                         "fb_date_entered","family_origin","latinx_family_origin",
                          "latinx","ethnicity"):=
                         place_born_age_full_dt[.SD, c(list(age_range_14),
                                                       list(fb_sex),list(fb_citizen),list(fb_origin_continent),
                                                       list(fb_origin_area),list(fb_origin_place),list(fb_origin_country),
-                                                      list(family_origin),list(latinx_family_origin),
+                                                      list(fb_date_entered),list(family_origin),list(latinx_family_origin),
                                                       list(latinx),list(ethnicity)), 
                                                on = .(pbea1_id)]]
     place_born_age_full_dt[is.na(missed_eth),c("missed_eth"):=
@@ -1040,23 +1035,33 @@ createIndividuals <- function() {
     #length(test[test==F])==0
     
     #put place_born stuff on pb_eth/race  
-    place_born_race_dt[,("pbra_id"):= 
-                         paste0(tract,place_born,
-                                as.character(1000000+sample(.N))),
+    place_born_age_full_dt[,c("race_sorter"):=case_when( 
+      fb_origin_area=="Fiji" | fb_origin_area=="Oceania n.e.c." ~ 1,
+      str_detect(fb_origin_area,"Asia") ~ 2,
+      str_detect(fb_origin_area,"Africa") ~ 3,
+      str_detect(fb_origin_area,"Europe") | fb_origin_area=="Northern America" |
+        fb_origin_area=="Australia and New Zealand Subregion" ~ 4,
+      fb_origin_area=="Latin America" ~ 5,
+      fb_origin_area=="Northern Africa" ~ 6
+    )]
+    
+    place_born_age_full_dt[order(race_sorter),
+                      ("pbra_id"):=paste0(tract,place_born,
+                                             as.character(1000000+seq.int(1:.N))),
+                      by=.(tract,place_born)]
+    place_born_race_dt[order(match(race,c("E","D","B","A","G","F","C"))),
+                       ("pbra_id"):=paste0(tract,place_born,
+                                              as.character(1000000+seq.int(1:.N))),
                        by=.(tract,place_born)]
-    place_born_age_full_dt[,("pbra_id"):= 
-                             paste0(tract,place_born,
-                                    as.character(1000000+sample(.N))),
-                           by=.(tract,place_born)]
     place_born_race_dt[,c("age_range_14","fb_sex","fb_citizen",
                           "fb_origin_continent","fb_origin_area",
                           "fb_origin_place","fb_origin_country",
-                          "family_origin","latinx_family_origin",
+                          "fb_date_entered","family_origin","latinx_family_origin",
                           "latinx","ethnicity"):=     #putting eth here should make join easier later...
                          place_born_age_full_dt[.SD, c(list(age_range_14),
                                                        list(fb_sex),list(fb_citizen),list(fb_origin_continent),
                                                        list(fb_origin_area),list(fb_origin_place),list(fb_origin_country),
-                                                       list(family_origin),list(latinx_family_origin),
+                                                       list(fb_date_entered),list(family_origin),list(latinx_family_origin),
                                                        list(latinx),list(ethnicity)), 
                                                 on = .(pbra_id)]]
     #test 8b
@@ -1068,8 +1073,227 @@ createIndividuals <- function() {
     #        place_born_race_dt$place_born,
     #        place_born_race_dt$ethnicity,
     #        place_born_race_dt$age_range_14)
-    #length(test[test==F])==0                          
+    #length(test[test==F])==0   
+    
+    #divide up eth/race for ease (should have done earlier)
+    hh_relations_eth <- hh_relations_dt[,c("ind_id_eth","tract","ethnicity","eth_sex_relations","eth_age_range","age_range_3","age_range_4",
+                                           "group_or_hh","family_or_non","relative","role_in_family","relation_hh",
+                                           "sr_hh_living_alone","in_family_type")]
+    hh_relations_race <- hh_relations_dt[,c("individual_id","tract","race","race_sex_relations","race_age_range","age_range_3","age_range_4",
+                                            "group_or_hh","family_or_non","relative","role_in_family","relation_hh",
+                                            "sr_hh_living_alone","in_family_type")]
+    
+    #matches to household_relatives for in_family_type only
+    hh_relations_race[group_or_hh=="In households" & family_or_non=="In family households",
+                      ("relative_or_non"):=case_when(
+                        role_in_family=="Biological child" | role_in_family=="Grandchild" | role_in_family=="Spouse" |
+                          role_in_family=="Brother or sister" |
+                          role_in_family=="Adopted child" | 
+                          role_in_family=="Stepchild" | role_in_family=="Unmarried partner" | 
+                          role_in_family=="Other relatives" | role_in_family =="Parent" ~ "Relatives", 
+                        role_in_family=="Other nonrelatives" | role_in_family=="Parent-in-law" | 
+                          role_in_family=="Son-in-law or daughter-in-law" | role_in_family=="Foster child" | 
+                          role_in_family=="Housemate or roommate" | role_in_family=="Roomer or boarder" ~ "Nonrelatives",
+                        TRUE ~ "Relatives" 
+                      )]
+    hh_relations_eth[group_or_hh=="In households" & family_or_non=="In family households",
+                     ("relative_or_non"):=case_when(
+                       role_in_family=="Biological child" | role_in_family=="Grandchild" | role_in_family=="Spouse" |
+                         role_in_family=="Brother or sister" |
+                         role_in_family=="Adopted child" | 
+                         role_in_family=="Stepchild" | role_in_family=="Unmarried partner" | 
+                         role_in_family=="Other relatives" | role_in_family =="Parent" ~ "Relatives", 
+                       role_in_family=="Other nonrelatives" | role_in_family=="Parent-in-law" | 
+                         role_in_family=="Son-in-law or daughter-in-law" | role_in_family=="Foster child" | 
+                         role_in_family=="Housemate or roommate" | role_in_family=="Roomer or boarder" ~ "Nonrelatives",
+                       TRUE ~ "Relatives" 
+                     )]
+    #this was an imperfect match - off by about 3668, and only for family households
+    #adding to have what in_family_type they are
+    #    saveRDS(hh_relations_dt,file = paste0(housingdir, vintage, "/hh_relations_dt_l.701_",Sys.Date(),".RDS"))
+    
+    #test 8  
+    #test <- table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations)==
+    #  table(hh_relations_race$tract,hh_relations_race$race_sex_relations)
+    #length(test[test==F])==0
+    #test <- table(sex_by_age_eth$tract,sex_by_age_eth$sex)==
+    #  table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations)
+    #length(test[test==F])==0
+    #test <- table(hh_relations_eth$tract,hh_relations_eth$age_range_14_eth)==
+    #  table(hh_relations_race$tract,hh_relations_race$age_range_14_race)
+    #length(test[test==F])==0
+    ###the crosstab is false - ugh!!! I dropped it somewhere!!
+    #test <- table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations,hh_relations_eth$age_range_14_eth)==
+    #  table(hh_relations_race$tract,hh_relations_race$race_sex_relations,hh_relations_race$age_range_14_race)
+    #length(test[test==F])/length(test)#55% of tracts are off by just a handful - can be explained by sampling to age_range_14
+    ##but these each are true, so much better
+    #test <- table(sex_by_age_eth$tract,sex_by_age_eth$ethnicity,sex_by_age_eth$sex,sex_by_age_eth$age_range)==
+    #  table(hh_relations_eth$tract,hh_relations_eth$ethnicity,hh_relations_eth$eth_sex_relations,hh_relations_eth$eth_age_range)
+    #length(test[test==F])==0
+    #test <- table(sex_age_race$tract,sex_age_race$race,sex_age_race$sex,sex_age_race$age_range)==
+    #  table(hh_relations_race$tract,hh_relations_race$race,hh_relations_race$race_sex_relations,hh_relations_race$race_age_range)
+    #length(test[test==F])==0
+    hh_relations_eth[,("hh_relrele_id"):= #eth_age_range matches sex_by_age_eth$age_range
+                       paste0(tract,ethnicity,eth_sex_relations,eth_age_range,as.character(10000000+seq.int(.N))),
+                     by=.(tract,ethnicity,eth_sex_relations,eth_age_range)]     
+    place_born_eth_dt[,("hh_relrele_id"):=
+                                 paste0(tract,ethnicity,fb_sex,age_range_14,as.character(10000000+seq.int(.N))),
+                               by=.(tract,ethnicity,fb_sex,age_range_14)]
+    hh_relations_eth[,c("fb_citizen",
+                        "fb_origin_continent","fb_origin_area",
+                        "fb_origin_place","fb_origin_country",
+                        "fb_date_entered","family_origin","latinx_family_origin",
+                        "latinx"):=
+                       place_born_eth_dt[.SD,c(list(fb_citizen),list(fb_origin_continent),
+                                               list(fb_origin_area),list(fb_origin_place),list(fb_origin_country),
+                                               list(fb_date_entered),list(family_origin),list(latinx_family_origin),
+                                               list(latinx)), 
+                                                  on = .(hh_relrele_id)]]
+    place_born_eth_dt[,c("missed_hhre"):=
+                        hh_relations_eth[.SD,list(latinx),
+                                         on = .(hh_relrele_id)]]
+    #second time without sex
+    hh_relations_eth[is.na(latinx),("hh_relrele2_id"):= #this eth_age_range matches sex_by_age_eth
+                       paste0(tract,ethnicity,eth_age_range,as.character(10000000+seq.int(.N))),
+                     by=.(tract,ethnicity,eth_age_range)]     
+    place_born_eth_dt[is.na(missed_hhre),("hh_relrele2_id"):=
+                        paste0(tract,ethnicity,age_range_14,as.character(10000000+seq.int(.N))),
+                      by=.(tract,ethnicity,age_range_14)]
+    hh_relations_eth[is.na(latinx),c("fb_citizen",
+                        "fb_origin_continent","fb_origin_area",
+                        "fb_origin_place","fb_origin_country",
+                        "fb_date_entered","family_origin","latinx_family_origin",
+                        "latinx"):=
+                       place_born_eth_dt[.SD,c(list(fb_citizen),list(fb_origin_continent),
+                                               list(fb_origin_area),list(fb_origin_place),list(fb_origin_country),
+                                               list(fb_date_entered),list(family_origin),list(latinx_family_origin),
+                                               list(latinx)), 
+                                         on = .(hh_relrele2_id)]]
+    place_born_eth_dt[is.na(missed_hhre),c("missed_hhre"):=
+                        hh_relations_eth[.SD,list(latinx),
+                                         on = .(hh_relrele2_id)]]
 
+    #still have 312455 Latinx not properly matched (of 1910535 - 16%), so do a shuffle on age_range before picking up non_Latinx
+    #hh_relations_eth matches sae on age_range_14, so use it for the matching.
+    #place_born_eth_dt has information about fb_date_entered and age that needs to be respected
+    #break into part so can order
+    hh_rr_pb1 <- hh_relations_eth[is.na(latinx)]
+    hh_rr_pb1[order(eth_age_range),("hh_relrele3_id"):= #this eth_age_range matches sex_by_age_eth
+                       paste0(tract,ethnicity,as.character(10000000+seq.int(.N))),
+                     by=.(tract,ethnicity)]    
+    pb_rr_hh1 <- place_born_eth_dt[is.na(missed_hhre)]
+    pb_rr_hh1[order(age_range_14),("hh_relrele3_id"):=
+                        paste0(tract,ethnicity,as.character(10000000+seq.int(.N))),
+                      by=.(tract,ethnicity)]
+    pb_rr_hh1[!is.na(ethnicity),("age_range_tmp"):=
+                hh_rr_pb1[.SD,list(eth_age_range),on=.(hh_relrele3_id)]]
+    hh_rr_pb1[,("missed"):=
+                pb_rr_hh1[.SD,list(age_range_tmp),on=.(hh_relrele3_id)]]
+    hh_rr_pb2 <- hh_rr_pb1[is.na(missed)]
+    pb_rr_hh2 <- pb_rr_hh1[is.na(age_range_tmp)]
+    hh_rr_pb2[order(eth_age_range),("hh_relrele4_id"):= 
+                paste0(tract,as.character(10000000+seq.int(.N))),
+              by=.(tract)]
+    pb_rr_hh2[order(age_range_14),("hh_relrele4_id"):=
+                paste0(tract,as.character(10000000+seq.int(.N))),
+              by=.(tract)]
+    pb_rr_hh2[,("age_range_tmp"):=
+                hh_rr_pb2[.SD,list(eth_age_range),on=.(hh_relrele4_id)]]
+    pb_rr_hh1[is.na(age_range_tmp),("age_range_tmp"):=
+                pb_rr_hh2[.SD,list(age_range_tmp),on=.(hh_relrele3_id)]]
+    place_born_eth_dt[is.na(missed_hhre),("age_range_14"):=
+                        pb_rr_hh1[.SD,list(age_range_tmp),on=.(hh_relrele2_id)]]
+    #test9
+    test <- table(place_born_eth_dt$tract,
+                  place_born_eth_dt$age_range_14)==
+      table(sex_by_age_eth$tract,
+            sex_by_age_eth$age_range)
+    length(test[test==F])==0
+    
+    #race
+    hh_relations_race[race_age_range=="5  to  9 years",("race_age_range"):="05 to  9 years"]
+    hh_relations_race[,("hh_relrele_id"):= #race_age_range matches sex_age_race$age_range
+                       paste0(tract,race,race_sex_relations,race_age_range,as.character(10000000+seq.int(.N))),
+                     by=.(tract,race,race_sex_relations,race_age_range)]     
+    place_born_race_dt[,("hh_relrele_id"):=
+                        paste0(tract,race,fb_sex,age_range_14,as.character(10000000+seq.int(.N))),
+                      by=.(tract,race,fb_sex,age_range_14)]
+    hh_relations_race[,c("fb_citizen",
+                        "fb_origin_continent","fb_origin_area",
+                        "fb_origin_place","fb_origin_country",
+                        "fb_date_entered","family_origin","latinx_family_origin",
+                        "latinx"):=
+                       place_born_race_dt[.SD,c(list(fb_citizen),list(fb_origin_continent),
+                                               list(fb_origin_area),list(fb_origin_place),list(fb_origin_country),
+                                               list(fb_date_entered),list(family_origin),list(latinx_family_origin),
+                                               list(latinx)), 
+                                         on = .(hh_relrele_id)]]
+    place_born_race_dt[,c("missed_hhre"):=
+                        hh_relations_race[.SD,list(latinx),
+                                         on = .(hh_relrele_id)]]
+    #second time without sex
+    hh_relations_race[is.na(latinx),("hh_relrele2_id"):= 
+                       paste0(tract,race,race_age_range,as.character(10000000+seq.int(.N))),
+                     by=.(tract,race,race_age_range)]     
+    place_born_race_dt[is.na(missed_hhre),("hh_relrele2_id"):=
+                        paste0(tract,race,age_range_14,as.character(10000000+seq.int(.N))),
+                      by=.(tract,race,age_range_14)]
+    hh_relations_race[is.na(latinx),c("fb_citizen",
+                                     "fb_origin_continent","fb_origin_area",
+                                     "fb_origin_place","fb_origin_country",
+                                     "fb_date_entered","family_origin","latinx_family_origin",
+                                     "latinx"):=
+                       place_born_race_dt[.SD,c(list(fb_citizen),list(fb_origin_continent),
+                                               list(fb_origin_area),list(fb_origin_place),list(fb_origin_country),
+                                               list(fb_date_entered),list(family_origin),list(latinx_family_origin),
+                                               list(latinx)), 
+                                         on = .(hh_relrele2_id)]]
+    place_born_race_dt[is.na(missed_hhre),c("missed_hhre"):=
+                        hh_relations_race[.SD,list(latinx),
+                                         on = .(hh_relrele2_id)]]
+    
+    #still have 312455 Latinx not properly matched (of 1910535 - 16%), so do a shuffle on age_range before picking up non_Latinx
+    #hh_relations_race matches sae on age_range_14, so use it for the matching.
+    #place_born_eth_dt has information about fb_date_entered and age that needs to be respected
+    #break into part so can order
+    hh_rr_pb1r <- hh_relations_race[is.na(latinx)]
+    hh_rr_pb1r[order(race_age_range),("hh_relrele3_id"):= 
+                paste0(tract,race,as.character(10000000+seq.int(.N))),
+              by=.(tract,race)]    
+    pb_rr_hh1r <- place_born_race_dt[is.na(missed_hhre)]
+    pb_rr_hh1r[order(age_range_14),("hh_relrele3_id"):=
+                paste0(tract,race,as.character(10000000+seq.int(.N))),
+              by=.(tract,race)]
+    pb_rr_hh1r[!is.na(race),("age_range_tmp"):=
+                hh_rr_pb1r[.SD,list(race_age_range),on=.(hh_relrele3_id)]]
+    hh_rr_pb1r[,("missed"):=
+                pb_rr_hh1r[.SD,list(age_range_tmp),on=.(hh_relrele3_id)]]
+    hh_rr_pb2r <- hh_rr_pb1r[is.na(missed)]
+    pb_rr_hh2r <- pb_rr_hh1r[is.na(age_range_tmp)]
+    hh_rr_pb2r[order(race_age_range),("hh_relrele4_id"):= 
+                paste0(tract,as.character(10000000+seq.int(.N))),
+              by=.(tract)]
+    pb_rr_hh2r[order(age_range_14),("hh_relrele4_id"):=
+                paste0(tract,as.character(10000000+seq.int(.N))),
+              by=.(tract)]
+    pb_rr_hh2r[,("age_range_tmp"):=
+                hh_rr_pb2[.SD,list(race_age_range),on=.(hh_relrele4_id)]]
+    pb_rr_hh1r[is.na(age_range_tmp),("age_range_tmp"):=
+                pb_rr_hh2r[.SD,list(age_range_tmp),on=.(hh_relrele3_id)]]
+    place_born_race_dt[is.na(missed_hhre),("age_range_14"):=
+                        pb_rr_hh1r[.SD,list(age_range_tmp),on=.(hh_relrele2_id)]]
+    #test9
+    test <- table(place_born_race_dt$tract,
+                  place_born_race_dt$age_range_14)==
+      table(sex_age_race$tract,
+            sex_age_race$age_range)
+    length(test[test==F])==0
+
+##    #testing for lost info
+##    hh_relations_race[,c("test_age","test_race"):=place_born_race_dt[.SD,c(list(age_range_14),list(race)),
+##                                                                     on=.(pb_race_id)]]
+    
+    
 ##                              #put eth/race builds on place_born by age
 ##                              #get fb sex matched by eth
 ##                              hh_relations_dt[,("hh_pb_age_eth_id"):= 
@@ -1326,56 +1550,7 @@ createIndividuals <- function() {
     
     
     
-    #matches to household_relatives
-    hh_relations_race[group_or_hh=="In households" & family_or_non=="In family households",
-                    ("relative_or_non"):=case_when(
-                      role_in_family=="Biological child" | role_in_family=="Grandchild" | role_in_family=="Spouse" |
-                        role_in_family=="Brother or sister" |
-                        role_in_family=="Adopted child" | 
-                        role_in_family=="Stepchild" | role_in_family=="Unmarried partner" | 
-                        role_in_family=="Other relatives" | role_in_family =="Parent" ~ "Relatives", 
-                      role_in_family=="Other nonrelatives" | role_in_family=="Parent-in-law" | 
-                        role_in_family=="Son-in-law or daughter-in-law" | role_in_family=="Foster child" | 
-                        role_in_family=="Housemate or roommate" | role_in_family=="Roomer or boarder" ~ "Nonrelatives",
-                      TRUE ~ "Relatives" 
-                    )]
-    hh_relations_eth[group_or_hh=="In households" & family_or_non=="In family households",
-                      ("relative_or_non"):=case_when(
-                        role_in_family=="Biological child" | role_in_family=="Grandchild" | role_in_family=="Spouse" |
-                          role_in_family=="Brother or sister" |
-                          role_in_family=="Adopted child" | 
-                          role_in_family=="Stepchild" | role_in_family=="Unmarried partner" | 
-                          role_in_family=="Other relatives" | role_in_family =="Parent" ~ "Relatives", 
-                        role_in_family=="Other nonrelatives" | role_in_family=="Parent-in-law" | 
-                          role_in_family=="Son-in-law or daughter-in-law" | role_in_family=="Foster child" | 
-                          role_in_family=="Housemate or roommate" | role_in_family=="Roomer or boarder" ~ "Nonrelatives",
-                        TRUE ~ "Relatives" 
-                      )]
-    #this was an imperfect match - off by about 3668, and only for family households
-    #adding to have what in_family_type they are
-#    saveRDS(hh_relations_dt,file = paste0(housingdir, vintage, "/hh_relations_dt_l.701_",Sys.Date(),".RDS"))
-
-    #test 8  
-    #test <- table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations)==
-    #  table(hh_relations_race$tract,hh_relations_race$race_sex_relations)
-    #length(test[test==F])==0
-    #test <- table(sex_by_age_eth$tract,sex_by_age_eth$sex)==
-    #  table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations)
-    #length(test[test==F])==0
-    #test <- table(hh_relations_eth$tract,hh_relations_eth$age_range_14_eth)==
-    #  table(hh_relations_race$tract,hh_relations_race$age_range_14_race)
-    #length(test[test==F])==0
-    ###the crosstab is false - ugh!!! I dropped it somewhere!!
-    #test <- table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations,hh_relations_eth$age_range_14_eth)==
-    #  table(hh_relations_race$tract,hh_relations_race$race_sex_relations,hh_relations_race$age_range_14_race)
-    #length(test[test==F])/length(test)#55% of tracts are off by just a handful - can be explained by sampling to age_range_14
-    ##but these each are true, so much better
-    #test <- table(sex_by_age_eth$tract,sex_by_age_eth$ethnicity,sex_by_age_eth$sex,sex_by_age_eth$age_range)==
-    #  table(hh_relations_eth$tract,hh_relations_eth$ethnicity,hh_relations_eth$eth_sex_relations,hh_relations_eth$eth_age_range)
-    #length(test[test==F])==0
-    #test <- table(sex_age_race$tract,sex_age_race$race,sex_age_race$sex,sex_age_race$age_range)==
-    #  table(hh_relations_race$tract,hh_relations_race$race,hh_relations_race$race_sex_relations,hh_relations_race$race_age_range)
-    #length(test[test==F])==0
+    
 
     #put when_entered for eth/race
     sex_place_when_dt[,("when_total_id"):=paste0(tract,as.character(1000000+sample(.N))),

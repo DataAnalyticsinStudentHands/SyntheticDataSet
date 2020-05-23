@@ -153,6 +153,13 @@ test <- table(place_born_age_full_dt$tract,
         place_born_race_dt$age_range_14)
 length(test[test==F])==0     
 
+#test9
+test <- table(place_born_eth_dt$tract,
+              place_born_eth_dt$age_range_14)==
+  table(sex_by_age_eth$tract,
+        sex_by_age_eth$age_range)
+length(test[test==F])==0
+
 #test6a
 test <- table(hh_relations_dt$eth_age_range,hh_relations_dt$age_range_14_eth)
 sum(colSums(test==0/nrow(test)*100))==182
