@@ -145,6 +145,7 @@ ggparcoord(factor_frame,
   ) +
   xlab("")
 
+#for js, probably use something like D3 sankey - although ECharts and Semiotic have good ones for React? https://medium.com/@mtiller/open-source-plotting-libraries-primarily-for-react-c43cfa4dc90f
 library(ggalluvial)
 ggplot(dframe,
        aes(y=x,axis1=as.factor(w),axis2=as.factor(y))) +
