@@ -153,17 +153,16 @@ test<-table(sex_place_when_dt$tract,
 max(abs(test[,1:5])) < 35
 #lose less than 1% on others, but they don't match
 
-#test 8 - stopped passing!!! but just a little off, and I think it's swallowed into stuff later, anyway - need to track down sometime
-#note it is true on race, below!
+#test 8 
 test <- table(place_born_age_full_dt$tract,
               place_born_age_full_dt$place_born,
               place_born_age_full_dt$age_range_14
-              )==
+)==
   table(place_born_eth_dt$tract,
         place_born_eth_dt$place_born,
         place_born_eth_dt$age_range_14
-        )
-length(test[test==F]) / length(test) <.5    
+  )
+length(test[test==F]) == 0    
 
 #test 8b
 test <- table(place_born_age_full_dt$tract,
