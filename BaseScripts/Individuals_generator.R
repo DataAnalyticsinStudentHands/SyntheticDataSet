@@ -1564,13 +1564,15 @@ createIndividuals <- function() {
     #still close to 100k off, but not worth further effort
     
     #align date_entered with language - this will break using it for other years, so need to check when using elsewhere
-    hh_relations_eth[order(match(fb_date_entered,c("Entered before 1990","Entered 1990 to 1999",
+    hh_relations_eth[order(match(ethnicity,c("H","_","I")),
+                           match(fb_date_entered,c("Entered before 1990","Entered 1990 to 1999",
                                                    "Entered 2000 to 2009","Entered 2010 or later"))),
                     ("pbl_id"):= 
                       paste0(tract,place_born,
                              as.character(1000000+seq.int(1:.N))),
                     by=.(tract,place_born)]
-    hh_relations_race[order(match(fb_date_entered,c("Entered before 1990","Entered 1990 to 1999",
+    hh_relations_race[order(match(race,c("A","D","C","B","G","F","E")),
+      match(fb_date_entered,c("Entered before 1990","Entered 1990 to 1999",
                                                    "Entered 2000 to 2009","Entered 2010 or later"))),
                      ("pbl_id"):= 
                        paste0(tract,place_born,
@@ -1596,9 +1598,7 @@ createIndividuals <- function() {
     #length(test[test==F])==0
     #there are some surprising things in the original data, like 140051 born here who speak English less than very well
     #I copied it over - perhaps should tie to ethnicity and language? have to see how much the tract differences help!!!
-    #saveRDS(hh_relations_eth,file = paste0(housingdir, vintage, "/hh_relations_eth_l.1596_",Sys.Date(),".RDS"))
-    #saveRDS(hh_relations_race,file = paste0(housingdir, vintage, "/hh_relations_race_l.1597_",Sys.Date(),".RDS"))
-    
+        
 
     #marital back
     #eth_age_range==race_age_range==age_range
@@ -1858,61 +1858,65 @@ createIndividuals <- function() {
     saveRDS(hh_relations_race,file = paste0(housingdir, vintage, "/hh_relations_race_",Sys.Date(),".RDS"))
     
     #test 12 - no longer works, but to be expected because chose to stay with place_born marital and work back to sex/age.
-    test <- table(hh_relations_race[substr(race_age_range,1,2)>14,tract],
-                  hh_relations_race[substr(race_age_range,1,2)>14,race],
-                  hh_relations_race[substr(race_age_range,1,2)>14,race_sex_relations],
-                  hh_relations_race[substr(race_age_range,1,2)>14,race_age_range],
-                  hh_relations_race[substr(race_age_range,1,2)>14,marital_status])==
-      table(marital_status_race_dt$tract,
-            marital_status_race_dt$race,
-            marital_status_race_dt$sex,
-            marital_status_race_dt$age_range,
-            marital_status_race_dt$marital_status)
-    length(test[test==F])==0 # very false
+    #test <- table(hh_relations_race[substr(race_age_range,1,2)>14,tract],
+    #              hh_relations_race[substr(race_age_range,1,2)>14,race],
+    #              hh_relations_race[substr(race_age_range,1,2)>14,race_sex_relations],
+    #              hh_relations_race[substr(race_age_range,1,2)>14,race_age_range],
+    #              hh_relations_race[substr(race_age_range,1,2)>14,marital_status])==
+    #  table(marital_status_race_dt$tract,
+    #        marital_status_race_dt$race,
+    #        marital_status_race_dt$sex,
+    #        marital_status_race_dt$age_range,
+    #        marital_status_race_dt$marital_status)
+    #length(test[test==F])==0 # very false
     
     #should look at crosstabs for weird outliers
     #test 13 - pre for if eth and race can be juggled to match 
     #exact matches: 
-    #test <- table(hh_relations_eth$tract,
-    #              hh_relations_eth$eth_age_range,
-    #              hh_relations_eth$eth_sex_relations
-    #              )==
-    #  table(hh_relations_race$tract, 
-    #        hh_relations_race$race_age_range, #sex and age match together
-    #        hh_relations_race$race_sex_relations
-    #  )
-    #length(test[test==F])==0
-    #test <- table(hh_relations_eth$tract,
-    #              hh_relations_eth$place_born,
-    #              #hh_relations_eth$marital_status,
-    #              hh_relations_eth$fb_origin_continent,
-    #              hh_relations_eth$fb_origin_place,
-    #              hh_relations_eth$fb_origin_area,
-    #              #hh_relations_eth$fb_origin_country,  #triggers "table with >= 2^31 elements" but in pieces still works, so...
-    #              hh_relations_eth$group_or_hh,
-    #              ###hh_relations_eth$relative#, - no info here that's not in role_in_family
-    #              hh_relations_eth$relation_hh,
-    #              hh_relations_eth$sr_hh_living_alone,
-    #              hh_relations_eth$in_family_type,
-    #              ###hh_relations_eth$role_in_family,
-    #              hh_relations_eth$family_or_non
-    #              )==
-    #  table(hh_relations_race$tract,
-    #        hh_relations_race$place_born,
-    #        #hh_relations_race$marital_status,  #if included, 0.25% of table have wrong total
-    #        hh_relations_race$fb_origin_continent,
-    #        hh_relations_race$fb_origin_place,
-    #        hh_relations_race$fb_origin_area,
-    #        #hh_relations_race$fb_origin_country,
-    #        hh_relations_race$group_or_hh,
-    #        ###hh_relations_race$relative#, #2% off by itself
-    #        hh_relations_race$relation_hh, 
-    #        hh_relations_race$sr_hh_living_alone,
-    #        hh_relations_race$in_family_type,
-    #        ###hh_relations_race$role_in_family, #.25% off with group and family or non; 1% off by itself
-    #        hh_relations_race$family_or_non  
-    #  )
-    #length(test[test==F])/length(test)
+    test <- table(hh_relations_eth$tract,
+                  hh_relations_eth$eth_age_range,
+                  hh_relations_eth$eth_sex_relations
+                  )==
+      table(hh_relations_race$tract, 
+            hh_relations_race$race_age_range, #sex and age match together
+            hh_relations_race$race_sex_relations
+      )
+    length(test[test==F])==0
+    test <- table(hh_relations_eth$tract,
+                  hh_relations_eth$place_born,
+                  hh_relations_eth$marital_status,
+                  hh_relations_eth$latinx,
+  #                hh_relations_eth$pregnant,
+  #                #hh_relations_eth$fb_origin_continent,
+  #                hh_relations_eth$fb_origin_place,
+  #                hh_relations_eth$fb_origin_area,
+  #                #hh_relations_eth$fb_origin_country,  #triggers "table with >= 2^31 elements" but in pieces still works, so...
+  #                hh_relations_eth$group_or_hh,
+  #                ###hh_relations_eth$relative#, - no info here that's not in role_in_family
+  #                hh_relations_eth$relation_hh,
+  #                hh_relations_eth$sr_hh_living_alone,
+  #                hh_relations_eth$in_family_type,
+  #                ###hh_relations_eth$role_in_family,
+                  hh_relations_eth$family_or_non
+                  )==
+      table(hh_relations_race$tract,
+            hh_relations_race$place_born,
+            hh_relations_race$marital_status,  #if included, 0.25% of table have wrong total
+            hh_relations_race$latinx,
+ #           hh_relations_race$pregnant,
+ #           #hh_relations_race$fb_origin_continent,
+ #           hh_relations_race$fb_origin_place,
+ #           hh_relations_race$fb_origin_area,
+ #           #hh_relations_race$fb_origin_country,
+ #           hh_relations_race$group_or_hh,
+ #           ###hh_relations_race$relative#, #2% off by itself
+ #           hh_relations_race$relation_hh, 
+ #           hh_relations_race$sr_hh_living_alone,
+ #           hh_relations_race$in_family_type,
+ #           ###hh_relations_race$role_in_family, #.25% off with group and family or non; 1% off by itself
+            hh_relations_race$family_or_non  
+      )
+    length(test[test==F])==0
     #
     #test <- table(hh_relations_eth$tract,
     #              hh_relations_eth$place_born,
@@ -1932,9 +1936,175 @@ createIndividuals <- function() {
     #       )
     #length(test[test==F])==0
     
-    #assuming these all match up for place born and marital now, match on one very long set, then reorder on sex and age for the ones that didn't match
+    #wtf test
+    
+    #drop one factor, then pick it back up for the next try - so you're slowly building it back in;
+    #it's equal to shuffling if you write it over, and then include the term as you search the rest, 
+    hh_relations_eth[,#order(eth_age_range),
+                     ("wtf8_eth_id"):= 
+                       paste0(tract,marital_status,latinx,
+                              as.character(1000000+seq.int(1:.N))),
+                     by=.(tract,marital_status,latinx)]
+    hh_relations_race[,#order(race_age_range),
+                      ("wtf8_eth_id"):= 
+                        paste0(tract,marital_status,latinx,
+                               as.character(1000000+seq.int(1:.N))),
+                      by=.(tract,marital_status,latinx)]
+    hh_relations_race[,c("wtf8","wtf7_ind_id_eth"):=
+                        hh_relations_eth[.SD,c(list(latinx),list(ind_id_eth)),
+                                         on = .(wtf8_eth_id)]]
+    hh_relations_eth[,c("wtf8","wtf7_individual_id"):=
+                       hh_relations_race[.SD,c(list(latinx),list(individual_id)),on=.(wtf8_eth_id)]]
+    
+    #only moving race and eth together on things that have 100% match - not solving the simultaneous equations completely, although table does
+    hh_relations_eth[order(eth_age_range),
+               ("race_eth_id"):= 
+                 paste0(tract,marital_status,pregnant,place_born,fb_origin_place,fb_origin_area,
+                        group_or_hh,family_or_non,relation_hh,
+                        sr_hh_living_alone,in_family_type,
+                        as.character(1000000+seq.int(1:.N))),
+               by=.(tract,marital_status,pregnant,place_born,fb_origin_place,fb_origin_area,
+                    group_or_hh,family_or_non,relation_hh,
+                    sr_hh_living_alone,in_family_type)]
+    hh_relations_race[order(race_age_range),
+                ("race_eth_id"):= 
+                  paste0(tract,marital_status,pregnant,place_born,fb_origin_place,fb_origin_area,
+                         group_or_hh,family_or_non,relation_hh,
+                         sr_hh_living_alone,in_family_type,
+                         as.character(1000000+seq.int(1:.N))),
+                by=.(tract,marital_status,pregnant,place_born,fb_origin_place,fb_origin_area,
+                     group_or_hh,family_or_non,relation_hh,
+                     sr_hh_living_alone,in_family_type)]
+    hh_relations_race[,c("ethnicity","ind_id_eth"):=
+                        hh_relations_eth[.SD,c(list(ethnicity),list(ind_id_eth)),
+                             on = .(race_eth_id)]]
+    hh_relations_eth[,c("race","individual_id"):=
+                 hh_relations_race[.SD,c(list(race),list(individual_id)),on=.(race_eth_id)]]
+    #nrow(hh_relations_race[is.na(ethnicity)])==nrow(hh_relations_eth[is.na(race)])
+    #nrow(hh_relations_race[is.na(ethnicity)])/nrow(hh_relations_race) ~50%
+    
+    #seems like big difference is on age_range - line up and assign
+    hh_rel_eth <- hh_relations_eth[is.na(individual_id)]
+    hh_rel_race <- hh_relations_race[is.na(ind_id_eth)]
+    hh_rel_eth[order(eth_age_range),
+                     ("race_eth2_id"):= 
+                       paste0(tract,place_born,fb_origin_place,
+                              group_or_hh,family_or_non,relation_hh,in_family_type,
+                              as.character(1000000+seq.int(1:.N))),
+                     by=.(tract,place_born,fb_origin_place,
+                          group_or_hh,family_or_non,relation_hh,in_family_type)]
+    hh_rel_race[order(race_age_range),
+                      ("race_eth2_id"):= 
+                        paste0(tract,place_born,fb_origin_place,
+                               group_or_hh,family_or_non,relation_hh,in_family_type,
+                               as.character(1000000+seq.int(1:.N))),
+                      by=.(tract,place_born,fb_origin_place,
+                           group_or_hh,family_or_non,relation_hh,in_family_type)]
+    hh_rel_race[,c("ethnicity","ind_id_eth"):=
+                        hh_rel_eth[.SD,c(list(ethnicity),list(ind_id_eth)),
+                                         on = .(race_eth2_id)]]
+    hh_rel_eth[,c("race","individual_id"):=
+                 hh_rel_race[.SD,c(list(race),list(individual_id)),on=.(race_eth2_id)]]
+      
+    #without marital stuff - not moving it
+    hh_rel_eth2 <- hh_rel_eth[is.na(individual_id)]
+    hh_rel_race2 <- hh_rel_race[is.na(ind_id_eth)]
+    hh_rel_eth2[order(eth_age_range),
+               ("race_eth3_id"):= 
+                 paste0(tract,place_born,fb_origin_place,fb_origin_country,fb_date_entered,
+                        group_or_hh,family_or_non,relation_hh,in_family_type,role_in_family,
+                        as.character(1000000+seq.int(1:.N))),
+               by=.(tract,place_born,fb_origin_place,fb_origin_country,fb_date_entered,
+                    group_or_hh,family_or_non,relation_hh,in_family_type,role_in_family)]
+    hh_rel_race2[order(race_age_range),
+                ("race_eth3_id"):= 
+                  paste0(tract,place_born,fb_origin_place,fb_origin_country,fb_date_entered,
+                         group_or_hh,family_or_non,relation_hh,in_family_type,role_in_family,
+                         as.character(1000000+seq.int(1:.N))),
+                by=.(tract,place_born,fb_origin_place,fb_origin_country,fb_date_entered,
+                     group_or_hh,family_or_non,relation_hh,in_family_type,role_in_family)]
+    hh_rel_race2[,c("ethnicity","ind_id_eth"):=
+                  hh_rel_eth2[.SD,c(list(ethnicity),list(ind_id_eth)),
+                             on = .(race_eth3_id)]]
+    hh_rel_eth2[,c("race","individual_id"):=
+                 hh_rel_race2[.SD,c(list(ethnicity),list(individual_id)),on=.(race_eth3_id)]]
+    #without relative
+    hh_rel_eth3 <- hh_rel_eth2[is.na(individual_id)]
+    hh_rel_race3 <- hh_rel_race2[is.na(ind_id_eth)]
+    hh_rel_eth3[order(eth_age_range),
+                ("race_eth3_id"):= 
+                  paste0(tract,place_born,fb_origin_place,fb_origin_country,fb_date_entered,
+                         group_or_hh,family_or_non,in_family_type,
+                         as.character(1000000+seq.int(1:.N))),
+                by=.(tract,place_born,fb_origin_place,fb_origin_country,fb_date_entered,
+                     group_or_hh,family_or_non,in_family_type)]
+    hh_rel_race3[order(race_age_range),
+                 ("race_eth3_id"):= 
+                   paste0(tract,place_born,fb_origin_place,fb_origin_country,fb_date_entered,
+                          group_or_hh,family_or_non,in_family_type,
+                          as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,place_born,fb_origin_place,fb_origin_country,fb_date_entered,
+                      group_or_hh,family_or_non,in_family_type)]
+    hh_rel_race3[,c("ethnicity","ind_id_eth"):=
+                   hh_rel_eth3[.SD,c(list(ethnicity),list(ind_id_eth)),
+                               on = .(race_eth3_id)]]
+    hh_rel_eth3[,c("race","individual_id"):=
+                  hh_rel_race3[.SD,c(list(ethnicity),list(individual_id)),on=.(race_eth3_id)]]
+    
+    hh_rel_eth4 <- hh_rel_eth3[is.na(individual_id)]
+    hh_rel_race4 <- hh_rel_race3[is.na(ind_id_eth)]
+    hh_rel_eth4[order(eth_age_range),
+                ("race_eth4_id"):= 
+                  paste0(tract,place_born,fb_origin_place,
+                         group_or_hh,family_or_non,
+                         as.character(1000000+seq.int(1:.N))),
+                by=.(tract,place_born,fb_origin_place,
+                     group_or_hh,family_or_non)]
+    hh_rel_race4[order(race_age_range),
+                 ("race_eth4_id"):= 
+                   paste0(tract,place_born,fb_origin_place,
+                          group_or_hh,family_or_non,
+                          as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,place_born,fb_origin_place,
+                      group_or_hh,family_or_non)]
+    hh_rel_race4[,c("ethnicity","ind_id_eth"):=
+                   hh_rel_eth4[.SD,c(list(ethnicity),list(ind_id_eth)),
+                               on = .(race_eth4_id)]]
+    hh_rel_eth4[,c("race","individual_id"):=
+                  hh_rel_race4[.SD,c(list(ethnicity),list(individual_id)),on=.(race_eth4_id)]]
+    #then move back up on ids
+    
+    
+    #tried this too:
+    #try on full match - even this left 1270653 - better with more matches
+    hh_relations_eth[order(eth_age_range),
+                     ("race_eth_id"):= 
+                       paste0(tract,place_born,fb_origin_place,fb_origin_area,
+                              group_or_hh,family_or_non,relation_hh,in_family_type,
+                              marital_status,
+                              as.character(1000000+seq.int(1:.N))),
+                     by=.(tract,place_born,fb_origin_place,fb_origin_area,
+                          group_or_hh,family_or_non,relation_hh,in_family_type,
+                          marital_status)]
+    hh_relations_race[order(race_age_range),
+                      ("race_eth_id"):= 
+                        paste0(tract,place_born,fb_origin_place,fb_origin_area,
+                               group_or_hh,family_or_non,relation_hh,in_family_type,
+                               marital_status,
+                               as.character(1000000+seq.int(1:.N))),
+                      by=.(tract,place_born,fb_origin_place,fb_origin_area,
+                           group_or_hh,family_or_non,relation_hh,in_family_type,
+                           marital_status)]
+    hh_relations_race[,c("ethnicity","ind_id_eth"):=
+                        hh_relations_eth[.SD,c(list(ethnicity),list(ind_id_eth)),
+                                         on = .(race_eth_id)]]
+    hh_relations_eth[,c("race","individual_id"):=
+                       hh_relations_race[.SD,c(list(ethnicity),list(individual_id)),on=.(race_eth_id)]]
   }
 }
+
+
+
     
  #Move next steps into apportioning.R   
 
