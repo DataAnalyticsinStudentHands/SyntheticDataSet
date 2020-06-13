@@ -1,6 +1,568 @@
 #test pages - expand just lives from tables equaling each other as appropriate, with code in file
 
 #for sam_hh
+#test hh1a
+test <- table(hh_age_dt$tract,hh_age_dt$householder_age_9)==table(occup_type_dt$tract,occup_type_dt$householder_age_9)
+length(test[test==F])==0
+
+#test hh1
+test <- table(hh_type_eth_dt$tract,hh_type_eth_dt$own_rent,hh_type_eth_dt$family_type)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent,hh_type_race_dt$family_type)
+length(test[test==F])==0
+
+#test hh2 - right mix for rematch
+test <- table(
+  anti_hh_type_race_dt$tract,
+  anti_hh_type_race_dt$own_rent
+)==table(
+  sam_race_hh[is.na(family)]$tract,
+  sam_race_hh[is.na(family)]$own_rent
+)
+length(test[test==F])==0
+test <- table(
+  anti_hh_type_race_dt$tract,
+  anti_hh_type_race_dt$race
+)==table(
+  sam_race_hh[is.na(family)]$tract,
+  sam_race_hh[is.na(family)]$race
+)
+length(test[test==F])==0
+test <- table(
+  anti_hh_type_eth_dt$tract,
+  anti_hh_type_eth_dt$own_rent
+)==table(
+  sam_eth_hh[is.na(family)]$tract,
+  sam_eth_hh[is.na(family)]$own_rent
+)
+length(test[test==F])==0
+test <- table(
+  anti_hh_type_eth_dt$tract,
+  anti_hh_type_eth_dt$ethnicity
+)==table(
+  sam_eth_hh[is.na(family)]$tract,
+  sam_eth_hh[is.na(family)]$ethnicity
+)
+length(test[test==F])==0
+
+#test hh2b 
+test <- nrow(sam_eth_hh[is.na(family)])==0
+test <- nrow(sam_race_hh[is.na(family)])==0
+test <- table(
+  sam_race_hh$tract,
+  sam_race_hh$race,
+  #sam_race_hh$own_rent,#with this in, it's false, because line-up would be from a diff. possible match
+  sam_race_hh$family,
+  sam_race_hh$family_type,
+  sam_race_hh$single_hh_sex
+)==
+  table(
+    hh_type_race_dt$tract,
+    hh_type_race_dt$race,
+    #hh_type_race_dt$own_rent, 
+    hh_type_race_dt$family,
+    hh_type_race_dt$family_type,
+    hh_type_race_dt$single_hh_sex
+  )
+length(test[test==F])==0
+test <- table(
+  sam_eth_hh$tract,
+  sam_eth_hh$ethnicity,
+  sam_eth_hh$family,
+  sam_eth_hh$family_type,
+  sam_eth_hh$single_hh_sex
+)==
+  table(
+    hh_type_eth_dt$tract,
+    hh_type_eth_dt$ethnicity,
+    hh_type_eth_dt$family,
+    hh_type_eth_dt$family_type,
+    hh_type_eth_dt$single_hh_sex
+  )
+length(test[test==F])==0
+test <- table(
+  sam_race_hh$tract,
+  sam_race_hh$family,
+  sam_race_hh$family_type,
+  sam_race_hh$family_role,
+  sam_race_hh$single_hh_sex
+)==
+  table(
+    sam_eth_hh$tract,
+    sam_eth_hh$family,
+    sam_eth_hh$family_type,
+    sam_eth_hh$family_role,
+    sam_eth_hh$single_hh_sex
+  )
+length(test[test==F])==0
+test <- table(
+  sam_race_hh$tract,
+  sam_race_hh$householder_age_9,
+  sam_race_hh$own_rent
+)==
+  table(
+    sam_eth_hh$tract,
+    sam_eth_hh$householder_age_9,
+    sam_eth_hh$own_rent
+  )
+length(test[test==F])==0
+
+#test hh31a
+test <- table(
+  housing_units_race_dt$tract,
+  housing_units_race_dt$housing_units,
+  housing_units_race_dt$own_rent
+)==
+  table(
+    housing_units_rent_dt$tract,
+    housing_units_rent_dt$housing_units,
+    housing_units_rent_dt$own_rent
+  )
+length(test[test==F])==0
+test <- table(
+  housing_units_eth_dt$tract,
+  housing_units_eth_dt$housing_units,
+  housing_units_eth_dt$own_rent
+)==
+  table(
+    housing_units_rent_dt$tract,
+    housing_units_rent_dt$housing_units,
+    housing_units_rent_dt$own_rent
+  )
+length(test[test==F])==0
+#test hh3preA - each works alone with tract, but not together
+test <- table(
+  housing_units_eth_dt$tract,
+  housing_units_eth_dt$ethnicity#,
+  #housing_units_eth_dt$own_rent
+)==
+  table(
+    sam_eth_hh$tract,
+    sam_eth_hh$ethnicity#,
+    #sam_eth_hh$own_rent
+  )
+length(test[test==F])==0
+
+#test hh3
+test <- table(
+  sam_eth_hh$tract,
+  sam_eth_hh$ethnicity,
+  sam_eth_hh$family_role_4
+)==
+  table(
+    hh_units_rent_eth$tract,
+    hh_units_rent_eth$ethnicity,
+    hh_units_rent_eth$family_role_4
+  )
+length(test[test==F])==0
+
+#test hh4a
+test <- table(
+  sam_eth_hh[is.na(housing_units)]$tract,
+  sam_eth_hh[is.na(housing_units)]$ethnicity
+)==
+  table(
+    hh_units_rent_eth[is.na(missed_units)]$tract,
+    hh_units_rent_eth[is.na(missed_units)]$ethnicity
+  )
+length(test[test==F])==0
+test <- table(
+  sam_eth_hh[is.na(housing_units)]$tract,
+  #sam_eth_hh[is.na(housing_units)]$family_role_4,
+  sam_eth_hh[is.na(housing_units)]$own_rent
+)==
+  table(
+    hh_units_rent_eth[is.na(missed_units)]$tract,
+    #hh_units_rent_eth[is.na(missed_units)]$family_role_4b,
+    hh_units_rent_eth[is.na(missed_units)]$own_rent
+  )
+length(test[test==F])==0
+
+#test hh4c - confirming distribution with hh_type_units - no need to do more
+test <- table(
+  housing_units_race_dt$tract,
+  housing_units_race_dt$family,
+  housing_units_race_dt$family_role_4
+)==table(
+  hh_type_units_dt$tract,
+  hh_type_units_dt$family,
+  hh_type_units_dt$family_role_4
+)
+length(test[test==F])==0
+test <- table(
+  housing_units_eth_dt$tract,
+  housing_units_eth_dt$family,
+  housing_units_eth_dt$family_role_4
+)==table(
+  hh_type_units_dt$tract,
+  hh_type_units_dt$family,
+  hh_type_units_dt$family_role_4
+)
+length(test[test==F])==0
+#test hh4d - confirming distribution with hh_type_units - no need to do more
+test <- table(
+  sam_race_hh$tract,
+  sam_race_hh$family,
+  sam_race_hh$family_role_4
+)==table(
+  hh_type_units_dt$tract,
+  hh_type_units_dt$family,
+  hh_type_units_dt$family_role_4
+)
+length(test[test==F])==0
+test <- table(
+  sam_eth_hh$tract,
+  sam_eth_hh$family,
+  sam_eth_hh$family_role_4
+)==table(
+  hh_type_units_dt$tract,
+  hh_type_units_dt$family,
+  hh_type_units_dt$family_role_4
+)
+length(test[test==F])==0
+
+#test hh5 - family_role and num_structures before moving over to sam_eth/race as just the units
+test <- table(
+  housing_units_race_dt$tract,
+  housing_units_race_dt$family,
+  housing_units_race_dt$family_role_4,
+  housing_units_race_dt$num_structures
+)==table(
+  hh_type_units_dt$tract,
+  hh_type_units_dt$family,
+  hh_type_units_dt$family_role_4,
+  hh_type_units_dt$num_structures
+)
+length(test[test==F])==0
+test <- table(
+  housing_units_eth_dt$tract,
+  housing_units_eth_dt$family,
+  housing_units_eth_dt$family_role_4,
+  housing_units_eth_dt$num_structures
+)==table(
+  hh_type_units_dt$tract,
+  hh_type_units_dt$family,
+  hh_type_units_dt$family_role_4,
+  hh_type_units_dt$num_structures
+)
+length(test[test==F])==0
+
+#test hh5b - housing_units matched on family, race/eth
+test <- table(
+  housing_units_race_dt$tract,
+  housing_units_race_dt$family,
+  housing_units_race_dt$housing_units,
+  housing_units_race_dt$race
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$family,
+  sam_race_hh$housing_units,
+  sam_race_hh$race
+)
+length(test[test==F])==0
+test <- table(
+  housing_units_eth_dt$tract,
+  housing_units_eth_dt$family,
+  housing_units_eth_dt$housing_units,
+  housing_units_eth_dt$ethnicity
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$family,
+  sam_eth_hh$housing_units,
+  sam_eth_hh$ethnicity
+)
+length(test[test==F])==0
+
+#test hh6
+test <- table(
+  sam_eth_hh$tract,
+  sam_eth_hh$people_per_room
+)==
+  table(
+    sam_race_hh$tract,
+    sam_race_hh$people_per_room
+  )
+length(test[test==FALSE])==0
+
+#test hh7
+test<-table(
+  hh_occup_size_dt$tract,
+  hh_occup_size_dt$own_rent,
+  hh_occup_size_dt$family_or_non_eth,
+  hh_occup_size_dt$family_type_eth
+  )==table(
+    sam_eth_hh$tract,
+    sam_eth_hh$own_rent,
+    sam_eth_hh$family,
+    sam_eth_hh$family_type
+    )
+length(test[test==F])==0
+test<-table(
+  hh_occup_size_dt$tract,
+  hh_occup_size_dt$own_rent,
+  hh_occup_size_dt$family_or_non_race,
+  hh_occup_size_dt$family_type_race
+  )==table(
+    sam_race_hh$tract,
+    sam_race_hh$own_rent,
+    sam_race_hh$family,
+    sam_race_hh$family_type
+    )
+length(test[test==F])==0
+
+#test hh8
+test<-table(
+  hh_size_dt$tract,
+  hh_size_dt$own_rent_eth,
+  hh_size_dt$family_or_non,
+  hh_size_dt$hh_size
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$own_rent,
+  sam_eth_hh$family,
+  sam_eth_hh$hh_size
+)
+length(test[test==F])==0
+test<-table(
+  hh_size_dt$tract,
+  hh_size_dt$own_rent_race,
+  hh_size_dt$family_or_non,
+  hh_size_dt$hh_size
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$own_rent,
+  sam_race_hh$family,
+  sam_race_hh$hh_size
+)
+length(test[test==F])==0
+
+#test hh9
+test<-table(
+  hh_occup_bedrooms_dt$tract,
+  hh_occup_bedrooms_dt$own_rent,
+  hh_occup_bedrooms_dt$num_bedrooms
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$own_rent,
+  sam_eth_hh$num_bedrooms
+)
+length(test[test==F])==0
+test<-table(
+  hh_occup_bedrooms_dt$tract,
+  hh_occup_bedrooms_dt$own_rent,
+  hh_occup_bedrooms_dt$num_bedrooms
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$own_rent,
+  sam_race_hh$num_bedrooms
+)
+length(test[test==F])==0
+test<-table(
+  hh_occup_rooms_dt$tract,
+  hh_occup_rooms_dt$own_rent,
+  hh_occup_rooms_dt$num_rooms
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$own_rent,
+  sam_eth_hh$num_rooms
+)
+length(test[test==F])==0
+test<-table(
+  hh_occup_rooms_dt$tract,
+  hh_occup_rooms_dt$own_rent,
+  hh_occup_rooms_dt$num_rooms
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$own_rent,
+  sam_race_hh$num_rooms
+)
+length(test[test==F])==0
+
+#test hh10
+test <- table(
+  sam_race_hh$tract,
+  sam_race_hh$sex
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$sex
+)
+length(test[test==F])==0
+
+#test hh11
+test <- table(
+  sam_race_hh$tract,
+  sam_race_hh$number_workers_in_hh
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$number_workers_in_hh
+)
+length(test[test==F])==0
+
+#test hh12
+test <- table(
+  sam_race_hh$tract,
+  sam_race_hh$kids_by_age
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$kids_by_age
+)
+length(test[test==F])==0
+
+#test hh13
+test<-table(
+  family_employment_dt$tract,
+  family_employment_dt$family_role,
+  family_employment_dt$employment,
+  family_employment_dt$wife_employed
+)==table(
+  sam_race_hh[family=="Family households",tract],
+  sam_race_hh[family=="Family households",family_role],
+  sam_race_hh[family=="Family households",employment],
+  sam_race_hh[family=="Family households",wife_employed]
+)
+length(test[test==F])/length(test) < .04 #because of not giving full numbers from census on married-couples...
+test<-table(
+  family_employment_dt$tract,
+  family_employment_dt$family_role,
+  family_employment_dt$employment,
+  family_employment_dt$wife_employed
+)==table(
+  sam_eth_hh[family=="Family households",tract],
+  sam_eth_hh[family=="Family households",family_role],
+  sam_eth_hh[family=="Family households",employment],
+  sam_eth_hh[family=="Family households",wife_employed]
+)
+length(test[test==F])/length(test) < .04 #because of not giving full numbers from census on married-couples...
+
+#test hh14
+test<-table(
+  vehicles_hh$tract,
+  vehicles_hh$hh_size_4,
+  vehicles_hh$number_vehicles_in_hh
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$hh_size_4,
+  sam_race_hh$number_vehicles_in_hh
+)
+length(test[test==F])==0
+test<-table(
+  vehicles_hh$tract,
+  vehicles_hh$hh_size_4,
+  vehicles_hh$number_vehicles_in_hh
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$hh_size_4,
+  sam_eth_hh$number_vehicles_in_hh
+)
+length(test[test==F])==0
+
+#test hh15
+test<-table(
+  hh_income_dt$tract,
+  hh_income_dt$hh_income_level,
+  hh_income_dt$income_low,
+  hh_income_dt$income_high
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$hh_income_level,
+  sam_race_hh$income_low,
+  sam_race_hh$income_high
+)
+length(test[test==F])==0
+test<-table(
+  hh_income_dt$tract,
+  hh_income_dt$hh_income_level,
+  hh_income_dt$income_low,
+  hh_income_dt$income_high
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$hh_income_level,
+  sam_eth_hh$income_low,
+  sam_eth_hh$income_high
+)
+length(test[test==F])==0
+
+#test hh16
+test<-table(
+  hh_educ_dt$tract,
+  hh_educ_dt$hh_education_level
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$hh_education_level
+)
+length(test[test==F])==0
+test<-table(
+  hh_educ_dt$tract,
+  hh_educ_dt$hh_education_level
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$hh_education_level
+)
+length(test[test==F])==0
+
+#test hh17
+test<-table(
+  gross_rent_hh$tract,
+  gross_rent_hh$hh_income_renters
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$hh_income_renters
+)
+length(test[test==F])==0
+test<-table(
+  gross_rent_hh$tract,
+  gross_rent_hh$hh_income_renters
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$hh_income_renters
+)
+length(test[test==F])==0
+
+#test hh18
+test<-table(
+  hh_partner_dt$tract,
+  hh_partner_dt$partner_type,
+  hh_partner_dt$sex_partner,
+  hh_partner_dt$sex
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$partner_type,
+  sam_race_hh$sex_partner,
+  sam_race_hh$hh_sex
+)
+length(test[test==F])==0
+test<-table(
+  hh_partner_dt$tract,
+  hh_partner_dt$partner_type,
+  hh_partner_dt$sex_partner,
+  hh_partner_dt$sex
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$partner_type,
+  sam_eth_hh$sex_partner,
+  sam_eth_hh$hh_sex
+)
+length(test[test==F])==0
+
+#test hh19
+test<-table(
+  food_stamps_race_dt$tract,
+  food_stamps_race_dt$race,
+  food_stamps_race_dt$food_stamps
+)==table(
+  sam_race_hh$tract,
+  sam_race_hh$race,
+  sam_race_hh$SNAP
+)
+length(test[test==F])==0
+test<-table(
+  food_stamps_eth_dt$tract,
+  food_stamps_eth_dt$ethnicity,
+  food_stamps_eth_dt$food_stamps
+)==table(
+  sam_eth_hh$tract,
+  sam_eth_hh$ethnicity,
+  sam_eth_hh$SNAP
+)
+length(test[test==F])==0
 
 
 #for sam

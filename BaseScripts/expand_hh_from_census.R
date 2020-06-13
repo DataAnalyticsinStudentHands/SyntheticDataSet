@@ -127,8 +127,8 @@ exp_census_hh <- function() {
       filter(number_sams > 0 & !ethnicity %in% acs_race_codes) %>%
       uncount(as.numeric(number_sams),.id = "hh_type_ethnicity_id")
     hh_type_ethnicity_dt <- as.data.table(household_type_ethnicity_data)
-    hh_type_ethnicity_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,family_role)]
-    hh_type_ethnicity_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,family_role)]
+    hh_type_ethnicity_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,family,family_type,single_hh_sex)]
+    hh_type_ethnicity_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,family,family_type,single_hh_sex)]
     hh_type_ethnicity_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE)]
     hh_type_eth_dt <- hh_type_ethnicity_dt[(tokeep)]
     rm(household_type_race_from_census)
@@ -414,35 +414,35 @@ exp_census_hh <- function() {
     family_employment_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B23007")
     family_employment_data <- family_employment_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces!!Wife in labor force") %>%
-      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed!!Wife in labor force") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces!!Wife in labor force") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed!!Wife in labor force") %>%
-      filter(label != "With own children under 18 years!!Other family!!Male householder no wife present!!In labor force") %>%
+      filter(label != "Estimate!!Total") %>% #doing just from this still give 1062265 and not 1066649
+      filter(label != "With own children under 18 years!!Other family") %>%
       filter(label != "With own children under 18 years!!Other family!!Male householder no wife present") %>%
+      filter(label != "With own children under 18 years!!Other family!!Male householder no wife present!!In labor force") %>%
       filter(label != "With own children under 18 years!!Other family!!Female householder no husband present!!In labor force") %>%
       filter(label != "With own children under 18 years!!Other family!!Female householder no husband present") %>%
-      filter(label != "No children under 18 years!!Other family!!Male householder no wife present!!In labor force") %>%
-      filter(label != "No children under 18 years!!Other family!!Male householder no wife present") %>%
-      filter(label != "No children under 18 years!!Other family!!Female householder no husband present!!In labor force") %>%
-      filter(label != "No children under 18 years!!Other family!!Female householder no husband present") %>%
-      filter(label != "With own children under 18 years!!Other family") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces!!Wife in labor force") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed!!Wife in labor force") %>%
       filter(label != "With own children under 18 years!!Married-couple family!!Husband not in labor force") %>%
       filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed") %>%
       filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force") %>%
       filter(label != "With own children under 18 years!!Married-couple family") %>%
       filter(label != "With own children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces") %>%
+      filter(label != "With own children under 18 years!!Married-couple family!!Husband not in labor force!!Wife in labor force") %>%
       filter(label != "With own children under 18 years") %>%
       filter(label != "No children under 18 years!!Other family") %>%
-      filter(label != "No children under 18 years") %>%
+      filter(label != "No children under 18 years!!Other family!!Male householder no wife present!!In labor force") %>%
+      filter(label != "No children under 18 years!!Other family!!Male householder no wife present") %>%
+      filter(label != "No children under 18 years!!Other family!!Female householder no husband present!!In labor force") %>%
+      filter(label != "No children under 18 years!!Other family!!Female householder no husband present") %>%
       filter(label != "No children under 18 years!!Married-couple family") %>%
-      filter(label != "With own children under 18 years!!Married-couple family!!Husband not in labor force!!Wife in labor force") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces!!Wife in labor force") %>%
+      filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed!!Wife in labor force") %>%
       filter(label != "No children under 18 years!!Married-couple family!!Husband not in labor force!!Wife in labor force") %>%
       filter(label != "No children under 18 years!!Married-couple family!!Husband not in labor force") %>%
       filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Unemployed") %>%
       filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force!!Employed or in Armed Forces") %>%
       filter(label != "No children under 18 years!!Married-couple family!!Husband in labor force") %>%
+      filter(label != "No children under 18 years") %>%
       pivot_longer(4:ncol(family_employment_data_from_census),names_to = "tract", values_to = "number_sams") %>% 
       separate(label, c("own_kids","family_type","family_role","employed","husband_employ","wife_employed"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(#hh_employ=if_else(family_role=="Husband in labor force",employed,husband_employ),
@@ -451,6 +451,8 @@ exp_census_hh <- function() {
         husband_employed=if_else(family_role=="Husband in labor force",employed,family_role),
         husband_employed=if_else(family_type=="Married-couple family",husband_employed,NULL),
         wife_employed=if_else(husband_employ=="Wife in labor force",wife_employed,husband_employ),
+        wife_employed=if_else(employed=="Wife in labor force",husband_employ,wife_employed),
+        wife_employed=if_else(employed=="Wife not in labor force",employed,wife_employed),
         wife_employed=if_else(family_type=="Married-couple family",wife_employed,NULL),
         family_role=if_else(str_detect(family_role,"householder"),family_role,family_type)
              ) %>%
@@ -464,6 +466,39 @@ exp_census_hh <- function() {
     rm(family_employment_data)
     
     #saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_",Sys.Date(),".RDS")) #"2020-04-06"
+    #foodstamps B22005 race of HH
+    #join with nat'l SNAP data? https://host76.mathematica-mpr.com/fns/Download.aspx?, but looks like a pain
+    #FSBEN Unit SNAP benefit
+    #FSUSIZE Unit size
+    #FSGRINC Unit gross countable income
+    #FSNETINC Unit net countable income
+    #FSERNDED Unit earned income deduction
+    #TPOV Unit gross income as a percentage of poverty 
+    food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
+    food_stamps_data <- food_stamps_data_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(food_stamps = label) %>%
+      filter(race %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
+    food_stamps_race_dt <- as.data.table(food_stamps_data)
+    
+    food_stamps_eth_data <- food_stamps_data_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(ethnicity = substr(name,7,7)) %>%
+      rename(food_stamps = label) %>%
+      #filter(!ethnicity %in% acs_race_codes) %>%
+      uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
+    food_stamps_eth_dt <- as.data.table(food_stamps_eth_data) 
+    food_stamps_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,food_stamps)]
+    food_stamps_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,food_stamps)]
+    food_stamps_eth_dt[ethnicity %in% acs_race_codes,("ethnicity"):="_"]
+    food_stamps_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,food_stamps)]
+    food_stamps_eth_dt <- food_stamps_eth_dt[(tokeep)]
     
     #match income on own_rent, sorted by Foodstamps
     #concept: TENURE BY HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2017 INFLATION-ADJUSTED DOLLARS) - 1562813hh
@@ -512,6 +547,271 @@ exp_census_hh <- function() {
       filter(!is.na(hh_education_level) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "own_rent_hheduc_id",.remove = TRUE)
     hh_educ_dt <- as.data.table(housing_occup_educ_data)
+    
+    #MORTGAGE STATUS BY AGE OF HOUSEHOLDER
+    #shows for 855629 - with different age groups from housing_per_room_age_data (which also has 1562813 / hh) / = to "Owner occupied" in own_rent
+    mortgage_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25027") 
+    mortgage_age_data <- mortgage_age_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(mortgage_age_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("mortgage","householder_age"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(householder_age) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "mortgage_age_id",.remove = TRUE)
+    mortgage_age_hh <- as.data.table(mortgage_age_data)
+    
+    #concept: MORTGAGE STATUS
+    mortgage_status_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25081") 
+    mortgage_status_data <- mortgage_status_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(mortgage_status_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("first_mortgage","second","second_mortgage"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(second_mortgage=case_when(
+        second=="With either a second mortgage or home equity loan but not both" ~ second_mortgage,
+        first_mortgage=="Housing units without a mortgage" ~ first_mortgage,
+        TRUE ~ second
+      )) %>%
+      filter(!is.na(second_mortgage) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "mortgage_status_id",.remove = TRUE)
+    mortgage_status_hh <- as.data.table(mortgage_status_data)
+    
+    #concept: MORTGAGE STATUS BY VALUE - I believe it's value of house, not of outstanding balance on mortgage
+    mortgage_value_status_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25096") 
+    mortgage_value_status_data <- mortgage_value_status_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(mortgage_value_status_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("with_mortgage","value"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(value) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "mortgage_status_id",.remove = TRUE)
+    mortgage_value_status_hh <- as.data.table(mortgage_value_status_data)
+    
+    #concept: AGGREGATE VALUE (DOLLARS) BY YEAR HOUSEHOLDER MOVED INTO UNIT - NAs
+    #value_yr_moved_in_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25110") 
+
+    #concept: MORTGAGE STATUS BY HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2018 INFLATION-ADJUSTED DOLLARS)
+    mortgage_status_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25098") 
+    mortgage_status_income_data <- mortgage_status_income_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(mortgage_status_income_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("with_mortgage","hh_income"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_income) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "mortgage_status_id",.remove = TRUE)
+    mortgage_status_income_hh <- as.data.table(mortgage_status_income_data)
+    
+    #concept: MORTGAGE STATUS BY MONTHLY HOUSING COSTS AS A PERCENTAGE OF HOUSEHOLD INCOME IN THE PAST 12 MONTHS
+    mortgage_status_hh_costs_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25101") 
+    mortgage_status_hh_costs_data <- mortgage_status_hh_costs_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(mortgage_status_hh_costs_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("with_mortgage","hh_income","hh_costs_income"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(hh_costs_income=if_else(
+        hh_income=="Zero or negative income",hh_income,hh_costs_income
+      )) %>%
+      filter(!is.na(hh_costs_income) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "mortgage_costs_status_id",.remove = TRUE)
+    mortgage_status_hh_costs_hh <- as.data.table(mortgage_status_hh_costs_data)
+    
+    #concept: MORTGAGE STATUS AND SELECTED MONTHLY OWNER COSTS - https://www.census.gov/quickfacts/fact/note/US/HSG651218 and p. 34 of https://www2.census.gov/programs-surveys/acs/tech_docs/subject_definitions/2018_ACSSubjectDefinitions.pdf
+    #Selected monthly owner costs are the sum of payments
+    #for mortgages, deeds of trust, contracts to purchase, or similar debts on the property
+    #(including payments for the first mortgage, second mortgages, home equity loans, and other
+    #  junior mortgages); real estate taxes; fire, hazard, and flood insurance on the property; utilities
+    #(electricity, gas, and water and sewer); and fuels (oil, coal, kerosene, wood, etc.). It also
+    #includes, where appropriate, the monthly condominium fee for condominiums (Question 15)
+    #and mobile home costs (Question 23) (personal property taxes, site rent, registration fees, and
+    #                                     license fees).
+    mortgage_monthly_owner_costs_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25087")
+    mortgage_monthly_owner_costs_data <- mortgage_status_income_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(mortgage_status_income_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("with_mortgage","hh_monthly_costs"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_monthly_costs) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "mortgage_costs_status_id",.remove = TRUE)
+    mortgage_monthly_owner_costs_hh <- as.data.table(mortgage_monthly_owner_costs_data)
+    
+    #concept: MORTGAGE STATUS BY SELECTED MONTHLY OWNER COSTS AS A PERCENTAGE OF HOUSEHOLD INCOME IN THE PAST 12 MONTHS
+    mortgage_monthly_costs_income_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25091")
+    mortgage_monthly_costs_income_data <- mortgage_monthly_costs_income_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(mortgage_monthly_costs_income_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("with_mortgage","hh_income_costs"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_income_costs) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "mortgage_costs_income_id",.remove = TRUE)
+    mortgage_monthly_costs_income_hh <- as.data.table(mortgage_monthly_costs_income_data)
+    
+    #concept: AGE OF HOUSEHOLDER BY SELECTED MONTHLY OWNER COSTS AS A PERCENTAGE OF HOUSEHOLD INCOME IN THE PAST 12 MONTHS - seems to be only owners not renters
+    age_hh_monthly_costs_income_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25093")
+    age_hh_monthly_costs_income_data <- age_hh_monthly_costs_income_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(age_hh_monthly_costs_income_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("with_mortgage","age_income_costs"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(age_income_costs) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "age_costs_income_id",.remove = TRUE)
+    age_hh_monthly_costs_income_hh <- as.data.table(age_hh_monthly_costs_income_data)
+    
+    #concept: HOUSEHOLD INCOME BY SELECTED MONTHLY OWNER COSTS AS A PERCENTAGE OF HOUSEHOLD INCOME IN THE PAST 12 MONTHS
+    percent_income_monthly_costs_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25095")
+    percent_income_monthly_costs_data <- percent_income_monthly_costs_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(percent_income_monthly_costs_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("hh_income","hh_income_costs"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_income_costs) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "percent_costs_income_id",.remove = TRUE)
+    percent_income_monthly_costs_hh <- as.data.table(percent_income_monthly_costs_data)
+    
+    #concept: TENURE BY HOUSING COSTS AS A PERCENTAGE OF HOUSEHOLD INCOME IN THE PAST 12 MONTHS
+    tenure_income_monthly_costs_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25106")
+    tenure_income_monthly_costs_data <- tenure_income_monthly_costs_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(tenure_income_monthly_costs_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","hh_income","hh_costs_income"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(hh_costs_income=if_else(
+        hh_income=="Zero or negative income" | hh_income=="No cash rent",hh_income,hh_costs_income
+      )) %>%
+      filter(!is.na(hh_costs_income) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "tenure_costs_income_id",.remove = TRUE)
+    tenure_income_monthly_costs_hh <- as.data.table(tenure_income_monthly_costs_data)
+    
+    #concept: TENURE BY YEAR HOUSEHOLDER MOVED INTO UNIT BY UNITS IN STRUCTURE
+    tenure_yr_moved_units_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25129")
+    tenure_yr_moved_units_data <- tenure_yr_moved_units_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(tenure_yr_moved_units_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","when_moved","housing_units"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(housing_units) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "tenure_when_id",.remove = TRUE)
+    tenure_yr_moved_units_hh <- as.data.table(tenure_yr_moved_units_data)
+    
+    #concept: TYPES OF COMPUTERS IN HOUSEHOLD - assign multiples to underlying hh b/c computer_alone dups some of computer_type when multiple
+    computers_hh_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B28001")
+    computers_hh_data <- computers_hh_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(computers_hh_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("computer","computer_alone","computer_type"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(computer_type=case_when(
+        computer=="No Computer" ~ computer,
+        computer_alone=="Desktop or laptop" & is.na(computer_type) ~ 'Multiple computing devices',
+        TRUE ~ computer_type
+      )) %>%
+      filter(!is.na(computer_alone) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "computer_id",.remove = TRUE)
+    computers_hh <- as.data.table(computers_hh_data)
+    
+    #concept: PRESENCE AND TYPES OF INTERNET SUBSCRIPTIONS IN HOUSEHOLD
+    internet_hh_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B28002")
+    internet_hh_data <- internet_hh_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(internet_hh_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("internet","extra"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(is.na(extra) &!is.na(internet) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "internet_id",.remove = TRUE)
+    internet_hh <- as.data.table(internet_hh_data)
+    
+    #concept: PRESENCE OF A COMPUTER AND TYPE OF INTERNET SUBSCRIPTION IN HOUSEHOLD
+    computer_internet_hh_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B28003")
+    computer_internet_hh_data <- computer_internet_hh_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(computer_internet_hh_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("computer","internet"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(internet=if_else(computer=="No computer",computer,internet))%>%
+      filter(!is.na(internet) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "internet_id",.remove = TRUE)
+    computer_internet_hh <- as.data.table(computer_internet_hh_data)
+    
+    #concept: HOUSEHOLD INCOME IN THE LAST 12 MONTHS (IN 2018 INFLATION-ADJUSTED DOLLARS) BY PRESENCE AND TYPE OF INTERNET SUBSCRIPTION IN HOUSEHOLD
+    income_internet_hh_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B28004")
+    income_internet_hh_data <- income_internet_hh_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(income_internet_hh_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("hh_income","internet"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(internet) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "internet_income_id",.remove = TRUE)
+    income_internet_hh <- as.data.table(income_internet_hh_data)
+    
+    #concept: AGE BY PRESENCE OF A COMPUTER AND TYPES OF INTERNET SUBSCRIPTION IN HOUSEHOLD - looks like families, not households
+    age_internet_hh_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B28005")
+    age_internet_hh_data <- age_internet_hh_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(age_internet_hh_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("age","computer","internet"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(internet=if_else(computer=="No computer",computer,internet))%>%
+      filter(!is.na(internet) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "internet_age_id",.remove = TRUE)
+    age_internet_hh <- as.data.table(age_internet_hh_data)
+    
+    ##EDUCATIONAL ATTAINMENT BY PRESENCE OF A COMPUTER AND TYPES OF INTERNET SUBSCRIPTION IN HOUSEHOLD - 2840381 ? check with others
+    educ_internet_hh_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B28006")
+    educ_internet_hh_data <- educ_internet_hh_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(educ_internet_hh_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("hh_educ","computer","internet"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(internet=if_else(computer=="No computer",computer,internet))%>%
+      filter(!is.na(internet) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "internet_educ_id",.remove = TRUE)
+    educ_internet_hh <- as.data.table(educ_internet_hh_data)
+    
+    ##LABOR FORCE STATUS BY PRESENCE OF A COMPUTER AND TYPES OF INTERNET SUBSCRIPTION IN HOUSEHOLD B28007
+    #job_internet_hh_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B28007")
+    #job_internet_hh_data <- job_internet_hh_census %>%
+    #  mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+    #  filter(label != "Estimate!!Total") %>%
+    #  pivot_longer(4:ncol(job_internet_hh_census),names_to = "tract", values_to = "number_sams") %>%
+    #  separate(label, c("job","computer","internet"), sep = "!!", remove = F, convert = FALSE) %>%
+    #  mutate(internet=if_else(computer=="No computer",computer,internet))%>%
+    #  filter(!is.na(internet) & number_sams > 0) %>%
+    #  uncount(as.numeric(number_sams),.id = "internet_job_id",.remove = TRUE)
+    #job_internet_hh <- as.data.table(job_internet_hh_data)
+    
+    ##PRESENCE OF A COMPUTER AND TYPE OF INTERNET SUBSCRIPTION IN HOUSEHOLD acs_race_codes - seems to match in households 4484299
+    internet_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B28009") 
+    internet_race_data <- internet_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(internet_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("computer","internet"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(race = substr(name,7,7),
+             internet=if_else(computer=="No computer",computer,internet)) %>%
+      filter(race %in% acs_race_codes & is.na(internet)) %>%
+      uncount(as.numeric(number_sams),.id = "internet_race_id",.remove = TRUE)
+    internet_race_dt <- as.data.table(internet_race_data)
+    
+    internet_eth_data <- internet_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(internet_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("computer","internet"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(ethnicity = substr(name,7,7),
+             internet=if_else(computer=="No computer",computer,internet)) %>%
+      filter(is.na(internet)) %>%
+      uncount(as.numeric(number_sams),.id = "internet_eth_id",.remove = TRUE)
+    internet_eth_dt <- as.data.table(internet_eth_data)
+    internet_eth_dt[ethnicity %in% acs_race_codes,("ethnicity"):="_"]
+    internet_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity=="_"]),by=.(tract,computer,internet)]
+    internet_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,computer,internet)]
+    internet_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,computer,internet)]
+    internet_eth_dt <- internet_eth_dt[(tokeep)]
+    rm(internet_eth_dt)
+    rm(internet_race_dt)
+        
+    #all NAs
+    #concept: AGGREGATE GROSS RENT (DOLLARS) BY YEAR HOUSEHOLDER MOVED INTO UNIT
+    #gross_rent_yr_moved_in_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25114")
     
     #equals "Renter occupied" on own_rent in Sam
     #gross rent is contract plus estimate for utilities, etc.
@@ -575,30 +875,30 @@ exp_census_hh <- function() {
           gross_rent == "$3 000 to $3 499" ~ as.integer(3449),
           gross_rent == "$3 500 or more" ~ as.integer(6000)), #have to think about skew on this one
         gross_rent_high2=case_when(
-          gross_rent == "Less than $100" ~ as.character(99),
-          gross_rent == "$100 to $149" ~ as.character(199),
-          gross_rent == "$150 to $199" ~ as.character(199),
-          gross_rent == "$200 to $249" ~ as.character(299),
-          gross_rent == "$250 to $299" ~ as.character(299),
-          gross_rent == "$300 to $349" ~ as.character(399),
-          gross_rent == "$350 to $399" ~ as.character(399),
-          gross_rent == "$400 to $449" ~ as.character(499),
-          gross_rent == "$450 to $499" ~ as.character(499),
-          gross_rent == "$500 to $549" ~ as.character(599),
-          gross_rent == "$550 to $599" ~ as.character(599),
-          gross_rent == "$600 to $649" ~ as.character(699),
-          gross_rent == "$650 to $699" ~ as.character(699),
-          gross_rent == "$700 to $749" ~ as.character(799),
-          gross_rent == "$750 to $799" ~ as.character(799),
-          gross_rent == "$800 to $899" ~ as.character(899),
-          gross_rent == "$900 to $999" ~ as.character(999),
-          gross_rent == "$1 000 to $1 249" ~ as.character(1249),
-          gross_rent == "$1 250 to $1 499" ~ as.character(1499),
-          gross_rent == "$1 500 to $1 999" ~ as.character(1999),
-          gross_rent == "$2 000 to $2 499" ~ as.character(6000),
-          gross_rent == "$2 500 to $2 999" ~ as.character(6000),
-          gross_rent == "$3 000 to $3 499" ~ as.character(6000),
-          gross_rent == "$3 500 or more" ~ as.character(6000))
+          gross_rent == "Less than $100" ~ as.integer(99),
+          gross_rent == "$100 to $149" ~ as.integer(199),
+          gross_rent == "$150 to $199" ~ as.integer(199),
+          gross_rent == "$200 to $249" ~ as.integer(299),
+          gross_rent == "$250 to $299" ~ as.integer(299),
+          gross_rent == "$300 to $349" ~ as.integer(399),
+          gross_rent == "$350 to $399" ~ as.integer(399),
+          gross_rent == "$400 to $449" ~ as.integer(499),
+          gross_rent == "$450 to $499" ~ as.integer(499),
+          gross_rent == "$500 to $549" ~ as.integer(599),
+          gross_rent == "$550 to $599" ~ as.integer(599),
+          gross_rent == "$600 to $649" ~ as.integer(699),
+          gross_rent == "$650 to $699" ~ as.integer(699),
+          gross_rent == "$700 to $749" ~ as.integer(799),
+          gross_rent == "$750 to $799" ~ as.integer(799),
+          gross_rent == "$800 to $899" ~ as.integer(899),
+          gross_rent == "$900 to $999" ~ as.integer(999),
+          gross_rent == "$1 000 to $1 249" ~ as.integer(1249),
+          gross_rent == "$1 250 to $1 499" ~ as.integer(1499),
+          gross_rent == "$1 500 to $1 999" ~ as.integer(1999),
+          gross_rent == "$2 000 to $2 499" ~ as.integer(6000),
+          gross_rent == "$2 500 to $2 999" ~ as.integer(6000),
+          gross_rent == "$3 000 to $3 499" ~ as.integer(6000),
+          gross_rent == "$3 500 or more" ~ as.integer(6000))
       ) %>%
       uncount(as.numeric(number_sams),.id = "gross_rent_id",.remove = TRUE)
     gross_rent_hh <- as.data.table(gross_rent_data)
@@ -613,24 +913,43 @@ exp_census_hh <- function() {
       filter(!is.na(gross_rent) & number_sams > 0) %>%
       mutate(
         gross_rent_high2=case_when(
-          gross_rent == "Less than $100" ~ as.character(99),
-          gross_rent == "$100 to $199" ~ as.character(199),
-          gross_rent == "$200 to $299" ~ as.character(299),
-          gross_rent == "$300 to $399" ~ as.character(399),
-          gross_rent == "$400 to $499" ~ as.character(499),
-          gross_rent == "$500 to $599" ~ as.character(599),
-          gross_rent == "$600 to $699" ~ as.character(699),
-          gross_rent == "$700 to $799" ~ as.character(799),
-          gross_rent == "$800 to $899" ~ as.character(899),
-          gross_rent == "$900 to $999" ~ as.character(999),
-          gross_rent == "$1 000 to $1 249" ~ as.character(1249),
-          gross_rent == "$1 250 to $1 499" ~ as.character(1499),
-          gross_rent == "$1 500 to $1 999" ~ as.character(1999),
-          gross_rent == "$2 000 or more" ~ as.character(6000)) #have to think about skew on this one
+          gross_rent == "Less than $100" ~ as.integer(99),
+          gross_rent == "$100 to $199" ~ as.integer(199),
+          gross_rent == "$200 to $299" ~ as.integer(299),
+          gross_rent == "$300 to $399" ~ as.integer(399),
+          gross_rent == "$400 to $499" ~ as.integer(499),
+          gross_rent == "$500 to $599" ~ as.integer(599),
+          gross_rent == "$600 to $699" ~ as.integer(699),
+          gross_rent == "$700 to $799" ~ as.integer(799),
+          gross_rent == "$800 to $899" ~ as.integer(899),
+          gross_rent == "$900 to $999" ~ as.integer(999),
+          gross_rent == "$1 000 to $1 249" ~ as.integer(1249),
+          gross_rent == "$1 250 to $1 499" ~ as.integer(1499),
+          gross_rent == "$1 500 to $1 999" ~ as.integer(1999),
+          gross_rent == "$2 000 or more" ~ as.integer(6000)) #have to think about skew on this one
       ) %>%
       uncount(as.numeric(number_sams),.id = "income_gross_rent_id",.remove = TRUE)
     income_gross_rent_hh <- as.data.table(income_gross_rent_data)
 
+    bedrooms_gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25068")
+    bedrooms_gross_rent_data <- bedrooms_gross_rent_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(bedrooms_gross_rent_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("num_bedrooms","cash_rent","gross_rent_title","gross_rent"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(gross_rent_title) & number_sams > 0) %>%
+      mutate(
+        num_bedrooms = if_else(num_bedrooms=="No bedroom","0 bedrooms",num_bedrooms),
+        gross_rent_high2=case_when(
+          gross_rent == "Less than $300" ~ as.integer(299),
+          gross_rent == "$300 to $499" ~ as.integer(499),
+          gross_rent == "$500 to $749" ~ as.integer(749),
+          gross_rent == "$750 to $999" ~ as.integer(999),
+          gross_rent == "$1 000 to $1 499" ~ as.integer(1499),
+          gross_rent == "$1 500 or more" ~ as.integer(1501))
+      ) %>%
+    uncount(as.numeric(number_sams),.id = "bedrooms_gross_rent_id",.remove = TRUE)
+    bedrooms_gross_rent_hh <- as.data.table(bedrooms_gross_rent_data)
     #just in case
 #    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.768",Sys.Date(),".RDS")) #"2020-04-15"
 #    saveRDS(sam_rent,file = paste0(housingdir, vintage, "/sam_rent_",Sys.Date(),".RDS")) #"2020-04-06"

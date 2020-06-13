@@ -57,65 +57,7 @@ createHouseholds <- function() {
     #sample inside group for id generation, in case there's oddness - set.seed(seed = seed) doesn't seem worth repeating every time
     #rule is to match until have a degree of freedom, sample in that group on each and then designate - ideal is to add only one
     #think of it as a sort of triangulation repeated
-    #coordinate family_type back to own_rent, so that hh_type_race has an own_rent on it to match later
-#the problem here is the distribution of own_rent onto race in the background is underdetermined - this provides a matching, but could have ones that will not properly resolve
-    occup_type_dt[,("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
-                  by=.(tract,family_type,single_hh_sex)]
-    hh_type_race_dt[,("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
-                    by=.(tract,family_type,single_hh_sex)]
-    hh_type_race_dt[,c("own_rent"):=
-                  occup_type_dt[.SD, list(own_rent), on = .(rent_type_id)]]
-    hh_type_race_dt[,("rent_type_id"):=NULL]
-    hh_type_eth_dt[,("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
-                   by=.(tract,family_type,single_hh_sex)]
-    hh_type_eth_dt[,c("own_rent"):=
-                      occup_type_dt[.SD, list(own_rent), on = .(rent_type_id)]]
-    hh_type_eth_dt[,("rent_type_id"):=NULL]
-    #test <- table(hh_type_eth_dt$tract,hh_type_eth_dt$own_rent,hh_type_eth_dt$family_type)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent,hh_type_race_dt$family_type)
-
-    #add family_type info to sam_race/eth_hh
-    sam_race_hh[,("race_id"):=paste0(tract,own_rent,race,as.character(1000000+sample(.N))),by=.(tract,own_rent,race)]
-    hh_type_race_dt[,("race_id"):=paste0(tract,own_rent,race,as.character(1000000+sample(.N))),by=.(tract,own_rent,race)]
-    sam_race_hh[,c("family","family_type","family_role","single_hh_sex"):= #NULL]
-                  hh_type_race_dt[.SD, c(list(family),list(family_type),list(family_role),list(single_hh_sex)), 
-                                  on = .(race_id)]]
-    anti_hh_type_race_dt <- as.data.table(anti_join(hh_type_race_dt,sam_race_hh,by="race_id"))
-    sam_race_hh[,("race_id"):=NULL]
-    sam_eth_hh[,("ethnicity_id"):=
-                 paste0(tract,own_rent,ethnicity,as.character(1000000+sample(.N))),by=.(tract,own_rent,ethnicity)]
-    hh_type_eth_dt[,("ethnicity_id"):=
-                     paste0(tract,own_rent,ethnicity,as.character(1000000+sample(.N))),by=.(tract,own_rent,ethnicity)]
-    sam_eth_hh[,c("family","family_type","family_role","single_hh_sex"):= #NULL] 
-                 hh_type_eth_dt[.SD, c(list(family),list(family_type),list(family_role),list(single_hh_sex)), 
-                                on = .(ethnicity_id)]]
-    anti_hh_type_eth_dt <- as.data.table(anti_join(hh_type_eth_dt,sam_eth_hh,by="ethnicity_id"))
-    sam_eth_hh[,("ethnicity_id"):=NULL]
-    #and pick up stragglers (about 100k, or 6%) - drop race/eth from match, could use orig on sam_race/eth or bring over (trying bring over)
-    sam_race_hh[is.na(family),("race2_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),by=.(tract,own_rent)]
-    anti_hh_type_race_dt[,("race2_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),by=.(tract,own_rent)]
-    sam_race_hh[is.na(family),c("race","family","family_type","family_role","single_hh_sex"):= #NULL]
-                  anti_hh_type_race_dt[.SD, c(list(race),list(family),list(family_type),list(family_role),list(single_hh_sex)), 
-                                  on = .(race2_id)]]
-    sam_race_hh[,("race2_id"):=NULL]
-    sam_eth_hh[is.na(family),("ethnicity2_id"):=
-                 paste0(tract,own_rent,as.character(1000000+sample(.N))),by=.(tract,own_rent)]
-    anti_hh_type_eth_dt[,("ethnicity2_id"):=
-                     paste0(tract,own_rent,as.character(1000000+sample(.N))),by=.(tract,own_rent)]
-    sam_eth_hh[is.na(family),c("ethnicity","family","family_type","family_role","single_hh_sex"):= #NULL] 
-                 anti_hh_type_eth_dt[.SD, c(list(ethnicity),list(family),list(family_type),list(family_role),list(single_hh_sex)), 
-                                on = .(ethnicity2_id)]]
-    sam_eth_hh[,("ethnicity2_id"):=NULL]
-#   test <- nrow(sam_eth_hh[is.na(family)])==0
-#   test <- nrow(sam_race_hh[is.na(family)])==0
-#   test <- table(sam_race_hh$tract,sam_race_hh$race,sam_race_hh$family,sam_race_hh$family_type,sam_race_hh$single_hh_sex)==
-#     table(hh_type_race_dt$tract,hh_type_race_dt$race,hh_type_race_dt$family,hh_type_race_dt$family_type,hh_type_race_dt$single_hh_sex)
-#   test <- table(sam_eth_hh$tract,sam_eth_hh$ethnicity,sam_eth_hh$family,sam_eth_hh$family_type,sam_eth_hh$single_hh_sex)==
-#     table(hh_type_eth_dt$tract,hh_type_eth_dt$ethnicity,hh_type_eth_dt$family,hh_type_eth_dt$family_type,hh_type_eth_dt$single_hh_sex)
-#   test <- table(sam_race_hh$tract,sam_race_hh$own_rent,sam_race_hh$family,sam_race_hh$family_type,sam_race_hh$family_role,sam_race_hh$single_hh_sex)==
-#     table(sam_eth_hh$tract,sam_eth_hh$own_rent,sam_eth_hh$family,sam_eth_hh$family_type,sam_eth_hh$family_role,sam_eth_hh$single_hh_sex)
-#   test <- length(test[test==FALSE])/length(test)==0
-    
-#add householder_age_9 to occup_type_dt - (just a specification inside householder age, here with own_rent)
+    #add householder_age_9 to occup_type_dt - (just a specification inside householder age, here with own_rent)
     occup_type_dt[order(match(own_rent,c("Owner occupied","Renter occupied")),
                         match(householder_age,c("Householder 15 to 34 years","Householder 35 to 64 years", "Householder 65 years and over"))),
                   ("num_type_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
@@ -126,129 +68,617 @@ createHouseholds <- function() {
               ("num_type_id"):=paste0(tract,own_rent,as.character(1000000++seq.int(1:.N))),by=.(tract,own_rent)]
     occup_type_dt[,c("householder_age_9"):=
                     hh_age_dt[.SD, list(householder_age_9), on = .(num_type_id)]]
+    #test hh1a
     #test <- table(hh_age_dt$tract,hh_age_dt$householder_age_9)==table(occup_type_dt$tract,occup_type_dt$householder_age_9)
+    #length(test[test==F])==0
+    #coordinate family_type back to own_rent, so that hh_type_race has an own_rent on it to match later
+#the problem here is the distribution of own_rent onto race in the background is underdetermined - this provides a matching, but could have ones that will not properly resolve
+    occup_type_dt[,("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+                  by=.(tract,family_type,single_hh_sex)]
+    hh_type_race_dt[,("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+                    by=.(tract,family_type,single_hh_sex)]
+    hh_type_race_dt[,c("own_rent","householder_age","householder_age_9"):=
+                  occup_type_dt[.SD, c(list(own_rent),list(householder_age),list(householder_age_9)), 
+                                on = .(rent_type_id)]]
+    #hh_type_race_dt[,("rent_type_id"):=NULL] #use below for shuffle to keep age
+    hh_type_eth_dt[,("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
+                   by=.(tract,family_type,single_hh_sex)]
+    hh_type_eth_dt[,c("own_rent","householder_age","householder_age_9"):=
+                      occup_type_dt[.SD, c(list(own_rent),list(householder_age),list(householder_age_9)), 
+                                    on = .(rent_type_id)]]
+    #hh_type_eth_dt[,("rent_type_id"):=NULL]
+    #test hh1
+    #test <- table(hh_type_eth_dt$tract,hh_type_eth_dt$own_rent,hh_type_eth_dt$family_type)==table(hh_type_race_dt$tract,hh_type_race_dt$own_rent,hh_type_race_dt$family_type)
+    #length(test[test==F])==0
     
-#add householder_age (3 labels) and householder_age_9 to sam
-    sam_race_hh[,("rent_type_id"):=paste0(tract,own_rent,family_type,single_hh_sex,as.character(1000000+sample(.N))),
-             by=.(tract,own_rent,family_type,single_hh_sex)]
-    occup_type_dt[,("rent_type_id"):=paste0(tract,own_rent,family_type,single_hh_sex,as.character(1000000+sample(.N))),
-                by=.(tract,own_rent,family_type,single_hh_sex)]
-    sam_race_hh[,c("householder_age_3","householder_age_9"):=
-                  occup_type_dt[.SD, c(list(householder_age),list(householder_age_9)), on = .(rent_type_id)]]
-    sam_race_hh[,("rent_type_id"):=NULL]
-    sam_eth_hh[,("rent_type_id"):=paste0(tract,own_rent,family_type,single_hh_sex,as.character(1000000+sample(.N))),
-               by=.(tract,own_rent,family_type,single_hh_sex)]
-    sam_eth_hh[,c("householder_age_3","householder_age_9"):=
-                  occup_type_dt[.SD, c(list(householder_age),list(householder_age_9)), on = .(rent_type_id)]]
-    sam_eth_hh[,("rent_type_id"):=NULL]
-#   test <- table(sam_race_hh$tract,sam_race_hh$own_rent,sam_race_hh$householder_age_9)==
-#           table(occup_type_dt$tract,occup_type_dt$own_rent,occup_type_dt$householder_age_9)
-#   test <- table(sam_eth_hh$tract,sam_eth_hh$own_rent,sam_eth_hh$householder_age_9)==
-#     table(occup_type_dt$tract,occup_type_dt$own_rent,occup_type_dt$householder_age_9)
-#   length(test[test==FALSE])/length(test)
+    #add family_type info to sam_race/eth_hh
+    sam_race_hh[,("race_id"):=paste0(tract,own_rent,race,as.character(1000000+sample(.N))),by=.(tract,own_rent,race)]
+    hh_type_race_dt[,("race_id"):=paste0(tract,own_rent,race,as.character(1000000+sample(.N))),by=.(tract,own_rent,race)]
+    sam_race_hh[,c("family","family_type","family_role","single_hh_sex","householder_age","householder_age_9"):= 
+                  hh_type_race_dt[.SD, c(list(family),list(family_type),list(family_role),list(single_hh_sex),
+                                         list(householder_age),list(householder_age_9)), 
+                                  on = .(race_id)]]
+    #anti_hh_type_race_dt <- as.data.table(anti_join(hh_type_race_dt,sam_race_hh,by="race_id"))
+    hh_type_race_dt[,("missed_type"):=sam_race_hh[.SD,list(family),on=.(race_id)]]
+    anti_hh_type_race_dt <- hh_type_race_dt[is.na(missed_type)]
+    sam_race_hh[,("race_id"):=NULL]
+    sam_eth_hh[,("ethnicity_id"):=
+                 paste0(tract,own_rent,ethnicity,as.character(1000000+sample(.N))),by=.(tract,own_rent,ethnicity)]
+    hh_type_eth_dt[,("ethnicity_id"):=
+                     paste0(tract,own_rent,ethnicity,as.character(1000000+sample(.N))),by=.(tract,own_rent,ethnicity)]
+    sam_eth_hh[,c("family","family_type","family_role","single_hh_sex","householder_age","householder_age_9"):=  
+                 hh_type_eth_dt[.SD, c(list(family),list(family_type),list(family_role),list(single_hh_sex),
+                                       list(householder_age),list(householder_age_9)), 
+                                on = .(ethnicity_id)]]
+    #anti_hh_type_eth_dt <- as.data.table(anti_join(hh_type_eth_dt,sam_eth_hh,by="ethnicity_id"))
+    hh_type_eth_dt[,("missed_type"):=sam_eth_hh[.SD,list(family),on=.(ethnicity_id)]]
+    anti_hh_type_eth_dt <- hh_type_eth_dt[is.na(missed_type)]
+    sam_eth_hh[,("ethnicity_id"):=NULL]
+    #and pick up stragglers (about 100k, or 6%) - drop race/eth from match, could use orig on sam_race/eth or bring over (trying bring over)
     
-
+    #rematch remaining ~100k/6% - stuff on hh_type was assigned as possible, so re-sort it
+    #test hh2 - right mix for rematch
+    #test <- table(
+    #  anti_hh_type_race_dt$tract,
+    #  anti_hh_type_race_dt$own_rent
+    #  )==table(
+    #    sam_race_hh[is.na(family)]$tract,
+    #    sam_race_hh[is.na(family)]$own_rent
+    #  )
+    #length(test[test==F])==0
+    #test <- table(
+    #  anti_hh_type_race_dt$tract,
+    #  anti_hh_type_race_dt$race
+    #)==table(
+    #  sam_race_hh[is.na(family)]$tract,
+    #  sam_race_hh[is.na(family)]$race
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  anti_hh_type_eth_dt$tract,
+    #  anti_hh_type_eth_dt$own_rent
+    #)==table(
+    #  sam_eth_hh[is.na(family)]$tract,
+    #  sam_eth_hh[is.na(family)]$own_rent
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  anti_hh_type_eth_dt$tract,
+    #  anti_hh_type_eth_dt$ethnicity
+    #)==table(
+    #  sam_eth_hh[is.na(family)]$tract,
+    #  sam_eth_hh[is.na(family)]$ethnicity
+    #)
+    #length(test[test==F])==0
+    #since hh_type had race assigned, privilege sam_race - if you had put race from sam onto hh_type, it would have been one of possible
+    #ways to assign it from hh_type to begin with (totals are the same); 
+    #first move a new match on own rent on race to anti_hh_type_race
+    sam_race_hh[is.na(family),("race1_id"):=
+                  paste0(tract,race,as.character(1000000+sample(.N))),
+                by=.(tract,race)]
+    anti_hh_type_race_dt[,("race1_id"):=
+                           paste0(tract,race,as.character(1000000+sample(.N))),
+                         by=.(tract,race)]
+    anti_hh_type_race_dt[,c("own_rent"):= #this own_rent shouldn't over-write connection to age
+                           sam_race_hh[.SD, c(list(own_rent)), 
+                                       on = .(race1_id)]]
+    anti_occup_type_race_dt <- as.data.table(left_join(anti_hh_type_race_dt,occup_type_dt,by="rent_type_id"))
+    anti_hh_type_race_dt[,("race1a_id"):=
+                           paste0(tract,own_rent,as.character(1000000+sample(.N))),
+                         by=.(tract,own_rent)]
+    anti_occup_type_race_dt[,("race1a_id"):=
+                           paste0(tract.y,own_rent.y,as.character(1000000+sample(.N))),
+                         by=.(tract.y,own_rent.y)]
+    anti_hh_type_race_dt[,c("householder_age","householder_age_9"):= #this own_rent shouldn't over-write connection to age
+                           anti_occup_type_race_dt[.SD, c(list(householder_age.y),list(householder_age_9.y)), 
+                                       on = .(race1a_id)]]
+    
+    #sam_race_hh[,("race1_id"):=NULL]
+    #then bring back, including bringing back race
+    sam_race_hh[is.na(family),("race2_id"):=
+                  paste0(tract,race,own_rent,as.character(1000000+sample(.N))),
+                by=.(tract,race,own_rent)]
+    anti_hh_type_race_dt[,("race2_id"):=
+                           paste0(tract,race,own_rent,as.character(1000000+sample(.N))),
+                         by=.(tract,race,own_rent)]
+    sam_race_hh[is.na(family),c("family","family_type","family_role","single_hh_sex",
+                                "householder_age","householder_age_9"):= 
+                  anti_hh_type_race_dt[.SD, c(list(family),list(family_type),list(family_role),list(single_hh_sex),
+                                              list(householder_age),list(householder_age_9)), 
+                                  on = .(race2_id)]]
+    #put it back to help with age match, below
+    hh_type_race_dt[is.na(family),c("own_rent","householder_age","householder_age_9"):=
+                     anti_hh_type_race_dt[.SD,c(list(own_rent),list(householder_age),list(householder_age_9)),
+                                         on = .(race_id)]]
+    #sam_race_hh[,("race2_id"):=NULL]
+    sam_eth_hh[is.na(family),("ethnicity1_id"):=
+                  paste0(tract,ethnicity,as.character(1000000+sample(.N))),
+                by=.(tract,ethnicity)]
+    anti_hh_type_eth_dt[,("ethnicity1_id"):=
+                           paste0(tract,ethnicity,as.character(1000000+sample(.N))),
+                         by=.(tract,ethnicity)]
+    anti_hh_type_eth_dt[,c("own_rent"):= 
+                           sam_eth_hh[.SD, c(list(own_rent)), 
+                                       on = .(ethnicity1_id)]]
+    anti_occup_type_eth_dt <- as.data.table(left_join(anti_hh_type_eth_dt,occup_type_dt,by="rent_type_id"))
+    anti_hh_type_eth_dt[,("ethnicity1a_id"):=
+                           paste0(tract,own_rent,as.character(1000000+sample(.N))),
+                         by=.(tract,own_rent)]
+    anti_occup_type_eth_dt[,("ethnicity1a_id"):=
+                              paste0(tract.y,own_rent.y,as.character(1000000+sample(.N))),
+                            by=.(tract.y,own_rent.y)]
+    anti_hh_type_eth_dt[,c("householder_age","householder_age_9"):= #this own_rent shouldn't over-write connection to age
+                           anti_occup_type_eth_dt[.SD, c(list(householder_age.y),list(householder_age_9.y)), 
+                                       on = .(ethnicity1a_id)]]
+    
+    #sam_eth_hh[,("ethnicity1_id"):=NULL]
+    sam_eth_hh[is.na(family),("ethnicity2_id"):=
+                 paste0(tract,ethnicity,own_rent,as.character(1000000+sample(.N))),by=.(tract,ethnicity,own_rent)]
+    anti_hh_type_eth_dt[,("ethnicity2_id"):=
+                     paste0(tract,ethnicity,own_rent,as.character(1000000+sample(.N))),by=.(tract,ethnicity,own_rent)]
+    sam_eth_hh[is.na(family),c("family","family_type","family_role","single_hh_sex",
+                               "householder_age","householder_age_9"):=  
+                 anti_hh_type_eth_dt[.SD, c(list(family),list(family_type),list(family_role),list(single_hh_sex),
+                                            list(householder_age),list(householder_age_9)), 
+                                on = .(ethnicity2_id)]]
+    #put it back to help with age match, below
+    hh_type_eth_dt[is.na(family),c("own_rent","householder_age","householder_age_9"):=
+                     anti_hh_type_eth_dt[.SD,c(list(own_rent),list(householder_age),list(householder_age_9)),
+                                         on = .(ethnicity_id)]]
+    #sam_eth_hh[,("ethnicity2_id"):=NULL]
+    #test hh2b 
+    #test <- nrow(sam_eth_hh[is.na(family)])==0
+    #test <- nrow(sam_race_hh[is.na(family)])==0
+    #test <- table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$race,
+    #  #sam_race_hh$own_rent,#with this in, it's false, because line-up would be from a diff. possible match
+    #  sam_race_hh$family,
+    #  sam_race_hh$family_type,
+    #  sam_race_hh$single_hh_sex
+    #  )==
+    #  table(
+    #    hh_type_race_dt$tract,
+    #    hh_type_race_dt$race,
+    #    #hh_type_race_dt$own_rent, 
+    #    hh_type_race_dt$family,
+    #    hh_type_race_dt$family_type,
+    #    hh_type_race_dt$single_hh_sex
+    #    )
+    #length(test[test==F])==0
+    #test <- table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$ethnicity,
+    #  sam_eth_hh$family,
+    #  sam_eth_hh$family_type,
+    #  sam_eth_hh$single_hh_sex
+    #  )==
+    #  table(
+    #    hh_type_eth_dt$tract,
+    #    hh_type_eth_dt$ethnicity,
+    #    hh_type_eth_dt$family,
+    #    hh_type_eth_dt$family_type,
+    #    hh_type_eth_dt$single_hh_sex
+    #    )
+    #length(test[test==F])==0
+    #test <- table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$family,
+    #  sam_race_hh$family_type,
+    #  sam_race_hh$family_role,
+    #  sam_race_hh$single_hh_sex
+    #  )==
+    #  table(
+    #    sam_eth_hh$tract,
+    #    sam_eth_hh$family,
+    #    sam_eth_hh$family_type,
+    #    sam_eth_hh$family_role,
+    #    sam_eth_hh$single_hh_sex
+    #    )
+    #length(test[test==F])==0
+    #test <- table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$householder_age_9,
+    #  sam_race_hh$own_rent
+    #)==
+    #  table(
+    #    sam_eth_hh$tract,
+    #    sam_eth_hh$householder_age_9,
+    #    sam_eth_hh$own_rent
+    #  )
+    #length(test[test==F])==0
+    
 #add family type for housing units to housing units by rent_own and by race - giving units as much to match on as possible by building a set, aligned with sam as we build when there's plenty of space for multiple solutions
     #start with own_rent, since it has lots of freedom
-    #fix labeling on unit naming
-    housing_units_rent_dt[,("num_structures"):=case_when(
+    
+    
+    housing_units_rent_dt[,("rent_race_id"):=paste0(tract,housing_units,as.character(1000000+sample(.N))),
+                          by=.(tract,housing_units)]
+    housing_units_race_dt[,("rent_race_id"):=paste0(tract,housing_units,as.character(1000000+sample(.N))),
+                          by=.(tract,housing_units)]
+    housing_units_eth_dt[,("rent_race_id"):=paste0(tract,housing_units,as.character(1000000+sample(.N))),
+                          by=.(tract,housing_units)]
+    housing_units_race_dt[,("own_rent"):=
+                            housing_units_rent_dt[.SD,list(own_rent),on=.(rent_race_id)]]
+    housing_units_eth_dt[,("own_rent"):=
+                           housing_units_rent_dt[.SD,list(own_rent),on=.(rent_race_id)]]
+    #test hh31a
+    #test <- table(
+    #  housing_units_race_dt$tract,
+    #  housing_units_race_dt$housing_units,
+    #  housing_units_race_dt$own_rent
+    #)==
+    #  table(
+    #    housing_units_rent_dt$tract,
+    #    housing_units_rent_dt$housing_units,
+    #    housing_units_rent_dt$own_rent
+    #  )
+    #length(test[test==F])==0
+    #test <- table(
+    #  housing_units_eth_dt$tract,
+    #  housing_units_eth_dt$housing_units,
+    #  housing_units_eth_dt$own_rent
+    #)==
+    #  table(
+    #    housing_units_rent_dt$tract,
+    #    housing_units_rent_dt$housing_units,
+    #    housing_units_rent_dt$own_rent
+    #  )
+    #length(test[test==F])==0
+    ##test hh3preA - each works alone with tract, but not together
+    #test <- table(
+    #  housing_units_eth_dt$tract,
+    #  housing_units_eth_dt$ethnicity#,
+    #  #housing_units_eth_dt$own_rent
+    #)==
+    #  table(
+    #    sam_eth_hh$tract,
+    #    sam_eth_hh$ethnicity#,
+    #    #sam_eth_hh$own_rent
+    #  )
+    #length(test[test==F])==0
+  
+    sam_race_hh[,("rent_type_id"):=paste0(tract,race,own_rent,as.character(1000000+sample(.N))),
+                by=.(tract,race,own_rent)]
+    housing_units_race_dt[,("rent_type_id"):=paste0(tract,race,own_rent,as.character(1000000+sample(.N))),
+                by=.(tract,race,own_rent)]
+    housing_units_race_dt[,c("family","family_type","family_role","single_hh_sex"):=
+                            sam_race_hh[.SD,c(list(family),list(family_type),
+                                              list(family_role),list(single_hh_sex)),
+                                        on=.(rent_type_id)]]
+    sam_race_hh[,("miss_fr4"):=
+                  housing_units_race_dt[.SD,list(family_role),on=.(rent_type_id)]]
+    sam_eth_hh[,("rent_type_id"):=paste0(tract,ethnicity,own_rent,as.character(1000000+sample(.N))),
+                by=.(tract,ethnicity,own_rent)]
+    housing_units_eth_dt[,("rent_type_id"):=paste0(tract,ethnicity,own_rent,as.character(1000000+sample(.N))),
+                          by=.(tract,ethnicity,own_rent)]
+    housing_units_eth_dt[,c("family","family_type","family_role","single_hh_sex"):=
+                            sam_eth_hh[.SD,c(list(family),list(family_type),
+                                             list(family_role),list(single_hh_sex)),
+                                       on=.(rent_type_id)]]
+    sam_eth_hh[,("miss_fr4"):=
+                  housing_units_eth_dt[.SD,list(family_role),on=.(rent_type_id)]]
+    #nrow(sam_race_hh[is.na(miss_fr4)])==nrow(housing_units_race_dt[is.na(family_role)])
+    #nrow(sam_eth_hh[is.na(miss_fr4)])==nrow(housing_units_eth_dt[is.na(family_role)])
+    #because race/eth were randomly matched to family stuff, reshuffling how they're matched
+    sam_race_leftover <- sam_race_hh[is.na(miss_fr4)]
+    housing_units_race_leftover <- housing_units_race_dt[is.na(family_role)]
+    sam_race_leftover[,("rent_type1_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
+                by=.(tract,own_rent)]
+    housing_units_race_leftover[,("rent_type1_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
+                          by=.(tract,own_rent)]
+    housing_units_race_leftover[,("race"):=
+                            sam_race_leftover[.SD,list(race),on=.(rent_type1_id)]]
+    
+    sam_eth_leftover <- sam_eth_hh[is.na(miss_fr4)]
+    housing_units_eth_leftover <- housing_units_eth_dt[is.na(family_role)]
+    sam_eth_leftover[,("rent_type1_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
+               by=.(tract,own_rent)]
+    housing_units_eth_leftover[,("rent_type1_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
+                         by=.(tract,own_rent)]
+    housing_units_eth_leftover[,("ethnicity"):=
+                           sam_eth_leftover[.SD,list(ethnicity),on=.(rent_type1_id)]]
+    #then try last bit second time on the reshuffled bit
+    sam_race_leftover[,("rent2_type_id"):=paste0(tract,race,own_rent,as.character(1000000+sample(.N))),
+                by=.(tract,race,own_rent)]
+    housing_units_race_leftover[,("rent2_type_id"):=paste0(tract,race,own_rent,as.character(1000000+sample(.N))),
+                          by=.(tract,race,own_rent)]
+    housing_units_race_leftover[,c("family","family_type","family_role","single_hh_sex"):=
+                            sam_race_leftover[.SD,c(list(family),list(family_type),
+                                                    list(family_role),list(single_hh_sex)),
+                                              on=.(rent2_type_id)]]
+    sam_race_leftover[,c("miss_fr4"):=
+                        housing_units_race_leftover[.SD,c(list(family_role)),on=.(rent2_type_id)]]
+    sam_eth_leftover[,("rent2_type_id"):=paste0(tract,ethnicity,own_rent,as.character(1000000+sample(.N))),
+               by=.(tract,ethnicity,own_rent)]
+    housing_units_eth_leftover[,("rent2_type_id"):=paste0(tract,ethnicity,own_rent,as.character(1000000+sample(.N))),
+                         by=.(tract,ethnicity,own_rent)]
+    housing_units_eth_leftover[,c("family","family_type","family_role","single_hh_sex"):=
+                                 sam_eth_leftover[.SD,c(list(family),list(family_type),
+                                                        list(family_role),list(single_hh_sex)),
+                                                  on=.(rent2_type_id)]]
+    sam_eth_leftover[,c("miss_fr4"):=
+                 housing_units_eth_leftover[.SD,c(list(family_role)),on=.(rent2_type_id)]]
+    #and back up to whole on housing units side, ready to then match with hh_units
+    housing_units_race_dt[is.na(family_role),
+               c("family","family_type","family_role","single_hh_sex"):=
+                 housing_units_race_leftover[.SD,c(list(family),list(family_type),list(family_role),list(single_hh_sex)),
+                                             on=.(rent_type_id)]]
+    housing_units_eth_dt[is.na(family_role),
+               c("family","family_type","family_role","single_hh_sex"):=
+                 housing_units_eth_leftover[.SD,c(list(family),list(family_type),list(family_role),list(single_hh_sex)),
+                                            on=.(rent_type_id)]]
+    
+    #testing case_when vs. if_else b/c of weird type error
+    #sam_race_hh[,("family_role_4"):=case_when(
+    #  family_role=="Householder living alone" | family_role=="Householder not living alone" ~ "Nonfamily households",
+    #  TRUE ~ family_role
+    #)]
+    #sam_eth_hh[,("family_role_4"):=case_when(
+    #  family_role=="Householder living alone" | family_role=="Householder not living alone" ~ "Nonfamily households",
+    #  TRUE ~ family_role
+    #)]
+    sam_race_hh[,("family_role_4"):=if_else(family_role=="Householder living alone" | family_role=="Householder not living alone",
+                                 c("Nonfamily households"),c(family_role))]
+    sam_eth_hh[,("family_role_4"):=if_else(family_role=="Householder living alone" | family_role=="Householder not living alone",
+                                 c("Nonfamily households"),c(family_role))]
+    housing_units_race_dt[,("family_role_4"):=if_else(family_role=="Householder living alone" | family_role=="Householder not living alone",
+                                            c("Nonfamily households"),c(family_role))]
+    housing_units_eth_dt[,("family_role_4"):=if_else(family_role=="Householder living alone" | family_role=="Householder not living alone",
+                                           c("Nonfamily households"),c(family_role))]
+    
+    #only using for testing purposes:
+    #fix labeling on unit naming to match with hh_type_units
+    housing_units_race_dt[,("num_structures"):=case_when(
       housing_units=="1 attached" | housing_units=="1 detached" ~ "1-unit structures",
       housing_units=="Boat RV van etc." | housing_units=="Mobile home" ~ "Mobile homes and all other types of units",
       TRUE ~ "2-or-more-unit structures"
     )]
-    sam_race_hh[,("family_role_4"):=if_else(family_role=="Householder living alone" | family_role=="Householder not living alone",
-                                 "Nonfamily households",family_role)]
-    sam_eth_hh[,("family_role_4"):=if_else(family_role=="Householder living alone" | family_role=="Householder not living alone",
-                                 "Nonfamily households",family_role)]
-  
-    #add race/eth and family_role_4 by own_rent from sam_race/eth_hh to the hh_units build - walking the triangle
-    sam_race_hh[,("rent_type_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-                by=.(tract,own_rent)]
-    housing_units_rent_dt[,("rent_type_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-                  by=.(tract,own_rent)]
-    #will write over family_role_4, so duplicating - walking next side of triangle
-    hh_units_rent_race <- housing_units_rent_dt[,c("race","family_role_4"):=
-                                                  sam_race_hh[.SD, c(list(race),list(family_role_4)), 
-                                                              on = .(rent_type_id)]]
-    sam_race_hh[,("rent_type_id"):=NULL]
-    sam_eth_hh[,("rent_type_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-               by=.(tract,own_rent)]
-    hh_units_rent_eth <- housing_units_rent_dt[,c("ethnicity","family_role_4"):=
-                                                  sam_eth_hh[.SD, c(list(ethnicity),list(family_role_4)), 
-                                                             on = .(rent_type_id)]]
-    sam_eth_hh[,("rent_type_id"):=NULL]
-    #test <- table(sam_eth_hh$ethnicity,sam_eth_hh$family_role_4)==table(hh_units_rent_eth$ethnicity,hh_units_rent_eth$family_role_4)
+    housing_units_eth_dt[,("num_structures"):=case_when(
+      housing_units=="1 attached" | housing_units=="1 detached" ~ "1-unit structures",
+      housing_units=="Boat RV van etc." | housing_units=="Mobile home" ~ "Mobile homes and all other types of units",
+      TRUE ~ "2-or-more-unit structures"
+    )]
     
-    #make family from family_role_4, to get 100% match, then allow to distribute
-#    hh_units_rent_eth[,("family"):=if_else(family_role_4=="Nonfamily households","Nonfamily households","Family households")]
-#    hh_units_rent_race[,("family"):=if_else(family_role_4=="Nonfamily households","Nonfamily households","Family households")]
-    #add units by family_role_4 / or by family? and num_structures to hh_units build
-    hh_type_units_dt[,("hh_type_units_id"):=paste0(tract,family_role_4,num_structures,as.character(1000000+sample(.N))),
-                     by=.(tract,family_role_4,num_structures)]
-    hh_units_rent_race[,("hh_type_units_id"):=paste0(tract,family_role_4,num_structures,as.character(1000000+sample(.N))),
-                     by=.(tract,family_role_4,num_structures)]
-    hh_units_rent_eth[,("hh_type_units_id"):=paste0(tract,family_role_4,num_structures,as.character(1000000+sample(.N))),
-                       by=.(tract,family_role_4,num_structures)]
-    hh_units_rent_race[,c("family_role_4b"):=
-                    hh_type_units_dt[.SD,list(family_role_4), on = .(hh_type_units_id)]]
-    hh_units_rent_eth[,c("family_role_4b"):=
-                    hh_type_units_dt[.SD,list(family_role_4), on = .(hh_type_units_id)]]
-    #get stragglers(59708) - will there be one anti for race and one for eth??? should check
-    anti_hh_type_units_dt <- as.data.table(anti_join(hh_type_units_dt,hh_units_rent_race,by="hh_type_units_id"))
-    anti_hh_type_units_dt[,("hh_type_units_id2"):=paste0(tract,num_structures,as.character(1000000+sample(.N))),
-                     by=.(tract,num_structures)]
-    hh_units_rent_race[is.na(family_role_4b),("hh_type_units_id2"):=paste0(tract,num_structures,as.character(1000000+sample(.N))),
-                       by=.(tract,num_structures)]
-    hh_units_rent_eth[is.na(family_role_4b),("hh_type_units_id2"):=paste0(tract,num_structures,as.character(1000000+sample(.N))),
-                      by=.(tract,num_structures)]
-    hh_units_rent_race[is.na(family_role_4b),c("family_role_4b"):=
-                         anti_hh_type_units_dt[.SD,list(family_role_4), on = .(hh_type_units_id2)]]
-    hh_units_rent_eth[is.na(family_role_4b),c("family_role_4b"):=
-                        anti_hh_type_units_dt[.SD,list(family_role_4), on = .(hh_type_units_id2)]]
-    #interesting to look at: table(hh_units_rent_eth$family_role_4,hh_units_rent_eth$family_role_4b) #need to decide which to use
+    #test hh4c - confirming distribution with hh_type_units - no need to do more
+    #test <- table(
+    #  housing_units_race_dt$tract,
+    #  housing_units_race_dt$family,
+    #  housing_units_race_dt$family_role_4
+    #)==table(
+    #  hh_type_units_dt$tract,
+    #  hh_type_units_dt$family,
+    #  hh_type_units_dt$family_role_4
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  housing_units_eth_dt$tract,
+    #  housing_units_eth_dt$family,
+    #  housing_units_eth_dt$family_role_4
+    #)==table(
+    #  hh_type_units_dt$tract,
+    #  hh_type_units_dt$family,
+    #  hh_type_units_dt$family_role_4
+    #)
+    #length(test[test==F])==0
+    #test hh4d - confirming distribution with hh_type_units - no need to do more
+    #test <- table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$family,
+    #  sam_race_hh$family_role_4
+    #)==table(
+    #  hh_type_units_dt$tract,
+    #  hh_type_units_dt$family,
+    #  hh_type_units_dt$family_role_4
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$family,
+    #  sam_eth_hh$family_role_4
+    #)==table(
+    #  hh_type_units_dt$tract,
+    #  hh_type_units_dt$family,
+    #  hh_type_units_dt$family_role_4
+    #)
+    #length(test[test==F])==0
     
-    #now put units back onto sam_race/eth_hh using race/ethnicity, own_rent, family_role_4b
-    hh_units_rent_race[,("hh_units_id"):=paste0(tract,race,own_rent,family_role_4b,as.character(1000000+sample(.N))),
-                      by=.(tract,race,own_rent,family_role_4b)]
-    sam_race_hh[,("hh_units_id"):=paste0(tract,race,own_rent,family_role_4,as.character(1000000+sample(.N))),
-                by=.(tract,race,own_rent,family_role_4)]
-    sam_race_hh[,c("housing_units","family_role_4"):=
-                  hh_units_rent_race[.SD, c(list(housing_units),list(family_role_4b)), on = .(hh_units_id)]]
-    anti_hh_units_rent_race <- as.data.table(anti_join(hh_units_rent_race,sam_race_hh,by="hh_units_id"))
-    sam_race_hh[,("hh_units_id"):=NULL]
+    #put housing_units in from hh_type_units - this just ensures that race/eth have a good match on housing_units
+    hh_type_units_dt[,("hh_type_units_id"):=
+                       paste0(tract,family,family_role_4,as.character(1000000+sample(.N))),
+                     by=.(tract,family,family_role_4)]
+    housing_units_race_dt[,("hh_type_units_id"):=
+                            paste0(tract,family,family_role_4,as.character(1000000+sample(.N))),
+                          by=.(tract,family,family_role_4)]
+    housing_units_eth_dt[,("hh_type_units_id"):=
+                            paste0(tract,family,family_role_4,as.character(1000000+sample(.N))),
+                          by=.(tract,family,family_role_4)]
+    #first put housing_units onto hh_type_units, so don't lose specificity
+    hh_type_units_dt[,("housing_units_eth"):=
+                       housing_units_eth_dt[.SD,list(housing_units),
+                                            on=.(hh_type_units_id)]]
+    hh_type_units_dt[,("housing_units_race"):=
+                       housing_units_race_dt[.SD,list(housing_units),
+                                             on=.(hh_type_units_id)]]
+    #then move back as pair
+    housing_units_eth_dt[,c("housing_units","num_structures"):=
+                           hh_type_units_dt[.SD,c(list(housing_units_eth),list(num_structures)),
+                                            on=.(hh_type_units_id)]]
+    housing_units_race_dt[,c("housing_units","num_structures"):=
+                           hh_type_units_dt[.SD,c(list(housing_units_race),list(num_structures)),
+                                            on=.(hh_type_units_id)]]
+                     
+    #test hh5 - family_role and num_structures before moving over to sam_eth/race as just the units
+    #test <- table(
+    #  housing_units_race_dt$tract,
+    #  housing_units_race_dt$family,
+    #  housing_units_race_dt$family_role_4,
+    #  housing_units_race_dt$num_structures
+    #)==table(
+    #  hh_type_units_dt$tract,
+    #  hh_type_units_dt$family,
+    #  hh_type_units_dt$family_role_4,
+    #  hh_type_units_dt$num_structures
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  housing_units_eth_dt$tract,
+    #  housing_units_eth_dt$family,
+    #  housing_units_eth_dt$family_role_4,
+    #  housing_units_eth_dt$num_structures
+    #)==table(
+    #  hh_type_units_dt$tract,
+    #  hh_type_units_dt$family,
+    #  hh_type_units_dt$family_role_4,
+    #  hh_type_units_dt$num_structures
+    #)
+    #length(test[test==F])==0
+
+    #now add housing_units and num_structures to sam_eth/race
+    sam_race_hh[,("hh_type2_units_id"):=
+                       paste0(tract,race,family,family_role,as.character(1000000+sample(.N))),
+                     by=.(tract,race,family,family_role)]
+    housing_units_race_dt[,("hh_type2_units_id"):=
+                            paste0(tract,race,family,family_role,as.character(1000000+sample(.N))),
+                          by=.(tract,race,family,family_role)]
+    sam_race_hh[,c("housing_units","num_structures"):=
+                  housing_units_race_dt[.SD,c(list(housing_units),list(num_structures)),
+                                             on=.(hh_type2_units_id)]]
+    housing_units_race_dt[,c("missing"):=
+                            sam_race_hh[.SD,c(list(housing_units)),
+                                        on=.(hh_type2_units_id)]]
+    #nrow(sam_race_hh[is.na(housing_units)]) #25270
+    #nrow(sam_race_hh[is.na(housing_units)]) == nrow(housing_units_race_dt[is.na(missing)])
+    sam_eth_hh[,("hh_type2_units_id"):=
+                  paste0(tract,ethnicity,family,family_role,as.character(1000000+sample(.N))),
+                by=.(tract,ethnicity,family,family_role)]
+    housing_units_eth_dt[,("hh_type2_units_id"):=
+                            paste0(tract,ethnicity,family,family_role,as.character(1000000+sample(.N))),
+                          by=.(tract,ethnicity,family,family_role)]
+    sam_eth_hh[,c("housing_units","num_structures"):=
+                  housing_units_eth_dt[.SD,c(list(housing_units),list(num_structures)),
+                                        on=.(hh_type2_units_id)]]
+    housing_units_eth_dt[,c("missing"):=
+                            sam_eth_hh[.SD,c(list(housing_units)),
+                                        on=.(hh_type2_units_id)]]
+    #nrow(sam_eth_hh[is.na(housing_units)]) #~22k
+    #nrow(sam_eth_hh[is.na(housing_units)]) == nrow(housing_units_eth_dt[is.na(missing)])
+    #line up race/eth from sam to housing_units, with remaining 
+    #table(sam_eth_hh[is.na(housing_units)]$ethnicity)==
+    #table(housing_units_eth_dt[is.na(missing)]$ethnicity)
+    #new hh_type3_units_id on family, family_role, #race/eth from sam to housing
+    sam_race_hh[is.na(housing_units),("hh_type3_units_id"):=
+                  paste0(tract,family,family_role,as.character(1000000+sample(.N))),
+                by=.(tract,family,family_role)]
+    housing_units_race_dt[is.na(missing),("hh_type3_units_id"):=
+                            paste0(tract,family,family_role,as.character(1000000+sample(.N))),
+                          by=.(tract,family,family_role)]
+    housing_units_race_dt[is.na(missing),c("race1"):=
+                            sam_race_hh[.SD,c(list(race)),
+                                        on=.(hh_type3_units_id)]]
+    sam_race_hh[is.na(housing_units),c("miss_race1"):=
+                  housing_units_race_dt[.SD,c(list(race)),
+                                        on=.(hh_type3_units_id)]]
+    #housing_units_race_dt[!is.na(race1),("race"):=race1] #about 1k that didn't match for some reason
+    sam_eth_hh[is.na(housing_units),("hh_type3_units_id"):=
+                 paste0(tract,family,family_role,as.character(1000000+sample(.N))),
+               by=.(tract,family,family_role)]
+    housing_units_eth_dt[is.na(missing),("hh_type3_units_id"):=
+                           paste0(tract,family,family_role,as.character(1000000+sample(.N))),
+                         by=.(tract,family,family_role)]
+    housing_units_eth_dt[is.na(missing),c("ethnicity1"):=
+                           sam_eth_hh[.SD,c(list(ethnicity)),
+                                      on=.(hh_type3_units_id)]]
+    sam_eth_hh[is.na(housing_units),c("miss_eth1"):=
+                  housing_units_eth_dt[.SD,c(list(ethnicity)),
+                                        on=.(hh_type3_units_id)]]
+    #housing_units_eth_dt[!is.na(ethnicity1),("ethnicity"):=ethnicity1] #about 1k that didn't match for some reason
+    #new hh_type3a_units_id on family #race/eth from sam to housing
+    sam_race_hh[is.na(housing_units)&is.na(miss_race1),("hh_type3a_units_id"):=
+                  paste0(tract,family,as.character(1000000+sample(.N))),
+                by=.(tract,family)]
+    housing_units_race_dt[is.na(missing)&is.na(race1),("hh_type3a_units_id"):=
+                            paste0(tract,family,as.character(1000000+sample(.N))),
+                          by=.(tract,family)]
+    housing_units_race_dt[is.na(missing)&is.na(race1),c("race1"):=
+                            sam_race_hh[.SD,c(list(race)),
+                                        on=.(hh_type3a_units_id)]]
+    #move over to race
+    #nrow(housing_units_race_dt[!is.na(race1)])==nrow(housing_units_race_dt[is.na(missing)])
+    housing_units_race_dt[!is.na(race1),("race"):=race1] 
     
-    hh_units_rent_eth[,("hh_units_id"):=paste0(tract,ethnicity,own_rent,family_role_4b,as.character(1000000+sample(.N))),
-                      by=.(tract,ethnicity,own_rent,family_role_4b)]
-    sam_eth_hh[,("hh_units_id"):=paste0(tract,ethnicity,own_rent,family_role_4,as.character(1000000+sample(.N))),
-               by=.(tract,ethnicity,own_rent,family_role_4)]
-    sam_eth_hh[,c("housing_units","family_role_4"):=
-                 hh_units_rent_eth[.SD, c(list(housing_units),list(family_role_4b)), on = .(hh_units_id)]]
-    anti_hh_units_rent_eth <- as.data.table(anti_join(hh_units_rent_eth,sam_eth_hh,by="hh_units_id"))
-    sam_eth_hh[,("hh_units_id"):=NULL]
-    #gather strays [176030 in race] and match without race/eth - doing the anti_join to create 4b improved by 25% on match
-    anti_hh_units_rent_race[,("hh_units2_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-                       by=.(tract,own_rent)]
-    sam_race_hh[is.na(housing_units),("hh_units2_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-                by=.(tract,own_rent)]
-    sam_race_hh[is.na(housing_units),c("housing_units"):=
-                  anti_hh_units_rent_race[.SD,list(housing_units), on = .(hh_units2_id)]]
-    sam_race_hh[,("hh_units2_id"):=NULL]
+    sam_eth_hh[is.na(housing_units)&is.na(miss_eth1),("hh_type3a_units_id"):=
+                 paste0(tract,family,as.character(1000000+sample(.N))),
+               by=.(tract,family)]
+    housing_units_eth_dt[is.na(missing)&is.na(ethnicity1),("hh_type3a_units_id"):=
+                           paste0(tract,family,as.character(1000000+sample(.N))),
+                         by=.(tract,family)]
+    housing_units_eth_dt[is.na(missing)&is.na(ethnicity1),c("ethnicity1"):=
+                           sam_eth_hh[.SD,c(list(ethnicity)),
+                                      on=.(hh_type3a_units_id)]]
+    #move rest over to ethnicity 
+    #nrow(housing_units_eth_dt[!is.na(ethnicity1)])==nrow(housing_units_eth_dt[is.na(missing)])
+    housing_units_eth_dt[!is.na(ethnicity1),("ethnicity"):=ethnicity1] 
     
-    anti_hh_units_rent_eth[,("hh_units2_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-                      by=.(tract,own_rent)]
-    sam_eth_hh[is.na(housing_units),("hh_units2_id"):=paste0(tract,own_rent,as.character(1000000+sample(.N))),
-               by=.(tract,own_rent)]
-    sam_eth_hh[is.na(housing_units),c("housing_units"):=
-                 anti_hh_units_rent_eth[.SD,list(housing_units), on = .(hh_units2_id)]]
-    sam_eth_hh[,("hh_units2_id"):=NULL]
-    test <- table(sam_eth_hh$tract,sam_eth_hh$ethnicity,sam_eth_hh$own_rent,sam_eth_hh$family_role_4,sam_eth_hh$housing_units)==
-      table(hh_units_rent_eth$tract,hh_units_rent_eth$ethnicity,hh_units_rent_eth$own_rent,hh_units_rent_eth$family_role_4b,hh_units_rent_eth$housing_units)
-    test <- table(sam_race_hh$tract,sam_race_hh$race,sam_race_hh$own_rent,sam_race_hh$family_role_4,sam_race_hh$housing_units)==
-      table(hh_units_rent_race$tract,hh_units_rent_race$race,hh_units_rent_race$own_rent,hh_units_rent_race$family_role_4b,hh_units_rent_race$housing_units)
-#a lot of effort implementing the stragglers idea, but get about 75% improvement to show for it...    
+    #then housing units from housing back to sam, based on hh_type4
+    sam_race_hh[is.na(housing_units),("hh_type4_units_id"):=
+                  paste0(tract,race,family,family_role,as.character(1000000+sample(.N))),
+                by=.(tract,race,family,family_role)]
+    housing_units_race_dt[is.na(missing),("hh_type4_units_id"):=
+                            paste0(tract,race,family,family_role,as.character(1000000+sample(.N))),
+                          by=.(tract,race,family,family_role)]
+    sam_race_hh[is.na(housing_units),c("housing_units","num_structures"):=
+                  housing_units_race_dt[.SD,c(list(housing_units),list(num_structures)),
+                                        on=.(hh_type4_units_id)]]
+    housing_units_race_dt[is.na(missing),c("missing"):=
+                            sam_race_hh[.SD,c(list(housing_units)),
+                                        on=.(hh_type4_units_id)]]
+    #nrow(sam_race_hh[is.na(housing_units)])==0
+    sam_eth_hh[is.na(housing_units),("hh_type4_units_id"):=
+                 paste0(tract,ethnicity,family,family_role,as.character(1000000+sample(.N))),
+               by=.(tract,ethnicity,family,family_role)]
+    housing_units_eth_dt[is.na(missing),("hh_type4_units_id"):=
+                           paste0(tract,ethnicity,family,family_role,as.character(1000000+sample(.N))),
+                         by=.(tract,ethnicity,family,family_role)]
+    sam_eth_hh[is.na(housing_units),c("housing_units","num_structures"):=
+                 housing_units_eth_dt[.SD,c(list(housing_units),list(num_structures)),
+                                      on=.(hh_type4_units_id)]]
+    housing_units_eth_dt[is.na(missing),c("missing"):=
+                           sam_eth_hh[.SD,c(list(housing_units)),
+                                      on=.(hh_type4_units_id)]]
+    #nrow(sam_eth_hh[is.na(housing_units)])==0
+    
+    #test hh5b - housing_units matched on family, race/eth
+    #test <- table(
+    #  housing_units_race_dt$tract,
+    #  housing_units_race_dt$family,
+    #  housing_units_race_dt$housing_units,
+    #  housing_units_race_dt$race
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$family,
+    #  sam_race_hh$housing_units,
+    #  sam_race_hh$race
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  housing_units_eth_dt$tract,
+    #  housing_units_eth_dt$family,
+    #  housing_units_eth_dt$housing_units,
+    #  housing_units_eth_dt$ethnicity
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$family,
+    #  sam_eth_hh$housing_units,
+    #  sam_eth_hh$ethnicity
+    #)
+    #length(test[test==F])==0
+    
+   
     #per_room has race, own_rent, and age - build from matching with sam_hh, then match per_room
+    #the suite of things that reflect income will have to be adjusted as a group as we add to full_sam
     
-#then add per_room  with own_rent, race and age_range_3 to match - 
+    #then add per_room  with own_rent, race and age_range_3 to match - 
     #put own_rent by race on housing_per_room_race, then match back on num_per and own_rent
     sam_race_hh[,("race_id"):=paste0(tract,race,as.character(1000000+sample(.N))),
                 by=.(tract,race)]
@@ -279,7 +709,9 @@ createHouseholds <- function() {
     housing_per_room_eth_dt[,c("num_per_room_5"):= 
                                housing_per_room_rent_dt[.SD, list(num_per_room_5), 
                                                         on = .(num_per_type_id)]]
-    #then add householder_age_3 from sam to here by own_rent and race
+    #then add householder_age from sam to here by own_rent and race
+    sam_race_hh[,("householder_age_3"):=householder_age]
+    sam_eth_hh[,("householder_age_3"):=householder_age]
     sam_race_hh[,("age_per_id"):=paste0(tract,race,own_rent,as.character(1000000+sample(.N))),
                 by=.(tract,race,own_rent)]
     housing_per_room_race_dt[,("age_per_id"):=paste0(tract,race,own_rent,as.character(1000000+sample(.N))),
@@ -315,129 +747,337 @@ createHouseholds <- function() {
                                            on = .(num_per_id)]]
     sam_eth_hh[,("num_per_id"):=NULL]
 
-#    test <- table(sam_eth_hh$tract,sam_eth_hh$own_rent,sam_eth_hh$family_type,sam_eth_hh$single_hh_sex,sam_eth_hh$householder_age_9,
-#                  sam_eth_hh$housing_units,sam_eth_hh$people_per_room)==
-#      table(sam_race_hh$tract,sam_race_hh$own_rent,sam_race_hh$family_type,sam_race_hh$single_hh_sex,sam_race_hh$householder_age_9,
-#            sam_race_hh$housing_units,sam_race_hh$people_per_room)
-#    length(test[test==FALSE])/length(test) #0.007968927 - have a few cells with fairly large number discrepancy
-    
-#    saveRDS(sam_eth_hh,file = paste0(housingdir, vintage, "/sam_eth_hh.419",Sys.Date(),".RDS"))
-#    saveRDS(sam_race_hh,file = paste0(housingdir, vintage, "/sam_race_hh.420",Sys.Date(),".RDS"))
+    #test hh6
+    #test <- table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$people_per_room
+    #)==
+    #  table(
+    #    sam_race_hh$tract,
+    #    sam_race_hh$people_per_room
+    #  )
+    #length(test[test==FALSE])==0
 
-#the complicated reorders don't do any better than match on race by order given here - which is interesting...
-#bring sam_eth_hh and sam_race_hh together again (colnames for each...)
-    sam_race_hh[order(match(race,c("A","F","G","C","B","E","D"))), #
-                ("join_race_id"):=paste0(tract,own_rent,family_type,single_hh_sex,householder_age_3,
-                                         as.character(1000000+seq.int(1:.N))),
-                by=.(tract,own_rent,family_type,single_hh_sex,householder_age_3)]
-    #sam_eth_hh[ethnicity=="_",("ethnicity"):="none applied"]
-    sam_eth_hh[order(match(ethnicity,c("H","I","_"))),
-               ("join_race_id"):=paste0(tract,own_rent,family_type,single_hh_sex,householder_age_3,
-                                        as.character(1000000+seq.int(1:.N))),
-               by=.(tract,own_rent,family_type,single_hh_sex,householder_age_3)]
-    sam_race_hh[,c("ethnicity"):=
-                  sam_eth_hh[.SD, list(ethnicity), on = .(join_race_id)]]
-    sam_race_hh[,("join_race_id"):=NULL]
-    #have to use a nrow.SD to move over category to category to keep overall straight??
-    #clean up strays - a few hundred in mutually exclusive categories? my guess is that they are places where there are more H than A, etc.
-    #sam_race_hh[ethnicity==H & race==B,("ethnicity"):=]
-    #test <- table(sam_eth_hh$tract,sam_eth_hh$ethnicity,sam_eth_hh$family_type)==table(sam_race_hh$tract,sam_race_hh$ethnicity,sam_race_hh$family_type)
     
-    sam_hh <- sam_race_hh #adding hh characteristics that don't have race/ethnicity broken up
+#    saveRDS(sam_eth_hh,file = paste0(housingdir, vintage, "/sam_eth_hh",Sys.Date(),".RDS"))
+#    saveRDS(sam_race_hh,file = paste0(housingdir, vintage, "/sam_race_hh",Sys.Date(),".RDS"))
     
-#add hh_size to occup
+
+#add hh_size to occup, for race and eth
     #add family and family_type to occup_size by matching with sam_hh on own_rent
-    sam_hh[order(-people_per_room),("hh_size_or_id"):=
+    
+    sam_eth_hh[order(-people_per_room),("hh_size_or_id"):=
              paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
                by=.(tract,own_rent)]
     hh_occup_size_dt[order(hh_size),("hh_size_or_id"):=
                        paste0(tract,own_rent,
                               as.character(1000000+seq.int(1:.N))),
                      by=.(tract,own_rent)]
-    hh_occup_size_dt[,c("family_or_non","family_type"):=
-                 sam_hh[.SD, c(list(family),list(family_type)), 
+    hh_occup_size_dt[,c("family_or_non_eth","family_type_eth"):=  
+                 sam_eth_hh[.SD, c(list(family),list(family_type)), 
                                   on = .(hh_size_or_id)]]
-    sam_hh[,("hh_size_or_id"):=NULL]
-    #test<-table(hh_occup_size_dt$tract,hh_occup_size_dt$own_rent,hh_occup_size_dt$family)==table(sam_hh$tract,sam_hh$own_rent,sam_hh$family)
-    #add own_rent to hh_size_dt from sam
-    sam_hh[,("hh_size_fam_id"):=paste0(tract,family,as.character(1000000+sample(.N))),
+    sam_race_hh[order(-people_per_room),("hh_size_or2_id"):=
+                 paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
+               by=.(tract,own_rent)]
+    hh_occup_size_dt[order(hh_size),("hh_size_or2_id"):=
+                       paste0(tract,own_rent,
+                              as.character(1000000+seq.int(1:.N))),
+                     by=.(tract,own_rent)]
+    hh_occup_size_dt[,c("family_or_non_race","family_type_race"):=  
+                       sam_race_hh[.SD, c(list(family),list(family_type)), 
+                                  on = .(hh_size_or2_id)]]
+    
+    #test hh7
+    #test<-table(
+    #  hh_occup_size_dt$tract,
+    #  hh_occup_size_dt$own_rent,
+    #  hh_occup_size_dt$family_or_non_eth,
+    #  hh_occup_size_dt$family_type_eth
+    #  )==table(
+    #    sam_eth_hh$tract,
+    #    sam_eth_hh$own_rent,
+    #    sam_eth_hh$family,
+    #    sam_eth_hh$family_type
+    #    )
+    #length(test[test==F])==0
+    #test<-table(
+    #  hh_occup_size_dt$tract,
+    #  hh_occup_size_dt$own_rent,
+    #  hh_occup_size_dt$family_or_non_race,
+    #  hh_occup_size_dt$family_type_race
+    #  )==table(
+    #    sam_race_hh$tract,
+    #    sam_race_hh$own_rent,
+    #    sam_race_hh$family,
+    #    sam_race_hh$family_type
+    #    )
+    #length(test[test==F])==0
+    
+    #add own_rent to hh_size_dt for eth/race
+    sam_eth_hh[,("hh_size_fam_id"):=paste0(tract,family,as.character(1000000+sample(.N))),
            by=.(tract,family)]
+    sam_race_hh[,("hh_size_fam_id"):=paste0(tract,family,as.character(1000000+sample(.N))),
+               by=.(tract,family)]
     hh_size_dt[,("hh_size_fam_id"):=paste0(tract,family_or_non,as.character(1000000+sample(.N))),
                      by=.(tract,family_or_non)]
-    hh_size_dt[,c("own_rent"):=
-                       sam_hh[.SD, list(own_rent), 
+    hh_size_dt[,c("own_rent_eth"):=
+                       sam_eth_hh[.SD, list(own_rent), 
                               on = .(hh_size_fam_id)]]
-    sam_hh[,("hh_size_fam_id"):=NULL]
+    hh_size_dt[,c("own_rent_race"):=
+                 sam_race_hh[.SD, list(own_rent), 
+                            on = .(hh_size_fam_id)]]
     #add family_type to hh_size, but the match on hh_size has hh_size and family
     #add own_rent and family_type to hh_size_dt by matching to hh_occup_size on family and hh_size
-    hh_size_dt[,("hh_size_id"):=paste0(tract,own_rent,family_or_non,as.character(1000000+sample(.N))),
-                by=.(tract,own_rent,family_or_non)]
-    hh_occup_size_dt[,("hh_size_id"):=paste0(tract,own_rent,family_or_non,as.character(1000000+sample(.N))),
-                             by=.(tract,own_rent,family_or_non)]
-    hh_size_dt[,c("family_type"):=
-                 hh_occup_size_dt[.SD, list(family_type), 
-                                           on = .(hh_size_id)]]
-    hh_size_dt[,("hh_size_id"):=NULL]
-    #trying combinations - using own_rent, too, gets 24808 not matching so took it out
-    sam_hh[,("hh_size_id"):=paste0(tract,family,if_else(family_type=="Householder living alone","A","B"),as.character(1000000+sample(.N))),
-           by=.(tract,family,family_type=="Householder living alone")]
-    hh_size_dt[,("hh_size_id"):=paste0(tract,family_or_non,if_else(hh_size=="1-person household","A","B"),as.character(1000000+sample(.N))),
-               by=.(tract,family_or_non,hh_size=="1-person household")]
-    sam_hh[,c("hh_size"):=
-             hh_size_dt[.SD, list(hh_size), 
-                        on = .(hh_size_id)]]
-    sam_hh[,("hh_size_id"):=NULL]
+    hh_size_dt[,("hh_size_eth_id"):=paste0(tract,own_rent_eth,family_or_non,as.character(1000000+sample(.N))),
+                by=.(tract,own_rent_eth,family_or_non)]
+    hh_occup_size_dt[,("hh_size_eth_id"):=paste0(tract,own_rent,family_or_non_eth,as.character(1000000+sample(.N))),
+                             by=.(tract,own_rent,family_or_non_eth)]
+    hh_size_dt[,c("family_type_eth"):=
+                 hh_occup_size_dt[.SD, list(family_type_eth), 
+                                           on = .(hh_size_eth_id)]]
+    hh_size_dt[,("hh_size_race_id"):=paste0(tract,own_rent_race,family_or_non,as.character(1000000+sample(.N))),
+               by=.(tract,own_rent_race,family_or_non)]
+    hh_occup_size_dt[,("hh_size_race_id"):=paste0(tract,own_rent,family_or_non_race,as.character(1000000+sample(.N))),
+                     by=.(tract,own_rent,family_or_non_race)]
+    hh_size_dt[,c("family_type_race"):=
+                 hh_occup_size_dt[.SD, list(family_type_race), 
+                                  on = .(hh_size_race_id)]]
     
-#do rooms and bedrooms by person_per_room and hh_size
-    sam_hh[,("calc_rooms") := as.numeric(substr(hh_size,1,1))*as.numeric(substr(people_per_room,1,3))]
-    sam_hh[order(calc_rooms),("rooms_id") := paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
+    #add size to sam_eth/race_hh
+    sam_eth_hh[,("hh_size_eth_id"):=
+                 paste0(tract,own_rent,family,if_else(family_type=="Householder living alone","A","B"),
+                        as.character(1000000+sample(.N))),
+           by=.(tract,own_rent,family,family_type=="Householder living alone")]
+    hh_size_dt[,("hh_size_eth_id"):=
+                 paste0(tract,own_rent_eth,family_or_non,if_else(hh_size=="1-person household","A","B"),
+                        as.character(1000000+sample(.N))),
+               by=.(tract,own_rent_eth,family_or_non,hh_size=="1-person household")]
+    sam_eth_hh[,c("hh_size"):=
+             hh_size_dt[.SD, list(hh_size), 
+                        on = .(hh_size_eth_id)]]
+    hh_size_dt[,c("miss_eth_hh_size"):=
+                 sam_eth_hh[.SD, list(hh_size), 
+                            on = .(hh_size_eth_id)]]
+    sam_race_hh[,("hh_size_race_id"):=
+                  paste0(tract,own_rent,family,if_else(family_type=="Householder living alone","A","B"),
+                         as.character(1000000+sample(.N))),
+                by=.(tract,own_rent,family,family_type=="Householder living alone")]
+    hh_size_dt[,("hh_size_race_id"):=
+                 paste0(tract,own_rent_race,family_or_non,if_else(hh_size=="1-person household","A","B"),
+                        as.character(1000000+sample(.N))),
+               by=.(tract,own_rent_race,family_or_non,hh_size=="1-person household")]
+    sam_race_hh[,c("hh_size"):=
+                 hh_size_dt[.SD, list(hh_size), 
+                            on = .(hh_size_race_id)]]
+    hh_size_dt[,c("miss_race_hh_size"):=
+                 sam_race_hh[.SD, list(hh_size), 
+                            on = .(hh_size_race_id)]]
+    #pickup stragglers by recasting own_rent, then picking up again
+    #because there are only two possibilities, don't need to go through whole reshuffle on casting and can just assign [tables match on missing and are evenly distributed]
+    hh_size_dt[is.na(miss_eth_hh_size),
+               ("own_rent_eth"):=if_else(own_rent_eth=="Owner occupied","Renter occupied","Owner occupied")]
+    hh_size_dt[is.na(miss_race_hh_size),
+               ("own_rent_race"):=if_else(own_rent_race=="Owner occupied","Renter occupied","Owner occupied")]
+    sam_eth_hh[is.na(hh_size),("hh_size_eth2_id"):=
+                 paste0(tract,own_rent,family,if_else(family_type=="Householder living alone","A","B"),
+                        as.character(1000000+sample(.N))),
+               by=.(tract,own_rent,family,family_type=="Householder living alone")]
+    hh_size_dt[is.na(miss_eth_hh_size),("hh_size_eth2_id"):=
+                 paste0(tract,own_rent_eth,family_or_non,if_else(hh_size=="1-person household","A","B"),
+                        as.character(1000000+sample(.N))),
+               by=.(tract,own_rent_eth,family_or_non,hh_size=="1-person household")]
+    sam_eth_hh[is.na(hh_size),c("hh_size"):=
+                 hh_size_dt[.SD, list(hh_size), 
+                            on = .(hh_size_eth2_id)]]
+    hh_size_dt[is.na(miss_eth_hh_size),c("miss_eth_hh_size"):=
+                 sam_eth_hh[.SD, list(hh_size), 
+                            on = .(hh_size_eth2_id)]]
+    sam_race_hh[is.na(hh_size),("hh_size_race2_id"):=
+                  paste0(tract,own_rent,family,if_else(family_type=="Householder living alone","A","B"),
+                         as.character(1000000+sample(.N))),
+                by=.(tract,own_rent,family,family_type=="Householder living alone")]
+    hh_size_dt[is.na(miss_race_hh_size),("hh_size_race2_id"):=
+                 paste0(tract,own_rent_race,family_or_non,if_else(hh_size=="1-person household","A","B"),
+                        as.character(1000000+sample(.N))),
+               by=.(tract,own_rent_race,family_or_non,hh_size=="1-person household")]
+    sam_race_hh[is.na(hh_size),c("hh_size"):=
+                  hh_size_dt[.SD, list(hh_size), 
+                             on = .(hh_size_race2_id)]]
+    hh_size_dt[is.na(miss_race_hh_size),c("miss_race_hh_size"):=
+                 sam_race_hh[.SD, list(hh_size), 
+                             on = .(hh_size_race2_id)]]
+    
+    sam_eth_hh[,("hh_size_eth_id"):=NULL]
+    sam_race_hh[,("hh_size_race_id"):=NULL]
+    #because it's just the own_rent backwards on the ones that are left
+    
+    #test hh8
+    #test<-table(
+    #  hh_size_dt$tract,
+    #  hh_size_dt$own_rent_eth,
+    #  hh_size_dt$family_or_non,
+    #  hh_size_dt$hh_size
+    #  )==table(
+    #    sam_eth_hh$tract,
+    #    sam_eth_hh$own_rent,
+    #    sam_eth_hh$family,
+    #    sam_eth_hh$hh_size
+    #    )
+    #length(test[test==F])==0
+    #test<-table(
+    #  hh_size_dt$tract,
+    #  hh_size_dt$own_rent_race,
+    #  hh_size_dt$family_or_non,
+    #  hh_size_dt$hh_size
+    #  )==table(
+    #    sam_race_hh$tract,
+    #    sam_race_hh$own_rent,
+    #    sam_race_hh$family,
+    #    sam_race_hh$hh_size
+    #    )
+    #length(test[test==F])==0
+    
+#do rooms and bedrooms by own_rent and hh_size
+    sam_eth_hh[,("calc_rooms") := as.numeric(substr(hh_size,1,1))*as.numeric(substr(people_per_room,1,3))]
+    sam_eth_hh[order(calc_rooms),("rooms_id") := paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
            by=.(tract,own_rent)]
+    sam_race_hh[,("calc_rooms") := as.numeric(substr(hh_size,1,1))*as.numeric(substr(people_per_room,1,3))]
+    sam_race_hh[order(calc_rooms),("rooms_id") := paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
+               by=.(tract,own_rent)]
     hh_occup_rooms_dt[order(substr(num_rooms,1,1)),
                       ("rooms_id") := paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
                       by=.(tract,own_rent)]
-    sam_hh[,c("num_rooms"):=
+    sam_eth_hh[,c("num_rooms"):=
              hh_occup_rooms_dt[.SD, list(num_rooms),
                                on = .(rooms_id)]]
+    sam_race_hh[,c("num_rooms"):=
+                 hh_occup_rooms_dt[.SD, list(num_rooms),
+                                   on = .(rooms_id)]]
     
     hh_occup_bedrooms_dt[order(substr(num_bedrooms,1,1)),
                          ("rooms_id") := paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
                          by=.(tract,own_rent)]
-    sam_hh[,c("num_bedrooms"):=
+    sam_eth_hh[,c("num_bedrooms"):=
              hh_occup_bedrooms_dt[.SD, list(num_bedrooms),
                                on = .(rooms_id)]]
+    sam_race_hh[,c("num_bedrooms"):=
+                 hh_occup_bedrooms_dt[.SD, list(num_bedrooms),
+                                      on = .(rooms_id)]]
     
-    sam_hh[,("rooms_id"):=NULL]
-    sam_hh[,("calc_rooms"):=NULL]
+    sam_eth_hh[,("rooms_id"):=NULL]
+    sam_eth_hh[,("calc_rooms"):=NULL]
+    sam_race_hh[,("rooms_id"):=NULL]
+    sam_race_hh[,("calc_rooms"):=NULL]
     
-#then start making individuals to then match with hh, and to line up with other income and employment info not provided by hh    
-#idea is that you can add individuals to figure out origin, married, workers, then expand from hh_size
-        
-    #put sex on sam_hh for matching
-    sam_hh[str_detect(family_role,"Female"),("sex"):="Female"]
-    sam_hh[str_detect(family_role,"Male"),("sex"):="Male"]
-    sam_hh[is.na(sex) & family_type=="Married-couple family",("sex"):="Male"]
-#assign sex from sex_age_race
+    #test hh9
+    #test<-table(
+    #  hh_occup_bedrooms_dt$tract,
+    #  hh_occup_bedrooms_dt$own_rent,
+    #  hh_occup_bedrooms_dt$num_bedrooms
+    #  )==table(
+    #    sam_eth_hh$tract,
+    #    sam_eth_hh$own_rent,
+    #    sam_eth_hh$num_bedrooms
+    #    )
+    #length(test[test==F])==0
+    #test<-table(
+    #  hh_occup_bedrooms_dt$tract,
+    #  hh_occup_bedrooms_dt$own_rent,
+    #  hh_occup_bedrooms_dt$num_bedrooms
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$own_rent,
+    #  sam_race_hh$num_bedrooms
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  hh_occup_rooms_dt$tract,
+    #  hh_occup_rooms_dt$own_rent,
+    #  hh_occup_rooms_dt$num_rooms
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$own_rent,
+    #  sam_eth_hh$num_rooms
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  hh_occup_rooms_dt$tract,
+    #  hh_occup_rooms_dt$own_rent,
+    #  hh_occup_rooms_dt$num_rooms
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$own_rent,
+    #  sam_race_hh$num_rooms
+    #)
+    #length(test[test==F])==0
+    
+    #put sex on sam_eth/race_hh for matching for ones where we know (no husband present, no wife present for in_family
+    sam_eth_hh[str_detect(family_role,"Female"),("sex"):="Female"]
+    sam_eth_hh[str_detect(family_role,"Male"),("sex"):="Male"]
+    #have to try on this a couple of ways, but I think it follows how they do it
+    sam_eth_hh[is.na(sex) & family_type=="Married-couple family",("sex"):="Male"]
+    sam_race_hh[str_detect(family_role,"Female"),("sex"):="Female"]
+    sam_race_hh[str_detect(family_role,"Male"),("sex"):="Male"]
+    sam_race_hh[is.na(sex) & family_type=="Married-couple family",("sex"):="Male"]
+#assign rest of sex from individuals side, as opposed to just giving them a sex
 #    sam_hh[family_role=="Householder living alone",("sex"):=sample(c("Male","Female"),.N,replace = TRUE)]
-
+    #test hh10
+    #test <- table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$sex
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$sex
+    #)
+    #length(test[test==F])==0
     
     #give all households an id
-    sam_hh[,("household_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_eth_hh[,("household_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    #length(unique(sam_eth_hh$household_id))==nrow(sam_eth_hh)
+    sam_race_hh[,("household_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    #length(unique(sam_race_hh$household_id))==nrow(sam_race_hh)
     
     #add workers per household
     hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="3 or more workers"] #I think they made a mistake, although it could be that the other should be 4 or more workers?
-    sam_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
-    sam_hh[,("worker_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
+    sam_eth_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
+    sam_eth_hh[,("worker_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
+    sam_race_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
+    sam_race_hh[,("worker_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
     hh_workers[,("worker_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
-    sam_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(worker_id)]]
-    sam_hh$worker_id <- NULL
+    sam_eth_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(worker_id)]]
+    sam_eth_hh$worker_id <- NULL
+    sam_race_hh[,c("number_workers_in_hh") := hh_workers[.SD, list(number_workers_in_hh), on = .(worker_id)]]
+    sam_race_hh$worker_id <- NULL
+    #test hh11
+    #test <- table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$number_workers_in_hh
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$number_workers_in_hh
+    #)
+    #length(test[test==F])==0
     
-    #add related kids age_ranges (can be more than one kid in category, but does give you "no children")
+    #add related kids age_ranges (can be more than one kid in category, but does give you "no children") - will be trumped by some of individual stuff on each child
     hh_kids[order(family_role,match(kid_age,c("No children","Under 6 years only","6 to 17 years only","Under 6 years and 6 to 17 years"))),
             ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
-    sam_hh[family=="Family households" & order(family_role,hh_size),
+    sam_eth_hh[family=="Family households" & order(family_role,hh_size),
            ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
-    sam_hh[family=="Family households",c("kids_by_age") := hh_kids[.SD, list(kid_age), on = .(hh_kids_id)]] #may have more than 1 in other categories
-    sam_hh$hh_kids_id <- NULL
+    sam_eth_hh[family=="Family households",c("kids_by_age") := hh_kids[.SD, list(kid_age), on = .(hh_kids_id)]] #may have more than 1 in other categories
+    sam_eth_hh$hh_kids_id <- NULL
+    sam_race_hh[family=="Family households" & order(family_role,hh_size),
+               ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
+    sam_race_hh[family=="Family households",c("kids_by_age") := hh_kids[.SD, list(kid_age), on = .(hh_kids_id)]] #may have more than 1 in other categories
+    sam_race_hh$hh_kids_id <- NULL
+    #test hh12
+    #test <- table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$kids_by_age
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$kids_by_age
+    #)
+    #length(test[test==F])==0
     
     #add employment for family - census file is misssing 4384, all married couple families...
     #assumes ALL householders who are married are male
@@ -446,71 +1086,202 @@ createHouseholds <- function() {
     family_employment_dt[husband_employed=="Husband not in labor force",("husband_employed"):="Not in labor force"]
     family_employment_dt[!is.na(husband_employed),("employment"):=husband_employed]
     family_employment_dt[!is.na(single_hh_employ),("employment"):=single_hh_employ]
-    sam_hh[family=="Family households",
+    family_employment_dt[,("employ_id"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
+                         by=.(tract,family_type,family_role,own_kids)]
+    sam_eth_hh[family=="Family households",
            ("own_kids"):=if_else(kids_by_age=="No children",
                                  "No children under 18 years","With own children under 18 years")]
-    sam_hh[family=="Family households",
+    sam_eth_hh[family=="Family households",
            ("employ_id"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
            by=.(tract,family_type,family_role,own_kids)]
-    family_employment_dt[,
-                         ("employ_id"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
-                         by=.(tract,family_type,family_role,own_kids)]
-    sam_hh[,c("employment","wife_employed") := 
+    sam_eth_hh[,c("employment","wife_employed") := 
              family_employment_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id)]]
-    #pickup stragglers
-    sam_hh[family=="Family households" & is.na(employment),
+    sam_race_hh[family=="Family households",
+               ("own_kids"):=if_else(kids_by_age=="No children",
+                                     "No children under 18 years","With own children under 18 years")]
+    sam_race_hh[family=="Family households",
+               ("employ_id"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
+               by=.(tract,family_type,family_role,own_kids)]
+    sam_race_hh[,c("employment","wife_employed") := 
+                 family_employment_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id)]]
+    #pickup stragglers - ~58k 
+    sam_eth_hh[family=="Family households" & is.na(employment),
            ("employ_id2"):=paste0(tract,family_type,family_role,as.character(1000000+sample(.N))),
            by=.(tract,family_type,family_role)]
-    anti_fam_emp_dt <- as.data.table(anti_join(family_employment_dt,sam_hh,by="employ_id"))
-    anti_fam_emp_dt[,
+    anti_fam_emp_eth_dt <- as.data.table(anti_join(family_employment_dt,sam_eth_hh,by="employ_id"))
+    anti_fam_emp_eth_dt[,
                     ("employ_id2"):=paste0(tract,family_type,family_role,as.character(1000000+sample(.N))),
                          by=.(tract,family_type,family_role)]
-    sam_hh[family=="Family households" & is.na(employment),
+    sam_eth_hh[family=="Family households" & is.na(employment),
            c("employment","wife_employed") := 
-             anti_fam_emp_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id2)]]
-    #pickup ones missing from census
-    sam_hh[family_type=="Married-couple family" & is.na(employment), #4,384
+             anti_fam_emp_eth_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id2)]]
+    sam_race_hh[family=="Family households" & is.na(employment),
+               ("employ_id2"):=paste0(tract,family_type,family_role,as.character(1000000+sample(.N))),
+               by=.(tract,family_type,family_role)]
+    anti_fam_emp_race_dt <- as.data.table(anti_join(family_employment_dt,sam_race_hh,by="employ_id"))
+    anti_fam_emp_race_dt[,
+                        ("employ_id2"):=paste0(tract,family_type,family_role,as.character(1000000+sample(.N))),
+                        by=.(tract,family_type,family_role)]
+    sam_race_hh[family=="Family households" & is.na(employment),
+               c("employment","wife_employed") := 
+                 anti_fam_emp_race_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id2)]]
+    #pickup ones missing from census version of family_employment_dt by sampling from whole - think they have a small error, and seem to have dropped that many from the married-couples
+    sam_eth_hh[family_type=="Married-couple family" & is.na(employment), #4,384 extra from full hh
            ("employ_id3"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
            by=.(tract,family_type,family_role,own_kids)]
+    sam_race_hh[family_type=="Married-couple family" & is.na(employment), #4,384 extra from full hh
+               ("employ_id3"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
+               by=.(tract,family_type,family_role,own_kids)]
     family_employment_dt[,
                     ("employ_id3"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
                     by=.(tract,family_type,family_role,own_kids)]
-    sam_hh[family_type=="Married-couple family" & is.na(employment),
+    sam_eth_hh[family_type=="Married-couple family" & is.na(employment),
            c("employment","wife_employed") := 
-             anti_fam_emp_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id2)]]
-    sam_hh$employ_id <- NULL
-    sam_hh$employ_id2 <- NULL
-    sam_hh$employ_id3 <- NULL
-    rm(anti_fam_emp_dt)
+             family_employment_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id3)]]
+    sam_race_hh[family_type=="Married-couple family" & is.na(employment),
+               c("employment","wife_employed") := 
+                 family_employment_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id3)]]
+                  
+    sam_eth_hh$employ_id2 <- NULL
+    sam_eth_hh$employ_id3 <- NULL
+    sam_race_hh$employ_id <- NULL
+    sam_race_hh$employ_id2 <- NULL
+    sam_race_hh$employ_id3 <- NULL
+    #test hh13
+    #test<-table(
+    #  family_employment_dt$tract,
+    #  family_employment_dt$family_role,
+    #  family_employment_dt$employment,
+    #  family_employment_dt$wife_employed
+    #)==table(
+    #  sam_race_hh[family=="Family households",tract],
+    #  sam_race_hh[family=="Family households",family_role],
+    #  sam_race_hh[family=="Family households",employment],
+    #  sam_race_hh[family=="Family households",wife_employed]
+    #)
+    #length(test[test==F])/length(test) < .04 #because of not giving full numbers from census on married-couples...
+    #test<-table(
+    #  family_employment_dt$tract,
+    #  family_employment_dt$family_role,
+    #  family_employment_dt$employment,
+    #  family_employment_dt$wife_employed
+    #)==table(
+    #  sam_eth_hh[family=="Family households",tract],
+    #  sam_eth_hh[family=="Family households",family_role],
+    #  sam_eth_hh[family=="Family households",employment],
+    #  sam_eth_hh[family=="Family households",wife_employed]
+    #)
+    #length(test[test==F])/length(test) < .04 #because of not giving full numbers from census on married-couples...
     
-    #add vehicles
-    sam_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
+    #add vehicles - should vary with more infor from individual size
+    sam_eth_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
+    sam_race_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
     vehicles_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
-    sam_hh[,c("number_vehicles_in_hh") := 
+    sam_eth_hh[,c("number_vehicles_in_hh") := 
              vehicles_hh[.SD, list(number_vehicles_in_hh), on = .(vehicle_occup_id)]]
-    sam_hh$vehicle_occup_id <- NULL
+    sam_eth_hh$vehicle_occup_id <- NULL
+    sam_race_hh[,c("number_vehicles_in_hh") := 
+                 vehicles_hh[.SD, list(number_vehicles_in_hh), on = .(vehicle_occup_id)]]
+    sam_race_hh$vehicle_occup_id <- NULL
+    #test hh14
+    #test<-table(
+    #  vehicles_hh$tract,
+    #  vehicles_hh$hh_size_4,
+    #  vehicles_hh$number_vehicles_in_hh
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$hh_size_4,
+    #  sam_race_hh$number_vehicles_in_hh
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  vehicles_hh$tract,
+    #  vehicles_hh$hh_size_4,
+    #  vehicles_hh$number_vehicles_in_hh
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$hh_size_4,
+    #  sam_eth_hh$number_vehicles_in_hh
+    #)
+    #length(test[test==F])==0
 
     #add income - not a lot determined yet, so match on own_rent but ordered by people_per_room
-    sam_hh[order(-people_per_room),
-           ("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    hh_income_dt[order(income_low),("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    sam_hh[,c("hh_income_level","income_low","income_high") := 
+    sam_eth_hh[order(-people_per_room),
+           ("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
+           by=.(tract,own_rent)]
+    sam_race_hh[order(-people_per_room),
+               ("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
+               by=.(tract,own_rent)]
+    hh_income_dt[order(income_low),("income_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
+                 by=.(tract,own_rent)]
+    sam_eth_hh[,c("hh_income_level","income_low","income_high") := 
              hh_income_dt[.SD, c(list(hh_income_level),list(income_low),list(income_high)), on = .(income_occup_id)]]
-    sam_hh$income_occup_id <- NULL
+    sam_race_hh[,c("hh_income_level","income_low","income_high") := 
+                 hh_income_dt[.SD, c(list(hh_income_level),list(income_low),list(income_high)), on = .(income_occup_id)]]
+    sam_eth_hh$income_occup_id <- NULL
+    sam_race_hh$income_occup_id <- NULL
+    #test hh15
+    #test<-table(
+    #  hh_income_dt$tract,
+    #  hh_income_dt$hh_income_level,
+    #  hh_income_dt$income_low,
+    #  hh_income_dt$income_high
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$hh_income_level,
+    #  sam_race_hh$income_low,
+    #  sam_race_hh$income_high
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  hh_income_dt$tract,
+    #  hh_income_dt$hh_income_level,
+    #  hh_income_dt$income_low,
+    #  hh_income_dt$income_high
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$hh_income_level,
+    #  sam_eth_hh$income_low,
+    #  sam_eth_hh$income_high
+    #)
+    #length(test[test==F])==0
     
     #add hh_education - need to think through how it matches with individual education on sex_age_race
     #make same variable categories with sam_hh
     hh_educ_dt[str_detect(own_rent,"Owner"),("own_rent"):="Owner occupied"]
     hh_educ_dt[str_detect(own_rent,"Renter"),("own_rent"):="Renter occupied"]
-    sam_hh[order(income_low),
-           ("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
+    sam_eth_hh[order(income_low),
+           ("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
+           by=.(tract,own_rent)]
+    sam_race_hh[order(income_low),
+               ("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),
+               by=.(tract,own_rent)]
     hh_educ_dt[order(match(hh_education_level,c("Less than high school graduate","High school graduate (including equivalency)",
                                                 "Some college or associate's degree","Bachelor's degree or higher"))),
                ("educ_occup_id"):=paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
-    sam_hh[,c("hh_education_level") := 
+    sam_eth_hh[,c("hh_education_level") := 
              hh_educ_dt[.SD, list(hh_education_level), on = .(educ_occup_id)]]
-    sam_hh$educ_occup_id <- NULL
-    #test <- table(sam_hh$tract,sam_hh$hh_education_level)==table(hh_educ_dt$tract,hh_educ_dt$hh_education_level)
+    sam_race_hh[,c("hh_education_level") := 
+                 hh_educ_dt[.SD, list(hh_education_level), on = .(educ_occup_id)]]
+    sam_eth_hh$educ_occup_id <- NULL
+    sam_race_hh$educ_occup_id <- NULL
+    #test hh16
+    #test<-table(
+    #  hh_educ_dt$tract,
+    #  hh_educ_dt$hh_education_level
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$hh_education_level
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  hh_educ_dt$tract,
+    #  hh_educ_dt$hh_education_level
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$hh_education_level
+    #)
+    #length(test[test==F])==0
     
     #add rent by income
     gross_rent_hh[rent_cash=="With cash rent",("gross_inc_id"):=
@@ -527,13 +1298,35 @@ createHouseholds <- function() {
     #now to sam_hh
     gross_rent_hh[order(income_low),("inc_id"):=
                     paste0(tract,"Renter occupied",as.character(1000000+seq.int(1:.N))),by=.(tract)]
-    sam_hh[order(income_low),("inc_id"):=
+    sam_eth_hh[order(income_low),("inc_id"):=
                            paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
+    sam_race_hh[order(income_low),("inc_id"):=
+                 paste0(tract,own_rent,as.character(1000000+seq.int(1:.N))),by=.(tract,own_rent)]
     #add income to gross_rent, then to sam_hh own_rent by income?
     #want to compare to see if it adds information, later, but may not be of use
-    sam_hh[,c("hh_income_renters") := 
+    sam_eth_hh[,c("hh_income_renters") := 
         gross_rent_hh[.SD, list(hh_income_renters), on = .(inc_id)]]
-    sam_hh$inc_id <- NULL
+    sam_eth_hh$inc_id <- NULL
+    sam_race_hh[,c("hh_income_renters") := 
+                 gross_rent_hh[.SD, list(hh_income_renters), on = .(inc_id)]]
+    sam_race_hh$inc_id <- NULL
+    #test hh17
+    #test<-table(
+    #  gross_rent_hh$tract,
+    #  gross_rent_hh$hh_income_renters
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$hh_income_renters
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  gross_rent_hh$tract,
+    #  gross_rent_hh$hh_income_renters
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$hh_income_renters
+    #)
+    #length(test[test==F])==0
 
     #gives unmarried partners, straight and same-sex concept: UNMARRIED-PARTNER HOUSEHOLDS BY SEX OF PARTNER 
     #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
@@ -547,23 +1340,40 @@ createHouseholds <- function() {
     hh_partner_dt[partner_type == "Female householder and male partner",("sex") := "Female"]
     hh_partner_dt[unmarried=="Unmarried-partner households",
                   ("partner_type_id"):=paste0(tract,sex,as.character(1000000+sample(.N))),by=.(tract,sex)]
-    sam_hh[family_type=="Other family",# lose 2627 of 92975 in first pass - not sure where else to put them
+    sam_eth_hh[family_type=="Other family",# lose 2627 of 92975 in first pass - not sure where else to put them
            ("partner_type_id"):=paste0(tract,if_else(is.na(sex),"none",sex),as.character(1000000+sample(.N))),by=.(tract,sex)]
-    sam_hh[family_type=="Other family",
-           c("partner_type","sex_partner","sex") := 
+    sam_eth_hh[family_type=="Other family",
+           c("partner_type","sex_partner","hh_sex") := 
              hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(partner_type_id)]]
+    sam_race_hh[family_type=="Other family",# lose 2627 of 92975 in first pass - not sure where else to put them
+               ("partner_type_id"):=paste0(tract,if_else(is.na(sex),"none",sex),as.character(1000000+sample(.N))),by=.(tract,sex)]
+    sam_race_hh[family_type=="Other family",
+               c("partner_type","sex_partner","hh_sex") := 
+                 hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(partner_type_id)]]
     hh_partner_dt[unmarried=="Unmarried-partner households",
-           c("matched") := 
-             sam_hh[.SD, c(list(partner_type)), on = .(partner_type_id)]]
-    hh_partner_dt[unmarried=="Unmarried-partner households" & is.na(matched),
-                  ("second_join_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
-    sam_hh[family_type=="Householder not living alone",
-           ("second_join_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
-    sam_hh[family_type=="Householder not living alone",
-           c("partner_type","sex_partner","sex") := 
-             hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(second_join_id)]]
-    sam_hh$partner_type_id <- NULL
-    sam_hh$second_join_id <- NULL
+           c("matched_eth") := 
+             sam_eth_hh[.SD, c(list(partner_type)), on = .(partner_type_id)]]
+    hh_partner_dt[unmarried=="Unmarried-partner households",
+                  c("matched_race") := 
+                    sam_race_hh[.SD, c(list(partner_type)), on = .(partner_type_id)]]
+    hh_partner_dt[unmarried=="Unmarried-partner households" & is.na(matched_eth),
+                  ("second_join_eth_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    hh_partner_dt[unmarried=="Unmarried-partner households" & is.na(matched_race),
+                  ("second_join_race_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_eth_hh[family_type=="Householder not living alone" & is.na(partner_type),
+           ("second_join_eth_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_eth_hh[family_type=="Householder not living alone" & is.na(partner_type),
+           c("partner_type","sex_partner","hh_sex") := 
+             hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(second_join_eth_id)]]
+    sam_eth_hh$partner_type_id <- NULL
+    sam_eth_hh$second_join_eth_id <- NULL
+    sam_race_hh[family_type=="Householder not living alone" & is.na(partner_type),
+               ("second_join_race_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_race_hh[family_type=="Householder not living alone" & is.na(partner_type),
+               c("partner_type","sex_partner","hh_sex") := 
+                 hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(second_join_race_id)]]
+    sam_race_hh$partner_type_id <- NULL
+    sam_race_hh$second_join_race_id <- NULL
 
     saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.568",Sys.Date(),".RDS")) 
 #    rm(list = setdiff(ls(),"sam_hh")) # or just the ones that are in the list that is passed from expand_hh_from_census

@@ -822,39 +822,7 @@ exp_census <- function() {
       uncount(as.numeric(number_sams),.id = "hh_unmarried_kids_id",.remove = TRUE)
     
     #not used yet
-    #foodstamps B22005 race of HH
-    #join with nat'l SNAP data? https://host76.mathematica-mpr.com/fns/Download.aspx?, but looks like a pain
-    #FSBEN Unit SNAP benefit
-    #FSUSIZE Unit size
-    #FSGRINC Unit gross countable income
-    #FSNETINC Unit net countable income
-    #FSERNDED Unit earned income deduction
-    #TPOV Unit gross income as a percentage of poverty 
-    food_stamps_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B22005")
-    food_stamps_data <- food_stamps_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(race = substr(name,7,7)) %>%
-      rename(food_stamps = label) %>%
-      filter(race %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
-    food_stamps_race_dt <- as.data.table(food_stamps_data)
     
-    food_stamps_eth_data <- food_stamps_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(food_stamps_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(ethnicity = substr(name,7,7)) %>%
-      rename(food_stamps = label) %>%
-      filter(!ethnicity %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "food_stamps_id",.remove = TRUE)
-    food_stamps_eth_dt <- as.data.table(food_stamps_eth_data) 
-    food_stamps_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,food_stamps)]
-    food_stamps_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,food_stamps)]
-    food_stamps_eth_dt[ethnicity %in% acs_race_codes,("ethnicity"):="_"]
-    food_stamps_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,food_stamps)]
-    food_stamps_eth_dt <- food_stamps_eth_dt[(tokeep)]
     
     #household_id
     sam_hh[,c("household_id") := list(paste0(state,county,tract,as.character(2000000+sample(.N)))),by=.(tract)] #sample defaults to replace=FALSE

@@ -6,6 +6,7 @@ library(stringr)
 library(data.table)
 #library(forcats)
 
+
 #get HCAD_residences from HCAD_merge or from housingdir main level for desired vintage (by most recent date)
 #get others from household and individual generator scripts
 
