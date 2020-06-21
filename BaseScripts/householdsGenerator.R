@@ -1110,14 +1110,20 @@ createHouseholds <- function() {
                      by=.(tract)]
     workers_exp[order(hh_size_7),("age_work_id") := paste0(tract,as.character(1000000+seq.int(1:.N))),
                 by=.(tract)]
-    transport_age_dt[,c("hh_size","number_workers_in_hh","hh_workers_id"):=
-                       workers_exp[.SD, c(list(hh_size_7),list(number_workers_in_hh),list(hh_workers_id)),
+    transport_age_dt[,c("hh_size_10","hh_size","number_workers_in_hh","hh_workers_id"):=
+                       workers_exp[.SD, c(list(hh_size_10),list(hh_size_7),list(number_workers_in_hh),list(hh_workers_id)),
                                    on = .(age_work_id)]]
     workers_exp[,("missed"):=transport_age_dt[.SD,list(hh_size),on = .(age_work_id)]]
     
-    table(workers_exp[is.na(missed),hh_size_7])
     #maybe in wrong tracts for ones that are larger? 
-    
+    transport_age_dt[is.na(hh_size),
+                     ("age_work2_id") := paste0(as.character(1000000+sample(1:.N)))]
+    workers_exp[is.na(missed),
+                ("age_work2_id") := paste0(as.character(1000000+seq.int(1:.N)))]
+    transport_age_dt[is.na(hh_size),
+                     c("hh_size_10","hh_size","number_workers_in_hh","hh_workers_id"):=
+                       workers_exp[.SD, c(list(hh_size_10),list(hh_size_7),list(number_workers_in_hh),list(hh_workers_id)),
+                                   on = .(age_work2_id)]]
     
     #create with workers, then select back to sam_eth/race, having chosen randomly from workers exp by hh_worker_id
     #then do expansion from within sam_eth/race
@@ -1206,9 +1212,9 @@ createHouseholds <- function() {
     
     transport_time_work_dt[,("sex_time_work_id") := paste0(tract,sex,means_transport_4,as.character(1000000+sample(1:.N))),
                           by=.(tract,sex,means_transport_4)]
-    transport_age_dt[,("sex_time_work_id") := paste0(tract,sex,means_transport_5,as.character(1000000+sample(1:.N))),
+    transport_age_dt[means_transport_5!="Worked at home",("sex_time_work_id") := paste0(tract,sex,means_transport_5,as.character(1000000+sample(1:.N))),
                      by=.(tract,sex,means_transport_5)]
-    transport_age_dt[,c("commute_time","when_go_to_work"):=
+    transport_age_dt[means_transport_5!="Worked at home",c("commute_time","when_go_to_work"):=
                        transport_time_work_dt[.SD, c(list(commute_time),list(when_go_to_work)),
                                              on = .(sex_time_work_id)]]
     transport_time_work_dt[,c("missing"):=
@@ -1226,18 +1232,18 @@ createHouseholds <- function() {
                        transport_time_work_dt[.SD, c(list(sex),list(commute_time),list(when_go_to_work)),
                                               on = .(sex_time_work2_id)]]
     #test hh8e
-    test<-table(
-      transport_time_work_dt$tract,
-      transport_time_work_dt$sex,
-      transport_time_work_dt$commute_time,
-      transport_time_work_dt$when_go_to_work
-    )==table(
-      transport_age_dt[means_transport_5!="Worked at home"]$tract,
-      transport_age_dt[means_transport_5!="Worked at home"]$sex,
-      transport_age_dt[means_transport_5!="Worked at home"]$commute_time,
-      transport_age_dt[means_transport_5!="Worked at home"]$when_go_to_work
-    )
-    length(test[test==F])==0
+    #test<-table(
+    #  transport_time_work_dt$tract,
+    #  transport_time_work_dt$sex,
+    #  transport_time_work_dt$commute_time,
+    #  transport_time_work_dt$when_go_to_work
+    #)==table(
+    #  transport_age_dt[means_transport_5!="Worked at home"]$tract,
+    #  transport_age_dt[means_transport_5!="Worked at home"]$sex,
+    #  transport_age_dt[means_transport_5!="Worked at home"]$commute_time,
+    #  transport_age_dt[means_transport_5!="Worked at home"]$when_go_to_work
+    #)
+    #length(test[test==F])==0
     transport_age_dt[is.na(commute_time),("commute_time"):="0 minutes (works at home)"] #m before t, so still first in sort vs. "0 to 5"
     
     #add language
@@ -1330,35 +1336,182 @@ createHouseholds <- function() {
         householder_age_9=="Householder 85 years and over" ~ "65 years and over",
       TRUE ~ str_remove(householder_age_9,"Householder ")
     )]
-    #have to redo match on income, sex, race and eth, etc. without hh later, but same total on workers...
+    sam_race_hh[,("age_range_6"):=case_when(
+      householder_age_9=="Householder 25 to 34 years" | householder_age_9=="Householder 35 to 44 years" ~ "25 to 44 years",
+      householder_age_9=="Householder 65 to 74 years" | householder_age_9=="Householder 75 to 84 years" |
+        householder_age_9=="Householder 85 years and over" ~ "65 years and over",
+      TRUE ~ str_remove(householder_age_9,"Householder ")
+    )]
+    #have to redo match on income, sex, race and eth, etc. without hh later, but same totals for workers, even if juggle by hh
+
+#separate hh from non-hh workers add_workers_hh will be used later
     #get back to only householders who are in labor force
     transport_age_dt[,("track_hh_id"):=paste0(tract,as.character(1000000+sample(1:.N))),by=.(tract)]
-    #transport_hh <- transport_age_dt[,.SD[sample(.N)],by = .(hh_workers_id)] # number in labor force
-    transport_hh <- transport_age_dt[,.SD[1],by = .(hh_workers_id)] # number in labor force, but about 4k short of correct total...
-    
-    sam_race_hh[,("rejoin_race_id") := paste0(tract,sex,own_rent,race,hh_size,as.character(1000000+sample(1:.N))),
-                      by=.(tract,sex,own_rent,race,hh_size)]
-    sam_eth_hh[,("rejoin_eth_id") := paste0(tract,sex,own_rent,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
-                     by=.(tract,sex,own_rent,ethnicity,hh_size)]
-    transport_hh[,("rejoin_race_id") := paste0(tract,sex,own_rent,race,hh_size,as.character(1000000+sample(1:.N))),
-                     by=.(tract,sex,own_rent,race,hh_size)]
-    transport_hh[,("rejoin_eth_id") := paste0(tract,sex,own_rent,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
-                     by=.(tract,sex,own_rent,ethnicity,hh_size)]
+    # number in labor force
+    #transport_hh <- transport_age_dt[,.SD[1],by = .(hh_workers_id)] # number in labor force, but about 4k short of correct total...
+    transport_age_dt[order(-age_range_6),("potential_hh"):=as.character(1:.N),by=.(hh_workers_id)]
+    transport_hh <- transport_age_dt[potential_hh=="1"]
+    #do this after rematching, below
+    add_workers_hh <- anti_join(transport_age_dt,transport_hh,by="track_hh_id")
+    #there are <1k too many if you assign no workers to 272910 hh
+    sam_race_hh[,("rejoin_race_id") := paste0(tract,sex,own_rent,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
+                      by=.(tract,sex,own_rent,age_range_6,race,hh_size)]
+    sam_eth_hh[,("rejoin_eth_id") := paste0(tract,sex,own_rent,age_range_6,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                     by=.(tract,sex,own_rent,age_range_6,ethnicity,hh_size)]
+    transport_hh[,("rejoin_race_id") := paste0(tract,sex,own_rent,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
+                     by=.(tract,sex,own_rent,age_range_6,race,hh_size)]
+    transport_hh[,("rejoin_eth_id") := paste0(tract,sex,own_rent,age_range_6,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                     by=.(tract,sex,own_rent,age_range_6,ethnicity,hh_size)]
     sam_race_hh[,c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
-                   "language","English_level","income_range_workers"):=
+                   "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
                   transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                           list(occupation),list(commute_time),list(when_go_to_work),list(language),
-                                          list(English_level),list(income_range)),
+                                          list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
                                          on = .(rejoin_race_id)]]
     sam_eth_hh[,c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
-                  "language","English_level","income_range_workers"):=
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
                  transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                          list(occupation),list(commute_time),list(when_go_to_work),list(language),
-                                         list(English_level),list(income_range)),
+                                         list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
                                         on = .(rejoin_eth_id)]]
     transport_hh[,("missing_eth"):=sam_eth_hh[.SD,list(means_transport),on=.(rejoin_eth_id)]]
     transport_hh[,("missing_race"):=sam_race_hh[.SD,list(means_transport),on=.(rejoin_race_id)]]
+    #get about a third matching
     #then finish them off with reshuffles until transport_hh is finished...
+    #since own_rent is binary, just take it out, then don't write over, because sam has more tied to it now
+    sam_race_hh[is.na(means_transport),("rejoin_race2_id") := paste0(tract,sex,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
+                by=.(tract,sex,age_range_6,race,hh_size)]
+    sam_eth_hh[is.na(means_transport),("rejoin_eth2_id") := paste0(tract,sex,age_range_6,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+               by=.(tract,sex,age_range_6,ethnicity,hh_size)]
+    transport_hh[is.na(missing_race),("rejoin_race2_id") := paste0(tract,sex,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,age_range_6,race,hh_size)]
+    transport_hh[is.na(missing_eth),("rejoin_eth2_id") := paste0(tract,sex,age_range_6,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,age_range_6,ethnicity,hh_size)]
+    sam_race_hh[is.na(means_transport),
+                c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                   "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                  transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                      list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                      list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                               on = .(rejoin_race2_id)]]
+    sam_eth_hh[is.na(means_transport),
+               c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                 transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                     list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                     list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                              on = .(rejoin_eth2_id)]]
+    transport_hh[is.na(missing_eth),
+                 ("missing_eth"):=sam_eth_hh[.SD,list(means_transport),on=.(rejoin_eth2_id)]]
+    transport_hh[is.na(missing_race),
+                 ("missing_race"):=sam_race_hh[.SD,list(means_transport),on=.(rejoin_race2_id)]]
+    #about two-thirds matched - reshuffle, keeping same totals on transport side and just sampling from other members of hhs
+    transport_age_eth_2 <- as.data.table(anti_join(transport_age_dt,transport_hh[!is.na(missing_eth)],by="track_hh_id"))  
+    transport_age_race_2 <- as.data.table(anti_join(transport_age_dt,transport_hh[!is.na(missing_race)],by="track_hh_id"))
+    transport_hh[is.na(missing_eth),("rejoin_eth2b_id") := paste0(tract,sex,age_range_6,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,age_range_6,hh_size)]
+    transport_age_eth_2[,("rejoin_eth2b_id") := paste0(tract,sex,age_range_6,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,age_range_6,hh_size)]
+    transport_hh[is.na(missing_eth),
+                 c("ethnicity","track_hh_id"):=transport_age_eth_2[.SD,c(list(ethnicity),list(track_hh_id)),on=.(rejoin_eth2b_id)]]
+    transport_hh[is.na(missing_race),("rejoin_race2b_id") := paste0(tract,sex,age_range_6,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,age_range_6,hh_size)]
+    transport_age_race_2[,("rejoin_race2b_id") := paste0(tract,sex,age_range_6,hh_size,as.character(1000000+sample(1:.N))),
+                        by=.(tract,sex,age_range_6,hh_size)]
+    transport_hh[is.na(missing_race),
+                 c("race","track_hh_id"):=transport_age_race_2[.SD,c(list(race),list(track_hh_id)),on=.(rejoin_race2b_id)]]
+    #then try again, with new race/eth having been sampled
+    sam_race_hh[is.na(means_transport),("rejoin_race2c_id") := paste0(tract,sex,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
+                by=.(tract,sex,age_range_6,race,hh_size)]
+    sam_eth_hh[is.na(means_transport),("rejoin_eth2c_id") := paste0(tract,sex,age_range_6,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+               by=.(tract,sex,age_range_6,ethnicity,hh_size)]
+    transport_hh[is.na(missing_race),("rejoin_race2c_id") := paste0(tract,sex,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,age_range_6,race,hh_size)]
+    transport_hh[is.na(missing_eth),("rejoin_eth2c_id") := paste0(tract,sex,age_range_6,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,age_range_6,ethnicity,hh_size)]
+    sam_race_hh[is.na(means_transport),
+                c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                  transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                      list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                      list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                               on = .(rejoin_race2c_id)]]
+    sam_eth_hh[is.na(means_transport),
+               c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                 "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                 transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                     list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                     list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                              on = .(rejoin_eth2c_id)]]
+    transport_hh[is.na(missing_eth),
+                 ("missing_eth"):=sam_eth_hh[.SD,list(means_transport),on=.(rejoin_eth2c_id)]]
+    transport_hh[is.na(missing_race),
+                 ("missing_race"):=sam_race_hh[.SD,list(means_transport),on=.(rejoin_race2c_id)]]
+    
+    #get age_range_6=="65 years and over" - just match and finish off, since retired is most important and not that many left
+    sam_race_hh[is.na(means_transport)&age_range_6=="65 years and over",
+                ("rejoin_race2a_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+                by=.(tract)]
+    sam_eth_hh[is.na(means_transport)&age_range_6=="65 years and over",
+               ("rejoin_eth2a_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+               by=.(tract)]
+    transport_hh[is.na(missing_race)&age_range_6=="65 years and over",
+                 ("rejoin_race2a_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+                 by=.(tract)]
+    transport_hh[is.na(missing_eth)&age_range_6=="65 years and over",
+                 ("rejoin_eth2a_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+                 by=.(tract)]
+    sam_race_hh[is.na(means_transport)&age_range_6=="65 years and over",
+                c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                  transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                      list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                      list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                               on = .(rejoin_race2a_id)]]
+    sam_eth_hh[is.na(means_transport)&age_range_6=="65 years and over",
+               c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                 "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                 transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                     list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                     list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                              on = .(rejoin_eth2a_id)]]
+    transport_hh[is.na(missing_eth)&age_range_6=="65 years and over",
+                 ("missing_eth"):=sam_eth_hh[.SD,list(means_transport),on=.(rejoin_eth2a_id)]]
+    transport_hh[is.na(missing_race)&age_range_6=="65 years and over",
+                 ("missing_race"):=sam_race_hh[.SD,list(means_transport),on=.(rejoin_race2a_id)]]
+    
+    #without age or hh_size, but moving it over to keep straight at end of expanding
+    sam_race_hh[is.na(means_transport),("rejoin_race3_id") := paste0(tract,sex,race,as.character(1000000+sample(1:.N))),
+                by=.(tract,sex,race)]
+    sam_eth_hh[is.na(means_transport),("rejoin_eth3_id") := paste0(tract,sex,ethnicity,as.character(1000000+sample(1:.N))),
+               by=.(tract,sex,ethnicity)]
+    transport_hh[is.na(missing_race),("rejoin_race3_id") := paste0(tract,sex,race,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,race)]
+    transport_hh[is.na(missing_eth),("rejoin_eth3_id") := paste0(tract,sex,ethnicity,as.character(1000000+sample(1:.N))),
+                 by=.(tract,sex,ethnicity)]
+    sam_race_hh[is.na(means_transport),
+                c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                  transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                      list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                      list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                               on = .(rejoin_race3_id)]]
+    sam_eth_hh[is.na(means_transport),
+               c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                 "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                 transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                     list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                     list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                              on = .(rejoin_eth3_id)]]
+    transport_hh[is.na(missing_eth),
+                 ("missing_eth"):=sam_eth_hh[.SD,list(means_transport),on=.(rejoin_eth3_id)]]
+    transport_hh[is.na(missing_race),
+                 ("missing_race"):=sam_race_hh[.SD,list(means_transport),on=.(rejoin_race3_id)]]
+    #see if there are better matches among the households
+    
+    
+    
+    #write final mix of race, sex, age_range back to transport, matching hh_id, and moving track_hh_id back to anti_join from it
     
     #taking them away from transport_age, and from hh_relations, as you add them together from marriage, partners, workers, etc....
     
