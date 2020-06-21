@@ -52,8 +52,8 @@ createHouseholds <- function() {
 ###    occupied_race_dt with occup_type_dt 
     sam_race_hh <- occupied_race_dt[,c("tract","race","own_rent")]
     sam_eth_hh <- occupied_eth_dt[,c("tract","ethnicity","own_rent")]
-#    rm(occupied_race_dt)
-#    rm(occupied_eth_dt)
+    rm(occupied_race_dt)
+    rm(occupied_eth_dt)
     #sample inside group for id generation, in case there's oddness - set.seed(seed = seed) doesn't seem worth repeating every time
     #rule is to match until have a degree of freedom, sample in that group on each and then designate - ideal is to add only one
     #think of it as a sort of triangulation repeated
@@ -71,6 +71,7 @@ createHouseholds <- function() {
     #test hh1a
     #test <- table(hh_age_dt$tract,hh_age_dt$householder_age_9)==table(occup_type_dt$tract,occup_type_dt$householder_age_9)
     #length(test[test==F])==0
+    rm(hh_age_dt)
     #coordinate family_type back to own_rent, so that hh_type_race has an own_rent on it to match later
 #the problem here is the distribution of own_rent onto race in the background is underdetermined - this provides a matching, but could have ones that will not properly resolve
     occup_type_dt[,("rent_type_id"):=paste0(tract,family_type,single_hh_sex,as.character(1000000+sample(.N))),
@@ -1037,8 +1038,337 @@ createHouseholds <- function() {
     sam_race_hh[,("household_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
     #length(unique(sam_race_hh$household_id))==nrow(sam_race_hh)
     
-    #add workers per household
-    hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="3 or more workers"] #I think they made a mistake, although it could be that the other should be 4 or more workers?
+    #create a workers profile that we can match against
+    #this has been a major pain, since it's hard to see how to get to the right size from expanding hh_workers
+    #hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="3 or more workers"] #I think they made a mistake, although it could be that the other should be 4 or more workers?
+    hh_workers[,("hh_workers_id"):=paste0(tract,as.character(2000000+sample(.N))),by=.(tract)]
+    hh_workers[number_workers_in_hh=="3 workers",c("number_workers_in_hh"):="4 workers"] #I think they made a mistake, although it could be that the other should be 4 or more workers?
+    hh_workers[number_workers_in_hh=="No workers",("number_workers_in_hh"):="0 workers"]
+    #get hh_workers to have right hh_size and then upping number of workers
+    hh_workers[,("size_work_id") := paste0(tract,hh_size_4,as.character(1000000+sample(1:.N))),
+                         by=.(tract,hh_size_4)]
+    hh_size_dt[,("size_work_id") := paste0(tract,hh_size,as.character(1000000+sample(1:.N))),
+               by=.(tract,hh_size)]
+    hh_workers[,c("hh_size_7"):=
+                 hh_size_dt[.SD, list(hh_size),
+                                      on = .(size_work_id)]]
+    
+    #only ones left are "4-person or more"
+    hh_workers[is.na(hh_size_7),("size_work2_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+               by=.(tract)]
+    hh_size_dt[as.numeric(substr(hh_size,1,1))>3,("size_work2_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+               by=.(tract)]
+    hh_workers[is.na(hh_size_7),c("hh_size_7"):=
+                 hh_size_dt[.SD, list(hh_size),
+                            on = .(size_work2_id)]]
+    #test hh10a
+    #test <- table(
+    #  hh_workers$tract,
+    #  hh_workers$hh_size_7
+    #)==table(
+    #  hh_size_dt$tract,
+    #  hh_size_dt$hh_size
+    #)
+    #length(test[test==F])==0
+    #trying to get it large enough to fill the tracts, and then cut off the ones with large number of workers by
+    hh_workers[,("hh_size_10"):=if_else(hh_size_7=="7-or-more person household",
+                                        sample(c("7-person household","8-person household","9-person household","10-person household"),
+                                               .N,prob = c(.4,.3,.2,.1),replace = TRUE),
+                                        hh_size_7)]
+    hh_workers[hh_size_10!="10-person household",("hh_size_10"):=paste0("0",hh_size_10)]
+    hh_workers[hh_size_10=="09-person household"&number_workers_in_hh=="3 or more workers",
+               ("number_workers_in_hh"):=sample(c("3 workers","4 workers", "5 workers","6 workers",
+                                                  "7 workers","8 workers","9 workers","10 workers"),.N,
+                                                prob = c(.01,.01,.01,.1,.1,.1,.1,.27),replace = TRUE)]
+    hh_workers[hh_size_10=="09-person household"&number_workers_in_hh=="3 or more workers",
+               ("number_workers_in_hh"):=sample(c("3 workers","4 workers", "5 workers","6 workers",
+                                                  "7 workers","8 workers","9 workers"),.N,
+                                                prob = c(.01,.01,.01,.1,.1,.1,.37),replace = TRUE)]
+    hh_workers[hh_size_10=="08-person household"&number_workers_in_hh=="3 or more workers",
+               ("number_workers_in_hh"):=sample(c("3 workers","4 workers", "5 workers","6 workers","7 workers","8 workers"),.N,
+                                                prob = c(.01,.01,.01,.1,.1,.47),replace = TRUE)]
+    hh_workers[hh_size_10=="07-person household"&number_workers_in_hh=="3 or more workers",
+               ("number_workers_in_hh"):=sample(c("3 workers","4 workers", "5 workers","6 workers","7 workers"),.N,
+                                                prob = c(.01,.01,.01,.1,.57),replace = TRUE)]
+    hh_workers[hh_size_10=="06-person household"&number_workers_in_hh=="3 or more workers",
+               ("number_workers_in_hh"):=sample(c("3 workers","4 workers", "5 workers","6 workers"),.N,
+                                                prob = c(.01,.01,.01,.77),replace = TRUE)]
+    hh_workers[hh_size_10=="05-person household"&number_workers_in_hh=="3 or more workers",
+               ("number_workers_in_hh"):=sample(c("3 workers","4 workers", "5 workers"),.N,
+                                                prob = c(.1,.1,.8),replace = TRUE)]
+    hh_workers[hh_size_10=="04-person household"&number_workers_in_hh=="3 or more workers",
+               ("number_workers_in_hh"):=sample(c("3 workers", "4 workers"),.N,
+                                                prob = c(.1,.9),replace = TRUE)]
+    hh_workers[hh_size_10=="03-person household"&number_workers_in_hh=="3 or more workers",
+               ("number_workers_in_hh"):=list("3 workers")]
+    hh_workers[number_workers_in_hh!="10 workers",("number_workers_in_hh"):=paste0("0",number_workers_in_hh)]
+    #remember you lose households with 0 workers and (I'm guessing) adults who work from home! target is 2061700
+    workers_exp <- hh_workers[,uncount(.SD,as.numeric(substr(number_workers_in_hh,1,2)),.remove = FALSE,.id = "worker_")]
+    workers_exp$number_sams <- NULL #trying to fix shallow copy warning
+    
+    transport_age_dt[,("age_work_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+                     by=.(tract)]
+    workers_exp[order(hh_size_7),("age_work_id") := paste0(tract,as.character(1000000+seq.int(1:.N))),
+                by=.(tract)]
+    transport_age_dt[,c("hh_size","number_workers_in_hh","hh_workers_id"):=
+                       workers_exp[.SD, c(list(hh_size_7),list(number_workers_in_hh),list(hh_workers_id)),
+                                   on = .(age_work_id)]]
+    workers_exp[,("missed"):=transport_age_dt[.SD,list(hh_size),on = .(age_work_id)]]
+    
+    table(workers_exp[is.na(missed),hh_size_7])
+    #maybe in wrong tracts for ones that are larger? 
+    
+    
+    #create with workers, then select back to sam_eth/race, having chosen randomly from workers exp by hh_worker_id
+    #then do expansion from within sam_eth/race
+    transport_sex_dt[,("sex_age_work_id") := paste0(tract,means_transport_5,as.character(1000000+sample(1:.N))),
+                     by=.(tract,means_transport_5)]
+    transport_age_dt[,("sex_age_work_id") := paste0(tract,means_transport_5,as.character(1000000+sample(1:.N))),
+                by=.(tract,means_transport_5)]
+    transport_age_dt[,c("sex","means_transport_6a"):=
+                       transport_sex_dt[.SD, c(list(sex),list(means_transport)),
+                                   on = .(sex_age_work_id)]]
+    #test hh8a
+    #test<-table(
+    #  transport_age_dt$tract,
+    #  transport_age_dt$means_transport_5,
+    #  transport_age_dt$means_transport_6a,
+    #  transport_age_dt$sex
+    #)==table(
+    #  transport_sex_dt$tract,
+    #  transport_sex_dt$means_transport_5,
+    #  transport_sex_dt$means_transport,
+    #  transport_sex_dt$sex
+    #)
+    #length(test[test==F])==0
+    #industry and occupation - not using transport_occupation, because can't get a match with industry that's very good
+    transport_industry_dt[,("ind_age_work_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                     by=.(tract,means_transport)]
+    transport_age_dt[,("ind_age_work_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                     by=.(tract,means_transport)]
+    transport_age_dt[,c("industry","occupation"):=
+                       transport_industry_dt[.SD, c(list(industry),list(occupation_match)),
+                                        on = .(ind_age_work_id)]]
+    #test hh8b
+    #test<-table(
+    #  transport_age_dt$tract,
+    #  transport_age_dt$means_transport,
+    #  transport_age_dt$industry,
+    #  transport_age_dt$occupation
+    #)==table(
+    #  transport_industry_dt$tract,
+    #  transport_industry_dt$means_transport,
+    #  transport_industry_dt$industry,
+    #  transport_industry_dt$occupation_match
+    #)
+    #length(test[test==F])==0
+    #add time and when to work #people who worked at home were given no time, which is why it's smaller nrow
+    transport_time_work_dt[time_to_work=="Less than 10 minutes",("time_to_work"):=list("0 to 10 minutes")]
+    time_to_work_sex_dt[time_to_work=="Less than 5 minutes",("time_to_work"):=list("0 to 5 minutes")]
+    time_to_work_sex_dt[time_to_work=="5 to 9 minutes",("time_to_work"):=list("05 to 9 minutes")]
+    time_to_work_sex_dt[order(time_to_work),("time_work_id") := paste0(tract,as.character(1000000+seq.int(1:.N))),
+                        by=.(tract)]
+    transport_time_work_dt[order(time_to_work),("time_work_id") := paste0(tract,as.character(1000000+seq.int(1:.N))),
+                     by=.(tract)]
+    transport_time_work_dt[,c("sex","commute_time"):=
+                             time_to_work_sex_dt[.SD, c(list(sex),list(time_to_work)),
+                                        on = .(time_work_id)]]
+    #test hh8c
+    #test<-table(
+    #  transport_time_work_dt$tract,
+    #  transport_time_work_dt$sex,
+    #  transport_time_work_dt$commute_time
+    #)==table(
+    #  time_to_work_sex_dt$tract,
+    #  time_to_work_sex_dt$sex,
+    #  time_to_work_sex_dt$time_to_work
+    #)
+    #length(test[test==F])==0
+    
+    when_go_work_sex_dt[,("sex_work_id") := paste0(tract,sex,as.character(1000000+sample(1:.N))),
+                        by=.(tract,sex)]
+    transport_time_work_dt[,("sex_work_id") := paste0(tract,sex,as.character(1000000+sample(1:.N))),
+                           by=.(tract,sex)]
+    transport_time_work_dt[,c("when_go_to_work"):=
+                             when_go_work_sex_dt[.SD, list(when_go_to_work),
+                                                 on = .(sex_work_id)]]
+    #test hh8d
+    #test<-table(
+    #  transport_time_work_dt$tract,
+    #  transport_time_work_dt$sex,
+    #  transport_time_work_dt$when_go_to_work
+    #)==table(
+    #  when_go_work_sex_dt$tract,
+    #  when_go_work_sex_dt$sex,
+    #  when_go_work_sex_dt$when_go_to_work
+    #)
+    #length(test[test==F])==0
+    
+    transport_time_work_dt[,("sex_time_work_id") := paste0(tract,sex,means_transport_4,as.character(1000000+sample(1:.N))),
+                          by=.(tract,sex,means_transport_4)]
+    transport_age_dt[,("sex_time_work_id") := paste0(tract,sex,means_transport_5,as.character(1000000+sample(1:.N))),
+                     by=.(tract,sex,means_transport_5)]
+    transport_age_dt[,c("commute_time","when_go_to_work"):=
+                       transport_time_work_dt[.SD, c(list(commute_time),list(when_go_to_work)),
+                                             on = .(sex_time_work_id)]]
+    transport_time_work_dt[,c("missing"):=
+                             transport_age_dt[.SD, list(commute_time),
+                                              on = .(sex_time_work_id)]]
+    #second time, letting sex from transport_time trump on subset
+    transport_time_work_dt[is.na(missing),
+                           ("sex_time_work2_id") := paste0(tract,means_transport_4,as.character(1000000+sample(1:.N))),
+                           by=.(tract,means_transport_4)]
+    transport_age_dt[is.na(commute_time)&means_transport_5!="Worked at home",
+                     ("sex_time_work2_id") := paste0(tract,means_transport_5,as.character(1000000+sample(1:.N))),
+                     by=.(tract,means_transport_5)]
+    transport_age_dt[is.na(commute_time)&means_transport_5!="Worked at home",
+                     c("sex","commute_time","when_go_to_work"):=
+                       transport_time_work_dt[.SD, c(list(sex),list(commute_time),list(when_go_to_work)),
+                                              on = .(sex_time_work2_id)]]
+    #test hh8e
+    test<-table(
+      transport_time_work_dt$tract,
+      transport_time_work_dt$sex,
+      transport_time_work_dt$commute_time,
+      transport_time_work_dt$when_go_to_work
+    )==table(
+      transport_age_dt[means_transport_5!="Worked at home"]$tract,
+      transport_age_dt[means_transport_5!="Worked at home"]$sex,
+      transport_age_dt[means_transport_5!="Worked at home"]$commute_time,
+      transport_age_dt[means_transport_5!="Worked at home"]$when_go_to_work
+    )
+    length(test[test==F])==0
+    transport_age_dt[is.na(commute_time),("commute_time"):="0 minutes (works at home)"] #m before t, so still first in sort vs. "0 to 5"
+    
+    #add language
+    transport_language_dt[,("language_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                           by=.(tract,means_transport)]
+    transport_age_dt[,("language_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                     by=.(tract,means_transport)]
+    transport_age_dt[,c("language","English_level"):=
+                       transport_language_dt[.SD, c(list(language),list(English_level)),
+                                              on = .(language_id)]]
+    #test hh8f
+    #test<-table(
+    #  transport_language_dt$tract,
+    #  transport_language_dt$language,
+    #  transport_language_dt$English_level
+    #)==table(
+    #  transport_age_dt$tract,
+    #  transport_age_dt$language,
+    #  transport_age_dt$English_level
+    #)
+    #length(test[test==F])==0
+    
+    #income and tenure don't match others exactly, so match and then prefer existing on transport_age
+    transport_tenure_dt[,("own_rent"):=if_else(str_detect(owner_renter,"renter"),"Renter occupied","Owner occupied")]
+    transport_tenure_dt[,("tenure_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                          by=.(tract,means_transport)]
+    transport_age_dt[,("tenure_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                     by=.(tract,means_transport)]
+    transport_age_dt[,c("own_rent"):=
+                       transport_tenure_dt[.SD, list(own_rent),
+                                             on = .(tenure_id)]]
+    #test that they all moved over nrow(transport_tenure_dt[is.na(missing)])==0
+    #transport_tenure_dt[,c("missing"):=
+    #                      transport_age_dt[.SD, list(own_rent),
+    #                                       on = .(tenure_id)]]
+    transport_income_dt[,("income_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                        by=.(tract,means_transport)]
+    transport_age_dt[,("income_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                     by=.(tract,means_transport)]
+    transport_age_dt[,c("income_range"):=
+                       transport_income_dt[.SD, list(income_range),
+                                           on = .(income_id)]]
+    #test that they all moved over nrow(transport_income_dt[is.na(missing)])==0
+    #transport_income_dt[,c("missing"):=
+    #                      transport_age_dt[.SD, list(income_range),
+    #                                       on = .(income_id)]]
+    
+    #add race and eth....
+    transport_race_dt[,("race_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                        by=.(tract,means_transport)]
+    transport_eth_dt[,("race_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                      by=.(tract,means_transport)]
+    transport_age_dt[,("race_id") := paste0(tract,means_transport,as.character(1000000+sample(1:.N))),
+                     by=.(tract,means_transport)]
+    transport_age_dt[,c("race"):=
+                       transport_race_dt[.SD, list(race),
+                                           on = .(race_id)]]
+    transport_age_dt[,c("ethnicity"):=
+                       transport_eth_dt[.SD, list(ethnicity),
+                                         on = .(race_id)]]
+    #test hh8h
+    #test<-table(
+    #  transport_eth_dt$tract,
+    #  transport_eth_dt$ethnicity
+    #)==table(
+    #  transport_age_dt$tract,
+    #  transport_age_dt$ethnicity
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  transport_race_dt$tract,
+    #  transport_race_dt$means_transport,
+    #  transport_race_dt$race
+    #)==table(
+    #  transport_age_dt$tract,
+    #  transport_age_dt$means_transport,
+    #  transport_age_dt$race
+    #)
+    #length(test[test==F])==0
+    
+    
+    #get age_range in shape to match
+    transport_age_dt[,("age_range_6"):=case_when(
+      age_range_7=="16 to 19 years" | age_range_7=="20 to 24 years" ~ "15 to 24 years",
+      TRUE ~ age_range_7
+    )]
+    sam_eth_hh[,("age_range_6"):=case_when(
+      householder_age_9=="Householder 25 to 34 years" | householder_age_9=="Householder 35 to 44 years" ~ "25 to 44 years",
+      householder_age_9=="Householder 65 to 74 years" | householder_age_9=="Householder 75 to 84 years" |
+        householder_age_9=="Householder 85 years and over" ~ "65 years and over",
+      TRUE ~ str_remove(householder_age_9,"Householder ")
+    )]
+    #have to redo match on income, sex, race and eth, etc. without hh later, but same total on workers...
+    #get back to only householders who are in labor force
+    transport_age_dt[,("track_hh_id"):=paste0(tract,as.character(1000000+sample(1:.N))),by=.(tract)]
+    #transport_hh <- transport_age_dt[,.SD[sample(.N)],by = .(hh_workers_id)] # number in labor force
+    transport_hh <- transport_age_dt[,.SD[1],by = .(hh_workers_id)] # number in labor force, but about 4k short of correct total...
+    
+    sam_race_hh[,("rejoin_race_id") := paste0(tract,sex,own_rent,race,hh_size,as.character(1000000+sample(1:.N))),
+                      by=.(tract,sex,own_rent,race,hh_size)]
+    sam_eth_hh[,("rejoin_eth_id") := paste0(tract,sex,own_rent,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                     by=.(tract,sex,own_rent,ethnicity,hh_size)]
+    transport_hh[,("rejoin_race_id") := paste0(tract,sex,own_rent,race,hh_size,as.character(1000000+sample(1:.N))),
+                     by=.(tract,sex,own_rent,race,hh_size)]
+    transport_hh[,("rejoin_eth_id") := paste0(tract,sex,own_rent,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                     by=.(tract,sex,own_rent,ethnicity,hh_size)]
+    sam_race_hh[,c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                   "language","English_level","income_range_workers"):=
+                  transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                          list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                          list(English_level),list(income_range)),
+                                         on = .(rejoin_race_id)]]
+    sam_eth_hh[,c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers"):=
+                 transport_hh[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                         list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                         list(English_level),list(income_range)),
+                                        on = .(rejoin_eth_id)]]
+    transport_hh[,("missing_eth"):=sam_eth_hh[.SD,list(means_transport),on=.(rejoin_eth_id)]]
+    transport_hh[,("missing_race"):=sam_race_hh[.SD,list(means_transport),on=.(rejoin_race_id)]]
+    #then finish them off with reshuffles until transport_hh is finished...
+    
+    #taking them away from transport_age, and from hh_relations, as you add them together from marriage, partners, workers, etc....
+    
+    
+    
+    #vehicles_hh and vehicles_workers added after back to sam_eth/race_hh
+    
+#add sex, eth/race, own_rent, and then match back to sam_eth/race_hh  
+    
+    #by matching on hh_size_4 can get exact numbers in spite of sample, above
     sam_eth_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
     sam_eth_hh[,("worker_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
     sam_race_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4-or-more-person household",hh_size)]
@@ -1080,30 +1410,64 @@ createHouseholds <- function() {
     #length(test[test==F])==0
     
     #add employment for family - census file is misssing 4384, all married couple families...
-    #assumes ALL householders who are married are male
-    #get categories straight
-    family_employment_dt[wife_employed=="Wife not in labor force",("wife_employed"):="Not in labor force"]
-    family_employment_dt[husband_employed=="Husband not in labor force",("husband_employed"):="Not in labor force"]
-    family_employment_dt[!is.na(husband_employed),("employment"):=husband_employed]
-    family_employment_dt[!is.na(single_hh_employ),("employment"):=single_hh_employ]
-    family_employment_dt[,("employ_id"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
-                         by=.(tract,family_type,family_role,own_kids)]
+    family_employment_dt[,("min_workers"):=case_when(
+      single_hh_employ!="Not in labor force" ~ 1,
+      wife_employed!="Wife not in labor force" & husband_employed!="Husband not in labor force" ~ 2,
+      wife_employed!="Wife not in labor force" & husband_employed=="Husband not in labor force" ~ 1,
+      wife_employed=="Wife not in labor force" & husband_employed!="Husband not in labor force" ~ 1,
+      TRUE ~ 0
+    )]
+    #with min_workers first
+    #could do one at end to pick up non-family and the last 4384 Married-couple families
+    family_employment_dt[,("employ_id"):=paste0(tract,min_workers,family_role,own_kids,as.character(1000000+sample(.N))),
+                         by=.(tract,min_workers,family_role,own_kids)]
     sam_eth_hh[family=="Family households",
            ("own_kids"):=if_else(kids_by_age=="No children",
                                  "No children under 18 years","With own children under 18 years")]
+    sam_eth_hh[number_workers_in_hh=="No workers",("number_workers_in_hh"):="0 workers"]
+    sam_eth_hh[,("min_workers"):=as.numeric(substr(number_workers_in_hh,1,1))]
     sam_eth_hh[family=="Family households",
-           ("employ_id"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
-           by=.(tract,family_type,family_role,own_kids)]
+           ("employ_id"):=paste0(tract,min_workers,family_role,own_kids,as.character(1000000+sample(.N))),
+           by=.(tract,min_workers,family_role,own_kids)]
     sam_eth_hh[,c("employment","wife_employed") := 
              family_employment_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id)]]
+    sam_race_hh[number_workers_in_hh=="No workers",("number_workers_in_hh"):="0 workers"]
+    sam_race_hh[,("min_workers"):=as.numeric(substr(number_workers_in_hh,1,1))]
     sam_race_hh[family=="Family households",
                ("own_kids"):=if_else(kids_by_age=="No children",
                                      "No children under 18 years","With own children under 18 years")]
     sam_race_hh[family=="Family households",
-               ("employ_id"):=paste0(tract,family_type,family_role,own_kids,as.character(1000000+sample(.N))),
-               by=.(tract,family_type,family_role,own_kids)]
+               ("employ_id"):=paste0(tract,min_workers,family_role,own_kids,as.character(1000000+sample(.N))),
+               by=.(tract,min_workers,family_role,own_kids)]
     sam_race_hh[,c("employment","wife_employed") := 
                  family_employment_dt[.SD, c(list(employment),list(wife_employed)), on = .(employ_id)]]
+    family_employment_dt[,("missing_race"):=sam_race_hh[.SD, list(employment), on = .(employ_id)]]
+    family_employment_dt[,("missing_eth"):=sam_eth_hh[.SD, list(employment), on = .(employ_id)]]
+    
+    #about half here - need to respect the family_employment part - lots of things on the sam side need to be sorted together
+    #test hh12a
+    test <- table(
+      family_employment_dt$tract,
+      family_employment_dt$employment,
+      family_employment_dt$wife_employed
+      )==table(
+        sam_eth_hh$tract,
+        sam_eth_hh$employment,
+        sam_eth_hh$wife_employed
+      )
+    length(test[test==F])
+    test <- table(
+      family_employment_dt$tract,
+      family_employment_dt$employment,
+      family_employment_dt$wife_employed
+    )==table(
+      sam_race_hh$tract,
+      sam_race_hh$employment,
+      sam_race_hh$wife_employed
+    )
+    length(test[test==F])
+      
+    
     #pickup stragglers - ~58k 
     sam_eth_hh[family=="Family households" & is.na(employment),
            ("employ_id2"):=paste0(tract,family_type,family_role,as.character(1000000+sample(.N))),
@@ -1173,6 +1537,217 @@ createHouseholds <- function() {
     #)
     #length(test[test==F])/length(test) < .04 #because of not giving full numbers from census on married-couples...
     
+    #gives unmarried partners, straight and same-sex concept: UNMARRIED-PARTNER HOUSEHOLDS BY SEX OF PARTNER 
+    #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
+    hh_partner_dt[partner_type == "Female householder and female partner",("sex_partner") := "Female"]
+    hh_partner_dt[partner_type == "Male householder and male partner",("sex_partner") := "Male"]
+    hh_partner_dt[partner_type == "Male householder and female partner",("sex_partner") := "Female"]
+    hh_partner_dt[partner_type == "Female householder and male partner",("sex_partner") := "Male"]
+    hh_partner_dt[partner_type == "Female householder and female partner",("sex") := "Female"]
+    hh_partner_dt[partner_type == "Male householder and male partner",("sex") := "Male"]
+    hh_partner_dt[partner_type == "Male householder and female partner",("sex") := "Male"]
+    hh_partner_dt[partner_type == "Female householder and male partner",("sex") := "Female"]
+    hh_partner_dt[unmarried=="Unmarried-partner households",
+                  ("partner_type_id"):=paste0(tract,sex,as.character(1000000+sample(.N))),by=.(tract,sex)]
+    sam_eth_hh[family_type=="Other family",# lose 2627 of 92975 in first pass - not sure where else to put them
+               ("partner_type_id"):=paste0(tract,if_else(is.na(sex),"none",sex),as.character(1000000+sample(.N))),by=.(tract,sex)]
+    sam_eth_hh[family_type=="Other family",
+               c("partner_type","sex_partner","hh_sex") := 
+                 hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(partner_type_id)]]
+    sam_race_hh[family_type=="Other family",# lose 2627 of 92975 in first pass - not sure where else to put them
+                ("partner_type_id"):=paste0(tract,if_else(is.na(sex),"none",sex),as.character(1000000+sample(.N))),by=.(tract,sex)]
+    sam_race_hh[family_type=="Other family",
+                c("partner_type","sex_partner","hh_sex") := 
+                  hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(partner_type_id)]]
+    hh_partner_dt[unmarried=="Unmarried-partner households",
+                  c("matched_eth") := 
+                    sam_eth_hh[.SD, c(list(partner_type)), on = .(partner_type_id)]]
+    hh_partner_dt[unmarried=="Unmarried-partner households",
+                  c("matched_race") := 
+                    sam_race_hh[.SD, c(list(partner_type)), on = .(partner_type_id)]]
+    hh_partner_dt[unmarried=="Unmarried-partner households" & is.na(matched_eth),
+                  ("second_join_eth_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    hh_partner_dt[unmarried=="Unmarried-partner households" & is.na(matched_race),
+                  ("second_join_race_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_eth_hh[family_type=="Householder not living alone" & is.na(partner_type),
+               ("second_join_eth_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_eth_hh[family_type=="Householder not living alone" & is.na(partner_type),
+               c("partner_type","sex_partner","hh_sex") := 
+                 hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(second_join_eth_id)]]
+    sam_eth_hh$partner_type_id <- NULL
+    sam_eth_hh$second_join_eth_id <- NULL
+    sam_race_hh[family_type=="Householder not living alone" & is.na(partner_type),
+                ("second_join_race_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
+    sam_race_hh[family_type=="Householder not living alone" & is.na(partner_type),
+                c("partner_type","sex_partner","hh_sex") := 
+                  hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(second_join_race_id)]]
+    sam_race_hh$partner_type_id <- NULL
+    sam_race_hh$second_join_race_id <- NULL
+    #clean up on the ones that don't have hh_sex and sex
+    sam_race_hh[!is.na(hh_sex),("sex"):=hh_sex]
+    sam_eth_hh[!is.na(hh_sex),("sex"):=hh_sex]
+    #test hh18
+    #test<-table(
+    #  hh_partner_dt$tract,
+    #  hh_partner_dt$partner_type,
+    #  hh_partner_dt$sex_partner,
+    #  hh_partner_dt$sex
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$partner_type,
+    #  sam_race_hh$sex_partner,
+    #  sam_race_hh$hh_sex
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  hh_partner_dt$tract,
+    #  hh_partner_dt$partner_type,
+    #  hh_partner_dt$sex_partner,
+    #  hh_partner_dt$sex
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$partner_type,
+    #  sam_eth_hh$sex_partner,
+    #  sam_eth_hh$hh_sex
+    #)
+    #length(test[test==F])==0
+    #encode hh relation
+    sam_eth_hh[,("inhousehold_id"):=paste0(household_id,"_01")]
+    sam_race_hh[,("inhousehold_id"):=paste0(household_id,"_01")]
+    sam_eth_hh[,("role_in_family"):=list("Householder")]
+    sam_race_hh[,("role_in_family"):=list("Householder")]
+    
+    #the last few will all be juggled together as we grow back and forth
+    partners_eth <- sam_eth_hh[,uncount(.SD[!is.na(partner_type)],1,.remove = TRUE,.id="partner")]
+    wives_eth <- sam_eth_hh[,uncount(.SD[family_role=="Married-couple family"],1,.remove = TRUE,.id="wife")]
+    partners_race <- sam_race_hh[,uncount(.SD[!is.na(partner_type)],1,.remove = TRUE,.id="partner")]
+    wives_race <- sam_race_hh[,uncount(.SD[family_role=="Married-couple family"],1,.remove = TRUE,.id="wife")]
+    #change the files to mirror
+    partners_eth[,("inhousehold_id"):=list(paste0(household_id,"_02"))] #list() seems to keep it from getting that shallow copy warning; not sure what's going on
+    partners_race[,("inhousehold_id"):=list(paste0(household_id,"_02"))]
+    wives_eth[,("inhousehold_id"):=list(paste0(household_id,"_02"))]
+    wives_race[,("inhousehold_id"):=list(paste0(household_id,"_02"))]
+    partners_eth[,("role_in_family"):=list("Unmarried partner")]
+    partners_race[,("role_in_family"):=list("Unmarried partner")]
+    wives_eth[,("role_in_family"):=list("Spouse")]
+    wives_race[,("role_in_family"):=list("Spouse")]
+    partners_eth[,("sex"):=sex_partner]
+    partners_race[,("sex"):=sex_partner]
+    wives_eth[,("sex"):="Female"]
+    wives_race[,("sex"):="Female"]
+    partners_eth[,c("family_role","family_role_4"):="Partner"]
+    partners_race[,c("family_role","family_role_4"):="Partner"]
+    wives_eth[,c("family_role","family_role_4"):="Wife"]
+    wives_race[,c("family_role","family_role_4"):="Wife"]
+    #employment
+    wives_eth[,("husband_employ"):=list(employment)]
+    wives_race[,("husband_employ"):=list(employment)]
+    wives_eth[,("employment"):=wife_employed]
+    wives_race[,("employment"):=wife_employed]
+    #could do interracial marriages - 17% of new marriages in 2015; 3% in 1967... other.race gets a lot of increase... - fix later
+    #rbindlist into one whole and then match...
+    sam_pw_hh_eth <- bind_rows(sam_eth_hh,partners_eth,wives_eth)
+    sam_pw_hh_race <- bind_rows(sam_race_hh,partners_race,wives_race)
+    
+    #create larger workers file, to start process with race/eth for hh info
+    #move over info for hh where they are employed and wife
+    #add own_rent and sex from sam to transport, by race, so that we have the subset that is HH already prepped
+    sam_pw_hh_eth[employment!="Not in labor force",("transport_occup_id"):=paste0(tract,ethnicity,as.character(1000000+sample(.N))),by=.(tract,ethnicity)]
+    transport_eth_dt[,("transport_occup_id"):=paste0(tract,ethnicity,as.character(1000000+sample(.N))),by=.(tract,ethnicity)]
+    sam_pw_hh_race[employment!="Not in labor force",("transport_occup_id"):=paste0(tract,race,as.character(1000000+sample(.N))),by=.(tract,race)]
+    transport_race_dt[,("transport_occup_id"):=paste0(tract,race,as.character(1000000+sample(.N))),by=.(tract,race)]
+    transport_eth_dt[,c("sex","own_rent") := 
+                       sam_pw_hh_eth[.SD, c(list(sex),list(own_rent)), on = .(transport_occup_id)]]
+    sam_pw_hh_eth$transport_occup_id <- NULL
+    transport_race_dt[,c("sex","own_rent") := 
+                        sam_pw_hh_race[.SD, c(list(sex),list(own_rent)), on = .(transport_occup_id)]]
+    sam_pw_hh_race$transport_occup_id <- NULL
+    #about 30k didn't match; since some HHs aren't employed, it may be ok. - not really sure why this would happen if only matching race/eth...
+    
+    #fill in rest (and juggle, as needed) for own_rent and then everything with sex
+    #mark the ones on transport_tenure that are already used on means_transport and own_rent
+    transport_eth_dt[employment!="Not in labor force",("transport_occup1_id"):=
+                       paste0(tract,means_transport,own_rent,as.character(1000000+sample(.N))),
+                     by=.(tract,means_transport,own_rent)]
+    transport_race_dt[employment!="Not in labor force",("transport_occup1_id"):=
+                        paste0(tract,means_transport,own_rent,as.character(1000000+sample(.N))),
+                      by=.(tract,means_transport,own_rent)]
+    transport_tenure_dt[,("transport_occup1_id"):=
+                          paste0(tract,means_transport,own_rent,as.character(1000000+sample(.N))),
+                        by=.(tract,means_transport,own_rent)]
+    transport_tenure_dt[,c("miss_own_rent_race") := 
+                          transport_race_dt[.SD, list(own_rent), on = .(transport_occup1_id)]]
+    transport_tenure_dt[,c("miss_own_rent_eth") := 
+                          transport_eth_dt[.SD, list(own_rent), on = .(transport_occup1_id)]]
+    #shuffle to get sex, own_rent relative to transportation 
+    #have to get the means_transport - own_rent pairs from transport_tenure to eth/race
+    #since own_rent is binary, just switch for leftovers and see if that matches rest
+    transport_eth_dt[is.na(miss_own_rent) & !is.na(own_rent),
+                     ("own_rent"):=if_else(own_rent=="Owner occupied","Renter occupied","Owner occupied")]
+    
+    
+    #continue with transport_eth/race for rest from transport_tenure
+    transport_eth_dt[is.na(miss_own_rent_eth),
+                     ("transport_occup2e_id"):=
+                       paste0(tract,ethnicity,as.character(1000000+sample(.N))),
+                     by=.(tract,ethnicity)]
+    transport_tenure_dt[,("transport_occup2e_id"):=
+                          paste0(tract,ethnicity,as.character(1000000+sample(.N))),
+                        by=.(tract,ethnicity)]
+    transport_race_dt[is.na(miss_own_rent_race),
+                      ("transport_occup2r_id"):=
+                        paste0(tract,race,as.character(1000000+sample(.N))),
+                      by=.(tract,race)]
+    transport_tenure_dt[,("transport_occup2r_id"):=
+                          paste0(tract,race,as.character(1000000+sample(.N))),
+                        by=.(tract,race)]
+    transport_eth_dt[is.na(own_rent),c("own_rent") := 
+                       transport_tenure_dt[.SD, list(own_rent), on = .(transport_occup2e_id)]]
+    transport_race_dt[is.na(own_rent),c("own_rent") := 
+                        transport_tenure_dt[.SD, list(own_rent), on = .(transport_occup2r_id)]]
+    
+    #test hh14
+    test <- table(
+      transport_eth_dt$tract,
+      transport_eth_dt$means_transport,
+      transport_eth_dt$own_rent
+    )==table(
+      transport_tenure_dt$tract,
+      transport_tenure_dt$means_transport,
+      transport_tenure_dt$own_rent
+    )
+    length(test[test==F])
+    test <- table(
+      transport_race_dt$tract,
+      transport_race_dt$means_transport,
+      transport_race_dt$own_rent
+    )==table(
+      transport_tenure_dt$tract,
+      transport_tenure_dt$means_transport,
+      transport_tenure_dt$own_rent
+    )
+    length(test[test==F])
+    
+#    transport_race_dt #race,means_transport,means_transport_5
+#    transport_eth_dt #ethnicity,means_transport,means_transport_5
+    transport_tenure_dt #own_rent,means_transport,means_transport_5
+    
+    vehicles_sex_dt #"sex","number_vehicles_in_hh"
+    transport_sex_dt #"sex","means_transport","how_transport","carpool","means_transport_5"
+    #join with some logic on walking, public transport, etc.
+    time_to_work_sex_dt #"sex","time_to_work"
+    when_go_work_sex_dt #"sex","when_go_to_work"
+    
+    transport_age_dt #"means_transport","age_range_7","means_transport_5"
+    transport_language_dt #"means_transport","language","English_level","means_transport_5"
+    transport_income_dt #"means_transport","income_range","means_transport_5"
+    
+    transport_time_work_dt #"means_transport_4","how_transport","time_to_work","carpool_size"
+    
+    transport_occupation_dt #"means_transport","occupation"
+    transport_industry_dt #"means_transport","industry","means_transport_5","occupation_match" #match is general suggestion..
+    
+    #add vehicles_workers_dt - use to add hh to larger workers, with stuff on hh_size and sex
     #add vehicles - should vary with more infor from individual size
     sam_eth_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
     sam_race_hh[,("vehicle_occup_id"):=paste0(tract,hh_size_4,as.character(1000000+sample(.N))),by=.(tract,hh_size_4)]
@@ -1328,54 +1903,53 @@ createHouseholds <- function() {
     #)
     #length(test[test==F])==0
 
-    #gives unmarried partners, straight and same-sex concept: UNMARRIED-PARTNER HOUSEHOLDS BY SEX OF PARTNER 
-    #https://www.census.gov/library/stories/2019/09/unmarried-partners-more-diverse-than-20-years-ago.html - by 2017, close to even across ages / ethnicities, etc.
-    hh_partner_dt[partner_type == "Female householder and female partner",("sex_partner") := "Female"]
-    hh_partner_dt[partner_type == "Male householder and male partner",("sex_partner") := "Male"]
-    hh_partner_dt[partner_type == "Male householder and female partner",("sex_partner") := "Female"]
-    hh_partner_dt[partner_type == "Female householder and male partner",("sex_partner") := "Male"]
-    hh_partner_dt[partner_type == "Female householder and female partner",("sex") := "Female"]
-    hh_partner_dt[partner_type == "Male householder and male partner",("sex") := "Male"]
-    hh_partner_dt[partner_type == "Male householder and female partner",("sex") := "Male"]
-    hh_partner_dt[partner_type == "Female householder and male partner",("sex") := "Female"]
-    hh_partner_dt[unmarried=="Unmarried-partner households",
-                  ("partner_type_id"):=paste0(tract,sex,as.character(1000000+sample(.N))),by=.(tract,sex)]
-    sam_eth_hh[family_type=="Other family",# lose 2627 of 92975 in first pass - not sure where else to put them
-           ("partner_type_id"):=paste0(tract,if_else(is.na(sex),"none",sex),as.character(1000000+sample(.N))),by=.(tract,sex)]
-    sam_eth_hh[family_type=="Other family",
-           c("partner_type","sex_partner","hh_sex") := 
-             hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(partner_type_id)]]
-    sam_race_hh[family_type=="Other family",# lose 2627 of 92975 in first pass - not sure where else to put them
-               ("partner_type_id"):=paste0(tract,if_else(is.na(sex),"none",sex),as.character(1000000+sample(.N))),by=.(tract,sex)]
-    sam_race_hh[family_type=="Other family",
-               c("partner_type","sex_partner","hh_sex") := 
-                 hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(partner_type_id)]]
-    hh_partner_dt[unmarried=="Unmarried-partner households",
-           c("matched_eth") := 
-             sam_eth_hh[.SD, c(list(partner_type)), on = .(partner_type_id)]]
-    hh_partner_dt[unmarried=="Unmarried-partner households",
-                  c("matched_race") := 
-                    sam_race_hh[.SD, c(list(partner_type)), on = .(partner_type_id)]]
-    hh_partner_dt[unmarried=="Unmarried-partner households" & is.na(matched_eth),
-                  ("second_join_eth_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
-    hh_partner_dt[unmarried=="Unmarried-partner households" & is.na(matched_race),
-                  ("second_join_race_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
-    sam_eth_hh[family_type=="Householder not living alone" & is.na(partner_type),
-           ("second_join_eth_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
-    sam_eth_hh[family_type=="Householder not living alone" & is.na(partner_type),
-           c("partner_type","sex_partner","hh_sex") := 
-             hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(second_join_eth_id)]]
-    sam_eth_hh$partner_type_id <- NULL
-    sam_eth_hh$second_join_eth_id <- NULL
-    sam_race_hh[family_type=="Householder not living alone" & is.na(partner_type),
-               ("second_join_race_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
-    sam_race_hh[family_type=="Householder not living alone" & is.na(partner_type),
-               c("partner_type","sex_partner","hh_sex") := 
-                 hh_partner_dt[.SD, c(list(partner_type),list(sex_partner),list(sex)), on = .(second_join_race_id)]]
-    sam_race_hh$partner_type_id <- NULL
-    sam_race_hh$second_join_race_id <- NULL
+    
+  
+    #SNAP stuff is problematic at a couple of levels - could try to combine with SSI, too?
+    sam_eth_hh[order(people_per_room),
+               ("SNAP_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
+               by=.(tract,ethnicity)]
+    sam_race_hh[order(people_per_room),
+                ("SNAP_id"):=paste0(tract,race,as.character(1000000+seq.int(1:.N))),
+                by=.(tract,race)]
+    food_stamps_eth_dt[order(food_stamps),
+                       ("SNAP_id"):=paste0(tract,ethnicity,as.character(1000000+seq.int(1:.N))),
+               by=.(tract,ethnicity)]
+    food_stamps_race_dt[order(food_stamps),
+                        ("SNAP_id"):=paste0(tract,race,as.character(1000000+seq.int(1:.N))),
+                       by=.(tract,race)]
+    sam_eth_hh[,c("SNAP") := 
+                 food_stamps_eth_dt[.SD, list(food_stamps), on = .(SNAP_id)]]
+    sam_race_hh[,c("SNAP") := 
+                  food_stamps_race_dt[.SD, list(food_stamps), on = .(SNAP_id)]]
+    sam_eth_hh$SNAP_id <- NULL
+    sam_race_hh$SNAP_id <- NULL
+    #test hh19
+    #test<-table(
+    #  food_stamps_race_dt$tract,
+    #  food_stamps_race_dt$race,
+    #  food_stamps_race_dt$food_stamps
+    #)==table(
+    #  sam_race_hh$tract,
+    #  sam_race_hh$race,
+    #  sam_race_hh$SNAP
+    #)
+    #length(test[test==F])==0
+    #test<-table(
+    #  food_stamps_eth_dt$tract,
+    #  food_stamps_eth_dt$ethnicity,
+    #  food_stamps_eth_dt$food_stamps
+    #)==table(
+    #  sam_eth_hh$tract,
+    #  sam_eth_hh$ethnicity,
+    #  sam_eth_hh$SNAP
+    #)
+    #length(test[test==F])==0
+    
+    
 
-    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.568",Sys.Date(),".RDS")) 
+    saveRDS(sam_eth_hh,file = paste0(housingdir, vintage, "/sam_eth.hh",Sys.Date(),".RDS")) 
+    saveRDS(sam_race_hh,file = paste0(housingdir, vintage, "/sam_race.hh",Sys.Date(),".RDS"))
 #    rm(list = setdiff(ls(),"sam_hh")) # or just the ones that are in the list that is passed from expand_hh_from_census
     #when go through and set break if error points, also remove after using - just to clean up space
   #END BASE_HH_GEN here
@@ -1659,73 +2233,7 @@ createHouseholds <- function() {
     relations_dt_no_5adults <- relations_dt_no_5kids[!relations_id %in% unique(exp_sam[,hh_5_id])]
 #    exp_sam[!is.na(hh_5_role),c("hh_5_id","hh_5_role"):=.SD[.N,c(hh_5_id,hh_5_role)],by=.(household_id)]
     
-    #then fill out final by referring back to age_race for whole
-    
-    
-    #concept:SEX BY AGE BY EDUCATIONAL ATTAINMENT FOR THE POPULATION 18 YEARS AND OVER - 
-    sex_age_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B15001") 
-    sex_age_educ_data <- sex_age_educ_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(sex_age_educ_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("sex","age","education_level"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(education_level) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "sex_age_hheduc_id",.remove = TRUE)
-    sex_age_educ_dt <- as.data.table(sex_age_educ_data)
-    
-    
-    
-    
-    #unique(place_born) - "Born in state of residence" "Born in other state in the United States" "Native; born outside the United States"   "Foreign born" 
-    place_born_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06004")
-    #should do it by households, too??? would match on hh_size, then on race, etc., 
-    #    place_born_race_data <- place_born_race_from_census %>% #right total - 4525519
-    
-    
-        
-    #add number of workers per household - same logic, but only has four factors for size, not seven
-    
-    
-    
-
-
-    #means of transportation to work - perhaps use for 
-    #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few
-    transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
-    transport_race_data <- transport_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(race = substr(name,7,7)) %>%
-      rename(transport_to_work = label) %>%
-      filter(race %in% acs_race_codes & number_sams>0) %>%
-      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
-    transport_eth_data <- transport_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(ethnicity = substr(name,7,7)) %>%
-      rename(transport_to_work = label) %>%
-#      filter(!ethnicity %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
-    transport_race_dt <- as.data.table(transport_race_data)
-    transport_eth_dt <- as.data.table(transport_eth_data)
-    transport_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,transport_to_work)]
-    transport_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,transport_to_work)]
-    transport_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,transport_to_work)]
-    transport_eth_dt <- transport_eth_dt[(tokeep)]
-    
-    #concept: MEANS OF TRANSPORTATION TO WORK BY TENURE - for workers - 2135069
-    transport_tenure_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08137")
-    transport_tenure_data <- transport_tenure_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(transport_tenure_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("hh_means_transport","owner_renter"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(owner_renter) & number_sams > 0) %>%
-      mutate(own_rent = if_else(str_detect(owner_renter,"owner"),"Owner occupied","Renter occupied")) %>%
-      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
-    
+ 
 
     
 
@@ -1740,30 +2248,6 @@ createHouseholds <- function() {
       separate(label, c("poverty_ratio","parent_type","parent_nativity"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(parent_nativity) & number_sams > 0) %>%
       uncount(as.numeric(number_sams),.id = "poverty_kids_id",.remove = TRUE)
-    
-    
-    
-                        #concept: HOUSEHOLD TYPE BY UNITS IN STRUCTURE
-                        #could use this to match with the housing_units_race?? - seems like you lose a lot of information with this one...
-                        #tells only if household is in single structure or complex - also worth adding, and gets correct number of 1562813
-                        household_type_units_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11011")
-                        household_type_units_data <- household_type_units_from_census %>%
-                          mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-                          filter(label != "Estimate!!Total") %>% 
-                          filter(label != "Nonfamily households") %>%
-                          pivot_longer(4:ncol(household_type_units_from_census),names_to = "tract", values_to = "number_sams") %>% 
-                          separate(label, c("family","fam_role_units","structs","num_structures"), sep = "!!", remove = F, convert = FALSE) %>%
-                          mutate(
-                            num_structures = if_else(fam_role_units=="Other family",num_structures,if_else(family=="Nonfamily households",fam_role_units,structs)),
-                            fam_role_units = if_else(fam_role_units=="Other family",structs,if_else(family=="Nonfamily households",family,fam_role_units))
-                          ) %>% 
-                          filter(!is.na(num_structures)) %>%
-                          filter(number_sams > 0) %>%
-                          uncount(as.numeric(number_sams),.id = "hh_units_id")
-    
-        
-    #adults and kids gets you right(ish) total (20,000, depending on using seniors from inside adults or separately)
-    #could be worth doing, to get the right relationship with seniors, but not now
 
     
     
@@ -1788,27 +2272,6 @@ createHouseholds <- function() {
       rename(vacant_occupied = label) %>%
       uncount(as.numeric(number_sams),.id = "occup_vacant_id",.remove = TRUE)
     
-    #MORTGAGE STATUS BY AGE OF HOUSEHOLDER
-    #shows for 855629 - with different age groups from housing_per_room_age_data (which also has 1562813 / hh) / = to "Owner occupied" in own_rent
-    mortgage_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25027") 
-    mortgage_age_data <- mortgage_age_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(mortgage_age_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("mortgage","householder_age"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(householder_age) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "mortgage_age_id",.remove = TRUE)
-    
-    #concept:TOTAL POPULATION IN OCCUPIED HOUSING UNITS BY TENURE BY YEAR HOUSEHOLDER MOVED INTO UNIT
-    #4484299 - not sure why not complete? group quarters?
-    housing_occup_date_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25026") #of occup, own or rent by move in date
-    housing_occup_date_data <- housing_occup_date_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total population in occupied housing units!!")) %>%
-      filter(label != "Estimate!!Total population in occupied housing units") %>%
-      pivot_longer(4:ncol(housing_occup_date_from_census),names_to = "tract", values_to = "number_sams") %>%
-      separate(label, c("own_rent","move_in_date"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(move_in_date) & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "own_rent_date_id",.remove = TRUE)
     
         #has population of 4458402
     moved_1yr_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07004")
@@ -1820,190 +2283,6 @@ createHouseholds <- function() {
       rename(moved_1yr = label) %>%
       filter(race %in% acs_race_codes & number_sams>0) %>%
       uncount(as.numeric(number_sams),.id = "moved_1yr_race_id",.remove = TRUE)
-    
-    ##NEED TO REDO
-    #used for percentages used other source for age because the place_born didn't match by tract, so couldn't combine!!
-    place_born_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06001")
-    #correct if do by either age or by category, but 465645 short if do by agesxcategories!! so first time I fudged it, with 1.6564 for that one category; all missing from foreign born, under age - foreign born by total is right
-    #decided I could redistribute foreign_born by age category and total foreign_born?? excel B06001 work shows calculations.; 
-    #how I actually did it was playing with full vs. partial in ndividuals_generator.R
-    place_born_age_data <- place_born_age_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(place_born_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("place_born","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(as.numeric(number_sams) > 0 & !is.na(age_range)) %>%
-      mutate(number_sams = if_else(place_born=="Foreign born",round(number_sams*1.6564,digits = 0),number_sams)) %>% #fixing mistake in census data, but guessing it was consistent and not just a single age_group, etc.; gives 1 too many total
-      uncount(as.numeric(number_sams),.id = "place_born_age_id") 
-    place_born_age_dt <- as.data.table(place_born_age_data)
-    
-    
-    
-    
-    #can we join original place to the hispanic data? 1174879 from Estimate!!Total, which is same as "foreign_born" for the place_born sets
-    #I get 1083547 (91332) - it doesn't add up on the excel (with work in title), and I'm not sure how to fudge it, even, because I see no pattern to the errors
-    #chose to add 1.1481 to the Americas, and .78286  to Europe, because I couldn't find a simple reason those two continents didn't match (others did).
-    #combine all place_born_data into one, then match to sex_by_age
-    origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05006") #has PR at bottom
-    origin_data <- origin_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%  
-      filter(label != "Americas!!Latin America!!South America") %>% 
-      filter(label != "Americas!!Latin America!!Central America") %>% 
-      filter(label != "Asia!!Eastern Asia!!China") %>%
-      pivot_longer(4:ncol(origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("origin_continent","origin_area","origin_region","origin_country"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(
-        origin_country = if_else(is.na(origin_country),if_else(str_detect(origin_area,"n.e.c") | 
-                                       origin_area=="Fiji",origin_area,origin_region),origin_country),
-        number_sams = case_when(origin_region=="Central America" ~ round(number_sams*1.198435,digits=0),
-                                origin_region=="South America" ~ round(number_sams*.8237,digits=0),
-                                origin_continent=="Europe" ~ round(number_sams*.78286,digits=0),
-                                TRUE ~ number_sams
-                                )
-        ) %>%
-      filter(number_sams > 0 & !is.na(origin_country)) %>%
-      uncount(as.numeric(number_sams),.id = "origin_id")
-    
-    #think about how to match with Hispanic number from original sex_age??
-    #total right - 4525519, but would have to match before making latinx to get numbers right, and not sure about matching spouses, etc.
-    latinx_origin_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B03001")
-    latinx_origin_data <- latinx_origin_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      filter(label != "Hispanic or Latino") %>%
-      filter(label != "Hispanic or Latino!!Other Hispanic or Latino") %>%
-      filter(label != "Hispanic or Latino!!South American") %>%
-      filter(label != "Hispanic or Latino!!Central American") %>%
-      pivot_longer(4:ncol(latinx_origin_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("latinx","origin_country","origin_country2"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(origin_country = if_else(!is.na(origin_country2),
-                                      origin_country2,origin_country)) %>%
-      filter(!is.na(origin_country) | latinx == "Not Hispanic or Latino") %>%
-      rename(census_group_name = name) %>% 
-      uncount(as.numeric(number_sams),.id = "latinx_id")
-    
-        
-    
-    #population 15 yrs and over - 3223758 / doesn't match age_categories from other place_born groups
-    #nrow(sam_sex_race_age_dt[age_range!="Under 5 years" & age_range!="5 to 9 years" & age_range!="10 to 14 years"]) = 3494885 (not a match!)
-    income_place_born_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06010") #PR at top
-    income_place_born_data <- income_place_born_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(income_place_born_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("place_born","has_income","income_range"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(income_range = if_else(has_income=="No income","$0",income_range)) %>%
-      filter(number_sams > 0 & !is.na(income_range)) %>%
-      uncount(as.numeric(number_sams),.id = "place_born_income_id")
-    
-    #numbers don't match others, but are internally consistent for the dataset - have to think about whether worth fudging in join - not sure how to capture probable differences around age
-    place_born_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06007")
-    place_born_language_data <- place_born_language_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(place_born_language_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("place_born","language_at_home","English_proficiency"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(English_proficiency = if_else(language_at_home=="Speak only English","Only English Speaker",English_proficiency)) %>%
-      filter(number_sams > 0 & !is.na(English_proficiency)) %>%
-      uncount(as.numeric(number_sams),.id = "place_born_language_id")
-    
-    #population 15 and over - 3560318 NOT A MATCH with sex_age_race...
-    place_born_marital_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06008")
-    place_born_marital_data <- place_born_marital_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(place_born_marital_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("place_born","marital_status"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(number_sams > 0 & !is.na(marital_status)) %>%
-      uncount(as.numeric(number_sams),.id = "place_born_marital_id")
-    
-    #population of 25 and over: 2923369 folks - count all people over 25 in place_born_age you get 2860024 (63345 too many in educ?)
-    place_born_education_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B06009")
-    place_born_education_data <- place_born_education_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(place_born_education_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("place_born","educational_status"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(number_sams > 0 & !is.na(educational_status)) %>%
-      uncount(as.numeric(number_sams),.id = "place_born_education_id")
-    
-    #unique on date_entered: "Entered 2010 or later" "Entered before 1990"   "Entered 2000 to 2009"  "Entered 1990 to 1999"
-    #hard to line up with exact, but total comes close to foreign_born in place_born (24892 off)
-    place_period_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05007")
-    place_period_citizen_data <- place_period_citizen_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(place_period_citizen_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("origin_area","origin_region","origin_country","date_entered","citizen"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate( #citizen = if_else(str_detect(date_entered,"citizen"),date_entered,if_else(str_detect(origin_country,"citizen"),origin_country,citizen)),
-        citizen = if_else(str_detect(origin_country,"citizen"),origin_country,if_else(str_detect(date_entered,"citizen"),date_entered,citizen)),
-             date_entered = if_else(str_detect(origin_country,"Entered"),origin_country,if_else(str_detect(origin_region,"Entered"),origin_region,date_entered)),
-             origin_country = if_else(str_detect(origin_country,"Entered"),origin_region,if_else(str_detect(origin_region,"Entered"),origin_area,origin_country))) %>%
-      filter(number_sams > 0  & !is.na(citizen)) %>% #
-      uncount(as.numeric(number_sams),.id = "place_born_when_id")
-    
-    sex_place_when_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05008")
-    #right number - 119971 
-    sex_place_when_data <- sex_place_when_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(sex_place_when_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("sex","origin_area","origin_region","origin_country","date_entered"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(date_entered = if_else(str_detect(origin_region,"Entered") & origin_area!="Latin America",origin_region,
-                                    if_else(str_detect(origin_country,"Entered"),origin_country,date_entered)),
-             origin_country = if_else(str_detect(origin_region,"Entered") & origin_area!="Latin America",origin_area,
-                                      if_else(str_detect(origin_country,"Entered"),origin_region,date_entered)),
-             origin_region = if_else(str_detect(origin_region,"Entered") & origin_area!="Latin America",origin_area,origin_country)
-             ) %>%
-      filter(number_sams > 0 & !is.na(date_entered)) %>% #
-      uncount(as.numeric(number_sams),.id = "sex_place_when_id")
-    
-    kids_place_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05009")
-    #this is a challenging one to include - how many parents are foreign born and how to make a household that matches, for just 10k cases!
-    kids_place_citizen_data <- kids_place_citizen_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(kids_place_citizen_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("kid_age_range","both_parents","parent_nativity","kid_nativity"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(kid_nativity = if_else(str_detect(parent_nativity,"Child"),parent_nativity,kid_nativity),
-             kid_nativity = if_else(str_detect(both_parents,"Child"),both_parents,kid_nativity),
-             parent_nativity = if_else(str_detect(parent_nativity,"Child"),both_parents,parent_nativity),
-             parent_nativity = if_else(str_detect(parent_nativity,"Living"),kid_nativity,parent_nativity)) %>%
-      filter(number_sams > 0 & !is.na(kid_nativity)) %>% 
-      uncount(as.numeric(number_sams),.id = "kids_place_id")
-    
-    #sex and age for foreign born population - matches with place_period_citizen_data
-    sex_nativity_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B05013")
-    sex_nativity_age_data <- sex_nativity_age_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(sex_nativity_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(number_sams > 0 & !is.na(age_range)) %>% 
-      uncount(as.numeric(number_sams),.id = "sex_nativity_age_id")
- 
-
-    
-    
-    #UGH - probably not worth it!! 
-    #https://www.census.gov/topics/population/ancestry/about/faq.html
-    mult_ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04005")
-    mult_ancestry_data <- mult_ancestry_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(mult_ancestry_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("multiple_ancestry","sm_area"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(number_sams > 0 & !is.na(multiple_ancestry) & is.na(sm_area)) 
-    
-    #people reporting either only or as part of multiple ethnicity - not sure how to code to individuals
-    ancestry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B04006")
-    ancestry_data <- ancestry_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(ancestry_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("ancestry","sm_area"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(number_sams > 0 & !is.na(ancestry) & is.na(sm_area))
     
     
     
@@ -2030,329 +2309,9 @@ createHouseholds <- function() {
     
     
      
-    sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>% #clean up label 
-      pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%    
-      mutate(race = substr(name,7,7),
-             white = if_else(race=="A",1,0),  #add these for PCA dimensions
-             black = if_else(race=="B",1,0),
-             american_indian = if_else(race=="C",1,0),
-             asian = if_else(race=="D",1,0),
-             pacific_islander = if_else(race=="E",1,0),
-             other_race = if_else(race=="F",1,0),
-             bi_racial = if_else(race=="G",1,0)
-            ) %>%
-      separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%  #NA in rows with only one
-      rename(census_group_name = name) %>%
-      filter(number_sams != 0, !is.na(age_range),race!="_",age_range!="Total") %>% 
-      #use ages to assign a per-year percentage for each?      
-      mutate(
-        age_range = str_replace(age_range,"Under 5 years","0  to  5 years"), #have to do something funky...
-        age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
-        age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
-        age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to norm it when calculating...
-        first_age = as.numeric(substr(age_range,1,2)),
-        last_age = as.numeric(substr(age_range,7,8)),
-        age_range_length = last_age-first_age+1) %>%
-      select(-concept) %>%
-      group_by(tract, sex, age_range) %>% 
-      mutate(
-        A_tract_age = if_else(race=="A", as.integer(number_sams),as.integer(0)),
-        B_tract_age = if_else(race=="B", as.integer(number_sams),as.integer(0)),
-        C_tract_age = if_else(race=="C", as.integer(number_sams),as.integer(0)),
-        D_tract_age = if_else(race=="D", as.integer(number_sams),as.integer(0)),
-        E_tract_age = if_else(race=="E", as.integer(number_sams),as.integer(0)),
-        F_tract_age = if_else(race=="F", as.integer(number_sams),as.integer(0)),
-        G_tract_age = if_else(race=="G", as.integer(number_sams),as.integer(0)),
-        H_tract_age = if_else(race=="H", as.integer(number_sams),as.integer(0)), 
-        I_tract_age = if_else(race=="I", as.integer(number_sams),as.integer(0)), 
-        white_hispanic = sum(A_tract_age)-((sum(H_tract_age)+(sum(F_tract_age)*.3)+(sum(G_tract_age)*.2)+(sum(B_tract_age)*.03))),
-        #all very approximate - should be able to use percents of other races  
-        hispanic_number = case_when(race=="A" & white_hispanic > 0 ~ as.integer(white_hispanic),
-                                    race=="I" ~ as.integer(number_sams), 
-                                    race=="F" ~ as.integer(number_sams*.92), 
-                                    race=="B" ~ as.integer(number_sams*.2),  
-                                    race=="G" ~ as.integer(number_sams*.75),
-                                    TRUE ~ as.integer(0))
-      ) %>% 
-      ungroup() %>%
-      uncount(2,.id="hispanic_id") %>%
-      filter(race %in% acs_race_codes) %>%
-#      select(-ends_with("_tract_age")) %>% 
-      mutate(number_sams = case_when(hispanic_id==1 & hispanic_number > 0 ~ as.integer(number_sams) - as.integer(hispanic_number),
-                                     hispanic_id==2 & hispanic_number > 0 ~ as.integer(hispanic_number),
-                                     hispanic_id==2 & hispanic_number == 0 ~ as.integer(0),
-                                     TRUE ~ as.integer(number_sams)),
-             hispanic = if_else(hispanic_id == 2, 1, 0),
-             tract_race_year = case_when( #this is the number per year in that age_range for that tract and that race
-               race=="A" ~ A_tract_age/age_range_length, 
-               race=="B" ~ B_tract_age/age_range_length,
-               race=="C" ~ C_tract_age/age_range_length,
-               race=="D" ~ D_tract_age/age_range_length,
-               race=="E" ~ E_tract_age/age_range_length,
-               race=="F" ~ F_tract_age/age_range_length,
-               race=="G" ~ G_tract_age/age_range_length)
-      ) %>%
-      filter(number_sams!=0) %>%
-      select(-hispanic_id,-hispanic_number,-white_hispanic,-ends_with("_tract_age"))
-      
-      
-  
-#could try to get race by age_range from above, then use that for calculating if folks are married??
     
-    #get marriage data
     
-    marital_status_data <-  marital_status_data_from_census %>%
-      mutate(census_whole := rowSums(.[4:ncol(marital_status_data_from_census)])) %>%
-      pivot_longer(4:ncol(marital_status_data_from_census),names_to = "tract", values_to = "number_sams") %>%
-      group_by(tract) %>%
-      mutate(race = substr(name,7,7),  #to make race work properly, would have to go by totals - and do the allocation again... there's something weird about the allocation
-             pop_A := if_else(race=='A' & label == "Estimate!!Total",number_sams,0),
-             pop_B := if_else(race=='B' & label == "Estimate!!Total",number_sams,0),
-             pop_C := if_else(race=='C' & label == "Estimate!!Total",number_sams,0),
-             pop_D := if_else(race=='D' & label == "Estimate!!Total",number_sams,0),
-             pop_E := if_else(race=='E' & label == "Estimate!!Total",number_sams,0),
-             pop_F := if_else(race=='F' & label == "Estimate!!Total",number_sams,0),
-             pop_G := if_else(race=='G' & label == "Estimate!!Total",number_sams,0),
-             pop_tract := if_else(race=='_' & label == "Estimate!!Total",number_sams,0),
-             total_tract_pop := sum(pop_tract),
-             A_percent_pop := sum(pop_A)/total_tract_pop,
-             B_percent_pop := sum(pop_B)/total_tract_pop,
-             C_percent_pop := sum(pop_C)/total_tract_pop,
-             D_percent_pop := sum(pop_D)/total_tract_pop,
-             E_percent_pop := sum(pop_E)/total_tract_pop,
-             F_percent_pop := sum(pop_F)/total_tract_pop,
-             G_percent_pop := sum(pop_G)/total_tract_pop,
-             label := str_remove_all(label,"Estimate!!Total!!")
-            ) %>%
-      separate(label, into = c("sex", "part2", "part3", "part4","part5"), sep = "!!", remove = T) %>%  
-      mutate(age_range = case_when(str_detect(part2, "year") ~ part2,
-                                   str_detect(part3, "year") ~ part3,
-                                   str_detect(part4, "year") ~ part4,
-                                   str_detect(part5, "year") ~ part5),
-             spouse_present = case_when(str_detect(part2, "spouse") ~ part2,
-                                        str_detect(part3, "spouse") ~ part3,
-                                        str_detect(part4, "spouse") ~ part4),
-             spouse_separated = case_when(str_detect(part2, "Separated") ~ part2,
-                                   str_detect(part3, "Separated") ~ part3,
-                                   str_detect(part4, "Separated") ~ part4,
-                                   str_detect(part5, "Separated") ~ part5),
-             marital_status = case_when(str_detect(part2,"Never married") ~ part2, 
-                                        str_detect(part3,"Never married") ~ part3,
-                                        str_detect(part4,"Never married") ~ part4,
-                                        str_detect(part2,"Now married") ~ part2, 
-                                        str_detect(part3,"Now married") ~ part3,
-                                        str_detect(part4,"Now married") ~ part4,
-                                        str_detect(part2,"Separated") ~ part2, 
-                                        str_detect(part3,"Separated") ~ part3,
-                                        str_detect(part4,"Separated") ~ part4,
-                                        str_detect(part5,"Separated") ~ part5,
-                                        str_detect(part2,"Widowed") ~ part2,
-                                        str_detect(part3,"Widowed") ~ part3,
-                                        str_detect(part4,"Widowed") ~ part4,
-                                        str_detect(part2,"Divorced") ~ part2,
-                                        str_detect(part3,"Divorced") ~ part3,
-                                        str_detect(part4,"Divorced") ~ part4
-             )
-      ) %>% 
-      select(-starts_with("part"),-concept,-starts_with("pop_"))
-      
-      joined_tract_sam <- sam_sex_race_age %>%
-        group_by(tract, sex) %>%
-        mutate( 
-          sex_by_whole := marital_status_data[which(marital_status_data$sex == sex &
-                                                      is.na(marital_status_data$age_range) &
-                                                      marital_status_data$race == '_' &
-                                                      is.na(marital_status_data$marital_status))[1],"census_whole"][[1]],
-          widowed_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                        is.na(marital_status_data$age_range) & 
-                                                        marital_status_data$sex == sex &
-                                                        marital_status_data$race == '_' &
-                                                        marital_status_data$marital_status == "Widowed")[1],"number_sams"][[1]],
-          widowed_by_tract := if_else(is.na(widowed_by_tract),0,widowed_by_tract),
-          widowed_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          is.na(marital_status_data$age_range) &  
-                                                          marital_status_data$sex == sex &
-                                                          marital_status_data$race == '_' &
-                                                          marital_status_data$marital_status == "Widowed")[1],"census_whole"][[1]],
-          widowed_by_whole := if_else(is.na(widowed_by_whole),0,widowed_by_whole),
-          divorced_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          is.na(marital_status_data$age_range) &  
-                                                           marital_status_data$sex == sex &
-                                                           marital_status_data$race == '_' &
-                                                          marital_status_data$marital_status == "Divorced")[1],"number_sams"][[1]],
-          divorced_by_tract := if_else(is.na(divorced_by_tract),0,divorced_by_tract),
-          divorced_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                           is.na(marital_status_data$age_range) &  
-                                                           marital_status_data$sex == sex &
-                                                           marital_status_data$race == '_' &
-                                                           marital_status_data$marital_status == "Divorced")[1],"census_whole"][[1]],
-          divorced_by_whole := if_else(is.na(divorced_by_whole),0,divorced_by_whole),
-#separated is all weird - not sure how to deal with it, but it's not in same way as others....
-          separated_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                           is.na(marital_status_data$age_range) &  
-                                                           marital_status_data$sex == sex &
-                                                           marital_status_data$race == '_' &
-                                                           marital_status_data$marital_status == "Separated")[1],"number_sams"][[1]],
-          separated_by_tract := if_else(is.na(separated_by_tract),0,separated_by_tract),
-          separated_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                           is.na(marital_status_data$age_range) &  
-                                                           marital_status_data$sex == sex &
-                                                           marital_status_data$race == '_' &
-                                                           marital_status_data$marital_status == "Separated")[1],"census_whole"][[1]],
-          separated_by_whole := if_else(is.na(separated_by_whole),0,separated_by_whole),
-          never_married_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                           is.na(marital_status_data$age_range) &  
-                                                             marital_status_data$sex == sex &
-                                                             marital_status_data$race == '_' &
-                                                           marital_status_data$marital_status == "Never married")[1],"number_sams"][[1]],
-          never_married_by_tract := if_else(is.na(never_married_by_tract),0,never_married_by_tract),
-          never_married_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                                is.na(marital_status_data$age_range) &  
-                                                                marital_status_data$sex == sex &
-                                                                marital_status_data$race == '_' &
-                                                                marital_status_data$marital_status == "Never married")[1],"census_whole"][[1]],
-          never_married_by_whole := if_else(is.na(never_married_by_whole),0,never_married_by_whole),
-          married_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          is.na(marital_status_data$age_range) &   
-                                                          is.na(marital_status_data$spouse_present) &
-                                                          marital_status_data$sex == sex &
-                                                          marital_status_data$race == '_' &
-                                                          str_detect(marital_status_data$marital_status,"Now married"))[1],"number_sams"][[1]],
-          married_by_tract := if_else(is.na(married_by_tract),0,married_by_tract),
-          married_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          is.na(marital_status_data$age_range) & 
-                                                          is.na(marital_status_data$spouse_present) &
-                                                          marital_status_data$sex == sex &
-                                                          marital_status_data$race == '_' &
-                                                          str_detect(marital_status_data$marital_status,"Now married"))[1],"census_whole"][[1]],
-          married_by_whole := if_else(is.na(married_by_whole),0,married_by_whole),
-          married_sp_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                          marital_status_data$spouse_present == "Married spouse present" &
-                                                          is.na(marital_status_data$age_range) &  
-                                                            marital_status_data$sex == sex &
-                                                            marital_status_data$race == '_' &
-                                                            str_detect(marital_status_data$marital_status,"Now married"))[1],"number_sams"][[1]],
-          married_sp_by_tract := if_else(is.na(married_sp_by_tract),0,married_sp_by_tract),
-          married_sp_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                             marital_status_data$spouse_present == "Married spouse present" &
-                                                             is.na(marital_status_data$age_range) &  
-                                                             marital_status_data$sex == sex &
-                                                             marital_status_data$race == '_' &
-                                                             str_detect(marital_status_data$marital_status,"Now married"))[1],"census_whole"][[1]],
-          married_sp_by_whole := if_else(is.na(married_sp_by_whole),0,married_sp_by_whole),
-          married_sa_by_tract := marital_status_data[which(marital_status_data$tract == tract & 
-                                                             marital_status_data$spouse_present == "Married spouse absent" &
-                                                             is.na(marital_status_data$age_range) &  
-                                                             marital_status_data$sex == sex &
-                                                             marital_status_data$race == '_' &
-                                                             str_detect(marital_status_data$marital_status,"Now married"))[1],"number_sams"][[1]],
-          married_sa_by_tract := if_else(is.na(married_sa_by_tract),0,married_sa_by_tract),
-          married_sa_by_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                             marital_status_data$spouse_present == "Married spouse absent" &
-                                                             is.na(marital_status_data$age_range) &  
-                                                             marital_status_data$sex == sex &
-                                                             marital_status_data$race == '_' &
-                                                             str_detect(marital_status_data$marital_status,"Now married"))[1],"census_whole"][[1]],
-          married_sa_by_whole := if_else(is.na(married_sa_by_whole),0,married_sa_by_whole),
-          total_tract_by_census := marital_status_data[which(marital_status_data$tract == tract & 
-                                                         marital_status_data$name == "B12002_001E")[1],"number_sams"][[1]],
-          total_tract_by_census := if_else(is.na(total_tract_by_census),0,total_tract_by_census)
-        )
-      #ignore warnings that say: In marital_status_data$tract == tract :
-            #longer object length is not a multiple of shorter object length
-      
-      
-      joined_age_married_sam <- joined_tract_sam %>%
-        group_by(tract,sex,age_range_marital) %>%
-        #to do this properly, would also have all the possible combinations by race - which didn't seem practical.
-        mutate( 
-          widowed_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                              marital_status_data$sex == sex &
-                                                              marital_status_data$age_range  == age_range_marital & 
-                                                          marital_status_data$marital_status == "Widowed")[1],"census_whole"][[1]],
-          widowed_by_age_whole := if_else(is.na(widowed_by_age_whole),0,widowed_by_age_whole),
-          divorced_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                               marital_status_data$sex == sex &
-                                                               marital_status_data$age_range  == age_range_marital & 
-                                                              marital_status_data$marital_status == "Divorced")[1],"census_whole"][[1]],
-          divorced_by_age_whole := if_else(is.na(divorced_by_age_whole),0,divorced_by_age_whole),
-          separated_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                               marital_status_data$sex == sex &
-                                                               marital_status_data$age_range  == age_range_marital & 
-                                                               marital_status_data$marital_status == "Separated")[1],"census_whole"][[1]],
-          separated_by_age_whole := if_else(is.na(separated_by_age_whole),0,separated_by_age_whole),
-          never_married_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                                    marital_status_data$sex == sex &
-                                                                    marital_status_data$age_range  == age_range_marital & 
-                                                               marital_status_data$marital_status == "Never married")[1],"census_whole"][[1]],
-          never_married_by_age_whole := if_else(is.na(never_married_by_age_whole),0,never_married_by_age_whole),
-          married_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                              marital_status_data$sex == sex &
-                                                              marital_status_data$age_range  == age_range_marital & 
-                                                              str_detect(marital_status_data$marital_status,"Now married"))[1],"census_whole"][[1]],
-          married_by_age_whole := if_else(is.na(married_by_age_whole),0,married_by_age_whole),
-          married_sp_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                                 marital_status_data$sex == sex &
-                                                                 marital_status_data$spouse_present == "Married spouse present" &
-                                                              marital_status_data$age_range  == age_range_marital & 
-                                                                str_detect(marital_status_data$marital_status,"Now married"))[1],"census_whole"][[1]],
-          married_sp_by_age_whole := if_else(is.na(married_sp_by_age_whole),0,married_sp_by_age_whole),
-          married_sa_by_age_whole := marital_status_data[which(marital_status_data$tract == tract & 
-                                                                 marital_status_data$sex == sex &
-                                                                 marital_status_data$spouse_present == "Married spouse absent" &
-                                                                 marital_status_data$age_range  == age_range_marital & 
-                                                                 str_detect(marital_status_data$marital_status,"Now married"))[1],"census_whole"][[1]],
-          married_sa_by_age_whole := if_else(is.na(married_sa_by_age_whole),0,married_sa_by_age_whole),
-          married_by_age_whole := married_by_age_whole + married_sa_by_age_whole + married_sp_by_age_whole,  #there's something weird about the whole count so trying to up the numerator
-          widowed_by_age := round(widowed_by_tract * (widowed_by_age_whole/widowed_by_whole)),
-          divorced_by_age := round(divorced_by_tract * (divorced_by_age_whole/divorced_by_whole)),
-          never_married_by_age := round(never_married_by_tract * (never_married_by_age_whole/never_married_by_whole)),
-          married_by_age := round((married_by_tract + married_sa_by_tract) * (married_by_age_whole/married_by_whole)),
-          married_sp_by_age := round(married_sp_by_tract * (married_sp_by_age_whole/married_sp_by_whole)),
-          married_sa_by_age := round(married_sa_by_tract * (married_sa_by_age_whole/married_sa_by_whole)),
-          total := widowed_by_age + divorced_by_age + never_married_by_age + married_by_age,
-          total_diff := total_tract_by_census - total,
-          total_n := n(), #change this to correct bit from census file for total? It doesn't have right total.... problem might be that we're in subgroups that aren't assigned same way, and need to figure out what original numbers per tract are
-          total_left := if_else(total_n - total >= 0,total_n - total,0)
-          )
-      joined_sam_marital <- joined_age_married_sam %>%
-        group_by(tract,sex,age_range_marital) %>%
-        mutate(
-          never_married_by_age := if_else(total_left==0,round(never_married_by_age-((total_n-total)/4)),never_married_by_age), #correct for times that project more than available pop
-          divorced_by_age := if_else(total_left==0,round(divorced_by_age-((total_n-total)/4)),divorced_by_age),
-          married_by_age := if_else(total_left==0,round(married_by_age-((total_n-total)/4)),married_by_age),
-          #separated_by_age := if_else(total_left==0,round(separated_by_age-((total_n-total)/4)),separated_by_age),
-          l_marital := length(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
-                                rep("married",married_by_age[1]),rep("none",1))), #,rep("none",total_left[1])
-          diff := l_marital - total_n,
-          marital_status := sample(c(rep("widowed",widowed_by_age[1]),rep("divorced",divorced_by_age[1]),rep("never married",never_married_by_age[1]),
-                                     rep("married",married_by_age[1]),rep("none",1)),
-                                   total_n[1], replace = TRUE, #size = 1, replace = TRUE,  #not size = total_n[1], replace = FALSE
-                                   prob = c(rep((1/l_marital[1]),l_marital[1]))
-          ),
-          spouse_present := if_else(marital_status=="married",sample(c("married spouse present","married spouse absent or separate")
-                                                                     ,size=1,replace = TRUE,prob = c(.65,.35)),
-                                    "no spouse")
-        ) %>%
-        select(-starts_with("total"),-ends_with("_whole"),-ends_with("_tract"),-ends_with("by_age"),-ends_with("by_census"),-l_marital,-census_group_name,-label,-tract_race_year)
-    
-    saveRDS(joined_sam_marital,"joined_sam_marital.RDS") #temp save
-    joined_sam_marital <- readRDS("joined_sam_marital.RDS")
-    ##not run
-    table(joined_sam_marital$marital_status)
-    table(joined_sam_marital$tract, joined_sam_marital$marital_status)
-    
-     #make group quarters sam residents - sex by age (B26101) is all NA ; marital status (B26104) is all NA; mobility (B26109) is all NA; ed_status (B26109) is all NA
-    #very small numbers except in 210100 and 100000 (6099 and 1586) - assuming all in GC not living with spouse, but every other combo possible
-    #biggest thing to worry about is inmate population; other GC are not large, as far as I can tell
-    #I don't have great confidence that the census is distributing them correctly by census.
-    group_quarters_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B26001")
-    
-    base_group_quarters_data <- group_quarters_data_from_census %>%
-      pivot_longer(4:ncol(group_quarters_data_from_census),names_to = "tract", values_to = "number_sams_temp") 
-    
-    #make into a model based only on the characteristics that are known
+        #make into a model based only on the characteristics that are known
     GQ_sam <- uncount(base_group_quarters_data,number_sams_temp,.remove = FALSE,.id="temp_id") %>%
       group_by(tract) %>%
       mutate( #approximated from natl BOP - https://www.bop.gov/about/statistics/statistics_inmate_age.jsp
@@ -2370,52 +2329,7 @@ createHouseholds <- function() {
                        )
       )
     
-    sam_marital <- joined_sam_marital %>% #adding sex_num so PCA will have it as numeric
-      mutate(
-        sex_num := case_when(sex == "Male" ~ 0, sex == "Female" ~1)
-      )
-    
-    sam_marital_GQ <- rbindlist(list(sam_marital,GQ_sam),fill = TRUE) #bind them so that the PCA includes GQ by tract 
-    sam_marital_DT <- as.data.table(sam_marital_GQ)
 
-    #GQ doesn't include race, so it's imputed by the mean of the variable for the tract - which is reasonable, but not perfect.
-
-    sam_marital_DT[,"white" := if_else(is.na(temp_id),white,mean(white,na.rm = TRUE)),tract]
-    sam_marital_DT[,"black" := if_else(is.na(temp_id),black,mean(black,na.rm = TRUE)),tract]
-    sam_marital_DT[,"hispanic" := if_else(is.na(temp_id),hispanic,mean(hispanic,na.rm = TRUE)),tract]
-    sam_marital_DT[,"asian" := if_else(is.na(temp_id),asian,mean(asian,na.rm = TRUE)),tract]
-    sam_marital_DT[,"other_race" := if_else(is.na(temp_id),other_race,mean(other_race,na.rm = TRUE)),tract]
-    sam_marital_DT[,"american_indian" := if_else(is.na(temp_id),american_indian,mean(american_indian,na.rm = TRUE)),tract]
-    sam_marital_DT[,"pacific_islander" := if_else(is.na(temp_id),pacific_islander,mean(pacific_islander,na.rm = TRUE)),tract]
-    sam_marital_DT[,"bi_racial" := if_else(is.na(temp_id),bi_racial,mean(bi_racial,na.rm = TRUE)),tract]
- 
-#something like this should work - tried lots of variations, but decided to do it by hand, as needed, above       
-    add_means <- function(dt,facts){  
-      for(fact in facts){
-        print(fact)
-        print(mean(dt[,..fact][[1]],na.rm = TRUE))
-        dt[,(fact) := if_else(is.na(temp_id),fact,mean(dt[,..fact][[1]],na.rm = TRUE)),tract]
-      }
-      return(dt)
-    }
-
-    #for whole, to compare with by tract and to have the GQ_Sam included in the PCA so matching by distance makes sense for whole
-    sam_marital_PCA_res <- PCA(sam_marital_DT[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
-
-    sam_marital_DT[,("harris_coord_1") := sam_marital_PCA_res$ind$coord[,1]] # * sam_marital_PCA_res$eig[1:3,2]/100 #norm coord by percent explained by dim
-    sam_marital_DT[,("harris_coord_2") := sam_marital_PCA_res$ind$coord[,2]]
-    sam_marital_DT[,("harris_coord_3") := sam_marital_PCA_res$ind$coord[,3]]
-   
-    saveRDS(sam_marital_DT,"sam_marital_eig.RDS") #temp save
-    sam_marital_DT <- readRDS("sam_marital_eig.RDS")
-
-    #general process: 1 - expand census data by tract; 1b - fill (uncount) with averaged so GQ_id, etc is = num_sams; 
-              # 2 - create_tract_eigs 
-              # 3 - dist - from avg [or median?] temp_person - should fill all with median??
-              # 4 - sample - 4b - using is.na(temp_id) etc. ; 4c - normalize by 100 for all distances, and use that as percent 
-    
-  #initial facts <- c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')
- 
   create_tract_eigs = function(dt,var_name,facts){ 
     for(i in unique(dt$tract)){
       print(i) #not  because it's not handling errors
@@ -2484,36 +2398,7 @@ createHouseholds <- function() {
     #give a delivery date? expand by race and by age - then do both as PCAs, then assign age to the ones that have race, and then assign age, race, delivery date?
     
     
-    preg_data_DT[,("age_range_race") := sample(rep(.SD[!is.na(age_range),.(age_range)][[1]],2),size = .N,replace = TRUE,
-                                                  prob = c(rep(1/.N,.N))),
-                 by=.(tract)]
-    #if they're equal, then sampling this way should give everyone an age_range according to distribution
-    pregnancy_data_DT <- preg_data_DT[race!='_']
-    #assign numeric to race, marital_status, etc. then do all the PCA? 
-    
-    #euc_distance from a norm?  
-    
-#redoing from logic above, without for loop
-    
-    sam_GQ[,
-           
-           ,by=.(tract)] 
-    
-    
-    
-  
-  return(sam_residents)
-}
 
-    #gather information from census data,
-    #Household - multigenerational B11017 all NA
-    #above just says how many people below or above poverty, but number of people and type of HH is given - something... match on family_type of Head of Household, but have to already have households
-    
-    #  type - relatives -just tells you if they live with additional non-relatives, and gives race
-    household_relatives_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B11002")
-    
-        
-    
     #AGGREGATE INCOME DEFICIT (DOLLARS) IN THE PAST 12 MONTHS FOR FAMILIES BY FAMILY TYPE -only below poverty... too complicated to unwind and explain
     agg_deficit_income_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17011")
     
@@ -2526,26 +2411,10 @@ createHouseholds <- function() {
   saveRDS(sam_hh,file = paste0(censusdir, vintage,"/sam_hh.RDS"))
   #and a dated copy?
   saveRDS(sam_hh,file = paste0(censusdir, vintage, "/sam_hh_",Sys.Date(),".RDS"))
-}
 
 
-moved_1yr_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07001")
-moved_1yr_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07003")
-moved_1yr_citizen_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07007")
-moved_1yr_marital_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07008")
-moved_1yr_education_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07009")
-moved_1yr_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07010")
-transport_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08006")
-transport_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08101")
 
-transport_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08113")
-transport_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08119")
-transport_occupation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08124")
-transport_industry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08126")
-transport_time_work_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08134")
-when_go_work_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08011")
-time_to_work_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08012")
-vehicles_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08014")
+
 
 
 
@@ -2587,29 +2456,10 @@ computers - B28001
 
 #have to explore later
 contract_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25056")
-bedrooms_gross_rent_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25068")
 income_value_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25121")
 
 
-#not run                            #should we compare this with hh_size times per_person_per_room??   
-#haven't done yet
-housing_occup_rooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25020") #of occup, number of rooms
-housing_occup_rooms_data <- housing_occup_rooms_from_census %>%
-  mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-  filter(label != "Estimate!!Total") %>%
-  pivot_longer(4:ncol(housing_occup_rooms_from_census),names_to = "tract", values_to = "number_sams") %>%
-  separate(label, c("own_rent","num_rooms"), sep = "!!", remove = F, convert = FALSE) %>%
-  filter(!is.na(num_rooms) & number_sams > 0) %>%
-  uncount(as.numeric(number_sams),.id = "own_rent_num_rooms_id",.remove = TRUE)
-#not run                            
-housing_occup_bedrooms_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25042") #of occup, number of bedrooms
-housing_occup_bedrooms_data <- housing_occup_bedrooms_from_census %>%
-  mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-  filter(label != "Estimate!!Total") %>%
-  pivot_longer(4:ncol(housing_occup_bedrooms_from_census),names_to = "tract", values_to = "number_sams") %>%
-  separate(label, c("own_rent","num_bedrooms"), sep = "!!", remove = F, convert = FALSE) %>%
-  filter(!is.na(num_bedrooms) & number_sams > 0) %>%
-  uncount(as.numeric(number_sams),.id = "own_rent_num_bedrooms_id",.remove = TRUE)
+
 
 
 

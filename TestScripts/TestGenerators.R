@@ -334,6 +334,93 @@ test<-table(
 )
 length(test[test==F])==0
 
+#test hh8a
+test<-table(
+  transport_age_dt$tract,
+  transport_age_dt$means_transport_5,
+  transport_age_dt$means_transport_6a,
+  transport_age_dt$sex
+)==table(
+  transport_sex_dt$tract,
+  transport_sex_dt$means_transport_5,
+  transport_sex_dt$means_transport,
+  transport_sex_dt$sex
+)
+length(test[test==F])==0
+
+#test hh8b
+test<-table(
+  transport_age_dt$tract,
+  transport_age_dt$means_transport,
+  transport_age_dt$industry,
+  transport_age_dt$occupation
+)==table(
+  transport_industry_dt$tract,
+  transport_industry_dt$means_transport,
+  transport_industry_dt$industry,
+  transport_industry_dt$occupation_match
+)
+length(test[test==F])==0
+#test hh8c
+test<-table(
+  transport_time_work_dt$tract,
+  transport_time_work_dt$sex,
+  transport_time_work_dt$commute_time
+)==table(
+  time_to_work_sex_dt$tract,
+  time_to_work_sex_dt$sex,
+  time_to_work_sex_dt$time_to_work
+)
+length(test[test==F])==0
+#test hh8d
+test<-table(
+  transport_time_work_dt$tract,
+  transport_time_work_dt$sex,
+  transport_time_work_dt$when_go_to_work
+)==table(
+  when_go_work_sex_dt$tract,
+  when_go_work_sex_dt$sex,
+  when_go_work_sex_dt$when_go_to_work
+)
+length(test[test==F])==0
+
+#test hh8e
+test<-table(
+  transport_time_work_dt$tract,
+  transport_time_work_dt$sex,
+  transport_time_work_dt$commute_time,
+  transport_time_work_dt$when_go_to_work
+)==table(
+  transport_age_dt[means_transport_5!="Worked at home"]$tract,
+  transport_age_dt[means_transport_5!="Worked at home"]$sex,
+  transport_age_dt[means_transport_5!="Worked at home"]$commute_time,
+  transport_age_dt[means_transport_5!="Worked at home"]$when_go_to_work
+)
+length(test[test==F])==0
+
+#test hh8f
+test<-table(
+  transport_language_dt$tract,
+  transport_language_dt$language,
+  transport_language_dt$English_level
+)==table(
+  transport_age_dt$tract,
+  transport_age_dt$language,
+  transport_age_dt$English_level
+)
+length(test[test==F])==0
+
+#test hh8g
+#test that they all moved over nrow(transport_tenure_dt[is.na(missing)])==0
+#transport_tenure_dt[,c("missing"):=
+#                      transport_age_dt[.SD, list(own_rent),
+#                                       on = .(tenure_id)]]
+
+#test that they all moved over nrow(transport_income_dt[is.na(missing)])==0
+#transport_income_dt[,c("missing"):=
+#                      transport_age_dt[.SD, list(income_range),
+#                                       on = .(income_id)]]
+
 #test hh9
 test<-table(
   hh_occup_bedrooms_dt$tract,
@@ -383,6 +470,16 @@ test <- table(
 )==table(
   sam_eth_hh$tract,
   sam_eth_hh$sex
+)
+length(test[test==F])==0
+
+#test hh10a
+test <- table(
+  hh_workers$tract,
+  hh_workers$hh_size_7
+)==table(
+  hh_size_dt$tract,
+  hh_size_dt$hh_size
 )
 length(test[test==F])==0
 

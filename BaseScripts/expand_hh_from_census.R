@@ -350,6 +350,21 @@ exp_census_hh <- function() {
     rm(housing_occup_bedrooms_from_census)
     rm(housing_occup_bedrooms_data)
     
+#NOT USED YET    #may help as expanding, if group by date gives you family units...
+    #concept:TOTAL POPULATION IN OCCUPIED HOUSING UNITS BY TENURE BY YEAR HOUSEHOLDER MOVED INTO UNIT
+    #4484299 - just people in households - need to put in terms of full sam
+    housing_occup_date_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B25026") #of occup, own or rent by move in date
+    housing_occup_date_data <- housing_occup_date_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total population in occupied housing units!!")) %>%
+      filter(label != "Estimate!!Total population in occupied housing units") %>%
+      pivot_longer(4:ncol(housing_occup_date_from_census),names_to = "tract", values_to = "number_sams") %>%
+      separate(label, c("own_rent","move_in_date"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(move_in_date) & number_sams > 0) %>%
+      uncount(as.numeric(number_sams),.id = "own_rent_date_id",.remove = TRUE)
+    housing_occup_date_dt <- as.data.table(housing_occup_date_data)
+    rm(housing_occup_date_from_census)
+    rm(housing_occup_date_data)
+    
     #If you take the size and multiply it out, you get 4,194,975 in 2017 - so missing 330,554 - some in 7 or more 41220 in GQ? has right size for number of households total!!! Also matches total for housing_occup_hh_size
     #has right number of householders / households - it only mentions group quarters as not in a household, but that number is too low - https://www.census.gov/programs-surveys/cps/technical-documentation/subject-definitions.html#household
     #concept:HOUSEHOLD TYPE BY HOUSEHOLD SIZE
@@ -380,7 +395,237 @@ exp_census_hh <- function() {
     rm(housing_occup_hhsize_data)
     #make sure testtables <- table(hh_size_dt$tract,hh_size_dt$hh_size)==table(occup_size_dt$tract,occup_size_dt$hh_size) and FALSE for FALSE %in% testtables
 
-    #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD !! has a different number of workers by tract!!!
+#add this and transportation after expand household with number of workers, etc.    
+    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 1562813
+    vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
+    vehicles_workers_data <- vehicles_workers_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(vehicles_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("number_workers_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(number_vehicles_in_hh)) %>%
+      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
+    vehicles_workers_dt <- as.data.table(vehicles_workers_data)
+    rm(vehicles_workers_from_census)
+    rm(vehicles_workers_data)
+    
+    
+    #means of transportation to work - perhaps use for all of the ones at bottom??
+    #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few; it has two more tracts than the ones with 2135069
+    transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
+    transport_race_data <- transport_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(race = substr(name,7,7)) %>%
+      rename(means_transport = label) %>%
+      mutate(means_transport_5=if_else(str_detect(means_transport,"truck"),"Car truck or van",means_transport)) %>%
+      filter(race %in% acs_race_codes & number_sams>0) %>%
+      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
+    transport_eth_data <- transport_race_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
+      mutate(ethnicity = substr(name,7,7)) %>%
+      rename(means_transport = label) %>%
+      mutate(means_transport_5=if_else(str_detect(means_transport,"truck"),"Car truck or van",means_transport)) %>%
+      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
+    transport_race_dt <- as.data.table(transport_race_data)
+    transport_eth_dt <- as.data.table(transport_eth_data)
+    transport_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,means_transport)]
+    transport_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,means_transport)]
+    transport_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,means_transport)]
+    transport_eth_dt <- transport_eth_dt[(tokeep)]
+    #test <- table(transport_eth_dt$means_transport)==table(transport_race_dt$means_transport)
+    rm(transport_eth_data)
+    rm(transport_race_data)
+    rm(transport_race_from_census)
+    
+    #concept: MEANS OF TRANSPORTATION TO WORK BY TENURE - for workers - 2135069
+    transport_tenure_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08137")
+    transport_tenure_data <- transport_tenure_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_tenure_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("means_transport","owner_renter"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(owner_renter) & number_sams > 0) %>%
+      mutate(own_rent = if_else(str_detect(owner_renter,"owner"),"Owner occupied","Renter occupied"),
+             means_transport_5=if_else(str_detect(means_transport,"truck"),"Car truck or van",means_transport)
+      ) %>%
+      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
+    transport_tenure_dt <- as.data.table(transport_tenure_data)
+    rm(transport_tenure_data)
+    rm(transport_tenure_from_census)
+    
+    #vehicles_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08014")
+    #vehicles_sex_data <- vehicles_sex_from_census %>%
+    #  mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+    #  filter(label != "Estimate!!Total") %>%
+    #  pivot_longer(4:ncol(vehicles_sex_from_census),names_to = "tract", values_to = "number_sams") %>% 
+    #  separate(label, c("sex","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
+    #  filter(!is.na(number_vehicles_in_hh)) %>%
+    #  uncount(as.numeric(number_sams),.id = "sex_vehicles_id",.remove = TRUE)
+    #vehicles_sex_dt <- as.data.table(vehicles_sex_data)
+    #rm(vehicles_sex_from_census)
+    #rm(vehicles_sex_data)
+    
+    transport_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08006")
+    transport_sex_data <- transport_sex_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_sex_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("sex","means_transport","how_transport","carpool"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(
+        how_transport=case_when(
+        means_transport=="Bicycle" | means_transport=="Taxicab motorcycle or other means" | 
+          means_transport=="Walked" | means_transport=="Worked at home" ~ means_transport,
+        TRUE ~ how_transport
+      ),
+      means_transport_5=if_else(means_transport=="Bicycle" | means_transport=="Taxicab motorcycle or other means",
+                                "Taxicab motorcycle bicycle or other means",means_transport)
+      ) %>%
+      filter(!is.na(how_transport) & str_detect(sex,"ale") & is.na(carpool)) %>%
+      uncount(as.numeric(number_sams),.id = "sex_transport_id",.remove = TRUE)
+    transport_sex_dt <- as.data.table(transport_sex_data)
+    rm(transport_sex_data)
+    rm(transport_sex_from_census)
+    
+    #concept: SEX OF WORKERS BY TRAVEL TIME TO WORK
+    time_to_work_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08012")
+    time_to_work_sex_data <- time_to_work_sex_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(time_to_work_sex_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("sex","time_to_work"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(time_to_work)) %>%
+      uncount(as.numeric(number_sams),.id = "time_to_work_id",.remove = TRUE)
+    time_to_work_sex_dt <- as.data.table(time_to_work_sex_data)
+    rm(time_to_work_sex_from_census)
+    rm(time_to_work_sex_data)
+  
+    #concept: SEX OF WORKERS BY TIME LEAVING HOME TO GO TO WORK - 2061700
+    when_go_work_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08011")
+    when_go_work_sex_data <- when_go_work_sex_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(when_go_work_sex_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("sex","when_go_to_work"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(when_go_to_work)) %>%
+      uncount(as.numeric(number_sams),.id = "when_work_id",.remove = TRUE)
+    when_go_work_sex_dt <- as.data.table(when_go_work_sex_data)
+    rm(when_go_work_sex_from_census)
+    rm(when_go_work_sex_data)
+    
+    transport_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08101")
+    transport_age_data <- transport_age_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_age_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("means_transport","age_range_7"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(means_transport_5=if_else(str_detect(means_transport,"truck"),"Car truck or van",means_transport)) %>%
+      filter(!is.na(age_range_7)) %>%
+      uncount(as.numeric(number_sams),.id = "trans_age_id",.remove = TRUE)
+    transport_age_dt <- as.data.table(transport_age_data)
+    rm(transport_age_from_census)
+    rm(transport_age_data)
+    
+    #concept: MEANS OF TRANSPORTATION TO WORK BY LANGUAGE SPOKEN AT HOME AND ABILITY TO SPEAK ENGLISH
+    transport_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08113")
+    transport_language_data <- transport_language_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_language_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("means_transport","language","English_level"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(English_level=if_else(language=="Speak only English",language,English_level),
+             means_transport_5=if_else(str_detect(means_transport,"truck"),"Car truck or van",means_transport)) %>%
+      filter(!is.na(English_level)) %>%
+      uncount(as.numeric(number_sams),.id = "trans_language_id",.remove = TRUE)
+    transport_language_dt <- as.data.table(transport_language_data)
+    rm(transport_language_from_census)
+    rm(transport_language_data)
+    
+    #numbers are 159 off - can't tell why...
+    #concept: MEANS OF TRANSPORTATION TO WORK BY WORKERS' EARNINGS IN THE PAST 12 MONTHS (IN 2017 INFLATION-ADJUSTED DOLLARS) 
+    transport_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08119")
+    transport_income_data <- transport_income_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_income_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("means_transport","income_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(means_transport_5=if_else(str_detect(means_transport,"truck"),"Car truck or van",means_transport)) %>%
+      filter(!is.na(income_range)) %>%
+      uncount(as.numeric(number_sams),.id = "trans_income_id",.remove = TRUE)
+    transport_income_dt <- as.data.table(transport_income_data)
+    rm(transport_income_from_census)
+    rm(transport_income_data)
+    
+    #concept: MEANS OF TRANSPORTATION TO WORK BY TRAVEL TIME TO WORK - 2061700 - missing "work at home", but others also just a bit off
+    transport_time_work_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08134")
+    transport_time_work_data <- transport_time_work_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_time_work_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("means_transport_4","how_transport","time_to_work","time2"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(carpool_size=if_else(how_transport=="Carpooled",time_to_work,NULL),
+             time_to_work=case_when(str_detect(means_transport_4,"Public") & is.na(time_to_work) ~ time2, #for NA
+                                    str_detect(how_transport,"minutes") & means_transport_4!="Car truck or van" ~ how_transport,
+                                    how_transport=="Carpooled" ~ time2,
+                                    TRUE ~ time_to_work),
+             how_transport=if_else(str_detect(how_transport,"minutes"),means_transport_4,how_transport)) %>%
+      filter(!is.na(time_to_work)) %>%
+      uncount(as.numeric(number_sams),.id = "trans_income_id",.remove = TRUE)
+    transport_time_work_dt <- as.data.table(transport_time_work_data)
+    rm(transport_time_work_from_census)
+    rm(transport_time_work_data)
+    
+    transport_occupation_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08124")
+    transport_occupation_data <- transport_occupation_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_occupation_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("means_transport","occupation"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(means_transport_5=if_else(str_detect(means_transport,"truck"),"Car truck or van",means_transport)) %>%
+      filter(!is.na(occupation)) %>%
+      uncount(as.numeric(number_sams),.id = "trans_occupation_id",.remove = TRUE)
+    transport_occupation_dt <- as.data.table(transport_occupation_data)
+    rm(transport_occupation_from_census)
+    rm(transport_occupation_data)
+    
+    transport_industry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08126")
+    transport_industry_data <- transport_industry_from_census %>%
+      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
+      filter(label != "Estimate!!Total") %>%
+      pivot_longer(4:ncol(transport_industry_from_census),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("means_transport","industry"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(means_transport_5=if_else(str_detect(means_transport,"truck"),"Car truck or van",means_transport),
+             occupation_match=case_when( #a little random - no real way of matching on people's roles/occupation inside industry
+               industry=="Agriculture forestry fishing and hunting and mining" |
+                industry=="Transportation and warehousing and utilities"
+                   ~ "Management business science and arts occupations",
+               industry=="Construction" | industry=="Wholesale trade"
+                   ~ "Natural resources construction and maintenance occupations",
+               industry=="Manufacturing"
+                   ~ "Production transportation and material moving occupations",
+               industry=="Finance and insurance and real estate and rental and leasing" |
+                 industry=="Information" | industry=="Public administration" | industry=="Retail trade"
+                   ~ "Sales and office occupations",
+               industry=="Arts entertainment and recreation and accommodation and food services" |
+                 industry=="Educational services and health care and social assistance" |
+                 industry=="Other services (except public administration)" | 
+                 industry=="Professional scientific and management and administrative and waste management services"
+                   ~ "Service occupations",
+               industry=="Armed forces"
+                   ~ "Military specific occupations",
+               TRUE ~ "none given"
+             )) %>%
+      filter(!is.na(industry)) %>%
+      uncount(as.numeric(number_sams),.id = "trans_occupation_id",.remove = TRUE)
+    transport_industry_dt <- as.data.table(transport_industry_data)
+    rm(transport_industry_from_census)
+    rm(transport_industry_data)
+ 
+    
+    #concept is: HOUSEHOLD SIZE BY NUMBER OF WORKERS IN HOUSEHOLD 
     household_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08202")
     household_workers_data <- household_workers_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%

@@ -1168,69 +1168,6 @@ exp_census <- function() {
     
      #see if language here can help get them on the right ethnicity???
     
-#add this and transportation after expand household with number of workers, etc.    
-    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults over 21??
-    vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
-    vehicles_workers_data <- vehicles_workers_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(vehicles_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("number_workers_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(str_detect(number_workers_in_hh,"worker") & number_sams > 0) %>%
-      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
-    vehicles_workers_dt <- as.data.table(vehicles_workers_data)
-    rm(vehicles_workers_from_census)
-    rm(vehicles_workers_data)
-    
-    #means of transportation to work - perhaps use for all of the ones at bottom??
-    #population of 2140881 - not sure what it matches to - if you expand household_workers you get 100k too few
-    transport_race_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08105")
-    transport_race_data <- transport_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(race = substr(name,7,7)) %>%
-      rename(transport_to_work = label) %>%
-      filter(race %in% acs_race_codes & number_sams>0) %>%
-      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
-    transport_eth_data <- transport_race_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(transport_race_from_census),names_to = "tract", values_to = "number_sams") %>%
-      mutate(ethnicity = substr(name,7,7)) %>%
-      rename(transport_to_work = label) %>%
-#      filter(!ethnicity %in% acs_race_codes) %>%
-      uncount(as.numeric(number_sams),.id = "transport_race_id",.remove = TRUE)
-    transport_race_dt <- as.data.table(transport_race_data)
-    transport_eth_dt <- as.data.table(transport_eth_data)
-    transport_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,transport_to_work)]
-    transport_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,transport_to_work)]
-    transport_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,transport_to_work)]
-    transport_eth_dt <- transport_eth_dt[(tokeep)]
-
-    #concept: MEANS OF TRANSPORTATION TO WORK BY TENURE - for workers - 2135069
-    transport_tenure_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08137")
-    transport_tenure_data <- transport_tenure_from_census %>%
-      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-      filter(label != "Estimate!!Total") %>%
-      pivot_longer(4:ncol(transport_tenure_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("hh_means_transport","owner_renter"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(owner_renter) & number_sams > 0) %>%
-      mutate(own_rent = if_else(str_detect(owner_renter,"owner"),"Owner occupied","Renter occupied")) %>%
-      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
-    
-    #concept:MEANS OF TRANSPORTATION TO WORK BY INDUSTRY
-    transport_industry_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08126")
-    
-    transport_sex_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08006")
-    #MEANS OF TRANSPORTATION TO WORK BY AGE - workers, 16 years and over
-    transport_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08101")
-    
-    transport_language_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08113")
-    transport_income_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08119")
-    
-    transport_time_work_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08134")
-    
 
     
     #concept is:"RATIO OF INCOME TO POVERTY LEVEL IN THE PAST 12 MONTHS BY NATIVITY OF CHILDREN UNDER 18 YEARS IN FAMILIES AND SUBFAMILIES BY LIVING ARRANGEMENTS AND NATIVITY OF PARENTS"
