@@ -104,40 +104,28 @@ Female   Male
 #moving to sam_workers
 > table(sam_eth_hh$number_workers_in_hh)
 
-         1 worker         2 workers 3 or more workers        No workers 
-           719595            456044            114264            272910
+00 workers  01 worker 02 workers 03 workers 04 workers 05 workers 06 workers 07 workers 08 workers 09 workers 10 workers 
+    274658     718057     455859       7768      70690      19893      10673       2842       1610        173        590
            
 > table(sam_eth_hh$kids_by_age)
 
              6 to 17 years only                     No children Under 6 years and 6 to 17 years              Under 6 years only 
                          317364                          472821                          143095                          133369 
                          
-> table(sam_eth_hh$employment) #only for family households - other families has living alone or not - don't have for non-family hh
+> table(sam_eth_hh$husband_employed)
 
-Employed or in Armed Forces          Not in labor force                  Unemployed 
-                     831128                      200153                       35368   
-
-#non-family is what gets a bit screwy; I'm using no-children, but I think it's really no relative
-> table(sam_eth_hh$family_role,sam_eth_hh$employment) 
-                                       
-                                        Employed or in Armed Forces Not in labor force Unemployed
-  Female householder no husband present                      167301              63262      12659
-  Householder living alone                                        0                  0          0
-  Householder not living alone                                    0                  0          0
-  Male householder no wife present                            72022              13295       4002
-  Married-couple family                                      591772             123627      18709
-  
-> table(sam_eth_hh[family_role=="Married-couple family",wife_employed])
-
-Employed or in Armed Forces          Not in labor force                  Unemployed 
-                     395707                      319096                       19305
-
+Employed or in Armed Forces  Husband not in labor force                          NA                  Unemployed 
+                     570727                      133104                       58189                       17389 
 > table(sam_eth_hh$wife_employed)
 
-Employed or in Armed Forces          Not in labor force                  Unemployed 
-                     395674                      240248                       19304
+Employed or in Armed Forces                          NA                  Unemployed     Wife not in labor force 
+                     349355                       58189                       16595                      355270 
+> table(sam_eth_hh$single_hh_employed)
 
-> table(sam_eth_hh$number_vehicles_in_hh)
+Employed or in Armed Forces  Husband not in labor force          Not in labor force                  Unemployed 
+                     247782                        3190                       63203                       16221 
+
+> table(sam_eth_hh$number_vehicles_hh)
 
          1 vehicle available         2 vehicles available         3 vehicles available 4 or more vehicles available 
                       566545                       606400                       210018                        82758 

@@ -483,13 +483,31 @@ test <- table(
 )
 length(test[test==F])==0
 
-#test hh11
-test <- table(
+#test hh11h
+test<-table(
+  vehicles_hh$tract,
+  vehicles_hh$number_workers_in_hh
+)==table(
+  vehicles_workers_dt$tract,
+  vehicles_workers_dt$number_workers_in_hh
+)
+length(test[test==F])==0
+
+#test hh11i
+test<-table(
+  vehicles_hh$tract,
+  vehicles_hh$number_vehicles_in_hh
+)==table(
   sam_race_hh$tract,
-  sam_race_hh$number_workers_in_hh
+  sam_race_hh$number_vehicles_hh
+)
+length(test[test==F])==0
+test<-table(
+  vehicles_hh$tract,
+  vehicles_hh$number_vehicles_in_hh
 )==table(
   sam_eth_hh$tract,
-  sam_eth_hh$number_workers_in_hh
+  sam_eth_hh$number_vehicles_hh
 )
 length(test[test==F])==0
 
@@ -505,49 +523,53 @@ length(test[test==F])==0
 
 #test hh13
 test<-table(
-  family_employment_dt$tract,
-  family_employment_dt$family_role,
-  family_employment_dt$employment,
-  family_employment_dt$wife_employed
-)==table(
-  sam_race_hh[family=="Family households",tract],
-  sam_race_hh[family=="Family households",family_role],
-  sam_race_hh[family=="Family households",employment],
-  sam_race_hh[family=="Family households",wife_employed]
-)
-length(test[test==F])/length(test) < .04 #because of not giving full numbers from census on married-couples...
-test<-table(
-  family_employment_dt$tract,
-  family_employment_dt$family_role,
-  family_employment_dt$employment,
-  family_employment_dt$wife_employed
-)==table(
-  sam_eth_hh[family=="Family households",tract],
-  sam_eth_hh[family=="Family households",family_role],
-  sam_eth_hh[family=="Family households",employment],
-  sam_eth_hh[family=="Family households",wife_employed]
-)
-length(test[test==F])/length(test) < .04 #because of not giving full numbers from census on married-couples...
-
-#test hh14
-test<-table(
-  vehicles_hh$tract,
-  vehicles_hh$hh_size_4,
-  vehicles_hh$number_vehicles_in_hh
+  hh_partner_dt$tract,
+  hh_partner_dt$partner_type,
+  hh_partner_dt$sex_partner,
+  hh_partner_dt$sex
 )==table(
   sam_race_hh$tract,
-  sam_race_hh$hh_size_4,
-  sam_race_hh$number_vehicles_in_hh
+  sam_race_hh$partner_type,
+  sam_race_hh$sex_partner,
+  sam_race_hh$hh_sex
 )
 length(test[test==F])==0
 test<-table(
-  vehicles_hh$tract,
-  vehicles_hh$hh_size_4,
-  vehicles_hh$number_vehicles_in_hh
+  hh_partner_dt$tract,
+  hh_partner_dt$partner_type,
+  hh_partner_dt$sex_partner,
+  hh_partner_dt$sex
 )==table(
   sam_eth_hh$tract,
-  sam_eth_hh$hh_size_4,
-  sam_eth_hh$number_vehicles_in_hh
+  sam_eth_hh$partner_type,
+  sam_eth_hh$sex_partner,
+  sam_eth_hh$hh_sex
+)
+length(test[test==F])==0
+
+#test hh14
+test<-table(
+  tenure_yr_moved_units_hh$tract,
+  #tenure_yr_moved_units_hh$own_rent,
+  tenure_yr_moved_units_hh$housing_units,
+  tenure_yr_moved_units_hh$when_moved
+)==table(
+  sam_race_hh$tract,
+  #sam_race_hh$own_rent,
+  sam_race_hh$housing_units_6,
+  sam_race_hh$when_moved_in
+)
+length(test[test==F])==0
+test<-table(
+  tenure_yr_moved_units_hh$tract,
+  #tenure_yr_moved_units_hh$own_rent,
+  tenure_yr_moved_units_hh$housing_units,
+  tenure_yr_moved_units_hh$when_moved
+)==table(
+  sam_eth_hh$tract,
+  #sam_eth_hh$own_rent,
+  sam_eth_hh$housing_units_6,
+  sam_eth_hh$when_moved_in
 )
 length(test[test==F])==0
 
@@ -613,31 +635,7 @@ test<-table(
 )
 length(test[test==F])==0
 
-#test hh18
-test<-table(
-  hh_partner_dt$tract,
-  hh_partner_dt$partner_type,
-  hh_partner_dt$sex_partner,
-  hh_partner_dt$sex
-)==table(
-  sam_race_hh$tract,
-  sam_race_hh$partner_type,
-  sam_race_hh$sex_partner,
-  sam_race_hh$hh_sex
-)
-length(test[test==F])==0
-test<-table(
-  hh_partner_dt$tract,
-  hh_partner_dt$partner_type,
-  hh_partner_dt$sex_partner,
-  hh_partner_dt$sex
-)==table(
-  sam_eth_hh$tract,
-  sam_eth_hh$partner_type,
-  sam_eth_hh$sex_partner,
-  sam_eth_hh$hh_sex
-)
-length(test[test==F])==0
+
 
 #test hh19
 test<-table(
