@@ -433,7 +433,8 @@ exp_census_hh <- function() {
     transport_race_dt <- as.data.table(transport_race_data)
     transport_eth_dt <- as.data.table(transport_eth_data)
     transport_eth_dt[,c("cnt_total"):=nrow(.SD[ethnicity %in% acs_race_codes]),by=.(tract,means_transport)]
-    transport_eth_dt[order(match(ethnicity,c("H","I",ethnicity %in% acs_race_codes))),c("cnt_ethn"):=list(1:.N),by=.(tract,means_transport)]
+    transport_eth_dt[ethnicity %in% acs_race_codes,("ethnicity"):="_"]
+    transport_eth_dt[order(match(ethnicity,c("H","I","_"))),c("cnt_ethn"):=list(1:.N),by=.(tract,means_transport)]
     transport_eth_dt[,("tokeep"):=if_else(cnt_ethn <= cnt_total,TRUE,FALSE),by=.(tract,ethnicity,means_transport)]
     transport_eth_dt <- transport_eth_dt[(tokeep)]
     #test <- table(transport_eth_dt$means_transport)==table(transport_race_dt$means_transport)
