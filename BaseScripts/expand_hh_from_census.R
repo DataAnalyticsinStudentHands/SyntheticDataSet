@@ -637,6 +637,7 @@ exp_census_hh <- function() {
       uncount(as.numeric(number_sams),.id = "workers_id",.remove = TRUE)
     #when adding age, workers need to be 18
     hh_workers <- as.data.table(household_workers_data)
+    hh_workers[,("no_workers"):=nrow(.SD[number_workers_in_hh=="No workers"]),by=.(tract)]
     rm(household_workers_from_census)
     rm(household_workers_data)
     

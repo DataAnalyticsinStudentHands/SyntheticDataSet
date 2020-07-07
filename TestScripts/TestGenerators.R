@@ -410,6 +410,24 @@ test<-table(
 )
 length(test[test==F])==0
 
+#test hh8i
+test <- table(
+  sam_race_hh$tract,
+  sam_race_hh$not_00_workers
+)==table(
+  hh_workers$tract,
+  hh_workers$not_00_workers
+)
+length(test[test==F])==0
+test <- table(
+  sam_eth_hh$tract,
+  sam_eth_hh$not_00_workers
+)==table(
+  hh_workers$tract,
+  hh_workers$not_00_workers
+)
+length(test[test==F])==0
+
 #test hh8g
 #test that they all moved over nrow(transport_tenure_dt[is.na(missing)])==0
 #transport_tenure_dt[,c("missing"):=
