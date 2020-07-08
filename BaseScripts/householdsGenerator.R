@@ -1475,18 +1475,20 @@ createHouseholds <- function() {
                 by=.(tract,sex,own_rent)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,sex,own_rent,as.character(1000000+sample(1:.N))),
                  by=.(tract,sex,own_rent)]
-    reshuffle_ager[,c("cnt_missing","race","age_range_6","age_range_w3","hh_size","hh_size_10","track_hh_id"):=
+    #for track_hh_id, to get it exact, would need to also write back new matches to transport_hh - too much trouble at this point
+    #not moving track_hh_id now, so it's easier to get right number at end
+    reshuffle_ager[,c("cnt_missing","race","age_range_6","age_range_w3","hh_size","hh_size_10"):= #,"track_hh_id"):=
                    transport_hh[.SD, c(list(race),list(race),list(age_range_6),list(age_range_w3),
-                                       list(hh_size),list(hh_size_10),list(track_hh_id)),
+                                       list(hh_size),list(hh_size_10)),#,list(track_hh_id)),
                                        on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     transport_hh[is.na(missing_eth),("rejoin_ethA_id") := paste0(tract,sex,own_rent,as.character(1000000+sample(1:.N))),
                  by=.(tract,sex,own_rent)]
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,sex,own_rent,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,own_rent)]
-    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","age_range_6","age_range_w3","hh_size","hh_size_10","track_hh_id"):=
+    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","age_range_6","age_range_w3","hh_size","hh_size_10"):=#,"track_hh_id"):=
                    transport_hh[.SD, c(list(ethnicity),list(ethnicity),list(age_range_6),list(age_range_w3),
-                                       list(hh_size),list(hh_size_10),list(track_hh_id)),
+                                       list(hh_size),list(hh_size_10)),#,list(track_hh_id)),
                                 on=.(rejoin_ethA_id)]]
 
     #put on sam
@@ -1528,6 +1530,8 @@ createHouseholds <- function() {
     reshuffle$sr1 <- nrow(sam_race_hh[!is.na(means_transport)])
     reshuffle$srm1 <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
     reshuffle$sem1 <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$etrack1 <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack1 <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_1 <- table(sam_eth_hh$transport_cut_off)
     sam_placed_1 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -1551,18 +1555,18 @@ createHouseholds <- function() {
                  by=.(tract,sex,age_range_w3)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,sex,age_range_w3,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,age_range_w3)]
-    reshuffle_ager[,c("cnt_missing","race","own_rent","hh_size","hh_size_10","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","race","own_rent","hh_size","hh_size_10"):=#,"track_hh_id"):=
                      transport_hh[.SD, c(list(race),list(race),list(own_rent),list(hh_size),
-                                         list(hh_size_10),list(track_hh_id)),
+                                         list(hh_size_10)),#,list(track_hh_id)),
                                   on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     transport_hh[is.na(missing_eth),("rejoin_ethA_id") := paste0(tract,sex,age_range_w3,as.character(1000000+sample(1:.N))),
                  by=.(tract,sex,age_range_w3)]
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,sex,age_range_w3,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,age_range_w3)]
-    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","own_rent","hh_size","hh_size_10","track_hh_id"):=
+    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","own_rent","hh_size","hh_size_10"):=#,"track_hh_id"):=
                      transport_hh[.SD, c(list(ethnicity),list(ethnicity),list(own_rent),list(hh_size),
-                                         list(hh_size_10),list(track_hh_id)),
+                                         list(hh_size_10)),#,list(track_hh_id)),
                                   on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth
@@ -1604,6 +1608,8 @@ createHouseholds <- function() {
     reshuffle$se2 <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr2 <-nrow(transport_hh[!is.na(missing_race)])
     reshuffle$sr2 <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack2 <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack2 <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_2 <- table(sam_eth_hh$transport_cut_off)
     sam_placed_2 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -1628,18 +1634,18 @@ createHouseholds <- function() {
                  by=.(tract,sex,hh_size)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,sex,hh_size,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,hh_size)]
-    reshuffle_ager[,c("cnt_missing","race","own_rent","age_range_6","age_range_w3","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","race","own_rent","age_range_6","age_range_w3"):= #,"track_hh_id"):=
                      transport_hh[.SD, c(list(race),list(race),list(own_rent),list(age_range_6),
-                                         list(age_range_w3),list(track_hh_id)),
+                                         list(age_range_w3)),# ,list(track_hh_id)),
                                   on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     transport_hh[is.na(missing_eth),("rejoin_ethA_id") := paste0(tract,sex,hh_size,as.character(1000000+sample(1:.N))),
                  by=.(tract,sex,hh_size)]
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,sex,hh_size,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,hh_size)]
-    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","own_rent","age_range_6","age_range_w3","track_hh_id"):=
+    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","own_rent","age_range_6","age_range_w3"):=#,"track_hh_id"):=
                      transport_hh[.SD, c(list(ethnicity),list(ethnicity),list(own_rent),list(age_range_6),
-                                         list(age_range_w3),list(track_hh_id)),
+                                         list(age_range_w3)),# ,list(track_hh_id)),
                                   on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth
@@ -1680,6 +1686,8 @@ createHouseholds <- function() {
     reshuffle$se3 <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr3 <-nrow(transport_hh[!is.na(missing_race)])
     reshuffle$sr3 <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack3 <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack3 <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_3 <- table(sam_eth_hh$transport_cut_off)
     sam_placed_3 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -1704,18 +1712,18 @@ createHouseholds <- function() {
                  by=.(tract,sex,race)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,sex,race,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,race)]
-    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_10","own_rent","age_range_6","age_range_w3","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_10","own_rent","age_range_6","age_range_w3"):=#,"track_hh_id"):=
                      transport_hh[.SD, c(list(race),list(hh_size),list(hh_size_10),list(own_rent),list(age_range_6),
-                                         list(age_range_w3),list(track_hh_id)),
+                                         list(age_range_w3)),#,list(track_hh_id)),
                                   on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     transport_hh[is.na(missing_eth),("rejoin_ethA_id") := paste0(tract,sex,ethnicity,as.character(1000000+sample(1:.N))),
                  by=.(tract,sex,ethnicity)]
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,sex,ethnicity,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,ethnicity)]
-    reshuffle_agee[is.na(missing_eth),c("cnt_missing","hh_size","hh_size_10","own_rent","age_range_6","age_range_w3","track_hh_id"):=
+    reshuffle_agee[is.na(missing_eth),c("cnt_missing","hh_size","hh_size_10","own_rent","age_range_6","age_range_w3"):=#,"track_hh_id"):=
                      transport_hh[.SD, c(list(ethnicity),list(hh_size),list(hh_size_10),list(own_rent),
-                                         list(age_range_6),list(age_range_w3),list(track_hh_id)),
+                                         list(age_range_6),list(age_range_w3)),#,list(track_hh_id)),
                                   on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth
@@ -1756,6 +1764,8 @@ createHouseholds <- function() {
     reshuffle$se4 <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr4 <-nrow(transport_hh[!is.na(missing_race)])
     reshuffle$sr4 <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack4 <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack4 <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_4 <- table(sam_eth_hh$transport_cut_off)
     sam_placed_4 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -1822,6 +1832,8 @@ createHouseholds <- function() {
     reshuffle$se5 <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr5 <-nrow(transport_hh[!is.na(missing_race)])
     reshuffle$sr5 <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack5 <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack5 <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_5 <- table(sam_eth_hh$transport_cut_off)
     sam_placed_5 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     rm(transport_age_eth_2)
@@ -1847,9 +1859,9 @@ createHouseholds <- function() {
                  by=.(tract,sex,own_rent)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,sex,own_rent,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,own_rent)]
-    reshuffle_ager[,c("cnt_missing","race","age_range_6","age_range_w3","hh_size","hh_size_10","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","race","age_range_6","age_range_w3","hh_size","hh_size_10"):=#,"track_hh_id"):=
                      transport_hh_race[.SD, c(list(race),list(race),list(age_range_6),list(age_range_w3),
-                                              list(hh_size),list(hh_size_10),list(track_hh_id)),
+                                              list(hh_size),list(hh_size_10)),#,list(track_hh_id)),
                                   on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     transport_hh_eth <- transport_hh
@@ -1858,9 +1870,9 @@ createHouseholds <- function() {
                  by=.(tract,sex,own_rent)]
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,sex,own_rent,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,own_rent)]
-    reshuffle_agee[,c("cnt_missing","ethnicity","age_range_6","age_range_w3","hh_size","hh_size_10","track_hh_id"):=
+    reshuffle_agee[,c("cnt_missing","ethnicity","age_range_6","age_range_w3","hh_size","hh_size_10"):=#,"track_hh_id"):=
                      transport_hh_eth[.SD, c(list(ethnicity),list(ethnicity),list(age_range_6),list(age_range_w3),
-                                             list(hh_size),list(hh_size_10),list(track_hh_id)),
+                                             list(hh_size),list(hh_size_10)),#,list(track_hh_id)),
                                   on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth
@@ -1909,6 +1921,8 @@ createHouseholds <- function() {
     reshuffle$se1a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr1a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr1a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack1a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack1a <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_sr1a <- table(sam_eth_hh$transport_cut_off)
     sam_placed_sr1a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -1932,18 +1946,18 @@ createHouseholds <- function() {
                  by=.(tract,sex,age_range_w3)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,sex,age_range_w3,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,age_range_w3)]
-    reshuffle_ager[,c("cnt_missing","race","own_rent","hh_size","hh_size_4","hh_size_10","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","race","own_rent","hh_size","hh_size_4","hh_size_10"):=#,"track_hh_id"):=
                      transport_hh_race[.SD, c(list(race),list(race),list(own_rent),list(hh_size),
-                                              list(hh_size_4),list(hh_size_10),list(track_hh_id)),
+                                              list(hh_size_4),list(hh_size_10)),#,list(track_hh_id)),
                                   on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh_eth[is.na(missing_eth)]
     transport_hh_eth[is.na(missing_eth),("rejoin_ethA_id") := paste0(tract,sex,age_range_w3,as.character(1000000+sample(1:.N))),
                  by=.(tract,sex,age_range_w3)]
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,sex,age_range_w3,as.character(1000000+sample(1:.N))),
                    by=.(tract,sex,age_range_w3)]
-    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","own_rent","hh_size","hh_size_4","hh_size_10","track_hh_id"):=
+    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","own_rent","hh_size","hh_size_4","hh_size_10"):=#,"track_hh_id"):=
                      transport_hh_eth[.SD, c(list(ethnicity),list(ethnicity),list(own_rent),list(hh_size),
-                                             list(hh_size_4),list(hh_size_10),list(track_hh_id)),
+                                             list(hh_size_4),list(hh_size_10)),#,list(track_hh_id)),
                                   on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth
@@ -1977,19 +1991,22 @@ createHouseholds <- function() {
                                        list(English_level),list(income_range),list(hh_size_10),list(track_hh_id),
                                        list(means_transport)),
                                 on = .(rejoin_eth2_id)]]
-    transport_hh_eth[is.na(missing_eth),("rejoin_eth2_id"):=reshuffle_agee[.SD,rejoin_eth2_id,on=.(rejoin_ethA_id)]]
     transport_hh_eth[is.na(missing_eth),
+                     ("rejoin_eth2_id"):=reshuffle_agee[.SD,rejoin_eth2_id,on=.(rejoin_ethA_id)]]
+    transport_hh_eth[!is.na(rejoin_eth2_id)&is.na(missing_eth),
                      ("missing_eth"):=
                        sam_eth_hh[.SD,reshuffle_match,on=.(rejoin_eth2_id)]]
     
     transport_hh_race[is.na(missing_race),("rejoin_race2_id"):=reshuffle_ager[.SD,rejoin_race2_id,on=.(rejoin_raceA_id)]]
-    transport_hh_race[is.na(missing_race),
+    transport_hh_race[!is.na(rejoin_race2_id)&is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match,on=.(tract,rejoin_race2_id)]]
     reshuffle$te2a <-nrow(transport_hh_eth[!is.na(missing_eth)])
     reshuffle$se2a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr2a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr2a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack2a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack2a <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_sr2a <- table(sam_eth_hh$transport_cut_off)
     sam_placed_sr2a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -2014,18 +2031,18 @@ createHouseholds <- function() {
                  by=.(tract,hh_size_4)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,hh_size_4,as.character(1000000+sample(1:.N))),
                    by=.(tract,hh_size_4)]
-    reshuffle_ager[,c("cnt_missing","race","own_rent","age_range_6","age_range_w3","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","race","own_rent","age_range_6","age_range_w3"):=#,"track_hh_id"):=
                      transport_hh_race[.SD, c(list(race),list(race),list(own_rent),list(age_range_6),
-                                              list(age_range_w3),list(track_hh_id)),
+                                              list(age_range_w3)),#,list(track_hh_id)),
                                   on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh_eth[is.na(missing_eth)]
     transport_hh_eth[is.na(missing_eth),("rejoin_ethA_id") := paste0(tract,hh_size_4,as.character(1000000+sample(1:.N))),
                  by=.(tract,hh_size_4)]
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,hh_size_4,as.character(1000000+sample(1:.N))),
                    by=.(tract,hh_size_4)]
-    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","own_rent","age_range_6","age_range_w3","track_hh_id"):=
+    reshuffle_agee[is.na(missing_eth),c("cnt_missing","ethnicity","own_rent","age_range_6","age_range_w3"):=#,"track_hh_id"):=
                      transport_hh_eth[.SD, c(list(ethnicity),list(ethnicity),list(own_rent),list(age_range_6),
-                                             list(age_range_w3),list(track_hh_id)),
+                                             list(age_range_w3)),#,list(track_hh_id)),
                                   on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth
@@ -2060,18 +2077,20 @@ createHouseholds <- function() {
                                        list(means_transport)),
                                 on = .(rejoin_eth2_id)]]
     transport_hh_eth[is.na(missing_eth),("rejoin_eth2_id"):=reshuffle_agee[.SD,rejoin_eth2_id,on=.(rejoin_ethA_id)]]
-    transport_hh_eth[is.na(missing_eth),
+    transport_hh_eth[!is.na(rejoin_eth2_id) &is.na(missing_eth),
                      ("missing_eth"):=
                        sam_eth_hh[.SD,reshuffle_match2,on=.(rejoin_eth2_id)]]
     
     transport_hh_race[is.na(missing_race),("rejoin_race2_id"):=reshuffle_ager[.SD,rejoin_race2_id,on=.(rejoin_raceA_id)]]
-    transport_hh_race[is.na(missing_race),
+    transport_hh_race[!is.na(rejoin_race2_id) &is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match2,on=.(tract,rejoin_race2_id)]]
     reshuffle$te3a <-nrow(transport_hh_eth[!is.na(missing_eth)])
     reshuffle$se3a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr3a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr3a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack3a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack3a <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_sr3a <- table(sam_eth_hh$transport_cut_off)
     sam_placed_sr3a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -2099,15 +2118,17 @@ createHouseholds <- function() {
     transport_age_eth_2[,("rejoin_eth2b1_id") := paste0(tract,sex,own_rent,age_range_w3,hh_size_4,as.character(1000000+sample(1:.N))),
                         by=.(tract,sex,own_rent,age_range_w3,hh_size_4)]
     transport_hh_eth[is.na(missing_eth),
-                     c("ethnicity","track_hh_id"):=
-                       transport_age_eth_2[.SD,c(list(ethnicity),list(track_hh_id)),on=.(rejoin_eth2b1_id)]]
+                     c("ethnicity"):=#,"track_hh_id"):=
+                       transport_age_eth_2[.SD,c(list(ethnicity)),#,list(track_hh_id)),
+                                           on=.(rejoin_eth2b1_id)]]
     transport_hh_race[is.na(missing_race),("rejoin_race2b1_id") := paste0(tract,sex,own_rent,age_range_w3,hh_size_4,as.character(1000000+sample(1:.N))),
                       by=.(tract,sex,own_rent,age_range_w3,hh_size_4)]
     transport_age_race_2[,("rejoin_race2b1_id") := paste0(tract,sex,own_rent,age_range_w3,hh_size_4,as.character(1000000+sample(1:.N))),
                          by=.(tract,sex,own_rent,age_range_w3,hh_size_4)]
     transport_hh_race[is.na(missing_race),
-                      c("race","track_hh_id"):=
-                        transport_age_race_2[.SD,c(list(race),list(track_hh_id)),on=.(rejoin_race2b1_id)]]
+                      c("race"):=#,"track_hh_id"):=
+                        transport_age_race_2[.SD,c(list(race)),#,list(track_hh_id)),
+                                             on=.(rejoin_race2b1_id)]]
     #then try again, with new race/eth having just been sampled (not actually moved over yet)
     sam_race_hh$rejoin_race2c1_id <- NULL
     sam_eth_hh$rejoin_eth2c1_id <- NULL
@@ -2145,6 +2166,8 @@ createHouseholds <- function() {
     reshuffle$se4a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr4a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr4a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack4a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack4a <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_sr4a <- table(sam_eth_hh$transport_cut_off)
     sam_placed_sr4a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     rm(transport_age_eth_2)
@@ -2168,9 +2191,9 @@ createHouseholds <- function() {
                  by=.(tract,race)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,race,as.character(1000000+sample(1:.N))),
                    by=.(tract,race)]
-    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","own_rent","age_range_6","age_range_w3","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","own_rent","age_range_6","age_range_w3"):=#,"track_hh_id"):=
                      transport_hh_race[.SD, c(list(race),list(hh_size),list(hh_size_4),list(hh_size_10),list(own_rent),
-                                              list(age_range_6),list(age_range_w3),list(track_hh_id)),
+                                              list(age_range_6),list(age_range_w3)),#,list(track_hh_id)),
                                   on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     transport_hh_eth[is.na(missing_eth),("rejoin_ethA_id") := paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
@@ -2178,9 +2201,9 @@ createHouseholds <- function() {
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
                    by=.(tract,ethnicity)]
     reshuffle_agee[is.na(missing_eth),c("cnt_missing","hh_size","hh_size_4","hh_size_10","own_rent","age_range_6",
-                                        "age_range_w3","track_hh_id"):=
+                                        "age_range_w3"):=#,"track_hh_id"):=
                      transport_hh_eth[.SD, c(list(ethnicity),list(hh_size),list(hh_size_4),list(hh_size_10),list(own_rent),
-                                             list(age_range_6),list(age_range_w3),list(track_hh_id)),
+                                             list(age_range_6),list(age_range_w3)),#,list(track_hh_id)),
                                   on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth - no longer matching on sex, since so many hh don't have it; but then pull final from sex_age_race/eth
@@ -2240,6 +2263,8 @@ createHouseholds <- function() {
     reshuffle$se5a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr5a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr5a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack5a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack5a <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_sr5a <- table(sam_eth_hh$transport_cut_off)
     sam_placed_sr5a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -2267,9 +2292,9 @@ createHouseholds <- function() {
                       by=.(tract,age_range_w3)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
                    by=.(tract,age_range_w3)]
-    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","own_rent","age_range_6","race","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","own_rent","age_range_6","race"):=#,"track_hh_id"):=
                      transport_hh_race[.SD, c(list(race),list(hh_size),list(hh_size_4),list(hh_size_10),list(own_rent),
-                                              list(age_range_6),list(race),list(track_hh_id)),
+                                              list(age_range_6),list(race)),#,list(track_hh_id)),
                                        on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     transport_hh_eth[is.na(missing_eth),("rejoin_ethA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
@@ -2277,9 +2302,9 @@ createHouseholds <- function() {
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
                    by=.(tract,age_range_w3)]
     reshuffle_agee[is.na(missing_eth),c("cnt_missing","hh_size","hh_size_4","hh_size_10","own_rent",
-                                        "age_range_6","ethnicity","track_hh_id"):=
+                                        "age_range_6","ethnicity"):=#,"track_hh_id"):=
                      transport_hh_eth[.SD, c(list(ethnicity),list(hh_size),list(hh_size_4),list(hh_size_10),
-                                             list(own_rent),list(age_range_6),list(ethnicity),list(track_hh_id)),
+                                             list(own_rent),list(age_range_6),list(ethnicity)),#,list(track_hh_id)),
                                       on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth - no longer matching on sex, since so many hh don't have it; but then pull final from sex_age_race/eth
@@ -2341,6 +2366,8 @@ createHouseholds <- function() {
     reshuffle$se6a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr6a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr6a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack6a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack6a <- length(unique(sam_race_hh$track_hh_id))
     sam_cut_off_sr6a <- table(sam_eth_hh$transport_cut_off)
     sam_placed_sr6a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
@@ -2371,9 +2398,9 @@ createHouseholds <- function() {
                       by=.(tract,own_rent)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,own_rent,as.character(1000000+sample(1:.N))),
                    by=.(tract,own_rent)]
-    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","age_range_w3","age_range_6","race","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","age_range_w3","age_range_6","race"):=#,"track_hh_id"):=
                      transport_hh_race[.SD, c(list(race),list(hh_size),list(hh_size_4),list(hh_size_10),list(age_range_w3),
-                                              list(age_range_6),list(race),list(track_hh_id)),
+                                              list(age_range_6),list(race)),#,list(track_hh_id)),
                                        on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     #need to make sure only get as large as the hh with workers - should institute a logic for when need to do this check, above!!
@@ -2383,9 +2410,9 @@ createHouseholds <- function() {
     reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,own_rent,as.character(1000000+sample(1:.N))),
                    by=.(tract,own_rent)]
     reshuffle_agee[is.na(missing_eth),c("cnt_missing","hh_size","hh_size_4","hh_size_10","age_range_w3",
-                                        "age_range_6","ethnicity","track_hh_id"):=
+                                        "age_range_6","ethnicity"):=#,"track_hh_id"):=
                      transport_hh_eth[.SD, c(list(ethnicity),list(hh_size),list(hh_size_4),list(hh_size_10),
-                                             list(age_range_w3),list(age_range_6),list(ethnicity),list(track_hh_id)),
+                                             list(age_range_w3),list(age_range_6),list(ethnicity)),#,list(track_hh_id)),
                                       on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth - no longer matching on sex, since so many hh don't have it; but then pull final from sex_age_race/eth
@@ -2447,6 +2474,8 @@ createHouseholds <- function() {
     reshuffle$se7a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr7a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr7a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack7a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack7a <- length(unique(sam_race_hh$track_hh_id))
     
     #reshuffle again, this time on race/eth with others resampled and dropping sex and hh_size
     #put in cut off
@@ -2474,9 +2503,9 @@ createHouseholds <- function() {
                       by=.(tract,race)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,race,as.character(1000000+sample(1:.N))),
                    by=.(tract,race)]
-    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","age_range_w3","age_range_6","own_rent","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","age_range_w3","age_range_6","own_rent"):=#,"track_hh_id"):=
                      transport_hh_race[.SD, c(list(race),list(hh_size),list(hh_size_4),list(hh_size_10),list(age_range_w3),
-                                              list(age_range_6),list(own_rent),list(track_hh_id)),
+                                              list(age_range_6),list(own_rent)),#,list(track_hh_id)),
                                        on=.(rejoin_raceA_id)]]
     reshuffle_agee <- transport_hh[is.na(missing_eth)]
     #need to make sure only get as large as the hh with workers - should institute a logic for when need to do this check, above!!
@@ -2550,6 +2579,8 @@ createHouseholds <- function() {
     reshuffle$se8a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr8a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr8a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack8a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack8a <- length(unique(sam_race_hh$track_hh_id))
     
     #reshuffle again, this time on age with others resampled and dropping sex, hh_size, race/eth and own_rent
     #put in cut off
@@ -2577,9 +2608,9 @@ createHouseholds <- function() {
                       by=.(tract,age_range_w3)]
     reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
                    by=.(tract,age_range_w3)]
-    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","race","own_rent","track_hh_id"):=
+    reshuffle_ager[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","race","own_rent"):=#,"track_hh_id"):=
                      transport_hh_race[.SD, c(list(race),list(hh_size),list(hh_size_4),list(hh_size_10),
-                                              list(race),list(own_rent),list(track_hh_id)),
+                                              list(race),list(own_rent)),#,list(track_hh_id)),
                                        on=.(rejoin_raceA_id)]]
     reshuffle_agee3 <- transport_hh_eth[is.na(missing_eth)]
     #need to make sure only get as large as the hh with workers - should institute a logic for when need to do this check, above!!
@@ -2588,9 +2619,9 @@ createHouseholds <- function() {
                      by=.(tract,age_range_w3)]
     reshuffle_agee3[,("rejoin_ethA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
                    by=.(tract,age_range_w3)]
-    reshuffle_agee3[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","ethnicity","own_rent","track_hh_id"):=
+    reshuffle_agee3[,c("cnt_missing","hh_size","hh_size_4","hh_size_10","ethnicity","own_rent"):=#,"track_hh_id"):=
                      transport_hh_eth[.SD, c(list(ethnicity),list(hh_size),list(hh_size_4),list(hh_size_10),
-                                             list(ethnicity),list(own_rent),list(track_hh_id)),
+                                             list(ethnicity),list(own_rent)),#,list(track_hh_id)),
                                       on=.(rejoin_ethA_id)]]
     
     #Add to sam_race/eth - no longer matching on sex, since so many hh don't have it; but then pull final from sex_age_race/eth
@@ -2654,6 +2685,8 @@ createHouseholds <- function() {
     reshuffle$se9a <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr9a <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$sr9a <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$etrack9a <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack9a <- length(unique(sam_race_hh$track_hh_id))
     
     #final
     #put in cut off
@@ -2667,16 +2700,20 @@ createHouseholds <- function() {
     sam_race_hh[is.na(means_transport),("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
     #reshuffle transport
     sam_race_hh[transport_cut_off==TRUE,("rejoin_raceF_id") := 
-                  paste0(tract,as.character(1000000+sample(1:.N))),
+                  #paste0(tract,as.character(1000000+sample(1:.N))),
+                  paste0(tract,as.character(1000000+seq.int(1:.N))),
                 by=.(tract)]
     sam_eth_hh[transport_cut_off==TRUE,("rejoin_ethF_id") := 
-                 paste0(tract,as.character(1000000+sample(1:.N))),
+                 #paste0(tract,as.character(1000000+sample(1:.N))),
+                 paste0(tract,as.character(1000000+seq.int(1:.N))),
                by=.(tract)]
     transport_hh_race[is.na(missing_race),("rejoin_raceF_id") := 
-                     paste0(tract,as.character(1000000+sample(1:.N))),
+                        #paste0(tract,as.character(1000000+sample(1:.N))),
+                        paste0(tract,as.character(1000000+seq.int(1:.N))),
                    by=.(tract)]
     transport_hh_eth[is.na(missing_eth),("rejoin_ethF_id") := 
-                     paste0(tract,as.character(1000000+sample(1:.N))),
+                       #paste0(tract,as.character(1000000+sample(1:.N))),
+                       paste0(tract,as.character(1000000+seq.int(1:.N))),
                    by=.(tract)]
     
     ###get this reshuffle_ager1 to be only size left to get right number of workers in hh
@@ -2721,7 +2758,12 @@ createHouseholds <- function() {
     reshuffle$seFinal <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$trFinal <-nrow(transport_hh_race[!is.na(missing_race)])
     reshuffle$srFinal <- nrow(sam_race_hh[!is.na(means_transport)])
-    #both eth/race came up with 1273928 - not 1289903 : very odd; last one was just a sort on tract....
+    reshuffle$etrackF <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrackF <- length(unique(sam_race_hh$track_hh_id))
+    #both eth/race came up with 1273955 - not 1289903 : very odd; last one was just a sort on tract....
+    #could not get track_hh_id to add up properly - need to use leftover from transport_eth/race_hh
+    #it's an interesting case to think through - I think what happens is that on the shuffles, it's unclear what counts as the right
+    #identity for each row, and what I ended up doing was just not trying to track it back and forth 
     
     #assign workers for leftovers
     sam_eth_hh[is.na(number_workers_in_hh),("number_workers_in_hh"):="00 workers"]
