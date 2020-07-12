@@ -309,6 +309,8 @@ test<-table(
 length(test[test==F])==0
 
 #test hh8
+nrow(sam_eth_hh[family_type=="Householder living alone"&hh_size=="1-person household"])==nrow(hh_size_dt[hh_size=="1-person household"])
+nrow(sam_race_hh[family_type=="Householder living alone"&hh_size=="1-person household"])==nrow(hh_size_dt[hh_size=="1-person household"])
 test<-table(
   hh_size_dt$tract,
   hh_size_dt$own_rent_eth,

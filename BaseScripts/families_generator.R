@@ -6,16 +6,26 @@
 #' If simulated data already exists, it will read it from an RDS file.
 #'Input should include exp_census from expand_from_census.R, which is a list of data.tables
 #' @return sam_residents A dataframe of simulated people.
-createIndividuals <- function() {
+createFamilies <- function() {
   #have to fix
-  sam_residents_data_file <- paste0(censusdir, vintage,"/sam_hh.RDS") 
+  sam_families_data_file <- paste0(censusdir, vintage,"/sam_hh.RDS") 
   #Create or read in individual sam residents
   if(file.exists(sam_residents_data_file)) {
     # import saved sam residents from RDS file
     sam_residents <- readRDS(sam_residents_data_file)
     print(sprintf("Done reading sam residents RDS from %s", sam_residents_data_file ))
   } else {
+    #additional_workers_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/additional_workers_race_2020-07-07.RDS")
+    #additional_workers_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/additional_workers_eth_2020-07-07.RDS")
+    sam_race_hh <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_race_hh_2020-07-07.RDS")
+    sam_eth_hh <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_eth_hh_2020-07-07.RDS")
+    #hh_relations_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_race_2020-05-30.RDS")
+    #hh_relations_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_eth_2020-05-30.RDS")
     #get sam_eth/race and additional_workers_eth/race from RDS
+    #clean up NAs from households
+    sam_eth_hh[single_hh_employed=="NA",c("single_hh_employed"):=NA]
+    sam_race_hh[single_hh_employed=="NA",c("single_hh_employed"):=NA]
+    
     partners_eth <- sam_eth_hh[,uncount(.SD[!is.na(partner_type)],1,.remove = TRUE,.id="partner")]
     wives_eth <- sam_eth_hh[,uncount(.SD[family_role=="Married-couple family"],1,.remove = TRUE,.id="wife")]
     partners_race <- sam_race_hh[,uncount(.SD[!is.na(partner_type)],1,.remove = TRUE,.id="partner")]
@@ -39,20 +49,18 @@ createIndividuals <- function() {
     wives_eth[,c("family_role","family_role_4"):="Wife"]
     wives_race[,c("family_role","family_role_4"):="Wife"]
     #employment
-    partners_eth$rent_when_id <- NULL #seems to fully separate the subparts, so you don't get shallow copy warning
-    partners_eth[,("employment"):=single_hh_employed]
+    partners_eth[,("employment"):=single_hh_employed] #just to give it something - not a great solution
     partners_eth[employment=="Husband not in labor force",("employment"):="Not in labor force"]
-    partners_race$rent_whenr_id <- NULL
     partners_race[,("employment"):=single_hh_employed]
     partners_race[employment=="Husband not in labor force",("employment"):="Not in labor force"]
-    wives_eth$rent_when_id <- NULL
     wives_eth[,("employment"):=wife_employed]
-    wives_race$rent_whenr_id <- NULL
     wives_race[,("employment"):=wife_employed]
     sam_eth_hh[,("employment"):=husband_employed]
     sam_eth_hh[employment=="Husband not in labor force",("employment"):="Not in labor force"]
+    sam_eth_hh[is.na(employment),("employment"):=single_hh_employed]
     sam_race_hh[,("employment"):=husband_employed]
     sam_race_hh[employment=="Husband not in labor force",("employment"):="Not in labor force"]
+    sam_race_hh[is.na(employment),("employment"):=single_hh_employed]
     #could do interracial marriages - 17% of new marriages in 2015; 3% in 1967... other.race gets a lot of increase... - fix later
     
     wives_eth[,("age_range_w3"):=case_when(

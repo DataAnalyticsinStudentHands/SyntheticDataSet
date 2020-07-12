@@ -913,7 +913,11 @@ createHouseholds <- function() {
     sam_race_hh[,("hh_size_race_id"):=NULL]
     #because it's just the own_rent backwards on the ones that are left
     
+    #CHECK HH_SIZE==1 IF family_type=="Householder living alone"
+    
     #test hh8
+    #nrow(sam_eth_hh[family_type=="Householder living alone"&hh_size=="1-person household"])==nrow(hh_size_dt[hh_size=="1-person household"])
+    #nrow(sam_race_hh[family_type=="Householder living alone"&hh_size=="1-person household"])==nrow(hh_size_dt[hh_size=="1-person household"])
     #test<-table(
     #  hh_size_dt$tract,
     #  hh_size_dt$own_rent_eth,
@@ -1077,7 +1081,7 @@ createHouseholds <- function() {
     #length(test[test==F])==0
     
     #put number of !00 workers per tract on every one in transport_hh
-    
+    #done in expand_hh_from_census.R
     #hh_workers[,("no_workers"):=nrow(.SD[number_workers_in_hh!="00 workers"]),by=.(tract)]
     
     #trying to get it large enough to fill the tracts, and then cut off the ones with large number of workers by
@@ -1113,6 +1117,7 @@ createHouseholds <- function() {
                ("number_workers_in_hh"):=list("3 workers")]
     hh_workers[number_workers_in_hh!="10 workers",("number_workers_in_hh"):=paste0("0",number_workers_in_hh)]
     #remember you lose households with 0 workers and (I'm guessing) adults who work from home! target is 2061700
+    #nrow(sam_eth_hh[family_type=="Householder living alone"])==nrow(hh_workers[hh_size_4=="1-person household"])
     workers_exp <- hh_workers[,uncount(.SD,as.numeric(substr(number_workers_in_hh,1,2)),.remove = FALSE,.id = "worker_")]
     workers_exp$number_sams <- NULL #trying to fix shallow copy warning
     
@@ -1335,9 +1340,8 @@ createHouseholds <- function() {
     #  transport_age_dt$race
     #)
     #length(test[test==F])==0
-    
-    
-    #get age_range in shape to match
+    #separate hh from non-hh workers add_workers_hh will be used later
+    #clean up age
     transport_age_dt[,("age_range_6"):=case_when(
       age_range_7=="16 to 19 years" | age_range_7=="20 to 24 years" ~ "15 to 24 years",
       TRUE ~ age_range_7
@@ -1354,9 +1358,6 @@ createHouseholds <- function() {
         householder_age_9=="Householder 85 years and over" ~ "65 years and over",
       TRUE ~ str_remove(householder_age_9,"Householder ")
     )]
-    #have to redo match on income, sex, race and eth, etc. without hh later, but same totals for workers, even if juggle by hh
-
-#separate hh from non-hh workers add_workers_hh will be used later
     #get back to only householders who are in labor force
     transport_age_dt[,("track_hh_id"):=paste0(tract,as.character(1000000+sample(1:.N))),by=.(tract)]
     transport_age_dt[,("ethnicity"):=if_else(ethnicity!="H" | ethnicity!="I",ethnicity,"_")]
@@ -1368,7 +1369,7 @@ createHouseholds <- function() {
     sam_race_hh[,("cut_off_id") := paste0(tract,as.character(1000000+sample(1:.N))),
                 by=.(tract)]
     sam_eth_hh[,("cut_off_id") := paste0(tract,as.character(1000000+sample(1:.N))),
-                by=.(tract)]
+               by=.(tract)]
     hh_workers[,("cut_off_id") := paste0(tract,as.character(1000000+sample(1:.N))),
                by=.(tract)]
     sam_race_hh[,("no_workers"):=hh_workers[.SD,no_workers,on=.(cut_off_id)]]
@@ -1391,13 +1392,373 @@ createHouseholds <- function() {
     #  hh_workers$no_workers
     #)
     #length(test[test==F])==0
-    #put in cut off
-    sam_eth_hh[,("sample_cut_off"):=sample(1:.N),by=.(tract)]
-    sam_eth_hh[,("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
-    sam_race_hh[,("sample_cut_off"):=sample(1:.N),by=.(tract)]
-    sam_race_hh[,("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
     
-    #there are <1k too many if you assign no workers to 272910 hh
+    #get age_range in shape to match
+    
+    #get easier age for next step
+    transport_hh[,("age_range_w3"):=case_when(
+      age_range_6=="15 to 24 years" | age_range_6=="25 to 44 years" ~ "15 to 44 years",
+      age_range_6=="45 to 54 years" | age_range_6=="55 to 59 years" ~ "45 to 59 years",
+      TRUE ~ "60 years and over"
+    )]
+    sam_race_hh[,("age_range_w3"):=case_when(
+      age_range_6=="15 to 24 years" | age_range_6=="25 to 44 years" ~ "15 to 44 years",
+      age_range_6=="45 to 54 years" | age_range_6=="55 to 59 years" ~ "45 to 59 years",
+      TRUE ~ "60 years and over"
+    )]
+    sam_eth_hh[,("age_range_w3"):=case_when(
+      age_range_6=="15 to 24 years" | age_range_6=="25 to 44 years" ~ "15 to 44 years",
+      age_range_6=="45 to 54 years" | age_range_6=="55 to 59 years" ~ "45 to 59 years",
+      TRUE ~ "60 years and over"
+    )]
+    
+    #have to redo match on income, sex, race and eth, etc. without hh later, but same totals for workers, even if juggle by hh
+
+
+    #nrow(transport_hh[hh_size=="1-person household"])==nrow(hh_workers[hh_size_4=="1-person household"&number_workers_in_hh=="01 worker"])
+    #1-person households on sam_eth/race don't have sex
+    #put in cut off
+    #sam_eth_hh$sample_cut_off <- NULL
+    #sam_eth_hh$transport_cut_off <- NULL
+    #sam_race_hh$sample_cut_off <- NULL
+    #sam_race_hh$transport_cut_off <- NULL
+    sam_eth_hh[hh_size=="1-person household",
+               ("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_eth_hh[hh_size=="1-person household",
+               ("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    sam_race_hh[hh_size=="1-person household",
+                ("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_race_hh[hh_size=="1-person household",
+                ("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    #rejoin just for 1-person hh
+    sam_race_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+                ("rejoin_race1p_id") := paste0(tract,own_rent,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
+                by=.(tract,own_rent,age_range_6,race,hh_size)]
+    sam_eth_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+               ("rejoin_eth1p_id") := paste0(tract,own_rent,age_range_6,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+               by=.(tract,own_rent,age_range_6,ethnicity,hh_size)]
+    transport_hh[hh_size=="1-person household",("rejoin_race1p_id") := 
+                   paste0(tract,own_rent,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,own_rent,age_range_6,race,hh_size)]
+    transport_hh[hh_size=="1-person household",("rejoin_eth1p_id") := 
+                   paste0(tract,own_rent,age_range_6,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                 by=.(tract,own_rent,age_range_6,ethnicity,hh_size)]
+    sam_race_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+                c("sex","means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                  transport_hh[.SD, c(list(sex),list(means_transport),list(number_workers_in_hh),list(industry),
+                                      list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                      list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                               on = .(rejoin_race1p_id)]]
+    sam_eth_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+               c("sex","means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                 "language","English_level","income_range_workers","hh_size_10","track_hh_id"):=
+                 transport_hh[.SD, c(list(sex),list(means_transport),list(number_workers_in_hh),list(industry),
+                                     list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                     list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
+                              on = .(rejoin_eth1p_id)]]
+    transport_hh[hh_size=="1-person household",
+                 ("missing_eth"):=sam_eth_hh[.SD,means_transport,on=.(rejoin_eth1p_id)]]
+    transport_hh[hh_size=="1-person household",
+                 ("missing_race"):=sam_race_hh[.SD,means_transport,on=.(rejoin_race1p_id)]]
+    
+    #nrow transport_hh
+    reshuffle <- as.data.frame(Sys.time())
+    reshuffle$te01p <-nrow(transport_hh[!is.na(missing_eth)])
+    reshuffle$se01p <- nrow(sam_eth_hh[!is.na(means_transport)])
+    reshuffle$tr01p <-nrow(transport_hh[!is.na(missing_race)])
+    reshuffle$sr01p <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$srm01p <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$sem01p <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$r1p0 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    reshuffle$e1p0 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    sam_cut_off_01p <- table(sam_eth_hh$transport_cut_off)
+    sam_placed_01p <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    
+    #tests - nrow(sam_race_hh[family_type=="Householder living alone"&hh_size=="1-person household"]) == nrow(sam_race_hh[hh_size=="1-person household"])
+    #no sex on 1-person households, since they are all non-family - have to figure out how to get sex on non-family, more than one-person and 
+    #how to have right number of non-working 1-person hh.
+    
+    #put in cut off
+    sam_eth_hh$sample_cut_off <- NULL
+    sam_eth_hh$transport_cut_off <- NULL
+    sam_race_hh$sample_cut_off <- NULL
+    sam_race_hh$transport_cut_off <- NULL
+    sam_eth_hh[is.na(means_transport)&hh_size=="1-person household",
+               ("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_eth_hh[is.na(means_transport)&hh_size=="1-person household",
+               ("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    sam_race_hh[is.na(means_transport)&hh_size=="1-person household",
+                ("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_race_hh[is.na(means_transport)&hh_size=="1-person household",
+                ("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    #reshuffle transport
+    reshuffle_ager <- transport_hh[is.na(missing_race)&hh_size=="1-person household"]
+    transport_hh[is.na(missing_race)&hh_size=="1-person household",
+                 ("rejoin_raceA_id") := paste0(tract,own_rent,as.character(1000000+sample(1:.N))),
+                 by=.(tract,own_rent)]
+    reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,own_rent,as.character(1000000+sample(1:.N))),
+                   by=.(tract,own_rent)]
+    #for track_hh_id, to get it exact, would need to also write back new matches to transport_hh - too much trouble at this point
+    #not moving track_hh_id now, so it's easier to get right number at end
+    reshuffle_ager[,c("cnt_missing","race","age_range_6","age_range_w3","hh_size","hh_size_10","sex"):= #,"track_hh_id"):=
+                     transport_hh[.SD, c(list(race),list(race),list(age_range_6),list(age_range_w3),
+                                         list(hh_size),list(hh_size_10),list(sex)),#,list(track_hh_id)),
+                                  on=.(rejoin_raceA_id)]]
+    reshuffle_agee <- transport_hh[is.na(missing_eth)&hh_size=="1-person household"]
+    transport_hh[is.na(missing_eth)&hh_size=="1-person household",
+                 ("rejoin_ethA_id") := paste0(tract,own_rent,as.character(1000000+sample(1:.N))),
+                 by=.(tract,own_rent)]
+    reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,own_rent,as.character(1000000+sample(1:.N))),
+                   by=.(tract,own_rent)]
+    reshuffle_agee[,c("cnt_missing","ethnicity","age_range_6","age_range_w3","hh_size","hh_size_10","sex"):=#,"track_hh_id"):=
+                     transport_hh[.SD, c(list(ethnicity),list(ethnicity),list(age_range_6),list(age_range_w3),
+                                         list(hh_size),list(hh_size_10),list(sex)),#,list(track_hh_id)),
+                                  on=.(rejoin_ethA_id)]]
+    #put on sam
+    sam_race_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+                ("rejoin_race2_id") := paste0(tract,own_rent,age_range_w3,race,hh_size,as.character(1000000+sample(1:.N))),
+                by=.(tract,own_rent,age_range_w3,race,hh_size)]
+    sam_eth_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+               ("rejoin_eth2_id") :=paste0(tract,own_rent,age_range_w3,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+               by=.(tract,own_rent,age_range_w3,ethnicity,hh_size)]
+    reshuffle_ager[,("rejoin_race2_id") := 
+                     paste0(tract,own_rent,age_range_w3,race,hh_size,as.character(1000000+sample(1:.N))),
+                   by=.(tract,own_rent,age_range_w3,race,hh_size)]
+    reshuffle_agee[,("rejoin_eth2_id") := 
+                     paste0(tract,own_rent,age_range_w3,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                   by=.(tract,own_rent,age_range_w3,ethnicity,hh_size)]
+    sam_race_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+                c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id","sex"):=
+                  reshuffle_ager[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                        list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                        list(English_level),list(income_range),list(hh_size_10),list(track_hh_id),list(sex)),
+                                 on = .(rejoin_race2_id)]]
+    sam_eth_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+               c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                 "language","English_level","income_range_workers","hh_size_10","track_hh_id","sex"):=
+                 reshuffle_agee[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                       list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                       list(English_level),list(income_range),list(hh_size_10),list(track_hh_id),list(sex)),
+                                on = .(rejoin_eth2_id)]]
+    reshuffle_agee[,("missing_eth"):=sam_eth_hh[.SD,means_transport,on=.(rejoin_eth2_id)]]
+    reshuffle_ager[,("missing_race"):=sam_race_hh[.SD,means_transport,on=.(rejoin_race2_id)]]
+    transport_hh[is.na(missing_eth)&hh_size=="1-person household",
+                 ("missing_eth"):=
+                   reshuffle_agee[.SD,missing_eth,on=.(rejoin_ethA_id)]]
+    transport_hh[is.na(missing_race)&hh_size=="1-person household",
+                 ("missing_race"):=
+                   reshuffle_ager[.SD,missing_race,on=.(rejoin_raceA_id)]]
+    reshuffle$te01sp <-nrow(transport_hh[!is.na(missing_eth)])
+    reshuffle$se01sp <- nrow(sam_eth_hh[!is.na(means_transport)])
+    reshuffle$tr01sp <-nrow(transport_hh[!is.na(missing_race)])
+    reshuffle$sr01sp <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$srm01sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$sem01sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$r1p0 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    reshuffle$e1p0 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    reshuffle$etrack01sp <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack01sp <- length(unique(sam_race_hh$track_hh_id))
+    sam_cut_off_01sp <- table(sam_eth_hh$transport_cut_off)
+    sam_placed_01sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle for 1-person, on eth/race
+    #put in cut off
+    rm(reshuffle_agee)
+    rm(reshuffle_ager)
+    transport_hh$rejoin_raceA_id <- NULL
+    transport_hh$rejoin_ethA_id <- NULL
+    sam_eth_hh$rejoin_eth2_id <- NULL
+    sam_race_hh$rejoin_race2_id <- NULL
+    sam_eth_hh$sample_cut_off <- NULL
+    sam_eth_hh$transport_cut_off <- NULL
+    sam_race_hh$sample_cut_off <- NULL
+    sam_race_hh$transport_cut_off <- NULL
+    sam_eth_hh[is.na(means_transport)&hh_size=="1-person household",
+               ("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_eth_hh[is.na(means_transport)&hh_size=="1-person household",
+               ("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    sam_race_hh[is.na(means_transport)&hh_size=="1-person household",
+                ("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_race_hh[is.na(means_transport)&hh_size=="1-person household",
+                ("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    #reshuffle transport
+    reshuffle_ager <- transport_hh[is.na(missing_race)&hh_size=="1-person household"]
+    transport_hh[is.na(missing_race)&hh_size=="1-person household",
+                 ("rejoin_raceA_id") := paste0(tract,race,as.character(1000000+sample(1:.N))),
+                 by=.(tract,race)]
+    reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,race,as.character(1000000+sample(1:.N))),
+                   by=.(tract,race)]
+    #for track_hh_id, to get it exact, would need to also write back new matches to transport_hh - too much trouble at this point
+    #not moving track_hh_id now, so it's easier to get right number at end
+    reshuffle_ager[,c("cnt_missing","own_rent","age_range_6","age_range_w3","hh_size","hh_size_10","sex"):= #,"track_hh_id"):=
+                     transport_hh[.SD, c(list(race),list(own_rent),list(age_range_6),list(age_range_w3),
+                                         list(hh_size),list(hh_size_10),list(sex)),#,list(track_hh_id)),
+                                  on=.(rejoin_raceA_id)]]
+    reshuffle_agee <- transport_hh[is.na(missing_eth)&hh_size=="1-person household"]
+    transport_hh[is.na(missing_eth)&hh_size=="1-person household",
+                 ("rejoin_ethA_id") := paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
+                 by=.(tract,ethnicity)]
+    reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
+                   by=.(tract,ethnicity)]
+    reshuffle_agee[,c("cnt_missing","own_rent","age_range_6","age_range_w3","hh_size","hh_size_10","sex"):=#,"track_hh_id"):=
+                     transport_hh[.SD, c(list(ethnicity),list(own_rent),list(age_range_6),list(age_range_w3),
+                                         list(hh_size),list(hh_size_10),list(sex)),#,list(track_hh_id)),
+                                  on=.(rejoin_ethA_id)]]
+    #put on sam
+    sam_race_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+                ("rejoin_race2_id") := paste0(tract,own_rent,age_range_w3,race,hh_size,as.character(1000000+sample(1:.N))),
+                by=.(tract,own_rent,age_range_w3,race,hh_size)]
+    sam_eth_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+               ("rejoin_eth2_id") :=paste0(tract,own_rent,age_range_w3,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+               by=.(tract,own_rent,age_range_w3,ethnicity,hh_size)]
+    reshuffle_ager[,("rejoin_race2_id") := 
+                     paste0(tract,own_rent,age_range_w3,race,hh_size,as.character(1000000+sample(1:.N))),
+                   by=.(tract,own_rent,age_range_w3,race,hh_size)]
+    reshuffle_agee[,("rejoin_eth2_id") := 
+                     paste0(tract,own_rent,age_range_w3,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                   by=.(tract,own_rent,age_range_w3,ethnicity,hh_size)]
+    sam_race_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+                c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id","sex"):=
+                  reshuffle_ager[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                        list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                        list(English_level),list(income_range),list(hh_size_10),list(track_hh_id),list(sex)),
+                                 on = .(rejoin_race2_id)]]
+    sam_eth_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+               c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                 "language","English_level","income_range_workers","hh_size_10","track_hh_id","sex"):=
+                 reshuffle_agee[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                       list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                       list(English_level),list(income_range),list(hh_size_10),list(track_hh_id),list(sex)),
+                                on = .(rejoin_eth2_id)]]
+    reshuffle_agee[,("missing_eth"):=sam_eth_hh[.SD,means_transport,on=.(rejoin_eth2_id)]]
+    reshuffle_ager[,("missing_race"):=sam_race_hh[.SD,means_transport,on=.(rejoin_race2_id)]]
+    transport_hh[is.na(missing_eth)&hh_size=="1-person household",
+                 ("missing_eth"):=
+                   reshuffle_agee[.SD,missing_eth,on=.(rejoin_ethA_id)]]
+    transport_hh[is.na(missing_race)&hh_size=="1-person household",
+                 ("missing_race"):=
+                   reshuffle_ager[.SD,missing_race,on=.(rejoin_raceA_id)]]
+    reshuffle$te02sp <-nrow(transport_hh[!is.na(missing_eth)])
+    reshuffle$se02sp <- nrow(sam_eth_hh[!is.na(means_transport)])
+    reshuffle$tr02sp <-nrow(transport_hh[!is.na(missing_race)])
+    reshuffle$sr02sp <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$srm02sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$sem02sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$r1p1 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    reshuffle$e1p1 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    reshuffle$etrack02sp <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack02sp <- length(unique(sam_race_hh$track_hh_id))
+    sam_cut_off_02sp <- table(sam_eth_hh$transport_cut_off)
+    sam_placed_02sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #do same reshuffle again; age_range_w3 and own_rent dropped
+    #reshuffle for 1-person, on eth/race
+    #put in cut off
+    rm(reshuffle_agee)
+    rm(reshuffle_ager)
+    transport_hh$rejoin_raceA_id <- NULL
+    transport_hh$rejoin_ethA_id <- NULL
+    sam_eth_hh$rejoin_eth2_id <- NULL
+    sam_race_hh$rejoin_race2_id <- NULL
+    sam_eth_hh$sample_cut_off <- NULL
+    sam_eth_hh$transport_cut_off <- NULL
+    sam_race_hh$sample_cut_off <- NULL
+    sam_race_hh$transport_cut_off <- NULL
+    sam_eth_hh[is.na(means_transport)&hh_size=="1-person household",
+               ("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_eth_hh[is.na(means_transport)&hh_size=="1-person household",
+               ("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    sam_race_hh[is.na(means_transport)&hh_size=="1-person household",
+                ("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_race_hh[is.na(means_transport)&hh_size=="1-person household",
+                ("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    #reshuffle transport
+    reshuffle_ager <- transport_hh[is.na(missing_race)&hh_size=="1-person household"]
+    transport_hh[is.na(missing_race)&hh_size=="1-person household",
+                 ("rejoin_raceA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
+                 by=.(tract,age_range_w3)]
+    reshuffle_ager[,("rejoin_raceA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
+                   by=.(tract,age_range_w3)]
+    #for track_hh_id, to get it exact, would need to also write back new matches to transport_hh - too much trouble at this point
+    #not moving track_hh_id now, so it's easier to get right number at end
+    reshuffle_ager[,c("cnt_missing","own_rent","race","hh_size","hh_size_10","sex"):= #,"track_hh_id"):=
+                     transport_hh[.SD, c(list(race),list(own_rent),list(race),
+                                         list(hh_size),list(hh_size_10),list(sex)),#,list(track_hh_id)),
+                                  on=.(rejoin_raceA_id)]]
+    reshuffle_agee <- transport_hh[is.na(missing_eth)&hh_size=="1-person household"]
+    transport_hh[is.na(missing_eth)&hh_size=="1-person household",
+                 ("rejoin_ethA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
+                 by=.(tract,age_range_w3)]
+    reshuffle_agee[,("rejoin_ethA_id") := paste0(tract,age_range_w3,as.character(1000000+sample(1:.N))),
+                   by=.(tract,age_range_w3)]
+    reshuffle_agee[,c("cnt_missing","own_rent","ethnicity","hh_size","hh_size_10","sex"):=#,"track_hh_id"):=
+                     transport_hh[.SD, c(list(ethnicity),list(own_rent),list(ethnicity),
+                                         list(hh_size),list(hh_size_10),list(sex)),#,list(track_hh_id)),
+                                  on=.(rejoin_ethA_id)]]
+    #put on sam
+    sam_race_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+                ("rejoin_race2_id") := paste0(tract,age_range_w3,race,hh_size,as.character(1000000+sample(1:.N))),
+                by=.(tract,age_range_w3,race,hh_size)]
+    sam_eth_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+               ("rejoin_eth2_id") :=paste0(tract,age_range_w3,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+               by=.(tract,age_range_w3,ethnicity,hh_size)]
+    reshuffle_ager[,("rejoin_race2_id") := 
+                     paste0(tract,age_range_w3,race,hh_size,as.character(1000000+sample(1:.N))),
+                   by=.(tract,age_range_w3,race,hh_size)]
+    reshuffle_agee[,("rejoin_eth2_id") := 
+                     paste0(tract,age_range_w3,ethnicity,hh_size,as.character(1000000+sample(1:.N))),
+                   by=.(tract,age_range_w3,ethnicity,hh_size)]
+    sam_race_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+                c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                  "language","English_level","income_range_workers","hh_size_10","track_hh_id","sex"):=
+                  reshuffle_ager[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                        list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                        list(English_level),list(income_range),list(hh_size_10),list(track_hh_id),list(sex)),
+                                 on = .(rejoin_race2_id)]]
+    sam_eth_hh[transport_cut_off==TRUE&hh_size=="1-person household",
+               c("means_transport","number_workers_in_hh","industry","occupation","commute_time","when_go_to_work",
+                 "language","English_level","income_range_workers","hh_size_10","track_hh_id","sex"):=
+                 reshuffle_agee[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
+                                       list(occupation),list(commute_time),list(when_go_to_work),list(language),
+                                       list(English_level),list(income_range),list(hh_size_10),list(track_hh_id),list(sex)),
+                                on = .(rejoin_eth2_id)]]
+    reshuffle_agee[,("missing_eth"):=sam_eth_hh[.SD,means_transport,on=.(rejoin_eth2_id)]]
+    reshuffle_ager[,("missing_race"):=sam_race_hh[.SD,means_transport,on=.(rejoin_race2_id)]]
+    transport_hh[is.na(missing_eth)&hh_size=="1-person household",
+                 ("missing_eth"):=
+                   reshuffle_agee[.SD,missing_eth,on=.(rejoin_ethA_id)]]
+    transport_hh[is.na(missing_race)&hh_size=="1-person household",
+                 ("missing_race"):=
+                   reshuffle_ager[.SD,missing_race,on=.(rejoin_raceA_id)]]
+    reshuffle$te03sp <-nrow(transport_hh[!is.na(missing_eth)])
+    reshuffle$se03sp <- nrow(sam_eth_hh[!is.na(means_transport)])
+    reshuffle$tr03sp <-nrow(transport_hh[!is.na(missing_race)])
+    reshuffle$sr03sp <- nrow(sam_race_hh[!is.na(means_transport)])
+    reshuffle$srm03sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$sem03sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    reshuffle$r1p3 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    reshuffle$e1p3 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    reshuffle$etrack03sp <- length(unique(sam_eth_hh$track_hh_id))
+    reshuffle$rtrack03sp <- length(unique(sam_race_hh$track_hh_id)) #22k that I would have wanted matched....
+    sam_cut_off_03sp <- table(sam_eth_hh$transport_cut_off)
+    sam_placed_03sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    #reshuffle on age - keeps same totals on age this way, but attaches them to different cases - it was random above, so no lost info
+    #there's got to be a simple way to make sure it's a complete shuffle; this doesn't redo all of them
+    
+    #put in cut off for all, including 01-person household
+    sam_eth_hh$sample_cut_off <- NULL
+    sam_eth_hh$transport_cut_off <- NULL
+    sam_race_hh$sample_cut_off <- NULL
+    sam_race_hh$transport_cut_off <- NULL
+    sam_eth_hh[is.na(means_transport),("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_eth_hh[is.na(means_transport),("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    sam_race_hh[is.na(means_transport),("sample_cut_off"):=sample(1:.N),by=.(tract)]
+    sam_race_hh[is.na(means_transport),("transport_cut_off"):=if_else((sample_cut_off-no_workers)>0,TRUE,FALSE),by=.(tract)]
+    
     sam_race_hh[transport_cut_off==TRUE,
                 ("rejoin_race_id") := paste0(tract,sex,own_rent,age_range_6,race,hh_size,as.character(1000000+sample(1:.N))),
                       by=.(tract,sex,own_rent,age_range_6,race,hh_size)]
@@ -1420,12 +1781,11 @@ createHouseholds <- function() {
                                          list(occupation),list(commute_time),list(when_go_to_work),list(language),
                                          list(English_level),list(income_range),list(hh_size_10),list(track_hh_id)),
                                         on = .(rejoin_eth_id)]]
-    transport_hh[,("missing_eth"):=sam_eth_hh[.SD,list(means_transport),on=.(rejoin_eth_id)]]
-    transport_hh[,("missing_race"):=sam_race_hh[.SD,list(means_transport),on=.(rejoin_race_id)]]
-    #get a little more than a third matching - target is 1289511, get 555834 and 540101 if do it without the transport_cut_off==TRUE
-    #~150k with transport_cut_off==TRUE; interesting example...
+    transport_hh[is.na(missing_eth),("missing_eth"):=sam_eth_hh[.SD,means_transport,on=.(rejoin_eth_id)]]
+    transport_hh[is.na(missing_race),("missing_race"):=sam_race_hh[.SD,means_transport,on=.(rejoin_race_id)]]
+    
     #nrow transport_hh
-    reshuffle <- as.data.frame(Sys.time())
+    #reshuffle <- as.data.frame(Sys.time())
     reshuffle$te0 <-nrow(transport_hh[!is.na(missing_eth)])
     reshuffle$se0 <- nrow(sam_eth_hh[!is.na(means_transport)])
     reshuffle$tr0 <-nrow(transport_hh[!is.na(missing_race)])
@@ -1434,25 +1794,6 @@ createHouseholds <- function() {
     reshuffle$sem0 <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
     sam_cut_off_0 <- table(sam_eth_hh$transport_cut_off)
     sam_placed_0 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
-    #reshuffle on age - keeps same totals on age this way, but attaches them to different cases - it was random above, so no lost info
-    #there's got to be a simple way to make sure it's a complete shuffle; this doesn't redo all of them
-    #get easier age for next step
-    transport_hh[,("age_range_w3"):=case_when(
-      age_range_6=="15 to 24 years" | age_range_6=="25 to 44 years" ~ "15 to 44 years",
-      age_range_6=="45 to 54 years" | age_range_6=="55 to 59 years" ~ "45 to 59 years",
-      TRUE ~ "60 years and over"
-    )]
-    sam_race_hh[,("age_range_w3"):=case_when(
-      age_range_6=="15 to 24 years" | age_range_6=="25 to 44 years" ~ "15 to 44 years",
-      age_range_6=="45 to 54 years" | age_range_6=="55 to 59 years" ~ "45 to 59 years",
-      TRUE ~ "60 years and over"
-    )]
-    sam_eth_hh[,("age_range_w3"):=case_when(
-      age_range_6=="15 to 24 years" | age_range_6=="25 to 44 years" ~ "15 to 44 years",
-      age_range_6=="45 to 54 years" | age_range_6=="55 to 59 years" ~ "45 to 59 years",
-      TRUE ~ "60 years and over"
-    )]
-    
     
     #create fewer hh_sizes
     sam_race_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4 or more person household",hh_size)]
@@ -1461,6 +1802,10 @@ createHouseholds <- function() {
     transport_age_dt[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4 or more person household",hh_size)]
     #the reshuffles take too long and only help about 10% of cases - would have to be more systematic
     #put in cut off
+    rm(reshuffle_agee)
+    rm(reshuffle_ager)
+    transport_hh$rejoin_raceA_id <- NULL
+    transport_hh$rejoin_ethA_id <- NULL
     sam_eth_hh$sample_cut_off <- NULL
     sam_eth_hh$transport_cut_off <- NULL
     sam_race_hh$sample_cut_off <- NULL
@@ -2329,27 +2674,23 @@ createHouseholds <- function() {
                 c("means_transport","number_workers_in_hh","industry","occupation",
                   "commute_time","when_go_to_work","sex_transport",
                   "language","English_level","income_range_workers",
-                  "hh_size","hh_size_4",
-                  "hh_size_10","track_hh_id","reshuffle_match5a"):=
+                  "track_hh_id","reshuffle_match5a"):=
                   reshuffle_ager[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                         list(occupation),list(commute_time),
                                         list(when_go_to_work),list(sex),list(language),
                                         list(English_level),list(income_range),
-                                        list(hh_size),list(hh_size_4),
-                                        list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                        list(track_hh_id),list(means_transport)),
                                  on = .(rejoin_race2_id)]]
     sam_eth_hh[transport_cut_off==TRUE,
                c("means_transport","number_workers_in_hh","industry","occupation",
                  "commute_time","when_go_to_work","sex_transport",
                  "language","English_level","income_range_workers",
-                 "hh_size","hh_size_4",
-                 "hh_size_10","track_hh_id","reshuffle_match5a"):=
+                 "track_hh_id","reshuffle_match5a"):=
                  reshuffle_agee[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                        list(occupation),list(commute_time),list(when_go_to_work),
                                        list(sex),list(language),
                                        list(English_level),list(income_range),
-                                       list(hh_size),list(hh_size_4),
-                                       list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                       list(track_hh_id),list(means_transport)),
                                 on = .(rejoin_eth2_id)]]
     #transport_hh_eth$rejoin_eth2_id <- NULL
     transport_hh_eth[is.na(missing_eth),("rejoin_eth2_id"):=reshuffle_agee[.SD,rejoin_eth2_id,on=.(rejoin_ethA_id)]]
@@ -2437,27 +2778,23 @@ createHouseholds <- function() {
                 c("means_transport","number_workers_in_hh","industry","occupation",
                   "commute_time","when_go_to_work","sex_transport",
                   "language","English_level","income_range_workers",
-                  "hh_size","hh_size_4",
-                  "hh_size_10","track_hh_id","reshuffle_match6a"):=
+                  "track_hh_id","reshuffle_match6a"):=
                   reshuffle_ager[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                         list(occupation),list(commute_time),
                                         list(when_go_to_work),list(sex),list(language),
                                         list(English_level),list(income_range),
-                                        list(hh_size),list(hh_size_4),
-                                        list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                        list(track_hh_id),list(means_transport)),
                                  on = .(rejoin_race2_id)]]
     sam_eth_hh[transport_cut_off==TRUE,
                c("means_transport","number_workers_in_hh","industry","occupation",
                  "commute_time","when_go_to_work","sex_transport",
                  "language","English_level","income_range_workers",
-                 "hh_size","hh_size_4",
-                 "hh_size_10","track_hh_id","reshuffle_match6a"):=
+                 "track_hh_id","reshuffle_match6a"):=
                  reshuffle_agee[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                        list(occupation),list(commute_time),list(when_go_to_work),
                                        list(sex),list(language),
                                        list(English_level),list(income_range),
-                                       list(hh_size),list(hh_size_4),
-                                       list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                       list(track_hh_id),list(means_transport)),
                                 on = .(rejoin_eth2_id)]]
     #transport_hh_eth$rejoin_eth2_id <- NULL
     transport_hh_eth[is.na(missing_eth),("rejoin_eth2_id"):=reshuffle_agee[.SD,rejoin_eth2_id,on=.(rejoin_ethA_id)]]
@@ -2542,27 +2879,23 @@ createHouseholds <- function() {
                 c("means_transport","number_workers_in_hh","industry","occupation",
                   "commute_time","when_go_to_work","sex_transport",
                   "language","English_level","income_range_workers",
-                  "hh_size","hh_size_4",
-                  "hh_size_10","track_hh_id","reshuffle_match7"):=
+                  "track_hh_id","reshuffle_match7"):=
                   reshuffle_ager[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                         list(occupation),list(commute_time),
                                         list(when_go_to_work),list(sex),list(language),
                                         list(English_level),list(income_range),
-                                        list(hh_size),list(hh_size_4),
-                                        list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                        list(track_hh_id),list(means_transport)),
                                  on = .(rejoin_race2_id)]]
     sam_eth_hh[transport_cut_off==TRUE,
                c("means_transport","number_workers_in_hh","industry","occupation",
                  "commute_time","when_go_to_work","sex_transport",
                  "language","English_level","income_range_workers",
-                 "hh_size","hh_size_4",
-                 "hh_size_10","track_hh_id","reshuffle_match7"):=
+                 "track_hh_id","reshuffle_match7"):=
                  reshuffle_agee[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                        list(occupation),list(commute_time),list(when_go_to_work),
                                        list(sex),list(language),
                                        list(English_level),list(income_range),
-                                       list(hh_size),list(hh_size_4),
-                                       list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                       list(track_hh_id),list(means_transport)),
                                 on = .(rejoin_eth2_id)]]
     #transport_hh_eth$rejoin_eth2_id <- NULL
     transport_hh_eth[is.na(missing_eth),("rejoin_eth2_id"):=reshuffle_agee[.SD,rejoin_eth2_id,on=.(rejoin_ethA_id)]]
@@ -2646,27 +2979,23 @@ createHouseholds <- function() {
                 c("means_transport","number_workers_in_hh","industry","occupation",
                   "commute_time","when_go_to_work","sex_transport",
                   "language","English_level","income_range_workers",
-                  "hh_size","hh_size_4",
-                  "hh_size_10","track_hh_id","reshuffle_match8a"):=
+                  "track_hh_id","reshuffle_match8a"):=
                   reshuffle_ager[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                         list(occupation),list(commute_time),
                                         list(when_go_to_work),list(sex),list(language),
                                         list(English_level),list(income_range),
-                                        list(hh_size),list(hh_size_4),
-                                        list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                        list(track_hh_id),list(means_transport)),
                                  on = .(rejoin_race3_id)]]
     sam_eth_hh[transport_cut_off==TRUE,
                c("means_transport","number_workers_in_hh","industry","occupation",
                  "commute_time","when_go_to_work","sex_transport",
                  "language","English_level","income_range_workers",
-                 "hh_size","hh_size_4",
-                 "hh_size_10","track_hh_id","reshuffle_match8a"):=
+                 "track_hh_id","reshuffle_match8a"):=
                  reshuffle_agee3[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                        list(occupation),list(commute_time),list(when_go_to_work),
                                        list(sex),list(language),
                                        list(English_level),list(income_range),
-                                       list(hh_size),list(hh_size_4),
-                                       list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                       list(track_hh_id),list(means_transport)),
                                 on = .(rejoin_eth3_id)]]
     #transport_hh_eth$rejoin_eth3_id <- NULL
     #reshuffle_agee[!is.na(rejoin_eth3_id),("missed_eth"):=sam_eth_hh[.SD,reshuffle_match8a,on=.(rejoin_eth3_id)]]
@@ -2723,14 +3052,12 @@ createHouseholds <- function() {
                 c("means_transport","number_workers_in_hh","industry","occupation",
                   "commute_time","when_go_to_work","sex_transport",
                   "language","English_level","income_range_workers",
-                  "hh_size","hh_size_4",
-                  "hh_size_10","track_hh_id","reshuffle_match9"):=
+                  "track_hh_id","reshuffle_match9"):=
                   reshuffle_ager1[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                         list(occupation),list(commute_time),
                                         list(when_go_to_work),list(sex),list(language),
                                         list(English_level),list(income_range),
-                                        list(hh_size),list(hh_size_4),
-                                        list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                        list(track_hh_id),list(means_transport)),
                                  on = .(rejoin_raceF_id)]]
     reshuffle_agee1 <- transport_hh_eth[is.na(missing_eth)]
     #reshuffle_agee1 <- reshuffle_agee1[sample(nrow(hh_workers[number_workers_in_hh!="00 workers"])-nrow(sam_eth_hh[!is.na(means_transport)]))]
@@ -2738,14 +3065,12 @@ createHouseholds <- function() {
                c("means_transport","number_workers_in_hh","industry","occupation",
                  "commute_time","when_go_to_work","sex_transport",
                  "language","English_level","income_range_workers",
-                 "hh_size","hh_size_4",
-                 "hh_size_10","track_hh_id","reshuffle_match9"):=
+                 "track_hh_id","reshuffle_match9"):=
                  reshuffle_agee1[.SD, c(list(means_transport),list(number_workers_in_hh),list(industry),
                                        list(occupation),list(commute_time),list(when_go_to_work),
                                        list(sex),list(language),
                                        list(English_level),list(income_range),
-                                       list(hh_size),list(hh_size_4),
-                                       list(hh_size_10),list(track_hh_id),list(means_transport)),
+                                       list(track_hh_id),list(means_transport)),
                                 on = .(rejoin_ethF_id)]]
     transport_hh_eth[!is.na(rejoin_ethF_id) & is.na(missing_eth),
                      ("missing_eth"):=
@@ -2765,11 +3090,17 @@ createHouseholds <- function() {
     #it's an interesting case to think through - I think what happens is that on the shuffles, it's unclear what counts as the right
     #identity for each row, and what I ended up doing was just not trying to track it back and forth 
     
+    
     #assign workers for leftovers
     sam_eth_hh[is.na(number_workers_in_hh),("number_workers_in_hh"):="00 workers"]
     sam_race_hh[is.na(number_workers_in_hh),("number_workers_in_hh"):="00 workers"]
     sam_eth_hh[number_workers_in_hh=="03 or more workers",("number_workers_in_hh"):="03 workers"]
     sam_race_hh[number_workers_in_hh=="03 or more workers",("number_workers_in_hh"):="03 workers"]
+    #could get fancier with number of workers and hh_workers, but not sure it's worth it, esp given that original has something weird on 3-person
+    sam_eth_hh[as.numeric(substr(number_workers_in_hh,1,2))>as.numeric(substr(hh_size_4,1,1)),
+               ("number_workers_in_hh"):="01 worker"]
+    sam_race_hh[as.numeric(substr(number_workers_in_hh,1,2))>as.numeric(substr(hh_size_4,1,1)),
+               ("number_workers_in_hh"):="01 worker"]
     sam_eth_hh[is.na(sex),("sex"):=sex_transport]
     sam_race_hh[is.na(sex),("sex"):=sex_transport]
     
@@ -3057,6 +3388,7 @@ createHouseholds <- function() {
     #                     ("missing_race"):=sam_race_hh[.SD, list(miss_tracker), on = .(employ11_id)]]
     #what are the things that determine employment? can I fix them post_hoc??? and 4384 missing from married couples in census file
     #there's a bunch of odd small number cases, fixed here
+    #change to real na in families_generator - should clean up later
     sam_eth_hh[family_role=="Married-couple family"&!is.na(single_hh_employed),c("husband_employed"):=single_hh_employed]
     sam_eth_hh[family_role=="Married-couple family"&!is.na(single_hh_employed),c("single_hh_employed"):="NA"]
     sam_race_hh[family_role=="Married-couple family"&!is.na(single_hh_employed),c("husband_employed"):=single_hh_employed]

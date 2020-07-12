@@ -102,10 +102,106 @@ Female   Male
 243222 823427
 
 #moving to sam_workers
-> table(sam_eth_hh$number_workers_in_hh)
+> table(sam_eth_hh$number_workers_in_hh) - get a small difference in it after expanding and moving back
 
 00 workers  01 worker 02 workers 03 workers 04 workers 05 workers 06 workers 07 workers 08 workers 09 workers 10 workers 
     274658     718057     455859       7768      70690      19893      10673       2842       1610        173        590
+    
+> table(sam_eth_hh$number_workers_in_hh) - see householdsGenerator for details on difference because of merge
+
+00 workers  01 worker 02 workers 03 workers 04 workers 05 workers 06 workers 07 workers 08 workers 09 workers 10 workers 
+    288763     692920     465513       7722      71880      20062      10805       2819       1589        210        530
+
+Info on workers was gathered from the transport info - with a selection for the head of hh, then go back to that file for other workers - the value for head of hh is:    
+"means_transport","industry","occupation","commute_time","when_go_to_work","language","English_level","income_range_workers"
+
+> table(sam_eth_hh$means_transport)
+
+             Car truck or van - carpooled            Car truck or van - drove alone Public transportation (excluding taxicab) 
+                                   114273                                   1045440                                     32608 
+Taxicab motorcycle bicycle or other means                                    Walked                            Worked at home 
+                                    19760                                     17893                                     44076 
+                                    
+
+> table(sam_eth_hh$industry)
+
+                                    Agriculture forestry fishing and hunting and mining 
+                                                                                  45268 
+                                                                           Armed forces 
+                                                                                    823 
+                  Arts entertainment and recreation and accommodation and food services 
+                                                                                 110081 
+                                                                           Construction 
+                                                                                 120816 
+                             Educational services and health care and social assistance 
+                                                                                 237649 
+                           Finance and insurance and real estate and rental and leasing 
+                                                                                  78292 
+                                                                            Information 
+                                                                                  16839 
+                                                                          Manufacturing 
+                                                                                 127860 
+                                          Other services (except public administration) 
+                                                                                  72667 
+Professional scientific and management and administrative and waste management services 
+                                                                                 171019 
+                                                                  Public administration 
+                                                                                  31966 
+                                                                           Retail trade 
+                                                                                 134595 
+                                           Transportation and warehousing and utilities 
+                                                                                  78730 
+                                                                        Wholesale trade 
+                                                                                  47445 
+                                                                                  
+occupation and industry are hard to match up, since you're occupation within an industry isn't easy to match
+
+> table(sam_eth_hh$occupation)
+
+          Management business science and arts occupations                              Military specific occupations 
+                                                    123998                                                        823 
+Natural resources construction and maintenance occupations  Production transportation and material moving occupations 
+                                                    168261                                                     127860 
+                              Sales and office occupations                                        Service occupations 
+                                                    261692                                                     591416
+                                                    
+> table(sam_eth_hh$commute_time)
+
+0 minutes (works at home)            0 to 5 minutes           05 to 9 minutes          10 to 14 minutes          15 to 19 minutes 
+                    44076                     18363                     76474                    131665                    171211 
+         20 to 24 minutes          25 to 29 minutes          30 to 34 minutes          35 to 39 minutes          40 to 44 minutes 
+                   181790                     75039                    229171                     41025                     55008 
+         45 to 59 minutes          60 to 89 minutes        90 or more minutes 
+                   129240                     96266                     24722 
+                   
+> table(sam_eth_hh$when_go_to_work)
+
+10 00 a.m. to 10 59 a.m. 11 00 a.m. to 11 59 a.m.  12 00 a.m. to 4 59 a.m.  12 00 p.m. to 3 59 p.m.  4 00 p.m. to 11 59 p.m. 
+                   34878                    13821                    58436                    67439                    75633 
+  5 00 a.m. to 5 29 a.m.   5 30 a.m. to 5 59 a.m.   6 00 a.m. to 6 29 a.m.   6 30 a.m. to 6 59 a.m.   7 00 a.m. to 7 29 a.m. 
+                   63628                    69650                   144619                   125100                   193877 
+  7 30 a.m. to 7 59 a.m.   8 00 a.m. to 8 29 a.m.   8 30 a.m. to 8 59 a.m.   9 00 a.m. to 9 59 a.m. 
+                  121821                   127798                    57607                    75667
+                  
+
+> table(sam_eth_hh$language)
+
+   Speak only English Speak other languages         Speak Spanish 
+               725620                122871                425559
+               
+> table(sam_eth_hh$English_level)
+
+Speak English less than very well           Speak English very well                Speak only English 
+                           262995                            285435                            725620 
+                           
+> table(sam_eth_hh$income_range_workers)
+
+$1 to $9 999 or loss   $10 000 to $14 999   $15 000 to $24 999   $25 000 to $34 999   $35 000 to $49 999   $50 000 to $64 999   $65 000 to $74 999 
+              138360                97805               207230               173351               187521               153038                62171 
+     $75 000 or more 
+              254468
+              
+##end of subset of workers who are head of households - this will be included in the larger set of workers as expanded
            
 > table(sam_eth_hh$kids_by_age)
 
@@ -125,14 +221,17 @@ Employed or in Armed Forces                          NA                  Unemplo
 Employed or in Armed Forces  Husband not in labor force          Not in labor force                  Unemployed 
                      247782                        3190                       63203                       16221 
 
-> table(sam_eth_hh$number_vehicles_hh)
+> table(sam_eth_hh$number_vehicles_hh) #per hh, but some info for workers in household is incorporated
 
          1 vehicle available         2 vehicles available         3 vehicles available 4 or more vehicles available 
                       566545                       606400                       210018                        82758 
         No vehicle available 
                        97092
 
+> table(sam_eth_hh$when_moved_in)
 
+Moved in 1979 or earlier    Moved in 1980 to 1989    Moved in 1990 to 1999    Moved in 2000 to 2009   Moved in 2010 or later 
+                   75841                    73398                   165834                   446584                   801156
 
 
 > table(sam_eth_hh$hh_income_level)
@@ -208,4 +307,3 @@ Householder 85 years and over
 
 #hh_2_role matches the family_role from the relations file - 
 
-#hh_2_id matches the relations_id, and is on the householder's record too - not the same as the individual_id we should make at end
