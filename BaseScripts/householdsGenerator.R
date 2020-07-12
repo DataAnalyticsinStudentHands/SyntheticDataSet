@@ -1463,17 +1463,18 @@ createHouseholds <- function() {
                  ("missing_race"):=sam_race_hh[.SD,means_transport,on=.(rejoin_race1p_id)]]
     
     #nrow transport_hh
-    reshuffle <- as.data.frame(Sys.time())
-    reshuffle$te01p <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se01p <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr01p <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr01p <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$srm01p <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$sem01p <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$r1p0 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
-    reshuffle$e1p0 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
-    sam_cut_off_01p <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_01p <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    #reshuffle_start
+    #reshuffle <- as.data.frame(Sys.time())
+    #reshuffle$te01p0 <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se01p0 <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr01p0 <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr01p0 <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$srm01p0 <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$sem01p0 <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$r10p0 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    #reshuffle$e10p0 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    #sam_cut_off_010p <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_010p <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     
     #tests - nrow(sam_race_hh[family_type=="Householder living alone"&hh_size=="1-person household"]) == nrow(sam_race_hh[hh_size=="1-person household"])
@@ -1551,18 +1552,20 @@ createHouseholds <- function() {
     transport_hh[is.na(missing_race)&hh_size=="1-person household",
                  ("missing_race"):=
                    reshuffle_ager[.SD,missing_race,on=.(rejoin_raceA_id)]]
-    reshuffle$te01sp <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se01sp <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr01sp <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr01sp <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$srm01sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$sem01sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$r1p0 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
-    reshuffle$e1p0 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
-    reshuffle$etrack01sp <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack01sp <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_01sp <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_01sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle01
+    #reshuffle$te01sp <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se01sp <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr01sp <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr01sp <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$srm01sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$sem01sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$r1p0 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    #reshuffle$e1p0 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    #reshuffle$etrack01sp <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack01sp <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_01sp <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_01sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #reshuffle for 1-person, on eth/race
     #put in cut off
@@ -1642,18 +1645,20 @@ createHouseholds <- function() {
     transport_hh[is.na(missing_race)&hh_size=="1-person household",
                  ("missing_race"):=
                    reshuffle_ager[.SD,missing_race,on=.(rejoin_raceA_id)]]
-    reshuffle$te02sp <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se02sp <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr02sp <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr02sp <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$srm02sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$sem02sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$r1p1 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
-    reshuffle$e1p1 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
-    reshuffle$etrack02sp <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack02sp <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_02sp <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_02sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle02
+    #reshuffle$te02sp <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se02sp <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr02sp <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr02sp <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$srm02sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$sem02sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$r1p1 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    #reshuffle$e1p1 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    #reshuffle$etrack02sp <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack02sp <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_02sp <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_02sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #do same reshuffle again; age_range_w3 and own_rent dropped
     #reshuffle for 1-person, on eth/race
@@ -1734,20 +1739,22 @@ createHouseholds <- function() {
     transport_hh[is.na(missing_race)&hh_size=="1-person household",
                  ("missing_race"):=
                    reshuffle_ager[.SD,missing_race,on=.(rejoin_raceA_id)]]
-    reshuffle$te03sp <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se03sp <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr03sp <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr03sp <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$srm03sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$sem03sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$r1p3 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
-    reshuffle$e1p3 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
-    reshuffle$etrack03sp <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack03sp <- length(unique(sam_race_hh$track_hh_id)) #22k that I would have wanted matched....
-    sam_cut_off_03sp <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_03sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
-    #reshuffle on age - keeps same totals on age this way, but attaches them to different cases - it was random above, so no lost info
-    #there's got to be a simple way to make sure it's a complete shuffle; this doesn't redo all of them
+    
+    #reshuffle03
+    #reshuffle$te03sp <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se03sp <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr03sp <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr03sp <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$srm03sp <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$sem03sp <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$r1p3 <- nrow(sam_race_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    #reshuffle$e1p3 <- nrow(sam_eth_hh[!is.na(means_transport)&hh_size=="1-person household"])
+    #reshuffle$etrack03sp <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack03sp <- length(unique(sam_race_hh$track_hh_id)) #22k that I would have wanted matched....
+    #sam_cut_off_03sp <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_03sp <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    ##reshuffle on age - keeps same totals on age this way, but attaches them to different cases - it was random above, so no lost info
+    ##there's got to be a simple way to make sure it's a complete shuffle; this doesn't redo all of them
     
     #put in cut off for all, including 01-person household
     sam_eth_hh$sample_cut_off <- NULL
@@ -1785,15 +1792,16 @@ createHouseholds <- function() {
     transport_hh[is.na(missing_race),("missing_race"):=sam_race_hh[.SD,means_transport,on=.(rejoin_race_id)]]
     
     #nrow transport_hh
-    #reshuffle <- as.data.frame(Sys.time())
-    reshuffle$te0 <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se0 <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr0 <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr0 <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$srm0 <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$sem0 <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
-    sam_cut_off_0 <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_0 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    #reshuffle0
+    ##reshuffle <- as.data.frame(Sys.time())
+    #reshuffle$te0 <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se0 <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr0 <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr0 <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$srm0 <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$sem0 <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    #sam_cut_off_0 <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_0 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #create fewer hh_sizes
     sam_race_hh[,("hh_size_4"):=if_else(as.numeric(substr(hh_size,1,1))>3,"4 or more person household",hh_size)]
@@ -1869,16 +1877,18 @@ createHouseholds <- function() {
                    reshuffle_agee[.SD,list(missing_eth),on=.(rejoin_eth_id)]]
     transport_hh[is.na(missing_race),("missing_race"):=
                    reshuffle_ager[.SD,list(missing_race),on=.(rejoin_race_id)]]
-    reshuffle$te1 <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se1 <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr1 <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr1 <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$srm1 <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$sem1 <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
-    reshuffle$etrack1 <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack1 <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_1 <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_1 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle1
+    #reshuffle$te1 <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se1 <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr1 <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr1 <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$srm1 <- mean(sam_race_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$sem1 <- mean(sam_eth_hh[,sample_cut_off],na.rm = TRUE)
+    #reshuffle$etrack1 <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack1 <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_1 <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_1 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #reshuffle again, this time on age
     rm(reshuffle_agee)
@@ -1949,14 +1959,16 @@ createHouseholds <- function() {
     transport_hh[is.na(missing_eth),("missing_eth"):=
                    reshuffle_agee[.SD,list(missing_eth),on=.(rejoin_eth_id)]]
     transport_hh[is.na(missing_race),("missing_race"):=reshuffle_ager[.SD,list(missing_race),on=.(rejoin_race_id)]]
-    reshuffle$te2 <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se2 <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr2 <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr2 <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack2 <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack2 <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_2 <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_2 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle2
+    #reshuffle$te2 <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se2 <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr2 <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr2 <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack2 <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack2 <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_2 <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_2 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #reshuffle on hh_size
     #reshuffle again, this time on hh_size
@@ -2027,14 +2039,16 @@ createHouseholds <- function() {
     transport_hh[is.na(missing_eth),("missing_eth"):=
                    reshuffle_agee[.SD,list(missing_eth),on=.(rejoin_eth_id)]]
     transport_hh[is.na(missing_race),("missing_race"):=reshuffle_ager[.SD,list(missing_race),on=.(rejoin_race_id)]]
-    reshuffle$te3 <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se3 <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr3 <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr3 <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack3 <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack3 <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_3 <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_3 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle3
+    #reshuffle$te3 <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se3 <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr3 <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr3 <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack3 <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack3 <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_3 <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_3 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #reshuffl on race/eth
     #reshuffle again, this time on hh_size
@@ -2105,14 +2119,16 @@ createHouseholds <- function() {
     transport_hh[is.na(missing_eth),("missing_eth"):=
                    reshuffle_agee[.SD,list(missing_eth),on=.(rejoin_eth_id)]]
     transport_hh[is.na(missing_race),("missing_race"):=reshuffle_ager[.SD,list(missing_race),on=.(rejoin_race_id)]]
-    reshuffle$te4 <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se4 <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr4 <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr4 <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack4 <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack4 <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_4 <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_4 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle4
+    #reshuffle$te4 <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se4 <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr4 <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr4 <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack4 <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack4 <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_4 <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_4 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #about two-thirds matched - reshuffle, keeping same totals on transport side and just sampling from other members of transport_age households
     #put in cut off
@@ -2173,14 +2189,17 @@ createHouseholds <- function() {
                  ("missing_eth"):=sam_eth_hh[.SD,list(means_transport),on=.(rejoin_eth2c1_id)]]
     transport_hh[is.na(missing_race),
                  ("missing_race"):=sam_race_hh[.SD,list(means_transport),on=.(rejoin_race2c1_id)]]
-    reshuffle$te5 <-nrow(transport_hh[!is.na(missing_eth)])
-    reshuffle$se5 <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr5 <-nrow(transport_hh[!is.na(missing_race)])
-    reshuffle$sr5 <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack5 <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack5 <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_5 <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_5 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle5
+    #reshuffle$te5 <-nrow(transport_hh[!is.na(missing_eth)])
+    #reshuffle$se5 <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr5 <-nrow(transport_hh[!is.na(missing_race)])
+    #reshuffle$sr5 <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack5 <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack5 <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_5 <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_5 <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
     rm(transport_age_eth_2)
     rm(transport_age_race_2)
     
@@ -2262,14 +2281,15 @@ createHouseholds <- function() {
                  ("missing_race"):=
                    sam_race_hh[.SD,reshuffle_match,on=.(tract,rejoin_race2_id)]]
     
-    reshuffle$te1a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se1a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr1a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr1a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack1a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack1a <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_sr1a <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_sr1a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    #reshuffle1a
+    #reshuffle$te1a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se1a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr1a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr1a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack1a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack1a <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_sr1a <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_sr1a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #reshuffle again, this time on age
     #put in cut off
@@ -2346,14 +2366,16 @@ createHouseholds <- function() {
     transport_hh_race[!is.na(rejoin_race2_id)&is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match,on=.(tract,rejoin_race2_id)]]
-    reshuffle$te2a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se2a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr2a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr2a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack2a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack2a <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_sr2a <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_sr2a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle2a
+    #reshuffle$te2a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se2a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr2a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr2a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack2a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack2a <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_sr2a <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_sr2a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #reshuffle on hh_size
     #reshuffle again, this time on hh_size
@@ -2430,14 +2452,16 @@ createHouseholds <- function() {
     transport_hh_race[!is.na(rejoin_race2_id) &is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match2,on=.(tract,rejoin_race2_id)]]
-    reshuffle$te3a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se3a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr3a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr3a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack3a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack3a <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_sr3a <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_sr3a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    
+    #reshuffle3a
+    #reshuffle$te3a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se3a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr3a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr3a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack3a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack3a <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_sr3a <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_sr3a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #pull different set of potential head of hh from transport_age to try to match
     #put in cut off
@@ -2507,14 +2531,15 @@ createHouseholds <- function() {
     transport_hh_race[is.na(missing_race),
                       ("missing_race"):=sam_race_hh[.SD,reshuffle_match4,on=.(rejoin_race2c1_id)]]
     
-    reshuffle$te4a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se4a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr4a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr4a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack4a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack4a <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_sr4a <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_sr4a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    #reshuffle4a
+    #reshuffle$te4a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se4a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr4a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr4a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack4a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack4a <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_sr4a <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_sr4a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     rm(transport_age_eth_2)
     rm(transport_age_race_2)
     
@@ -2604,14 +2629,15 @@ createHouseholds <- function() {
     transport_hh_race[!is.na(rejoin_race2_id),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match3,on=.(rejoin_race2_id)]]
-    reshuffle$te5a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se5a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr5a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr5a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack5a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack5a <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_sr5a <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_sr5a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    #reshuffle5a
+    #reshuffle$te5a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se5a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr5a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr5a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack5a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack5a <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_sr5a <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_sr5a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #reshuffle again, this time on age with others resampled and dropping sex
     #put in cut off
@@ -2703,14 +2729,15 @@ createHouseholds <- function() {
     transport_hh_race[!is.na(rejoin_race2_id) & is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match5a,on=.(rejoin_race2_id)]]
-    reshuffle$te6a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se6a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr6a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr6a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack6a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack6a <- length(unique(sam_race_hh$track_hh_id))
-    sam_cut_off_sr6a <- table(sam_eth_hh$transport_cut_off)
-    sam_placed_sr6a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
+    #reshuffle6a
+    #reshuffle$te6a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se6a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr6a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr6a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack6a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack6a <- length(unique(sam_race_hh$track_hh_id))
+    #sam_cut_off_sr6a <- table(sam_eth_hh$transport_cut_off)
+    #sam_placed_sr6a <- table(sam_eth_hh[is.na(means_transport),transport_cut_off])
     
     #reshuffle again, this time on own_rent with others resampled and dropping sex and hh_size
     #put in cut off
@@ -2807,12 +2834,13 @@ createHouseholds <- function() {
     transport_hh_race[!is.na(rejoin_race2_id) & is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match6a,on=.(rejoin_race2_id)]]
-    reshuffle$te7a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se7a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr7a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr7a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack7a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack7a <- length(unique(sam_race_hh$track_hh_id))
+    #reshuffle7a
+    #reshuffle$te7a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se7a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr7a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr7a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack7a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack7a <- length(unique(sam_race_hh$track_hh_id))
     
     #reshuffle again, this time on race/eth with others resampled and dropping sex and hh_size
     #put in cut off
@@ -2908,12 +2936,13 @@ createHouseholds <- function() {
     transport_hh_race[!is.na(rejoin_race2_id) & is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match7,on=.(rejoin_race2_id)]]
-    reshuffle$te8a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se8a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr8a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr8a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack8a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack8a <- length(unique(sam_race_hh$track_hh_id))
+    #reshuffle8a
+    #reshuffle$te8a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se8a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr8a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr8a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack8a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack8a <- length(unique(sam_race_hh$track_hh_id))
     
     #reshuffle again, this time on age with others resampled and dropping sex, hh_size, race/eth and own_rent
     #put in cut off
@@ -3010,12 +3039,13 @@ createHouseholds <- function() {
     transport_hh_race[!is.na(rejoin_race3_id) & is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,means_transport,on=.(rejoin_race3_id)]] #worked by going back to means_transport, not reshuffle_match8a???
-    reshuffle$te9a <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$se9a <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$tr9a <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$sr9a <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrack9a <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrack9a <- length(unique(sam_race_hh$track_hh_id))
+    #reshuffle9a
+    #reshuffle$te9a <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$se9a <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$tr9a <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$sr9a <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrack9a <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrack9a <- length(unique(sam_race_hh$track_hh_id))
     
     #final
     #put in cut off
@@ -3079,12 +3109,13 @@ createHouseholds <- function() {
     transport_hh_race[!is.na(rejoin_raceF_id) & is.na(missing_race),
                       ("missing_race"):=
                         sam_race_hh[.SD,reshuffle_match9,on=.(rejoin_raceF_id)]]
-    reshuffle$teFinal <-nrow(transport_hh_eth[!is.na(missing_eth)])
-    reshuffle$seFinal <- nrow(sam_eth_hh[!is.na(means_transport)])
-    reshuffle$trFinal <-nrow(transport_hh_race[!is.na(missing_race)])
-    reshuffle$srFinal <- nrow(sam_race_hh[!is.na(means_transport)])
-    reshuffle$etrackF <- length(unique(sam_eth_hh$track_hh_id))
-    reshuffle$rtrackF <- length(unique(sam_race_hh$track_hh_id))
+    #reshuffleFinal
+    #reshuffle$teFinal <-nrow(transport_hh_eth[!is.na(missing_eth)])
+    #reshuffle$seFinal <- nrow(sam_eth_hh[!is.na(means_transport)])
+    #reshuffle$trFinal <-nrow(transport_hh_race[!is.na(missing_race)])
+    #reshuffle$srFinal <- nrow(sam_race_hh[!is.na(means_transport)])
+    #reshuffle$etrackF <- length(unique(sam_eth_hh$track_hh_id))
+    #reshuffle$rtrackF <- length(unique(sam_race_hh$track_hh_id))
     #both eth/race came up with 1274050 - not 1289903 : very odd; last one was just a sort on tract after all....
     #could not get track_hh_id to add up properly - need to use leftover from transport_eth/race_hh
     #it's an interesting case to think through - I think what happens is that on the shuffles, it's unclear what counts as the right
