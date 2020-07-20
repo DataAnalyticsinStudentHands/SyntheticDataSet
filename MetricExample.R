@@ -6,11 +6,286 @@
 #https://rviews.rstudio.com/2017/12/13/introduction-to-skewness/
 #https://cran.r-project.org/web/packages/moments/moments.pdf
 
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(data.table)
+library(ggplot2)
+#library(forcats)
+library(ggalluvial)
+library(hrbrthemes)
+library(viridis)
+
+#race defined: https://2020census.gov/en/about-questions/2020-census-questions-race.html
+#ethnicity defined: https://www.census.gov/acs/www/about/why-we-ask-each-question/ethnicity/
+
+scale_col_fill <- c(discrete=TRUE,option="D",direction = 1)
+#start with race and whether they own rent - start with all tracts
+sam_build <- sam_race_hh[tract%in%c("411900","310300","312200"),c("tract","race","own_rent","family_role","householder_age","householder_age_9")]
+sam_build$tract <- factor(sam_build$tract, levels = c("411900","310300","312200"))
+sam_build[,("race"):=case_when(
+  race=="A" ~ "White",
+  race=="B" ~ "Black",
+  race=="D" ~ "Asian",
+  race=="F" ~ "Other Race",
+  race=="G" ~ "Bi-racial"
+)]
+sam_build$race <- factor(sam_build$race,levels = c("White","Black","Asian","Other Race","Bi-racial"))
+sam_build[,("hh_age"):=str_remove(householder_age,"Householder ")]
+sam_build[,("hh_age_9"):=str_remove(householder_age_9,"Householder ")]
+sam_build[,("hh_age"):=str_remove(hh_age," years")]
+sam_build[,("hh_age_9"):=str_remove(hh_age_9," years")]
+sam_build[,("hh_age_9"):=str_remove(hh_age_9," and over")]
+sam_build[,("type_family"):=case_when(
+  family_role=="Female householder no husband present" ~ "Single F",
+  family_role=="Male householder no wife present" ~ "Single M",
+  family_role=="Married-couple family" ~ "Married",
+  family_role=="Householder not living alone" ~ "Non-family",
+  family_role=="Householder living alone" ~ "Alone",
+)]
+sam_build$type_family <- factor(sam_build$type_family, levels = c("Married","Single M","Single F","Alone","Non-family"))
+
+sam_build_eth <- sam_eth_hh[tract%in%c("411900","310300","312200"),c("tract","ethnicity","own_rent")]
+sam_build_eth$tract <- factor(sam_build_eth$tract, levels = c("411900","310300","312200"))
+sam_build_eth[,("ethnicity"):=case_when(
+  ethnicity=="H" ~ "Anglo",
+  ethnicity=="I" ~ "Latinx",
+  TRUE ~ "None"
+)]
+sam_build_eth$ethnicity <- factor(sam_build_eth$ethnicity, levels = c("Anglo","Latinx","None"))
+
+#fit_table_tottract <- as.data.table(table(sam_race_hh$tract))
+#fit_table_totage <- as.data.table(table(sam_race_hh$tract,sam_race_hh$age_range_6))
+#fit_table_totrace <- as.data.table(table(sam_race_hh$tract,sam_race_hh$race))
+#fit_table_toteth <- as.data.table(table(sam_race_hh$tract,sam_eth_hh$ethnicity))
+#fit_table_tottract[,("tract_age"):=fit_table_totage[.SD,sum(N*as.numeric(substr(V2,1,2))),on=.(V1)]] 
+#fit_table_tottract[,("norm_age"):=tract_age/N]
+#fit_table_totrace[,("num_race"):=case_when(V2=="A"~1,
+#                                            V2=="B"~2,
+#                                            TRUE ~3)]
+#fit_table_tottract[,("tract_race"):=fit_table_totrace[.SD,sum(N*num_race),on=.(V1)]] 
+#fit_table_tottract[,("norm_race"):=tract_race/N]
+#fit_table_toteth[,("num_eth"):=case_when(V2=="H"~1,
+#                                           V2=="I"~2,
+#                                           TRUE ~3)]
+#fit_table_tottract[,("tract_eth"):=fit_table_toteth[.SD,sum(N*num_eth),on=.(V1)]] 
+#fit_table_tottract[,("norm_eth"):=tract_race/N]
+#fit_table_tottract[,("norms"):=(norm_race*norm_eth)/norm_age] #norm_age/(norm_race*norm_eth)] 
+#ggplot(fit_table_tottract[norm_eth<1000],
+#       aes(x=reorder(V1,norms),norms)) +
+#  geom_point() +
+#  geom_smooth()
+
+#first a histogram
+ggplot(sam_build,
+       aes(x=race,
+           fill=race)) + #and add: aes(x=own_rent,fill=race)) #and add: aes(x=race,fill=own_rent))
+  geom_histogram(stat="count") +
+  stat_count(geom="text", color="white", angle = 90, size=3.5,
+           aes(label=..count.., group=race), position=position_stack(vjust=0.5)) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  facet_wrap(~tract) +
+  ggtitle("Sam build: histogram with tract and race")
+
+#and eth
+ggplot(sam_build_eth,
+       aes(x=ethnicity,
+           fill=ethnicity)) +  #and add: aes(x=own_rent,fill=ethnicity)) #and add: aes(x=ethnicity,fill=own_rent))
+  geom_histogram(stat="count") +
+  stat_count(geom="text", color="white", angle = 90, size=3.5,
+             aes(label=..count.., group=ethnicity), position=position_stack(vjust=0.5)) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  facet_wrap(~tract)+
+  ggtitle("Sam build: histogram with tract and ethnicity")
+
+#and as stacked
+ggplot(sam_build,
+       aes(x=tract,
+           fill=ethnicity)) + #and add: aes(x=own_rent,fill=race)) #and add: aes(x=race,fill=own_rent))
+  geom_histogram(stat="count") +
+  stat_count(geom="text", color="white", angle = 90, size=3.5,
+             aes(label=..count.., group=ethnicity), position=position_stack(vjust=0.5)) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5)) +
+  ggtitle("Sam build: stacked histogram with tract and ethnicity")
+
+#grid example
+sam_build_eth[,("grid_id"):=sample(1:.N)]
+sam_build_eth[grid_id%%30==7,("grid_id7"):=grid_id]
+ggplot(sam_build_eth,
+       aes(x=tract,y=grid_id7,
+           fill=ethnicity)) +
+  geom_point(size=2,shape=22) + #http://www.sthda.com/english/wiki/ggplot2-point-shapes
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5)) +
+  ggtitle("Sam build: projected tract and ethnicity")
+
+#gridded_eth <- as.data.table(tract=sam_build_eth$tract,grid_id=sam_build_eth$grid_id)
+#put ethnicity back on gridded_eth
+#gridded_eth[,("ethnicity"):=sam_build_eth[.SD,ethnicity,on=.(grid_id)]]
+
+#now an alluvial
+sam_build[,("race2"):=case_when(
+  race=="White" ~ "White",
+  race=="Black" ~ "Black",
+  TRUE ~ "Other"
+)]
+sam_build$race2 <- factor(sam_build$race2,levels = c("White","Other","Black"))
+ggplot(sam_build,
+       aes(
+         axis1 = tract, axis2 = race2, axis3 = own_rent)) +
+  geom_alluvium(aes(fill=race2), #showing with tract is interesting, too
+                width = .5, knot.pos = 0, reverse = TRUE) +
+  #guides(fill=FALSE) + #without it prints legend
+  geom_stratum(width = 1/8, reverse = TRUE) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  geom_text(stat = "stratum", infer.label = TRUE, reverse = TRUE, angle = 90) +
+  scale_x_discrete(breaks = 1:3, labels = c("tract","race","own_rent")) +
+  ggtitle("Sam build: alluvial with tract, race and own_rent")
+
+ggplot(sam_build_eth,
+       aes(
+         axis1 = tract, axis2 = ethnicity, axis3 = own_rent)) +
+  geom_alluvium(aes(fill=ethnicity),
+                width = .5, knot.pos = 0, reverse = TRUE) +
+  #guides(fill=FALSE) + #without it prints legend
+  geom_stratum(width = 1/8, reverse = TRUE) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  geom_text(stat = "stratum", infer.label = TRUE, reverse = TRUE, angle = 90) +
+  scale_x_continuous(breaks = 1:3, labels = c("tract","ethnicity","own_rent")) +
+  ggtitle("Sam build: start with tract, ethnicity and own_rent")
+
+#now do grid
+#give folks a number
+#sam_build[order(own_rent),("id_own_rent"):=1:.N,by=.(own_rent,race2)]
+
+sam_build[order(race2),("match_id"):=paste0(tract,own_rent, 
+                                            as.character(1000000+sample(1:.N))),
+                   by = .(tract,own_rent)]
+sam_build_eth[order(ethnicity),("match_id"):=paste0(tract,own_rent, 
+                                            as.character(1000000+sample(1:.N))),
+          by = .(tract,own_rent)]
+sam_build[,("ethnicity"):=sam_build_eth[.SD,ethnicity,on=.(match_id)]]
+
+sam_build[tract=="411900",("anglo_number"):=nrow(sam_build_eth[tract=="411900"&ethnicity=="Anglo"])]
+sam_build[tract=="310300",("anglo_number"):=nrow(sam_build_eth[tract=="310300"&ethnicity=="Anglo"])]
+sam_build[tract=="312200",("anglo_number"):=nrow(sam_build_eth[tract=="312200"&ethnicity=="Anglo"])]
+sam_build[tract=="411900",("hisp_number"):=nrow(sam_build_eth[tract=="411900"&ethnicity=="Latinx"])]
+sam_build[tract=="310300",("hisp_number"):=nrow(sam_build_eth[tract=="310300"&ethnicity=="Latinx"])]
+sam_build[tract=="312200",("hisp_number"):=nrow(sam_build_eth[tract=="312200"&ethnicity=="Latinx"])]
+sam_build[tract=="411900",("oth_number"):=nrow(sam_build_eth[tract=="411900"&ethnicity=="Other"])]
+sam_build[tract=="310300",("oth_number"):=nrow(sam_build_eth[tract=="310300"&ethnicity=="Other"])]
+sam_build[tract=="312200",("oth_number"):=nrow(sam_build_eth[tract=="312200"&ethnicity=="Other"])]
+sam_build[,("eth_sampled"):=sample(c(rep("Anglo",as.integer(anglo_number[1])),
+                                     rep("Latinx",as.integer(hisp_number[1])),
+                                     rep("Other",as.integer(.N-anglo_number[1]-hisp_number[1]))),
+                                   #prob = c(rep(1/.N,.N)),
+                                   replace = FALSE),by=.(tract)]
+sam_build[,("eth_replaced"):=sample(c(rep("Anglo",as.integer(anglo_number[1])),
+                                     rep("Latinx",as.integer(hisp_number[1])),
+                                     rep("Other",as.integer(.N-anglo_number[1]-hisp_number[1]))),
+                                   #prob = c(rep(1/.N,.N)),
+                                   replace = TRUE),by=.(tract)]
+
+#redo alluvial with 4
+ggplot(sam_build,
+       aes(
+         axis1 = tract, axis2 = race2, axis3 = ethnicity, axis4 = own_rent)) +
+  geom_alluvium(aes(fill=ethnicity), #showing with tract is interesting, too
+                width = .5, knot.pos = 0, reverse = TRUE) +
+  #guides(fill=FALSE) + #without it prints legend
+  geom_stratum(width = 1/8, reverse = TRUE) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  geom_text(stat = "stratum", infer.label = TRUE, reverse = TRUE, angle = 90) +
+  scale_x_discrete(breaks = 1:4, labels = c("tract","race","ethnicity","own_rent")) +
+  ggtitle("Sam build: alluvial by ethnicity")
+#and four by race
+ggplot(sam_build,
+       aes(
+         axis1 = tract, axis2 = race2, axis3 = ethnicity, axis4 = own_rent)) +
+  geom_alluvium(aes(fill=race2), #showing with tract is interesting, too
+                width = .5, knot.pos = 0, reverse = TRUE) +
+  #guides(fill=FALSE) + #without it prints legend
+  geom_stratum(width = 1/8, reverse = TRUE) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  geom_text(stat = "stratum", infer.label = TRUE, reverse = TRUE, angle = 90) +
+  scale_x_discrete(breaks = 1:4, labels = c("tract","race","ethnicity","own_rent")) +
+  ggtitle("Sam build: alluvial by race")
+#and longer
+ggplot(sam_build,
+       aes(
+         axis1 = tract, axis2 = race2, axis3 = ethnicity, axis4 = own_rent, axis5=type_family, axis6=hh_age)) +
+  geom_alluvium(aes(fill=ethnicity), #showing with tract is interesting, too
+                width = .5, knot.pos = 0, reverse = TRUE) +
+  #guides(fill=FALSE) + #without it prints legend
+  geom_stratum(width = 1/16, reverse = TRUE) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(scale_col_fill) +
+  geom_text(stat = "stratum", infer.label = TRUE, reverse = TRUE, angle = 90, size=3.5) +
+  scale_x_discrete(breaks = 1:6, labels = c("tract","race","ethnicity","own_rent","type_family","hh_age")) +
+  ggtitle("Sam build: alluvial with family type and age")
+
+
+
+
+
+
+#make a population on paths that are constrained choices, not movements between sets
+
+#make a function call to set different parameters
+
+number_in_population <- 100
+
+#create a vector of that length
+pop <- 1:number_in_population
+#make that into a data.table for ease
+pop_dt <- as.data.table(pop)
+#add some characteristics
+#bg_dfactor - background determined factor designations - for these purposes, they are mutually exclusive inflection points
+#examples include 
+#bg_over_dfactor - backround over-determined factor designations - individuals can belong to multiple categories (i.e., white and hispanic)
+#bg_netwrk - background network effects - continuous measures of effects of overdetermined paths individuals have been on - different distributions possible, but start with random
+#bg_path - background paths individuals have been on - begin as combinations of ordered paths - second representation of bg, above, with causality
+
+#present_dfactor
+#present_over_dfactor
+#present_netwrk - network is a way of talking about how continuous variables add to create current state 
+#present_path - representation of factors as causal trajectory
+
+#composite_path
+#segment_path 
+
+
+#project_goal - outcomes of interest and/or perspective person has on desired outcome
+#project_horizon - longer term projection that makes others make sense
+
+
+#dfactor - representations of each individual
+
+
+#weighting as a representation of the category projecting forward, not the conditions of a situation
+
+#ee_tracts <- c("311900","310300","310600","310800","311000"
+
+tracts_zip <- HCAD_apts[zip%in%c("77023","77011","77012")]
+tracts_zip[,tract:=droplevels(tract)]
+school_tracts <- tracts_zip[tract%in%c("310300","310600","310800","311100","311200","311900")]
+school_tracts[,tract:=droplevels(tract)]
+
 #trying to get at sense that choice of producing through simple side by side variatio on the geom_smooth 
 #i.e., solving the multiple linear equations
 #is different from allowing them to resolve to the metric (to what the original is)
 #the later gets what we want from the category theory, too
-library(ggplot2)
 #library(moments)
 #x<- rnorm(10)
 #moment(x)
@@ -166,7 +441,67 @@ ggplot(lode_frame,
   scale_fill_brewer(type = "qual", palette = "Set1") +
   ggtitle("Title")
 
-Can alluvials on things like education and income follow things like Hispanic and acs_race_codes show how to get to an idea of a metric?
-  That something is really about the individuals, not about the resolution of the factors....
+#Can alluvials on things like education and income follow things like Hispanic and acs_race_codes show how to get to an idea of a metric?
+#  That something is really about the individuals, not about the resolution of the factors....
+#
+#Metrics and Hilbert spaces
 
-Metrics and Hilbert spaces
+ggplot(as.data.frame(Titanic),
+       aes(weight = Freq,
+           axis1 = Survived, axis2 = Sex, axis3 = Class)) +
+  geom_alluvium(aes(fill = Class),
+                width = 0, knot.pos = 0, reverse = FALSE) +
+  guides(fill = FALSE) +
+  geom_stratum(width = 1/8, reverse = FALSE) +
+  geom_text(stat = "stratum", infer.label = TRUE, reverse = FALSE) +
+  scale_x_continuous(breaks = 1:3, labels = c("Survived", "Sex", "Class")) +
+  #coord_flip() +
+  ggtitle("Titanic survival by class and sex")
+
+#http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html#Waffle%20Chart
+#https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/expand.grid
+#https://ggplot2.tidyverse.org/reference/coord_fixed.html
+#https://stackoverflow.com/questions/15367565/creating-hypercube-in-r-for-any-dim-d
+
+#Race	TotalWorkforce	EssentialWorkers	Infected	Deceased	Healthcare	WorkFromHome	
+#White	77.7	55	36.7	49.6	94.6	29.9	
+#Black	12.3	15	20.1	22.5	90.3	19.7	
+#Hispanic	17.6	21	33.3	17.1	82.2	16.2	
+#AAPI	6.5	6	4.1	5.3	93.2	37	
+
+#hospitalizations age_adjusted by race/eth: https://www.cdc.gov/coronavirus/2019-ncov/need-extra-precautions/racial-ethnic-minorities.html
+#Non-Hispanic American Indian or Alaska Native	Non-Hispanic Black	Hispanic or Latino	Non-Hispanic Asian or Pacific Islander	Non-Hispanic White
+#Age-adjusted hospitalization rate per 100k	221.2	178.1	160.7	48.4	40.1
+
+race <- c("White","Black","Hispanic","AAPI")
+TotalWorkforce <- c(77.7,12.3,17.6,6.5)
+Essential_Workers <- c(55,15,21,6)
+Infected <- c(36.7,20.1,33.3,4.1)
+Deceased <- c(49.6,22.5,17.1,5.3)
+Healthcare <- c(94.6,90.3,82.2,93.2)
+WorkFromHome <- c(29.9,19.7,16.2,37)
+Hospitalization <- c(.04,.18,.16,.22)
+
+#do some graphs, etc.
+
+
+
+#expand
+
+
+Master <- cbind(TotalWorkforce,Essential_Workers,Infected,Deceased,Healthcare,WorkFromHome)
+row.names(Master) <- race
+
+ggplot(as.data.frame(Master),
+       aes(weight = Freq,
+           axis1 = TotalWorkforce, axis2 = Essential_Workers, axis3 = WorkFromHome)) +
+  geom_alluvium(aes(fill = Infected),
+                width = 0, knot.pos = 0, reverse = FALSE) +
+  guides(fill = FALSE) +
+  geom_stratum(width = 1/8, reverse = FALSE) +
+  geom_text(stat = "stratum", infer.label = TRUE, reverse = FALSE) +
+  scale_x_continuous(breaks = 1:3, labels = c("race", "essential_worker", "work_from_home")) +
+  #coord_flip() +
+  ggtitle("Covid Chart from Brandon")
+
+

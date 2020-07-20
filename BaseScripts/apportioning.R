@@ -6,7 +6,6 @@ library(stringr)
 library(data.table)
 #library(forcats)
 
-
 #get HCAD_residences from HCAD_merge or from housingdir main level for desired vintage (by most recent date)
 #get others from household and individual generator scripts
 
@@ -16,6 +15,7 @@ library(data.table)
 HCAD_dt <- as.data.table(HCAD_residences)
 HCAD_dt[,tract:=droplevels(tract)]
 HCAD_dt <- HCAD_dt[!is.na(improv_typ)] #returns 1815741
+#have to look at what's happening in duplicated accounts!!
 HCAD_res <- HCAD_dt[!duplicated(account)]
 
 HCADbus_dt <- as.data.table(HCAD_businesses)

@@ -1412,7 +1412,7 @@ createHouseholds <- function() {
       TRUE ~ "60 years and over"
     )]
     
-    #have to redo match on income, sex, race and eth, etc. without hh later, but same totals for workers, even if juggle by hh
+    #MOVE STUFF FROM FAMILIES GENERATOR BACK HERE, SO CAN MATCH ON WIVES AND PARTNERS AT SAME TIME, HERE... JUST STUFF BEFORE THE EXPAND
 
 
     #nrow(transport_hh[hh_size=="1-person household"])==nrow(hh_workers[hh_size_4=="1-person household"&number_workers_in_hh=="01 worker"])
