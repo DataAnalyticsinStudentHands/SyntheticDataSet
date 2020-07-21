@@ -120,9 +120,9 @@ createFamilies <- function() {
     #take out of additional_workers
     additional_workers_eth[,("missing_workers"):=wives_eth[.SD,industry,on = .(pw_match_id)]]
     #reshuffle test
-    reshuffle <- as.data.frame(Sys.time())
-    reshuffle$eth_w1 <- nrow(wives_eth[!is.na(industry)])
-    reshuffle$eth_w1T <- nrow(wives_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])
+    ##reshuffle <- as.data.frame(Sys.time())
+    ##reshuffle$eth_w1 <- nrow(wives_eth[!is.na(industry)])
+    ##reshuffle$eth_w1T <- nrow(wives_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])
     #reshuffle
     #change age_range for better matches and fix odd cases post_hoc?
     wives_eth[,("age_range_w3"):=case_when(
@@ -163,8 +163,8 @@ createFamilies <- function() {
                   on = .(pw1_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=wives_eth[.SD,industry,on = .(pw1_match_id)]]
-    reshuffle$eth_w2 <- nrow(wives_eth[!is.na(industry)])
-    reshuffle$eth_w2T <- nrow(wives_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])
+    ##reshuffle$eth_w2 <- nrow(wives_eth[!is.na(industry)])
+    ##reshuffle$eth_w2T <- nrow(wives_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])
     #pick up stragglers - info will be lost - age_range_w3 is the one not matching more, so let it get a few mixed up on ethnicity
     wives_eth[employment!="Not in labor force"&is.na(industry),
               ("pw2_match_id"):=paste0(tract,#ethnicity,
@@ -185,8 +185,8 @@ createFamilies <- function() {
                   on = .(pw2_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=wives_eth[.SD,industry,on = .(pw2_match_id)]]
-    reshuffle$eth_w3 <- nrow(wives_eth[!is.na(industry)])
-    reshuffle$eth_w3T <- nrow(wives_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])
+    ##reshuffle$eth_w3 <- nrow(wives_eth[!is.na(industry)])
+    ##reshuffle$eth_w3T <- nrow(wives_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])
     #dropping age - will need to fix later!! householder_age can be matched...
     wives_eth[employment!="Not in labor force"&is.na(industry),
               ("pw3_match_id"):=paste0(tract,ethnicity,
@@ -206,9 +206,9 @@ createFamilies <- function() {
                   on = .(pw3_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=wives_eth[.SD,industry,on = .(pw3_match_id)]]
-    reshuffle$eth_w4 <- nrow(wives_eth[!is.na(industry)])
-    reshuffle$eth_w4T <- nrow(wives_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])
-    reshuffle$eth_w_left <- nrow(wives_eth[employment!="Not in labor force"])-nrow(wives_eth[!is.na(industry)])
+    ##reshuffle$eth_w4 <- nrow(wives_eth[!is.na(industry)])
+    ##reshuffle$eth_w4T <- nrow(wives_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])
+    ##reshuffle$eth_w_left <- nrow(wives_eth[employment!="Not in labor force"])-nrow(wives_eth[!is.na(industry)])
     #redo others
     #partners_eth
     partners_eth[,c("industry","occupation","commute_time","when_go_to_work","income_range_workers"):=NULL]
@@ -234,8 +234,8 @@ createFamilies <- function() {
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=partners_eth[.SD,industry,on = .(p_match_id)]]
     #reshuffle test
-    reshuffle$eth_p1 <- nrow(partners_eth[!is.na(industry)])
-    reshuffle$eth_p1T <- nrow(partners_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
+    ##reshuffle$eth_p1 <- nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$eth_p1T <- nrow(partners_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
                                                                       nrow(wives_eth[!is.na(industry)])   
     #reshuffle
     #change age_range for better matches and fix odd cases post_hoc?
@@ -277,8 +277,8 @@ createFamilies <- function() {
                   on = .(p1_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=partners_eth[.SD,industry,on = .(p1_match_id)]]
-    reshuffle$eth_p2 <- nrow(partners_eth[!is.na(industry)])
-    reshuffle$eth_p2T <- nrow(partners_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-nrow(wives_eth[!is.na(industry)])
+    ##reshuffle$eth_p2 <- nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$eth_p2T <- nrow(partners_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-nrow(wives_eth[!is.na(industry)])
     #pick up stragglers - info will be lost - age_range_w3 is the one not matching more, so let it get a few mixed up on ethnicity
     partners_eth[employment!="Not in labor force"&is.na(industry),
               ("p2_match_id"):=paste0(tract,#ethnicity,
@@ -299,8 +299,8 @@ createFamilies <- function() {
                   on = .(p2_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=partners_eth[.SD,industry,on = .(p2_match_id)]]
-    reshuffle$eth_p3 <- nrow(partners_eth[!is.na(industry)])
-    reshuffle$eth_p3T <- nrow(partners_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-nrow(wives_eth[!is.na(industry)])
+    ##reshuffle$eth_p3 <- nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$eth_p3T <- nrow(partners_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-nrow(wives_eth[!is.na(industry)])
     #dropping age - will need to fix later!! householder_age can be matched...
     partners_eth[employment!="Not in labor force"&is.na(industry),
               ("p3_match_id"):=paste0(tract,ethnicity,
@@ -320,9 +320,9 @@ createFamilies <- function() {
                   on = .(p3_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=partners_eth[.SD,industry,on = .(p3_match_id)]]
-    reshuffle$eth_p4 <- nrow(partners_eth[!is.na(industry)])
-    reshuffle$eth_p4T <- nrow(partners_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-nrow(wives_eth[!is.na(industry)])
-    reshuffle$eth_p_left <- nrow(partners_eth[employment!="Not in labor force"])-nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$eth_p4 <- nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$eth_p4T <- nrow(partners_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-nrow(wives_eth[!is.na(industry)])
+    ##reshuffle$eth_p_left <- nrow(partners_eth[employment!="Not in labor force"])-nrow(partners_eth[!is.na(industry)])
     
     #for race
     wives_race[,c("industry","occupation","commute_time","when_go_to_work","income_range_workers"):=NULL]
@@ -348,8 +348,8 @@ createFamilies <- function() {
     #take out of additional_workers
     additional_workers_race[,("missing_workers"):=wives_race[.SD,industry,on = .(pw_match_id)]]
     #reshuffle test
-    reshuffle$race_w1 <- nrow(wives_race[!is.na(industry)])
-    reshuffle$race_w1T <- nrow(wives_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])
+    ##reshuffle$race_w1 <- nrow(wives_race[!is.na(industry)])
+    ##reshuffle$race_w1T <- nrow(wives_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])
     #reshuffle
     #change age_range for better matches and fix odd cases post_hoc?
     wives_race[,("age_range_w3"):=case_when(
@@ -390,8 +390,8 @@ createFamilies <- function() {
                   on = .(pw1_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=wives_race[.SD,industry,on = .(pw1_match_id)]]
-    reshuffle$race_w2 <- nrow(wives_race[!is.na(industry)])
-    reshuffle$race_w2T <- nrow(wives_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])
+    ##reshuffle$race_w2 <- nrow(wives_race[!is.na(industry)])
+    ##reshuffle$race_w2T <- nrow(wives_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])
     #pick up stragglers - info will be lost - age_range_w3 is the one not matching more, so let it get a few mixed up on ethnicity
     wives_race[employment!="Not in labor force"&is.na(industry),
               ("pw2_match_id"):=paste0(tract,#ethnicity,
@@ -412,8 +412,8 @@ createFamilies <- function() {
                   on = .(pw2_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=wives_race[.SD,industry,on = .(pw2_match_id)]]
-    reshuffle$race_w3 <- nrow(wives_race[!is.na(industry)])
-    reshuffle$race_w3T <- nrow(wives_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])
+    ##reshuffle$race_w3 <- nrow(wives_race[!is.na(industry)])
+    ##reshuffle$race_w3T <- nrow(wives_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])
     #dropping age - will need to fix later!! householder_age can be matched...
     wives_race[employment!="Not in labor force"&is.na(industry),
               ("pw3_match_id"):=paste0(tract,race,
@@ -433,9 +433,9 @@ createFamilies <- function() {
                   on = .(pw3_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=wives_race[.SD,industry,on = .(pw3_match_id)]]
-    reshuffle$race_w4 <- nrow(wives_race[!is.na(industry)])
-    reshuffle$race_w4T <- nrow(wives_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])
-    reshuffle$race_w_left <- nrow(wives_race[employment!="Not in labor force"])-nrow(wives_race[!is.na(industry)])
+    ##reshuffle$race_w4 <- nrow(wives_race[!is.na(industry)])
+    ##reshuffle$race_w4T <- nrow(wives_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])
+    ##reshuffle$race_w_left <- nrow(wives_race[employment!="Not in labor force"])-nrow(wives_race[!is.na(industry)])
     #redo others
     #partners_eth
     partners_race[,c("industry","occupation","commute_time","when_go_to_work","income_range_workers"):=NULL]
@@ -461,9 +461,9 @@ createFamilies <- function() {
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=partners_race[.SD,industry,on = .(p_match_id)]]
     #reshuffle test
-    reshuffle$race_p1 <- nrow(partners_race[!is.na(industry)])
-    reshuffle$race_p1T <- nrow(partners_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
-      nrow(wives_race[!is.na(industry)])   
+    ##reshuffle$race_p1 <- nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_p1T <- nrow(partners_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
+    ##  nrow(wives_race[!is.na(industry)])   
     #reshuffle
     #change age_range for better matches and fix odd cases post_hoc?
     partners_race[,("age_range_w3"):=case_when(
@@ -504,8 +504,8 @@ createFamilies <- function() {
                      on = .(p1_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=partners_race[.SD,industry,on = .(p1_match_id)]]
-    reshuffle$race_p2 <- nrow(partners_race[!is.na(industry)])
-    reshuffle$race_p2T <- nrow(partners_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-nrow(wives_race[!is.na(industry)])
+    ##reshuffle$race_p2 <- nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_p2T <- nrow(partners_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-nrow(wives_race[!is.na(industry)])
     #pick up stragglers - info will be lost - age_range_w3 is the one not matching more, so let it get a few mixed up on ethnicity
     partners_race[employment!="Not in labor force"&is.na(industry),
                  ("p2_match_id"):=paste0(tract,
@@ -526,8 +526,8 @@ createFamilies <- function() {
                      on = .(p2_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=partners_race[.SD,industry,on = .(p2_match_id)]]
-    reshuffle$race_p3 <- nrow(partners_race[!is.na(industry)])
-    reshuffle$race_p3T <- nrow(partners_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-nrow(wives_race[!is.na(industry)])
+    ##reshuffle$race_p3 <- nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_p3T <- nrow(partners_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-nrow(wives_race[!is.na(industry)])
     #dropping age - will need to fix later!! householder_age can be matched...
     partners_race[employment!="Not in labor force"&is.na(industry),
                  ("p3_match_id"):=paste0(tract,race,
@@ -547,9 +547,9 @@ createFamilies <- function() {
                      on = .(p3_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=partners_race[.SD,industry,on = .(p3_match_id)]]
-    reshuffle$race_p4 <- nrow(partners_race[!is.na(industry)])
-    reshuffle$race_p4T <- nrow(partners_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-nrow(wives_race[!is.na(industry)])
-    reshuffle$race_p_left <- nrow(partners_race[employment!="Not in labor force"])-nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_p4 <- nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_p4T <- nrow(partners_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-nrow(wives_race[!is.na(industry)])
+    ##reshuffle$race_p_left <- nrow(partners_race[employment!="Not in labor force"])-nrow(partners_race[!is.na(industry)])
     
     #hh_workers_eth
     hh_workers_eth[,c("industry","occupation","commute_time","when_go_to_work","income_range_workers"):=NULL]
@@ -575,9 +575,9 @@ createFamilies <- function() {
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=hh_workers_eth[.SD,industry,on = .(w_match_id)]]
     #reshuffle test
-    reshuffle$eth_we1 <- nrow(hh_workers_eth[!is.na(industry)])
-    reshuffle$eth_we1T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
-      nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])   
+    ##reshuffle$eth_we1 <- nrow(hh_workers_eth[!is.na(industry)])
+    ##reshuffle$eth_we1T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
+    ##  nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])   
     #reshuffle
     #change age_range for better matches and fix odd cases post_hoc?
     hh_workers_eth[,("age_range_w3"):=case_when(
@@ -618,9 +618,9 @@ createFamilies <- function() {
                      on = .(w1_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=hh_workers_eth[.SD,industry,on = .(w1_match_id)]]
-    reshuffle$eth_we2 <- nrow(hh_workers_eth[!is.na(industry)])
-    reshuffle$eth_we2T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
-      nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$eth_we2 <- nrow(hh_workers_eth[!is.na(industry)])
+    ##reshuffle$eth_we2T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
+    ##  nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])
     #pick up stragglers - info will be lost - age_range_w3 is the one not matching more, so let it get a few mixed up on ethnicity
     hh_workers_eth[employment!="Not in labor force"&is.na(industry),
                  ("w2_match_id"):=paste0(tract,#ethnicity,
@@ -641,9 +641,9 @@ createFamilies <- function() {
                      on = .(w2_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=hh_workers_eth[.SD,industry,on = .(w2_match_id)]]
-    reshuffle$eth_we3 <- nrow(hh_workers_eth[!is.na(industry)])
-    reshuffle$eth_we3T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
-      nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$eth_we3 <- nrow(hh_workers_eth[!is.na(industry)])
+    ##reshuffle$eth_we3T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
+    ##  nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])
     #dropping age - will need to fix later!! householder_age can be matched...
     hh_workers_eth[employment!="Not in labor force"&is.na(industry),
                  ("w3_match_id"):=paste0(tract,ethnicity,
@@ -664,10 +664,10 @@ createFamilies <- function() {
                      on = .(w3_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=hh_workers_eth[.SD,industry,on = .(w3_match_id)]]
-    reshuffle$eth_we4 <- nrow(hh_workers_eth[!is.na(industry)])
-    reshuffle$eth_we4T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
-      nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])
-    reshuffle$addw_left <- nrow(additional_workers_eth[is.na(missing_workers)])
+    ##reshuffle$eth_we4 <- nrow(hh_workers_eth[!is.na(industry)])
+    ##reshuffle$eth_we4T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
+    ##  nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$addw_left <- nrow(additional_workers_eth[is.na(missing_workers)])
     #only tract - will need to fix later!! householder_age can be matched...
     hh_workers_eth[employment!="Not in labor force"&is.na(industry),
                    ("w4_match_id"):=paste0(tract,
@@ -688,11 +688,11 @@ createFamilies <- function() {
                        on = .(w4_match_id)]]
     #take out of additional_workers
     additional_workers_eth[is.na(missing_workers),("missing_workers"):=hh_workers_eth[.SD,industry,on = .(w4_match_id)]]
-    reshuffle$eth_we5 <- nrow(hh_workers_eth[!is.na(industry)])
-    reshuffle$eth_we5T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
-      nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])
-    reshuffle$eth_we_left <- nrow(hh_workers_eth[employment!="Not in labor force"])-nrow(hh_workers_eth[!is.na(industry)])
-    reshuffle$addw_leftF <- nrow(additional_workers_eth[is.na(missing_workers)])
+    ##reshuffle$eth_we5 <- nrow(hh_workers_eth[!is.na(industry)])
+    ##reshuffle$eth_we5T <- nrow(hh_workers_eth[!is.na(industry)])==nrow(additional_workers_eth[!is.na(missing_workers)])-
+    ##  nrow(wives_eth[!is.na(industry)])-nrow(partners_eth[!is.na(industry)])
+    ##reshuffle$eth_we_left <- nrow(hh_workers_eth[employment!="Not in labor force"])-nrow(hh_workers_eth[!is.na(industry)])
+    ##reshuffle$addw_leftF <- nrow(additional_workers_eth[is.na(missing_workers)])
     
     #hh_workers_race
     hh_workers_race[,c("industry","occupation","commute_time","when_go_to_work","income_range_workers"):=NULL]
@@ -718,9 +718,9 @@ createFamilies <- function() {
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=hh_workers_race[.SD,industry,on = .(w_match_id)]]
     #reshuffle test
-    reshuffle$race_wr1 <- nrow(hh_workers_race[!is.na(industry)])
-    reshuffle$race_wr1T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
-      nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])   
+    ##reshuffle$race_wr1 <- nrow(hh_workers_race[!is.na(industry)])
+    ##reshuffle$race_wr1T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
+    ##  nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])   
     #reshuffle
     #change age_range for better matches and fix odd cases post_hoc?
     hh_workers_race[,("age_range_w3"):=case_when(
@@ -761,9 +761,9 @@ createFamilies <- function() {
                        on = .(w1_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=hh_workers_race[.SD,industry,on = .(w1_match_id)]]
-    reshuffle$race_wr2 <- nrow(hh_workers_race[!is.na(industry)])
-    reshuffle$race_wr2T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
-      nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_wr2 <- nrow(hh_workers_race[!is.na(industry)])
+    ##reshuffle$race_wr2T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
+    ##  nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])
     #pick up stragglers - info will be lost - age_range_w3 is the one not matching more, so let it get a few mixed up on ethnicity
     hh_workers_race[employment!="Not in labor force"&is.na(industry),
                    ("w2_match_id"):=paste0(tract,
@@ -784,9 +784,9 @@ createFamilies <- function() {
                        on = .(w2_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=hh_workers_race[.SD,industry,on = .(w2_match_id)]]
-    reshuffle$race_wr3 <- nrow(hh_workers_race[!is.na(industry)])
-    reshuffle$race_wr3T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
-      nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_wr3 <- nrow(hh_workers_race[!is.na(industry)])
+    ##reshuffle$race_wr3T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
+    ##  nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])
     #dropping age - will need to fix later!! householder_age can be matched...
     hh_workers_race[employment!="Not in labor force"&is.na(industry),
                    ("w3_match_id"):=paste0(tract,race,
@@ -806,11 +806,11 @@ createFamilies <- function() {
                        on = .(w3_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=hh_workers_race[.SD,industry,on = .(w3_match_id)]]
-    reshuffle$race_wr4 <- nrow(hh_workers_race[!is.na(industry)])
-    reshuffle$race_wr4T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
-      nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])
-    reshuffle$race_wr_left <- nrow(hh_workers_race[employment!="Not in labor force"])-nrow(hh_workers_race[!is.na(industry)])
-    reshuffle$addwr_left <- nrow(additional_workers_race[is.na(missing_workers)])
+    ##reshuffle$race_wr4 <- nrow(hh_workers_race[!is.na(industry)])
+    ##reshuffle$race_wr4T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
+    ##  nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_wr_left <- nrow(hh_workers_race[employment!="Not in labor force"])-nrow(hh_workers_race[!is.na(industry)])
+    ##reshuffle$addwr_left <- nrow(additional_workers_race[is.na(missing_workers)])
     #dropping age - will need to fix later!! householder_age can be matched...
     hh_workers_race[employment!="Not in labor force"&is.na(industry),
                     ("w4_match_id"):=paste0(tract,
@@ -830,12 +830,12 @@ createFamilies <- function() {
                         on = .(w4_match_id)]]
     #take out of additional_workers
     additional_workers_race[is.na(missing_workers),("missing_workers"):=hh_workers_race[.SD,industry,on = .(w4_match_id)]]
-    reshuffle$race_wr5 <- nrow(hh_workers_race[!is.na(industry)])
-    reshuffle$race_wr5T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
-      nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])
-    reshuffle$race_wr_left <- nrow(hh_workers_race[employment!="Not in labor force"])-nrow(hh_workers_race[!is.na(industry)])
-    reshuffle$addwr_leftF <- nrow(additional_workers_race[is.na(missing_workers)])
-    #47k workers not assigned a household!!! saving whole, but only is.na(missing_workers weren't assigned)
+    ##reshuffle$race_wr5 <- nrow(hh_workers_race[!is.na(industry)])
+    ##reshuffle$race_wr5T <- nrow(hh_workers_race[!is.na(industry)])==nrow(additional_workers_race[!is.na(missing_workers)])-
+    ##  nrow(wives_race[!is.na(industry)])-nrow(partners_race[!is.na(industry)])
+    ##reshuffle$race_wr_left <- nrow(hh_workers_race[employment!="Not in labor force"])-nrow(hh_workers_race[!is.na(industry)])
+    ##reshuffle$addwr_leftF <- nrow(additional_workers_race[is.na(missing_workers)])
+    #44k workers not assigned a household!!! saving whole, but only is.na(missing_workers weren't assigned) - may be able to reshuffle
     saveRDS(additional_workers_eth,file = paste0(housingdir, vintage, "/additional_workers_eth_",Sys.Date(),".RDS"))
     saveRDS(additional_workers_race,file = paste0(housingdir, vintage, "/additional_workers_race_",Sys.Date(),".RDS"))
     #save and find places for workers_leftF??
