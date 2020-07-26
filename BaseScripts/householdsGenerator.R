@@ -711,49 +711,130 @@ createHouseholds <- function() {
     housing_per_room_eth_dt[,c("num_per_room_5"):= 
                                housing_per_room_rent_dt[.SD, list(num_per_room_5), 
                                                         on = .(num_per_type_id)]]
-    #then add householder_age from sam to here by own_rent and race
-    sam_race_hh[,("householder_age_3"):=householder_age]
-    sam_eth_hh[,("householder_age_3"):=householder_age]
-    sam_race_hh[,("age_per_id"):=paste0(tract,race,own_rent,as.character(1000000+sample(1:.N))),
-                by=.(tract,race,own_rent)]
-    housing_per_room_race_dt[,("age_per_id"):=paste0(tract,race,own_rent,as.character(1000000+sample(1:.N))),
-                             by=.(tract,race,own_rent)]
-    housing_per_room_race_dt[,c("householder_age_3"):=
-                               sam_race_hh[.SD, list(householder_age_3), 
+    #then add householder_age 
+    housing_per_room_age_dt[,("age_per_id"):=paste0(tract,own_rent,num_per,as.character(1000000+sample(1:.N))),
+                by=.(tract,own_rent,num_per)]
+    housing_per_room_race_dt[,("age_per_id"):=paste0(tract,own_rent,num_per,as.character(1000000+sample(1:.N))),
+                             by=.(tract,own_rent,num_per)]
+    housing_per_room_race_dt[,c("householder_age"):=
+                               housing_per_room_age_dt[.SD, list(householder_age), 
                                            on = .(age_per_id)]]
-    sam_race_hh[,("age_per_id"):=NULL]
-    sam_eth_hh[,("age_per_id"):=paste0(tract,ethnicity,own_rent,as.character(1000000+sample(1:.N))),
-               by=.(tract,ethnicity,own_rent)]
-    housing_per_room_eth_dt[,("age_per_id"):=paste0(tract,ethnicity,own_rent,as.character(1000000+sample(1:.N))),
-                             by=.(tract,ethnicity,own_rent)]
-    housing_per_room_eth_dt[,c("householder_age_3"):=
-                               sam_eth_hh[.SD, list(householder_age_3), 
+    housing_per_room_age_dt[,c("missing_race"):=
+                              housing_per_room_race_dt[.SD, list(householder_age), 
+                                                      on = .(age_per_id)]]
+    housing_per_room_eth_dt[,("age_per_id"):=paste0(tract,own_rent,num_per,as.character(1000000+sample(1:.N))),
+                             by=.(tract,own_rent,num_per)]
+    housing_per_room_eth_dt[,c("householder_age"):=
+                              housing_per_room_age_dt[.SD, list(householder_age), 
                                            on = .(age_per_id)]]
-    sam_eth_hh[,("age_per_id"):=NULL]
-    
+    housing_per_room_age_dt[,c("missing_eth"):=
+                              housing_per_room_eth_dt[.SD, list(householder_age), 
+                                                      on = .(age_per_id)]]
+    #less than 1% missing, but from the original census not lining up on per_room
+    housing_per_room_age_dt[is.na(missing_race),("age_per2_id"):=paste0(tract,num_per,as.character(1000000+sample(1:.N))),
+                            by=.(tract,num_per)]
+    housing_per_room_race_dt[is.na(householder_age),("age_per2_id"):=paste0(tract,num_per,as.character(1000000+sample(1:.N))),
+                             by=.(tract,num_per)]
+    housing_per_room_race_dt[is.na(householder_age),c("householder_age"):=
+                               housing_per_room_age_dt[.SD, list(householder_age), 
+                                                       on = .(age_per2_id)]]
+    housing_per_room_age_dt[is.na(missing_race),c("missing_race"):=
+                              housing_per_room_race_dt[.SD, list(householder_age), 
+                                                       on = .(age_per2_id)]]
+    housing_per_room_eth_dt[is.na(householder_age),("age_per3_id"):=paste0(tract,num_per,as.character(1000000+sample(1:.N))),
+                            by=.(tract,num_per)]
+    housing_per_room_age_dt[is.na(missing_eth),("age_per3_id"):=paste0(tract,num_per,as.character(1000000+sample(1:.N))),
+                             by=.(tract,num_per)]
+    housing_per_room_eth_dt[is.na(householder_age),c("householder_age"):=
+                              housing_per_room_age_dt[.SD, list(householder_age), 
+                                                      on = .(age_per3_id)]]
+    housing_per_room_age_dt[is.na(missing_eth),c("missing_eth"):=
+                              housing_per_room_eth_dt[.SD, list(householder_age), 
+                                                      on = .(age_per3_id)]]
+    #test hh5b1 - housing_units matched on family, race/eth
+    #test <- table(
+    #  housing_per_room_age_dt$tract,
+    #  housing_per_room_age_dt$num_per,
+    #  housing_per_room_age_dt$householder_age
+    #)==table(
+    #  housing_per_room_eth_dt$tract,
+    #  housing_per_room_eth_dt$num_per,
+    #  housing_per_room_eth_dt$householder_age
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  housing_per_room_age_dt$tract,
+    #  housing_per_room_age_dt$num_per,
+    #  housing_per_room_age_dt$householder_age
+    #)==table(
+    #  housing_per_room_race_dt$tract,
+    #  housing_per_room_race_dt$num_per,
+    #  housing_per_room_race_dt$householder_age
+    #)
+    #length(test[test==F])==0
     #then add to sam_hh by age, own_rent and eth/race...
-    housing_per_room_race_dt[,("num_per_id"):=paste0(tract,race,own_rent,householder_age_3,as.character(1000000+sample(1:.N))),
-                             by=.(tract,race,own_rent,householder_age_3)]
-    sam_race_hh[,("num_per_id"):=paste0(tract,race,own_rent,householder_age_3,as.character(1000000+sample(1:.N))),
-                by=.(tract,race,own_rent,householder_age_3)]
+    housing_per_room_race_dt[,("num_per_id"):=paste0(tract,race,own_rent,householder_age,as.character(1000000+sample(1:.N))),
+                             by=.(tract,race,own_rent,householder_age)]
+    sam_race_hh[,("num_per_id"):=paste0(tract,race,own_rent,householder_age,as.character(1000000+sample(1:.N))),
+                by=.(tract,race,own_rent,householder_age)]
     sam_race_hh[,c("people_per_room"):= 
                   housing_per_room_race_dt[.SD, list(num_per_room_5),
                                           on = .(num_per_id)]]
+    housing_per_room_race_dt[,("missed"):=sam_race_hh[.SD,list(people_per_room),on = .(num_per_id)]]
     sam_race_hh[,("num_per_id"):=NULL]
-    housing_per_room_eth_dt[,("num_per_id"):=paste0(tract,ethnicity,own_rent,householder_age_3,as.character(1000000+sample(1:.N))),
-                            by=.(tract,ethnicity,own_rent,householder_age_3)]
-    sam_eth_hh[,("num_per_id"):=paste0(tract,ethnicity,own_rent,householder_age_3,as.character(1000000+sample(1:.N))),
-               by=.(tract,ethnicity,own_rent,householder_age_3)]
+    housing_per_room_eth_dt[,("num_per_id"):=paste0(tract,ethnicity,own_rent,householder_age,as.character(1000000+sample(1:.N))),
+                            by=.(tract,ethnicity,own_rent,householder_age)]
+    sam_eth_hh[,("num_per_id"):=paste0(tract,ethnicity,own_rent,householder_age,as.character(1000000+sample(1:.N))),
+               by=.(tract,ethnicity,own_rent,householder_age)]
     sam_eth_hh[,c("people_per_room"):= 
                   housing_per_room_eth_dt[.SD, list(num_per_room_5),
                                            on = .(num_per_id)]]
+    housing_per_room_eth_dt[,("missed"):=sam_eth_hh[.SD,list(people_per_room),on = .(num_per_id)]]
     sam_eth_hh[,("num_per_id"):=NULL]
 
-    #test hh6
+    #pick-up by dropping own_rent
+    housing_per_room_race_dt[is.na(missed),("num_per2_id"):=paste0(tract,race,householder_age,as.character(1000000+sample(1:.N))),
+                             by=.(tract,race,householder_age)]
+    sam_race_hh[is.na(people_per_room),("num_per2_id"):=paste0(tract,race,householder_age,as.character(1000000+sample(1:.N))),
+                by=.(tract,race,householder_age)]
+    sam_race_hh[is.na(people_per_room),c("people_per_room"):= 
+                  housing_per_room_race_dt[.SD, list(num_per_room_5),
+                                           on = .(num_per2_id)]]
+    housing_per_room_race_dt[is.na(missed),("missed"):=sam_race_hh[.SD,list(people_per_room),on = .(num_per2_id)]]
+    sam_race_hh[is.na(people_per_room),("num_per2_id"):=NULL]
+    housing_per_room_eth_dt[is.na(missed),("num_per2_id"):=paste0(tract,ethnicity,householder_age,as.character(1000000+sample(1:.N))),
+                            by=.(tract,ethnicity,householder_age)]
+    sam_eth_hh[is.na(people_per_room),("num_per2_id"):=paste0(tract,ethnicity,householder_age,as.character(1000000+sample(1:.N))),
+               by=.(tract,ethnicity,householder_age)]
+    sam_eth_hh[is.na(people_per_room),c("people_per_room"):= 
+                 housing_per_room_eth_dt[.SD, list(num_per_room_5),
+                                         on = .(num_per2_id)]]
+    housing_per_room_eth_dt[is.na(missed),("missed"):=sam_eth_hh[.SD,list(people_per_room),on = .(num_per2_id)]]
+    sam_eth_hh[,("num_per2_id"):=NULL]
+    #one more time - reshuffle is running into weird problems with how it keeps things in memory; not worth it for 2%
+    housing_per_room_race_dt[is.na(missed),("num_per3_id"):=paste0(tract,race,as.character(1000000+sample(1:.N))),
+                             by=.(tract,race)]
+    sam_race_hh[is.na(people_per_room),("num_per3_id"):=paste0(tract,race,as.character(1000000+sample(1:.N))),
+                by=.(tract,race)]
+    sam_race_hh[is.na(people_per_room),c("people_per_room"):= 
+                  housing_per_room_race_dt[.SD, list(num_per_room_5),
+                                           on = .(num_per3_id)]]
+    housing_per_room_race_dt[is.na(missed),("missed"):=sam_race_hh[.SD,list(people_per_room),on = .(num_per3_id)]]
+    sam_race_hh[,c("num_per3_id"):=NULL]
+    housing_per_room_eth_dt[is.na(missed),("num_per3_id"):=paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
+                            by=.(tract,ethnicity)]
+    sam_eth_hh[is.na(people_per_room),("num_per3_id"):=paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
+               by=.(tract,ethnicity)]
+    sam_eth_hh[is.na(people_per_room),c("people_per_room"):= 
+                 housing_per_room_eth_dt[.SD, list(num_per_room_5),
+                                         on = .(num_per3_id)]]
+    housing_per_room_eth_dt[is.na(missed),("missed"):=sam_eth_hh[.SD,list(people_per_room),on = .(num_per3_id)]]
+    sam_eth_hh[,c("num_per3_id"):=NULL]
+    #test hh6 - won't work until fix reshuffle!!!
     #test <- table(
     #  sam_eth_hh$tract,
     #  sam_eth_hh$people_per_room
-    #)==
+    #)-
     #  table(
     #    sam_race_hh$tract,
     #    sam_race_hh$people_per_room
@@ -3211,6 +3292,99 @@ createHouseholds <- function() {
     #)
     #length(test[test==F])==0
     
+    #add in kids / grandkids
+    hh_kids #family or non, family_role, and kid_age
+    #hh_type_kids #on individual, and can help match - this is for all kids, not for all hh - 
+    
+    #householder grandparents
+    #give an age to each grandchild of a hh
+    kids_grand_age[,("gp_a_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+                   by=.(tract)]
+    kids_gp_resp[,("gp_a_id") := paste0(tract,as.character(1000000+sample(1:.N))),
+                   by=.(tract)]
+    kids_gp_resp[,("grandkid_age"):=kids_grand_age[.SD,list(grandkid_age),on=.(gp_a_id)]]
+    #test hh11
+    #test <- table(
+    #  kids_grand_age$tract,
+    #  kids_grand_age$grandkid_age
+    #)==table(
+    #  kids_gp_resp$tract,
+    #  kids_gp_resp$grandkid_age
+    #)
+    #length(test[test==F])==0
+
+    #use kids_grand_marital to reduce number of hh_gps who are responsible for own - it's weird on both total and tract distribution
+    kids_gp_resp[,("gp_respon"):=str_remove(gp_respon," householder")]
+    kids_gp_resp[,("gp_r_id") := paste0(tract,gp_respon,as.character(1000000+sample(1:.N))),
+                by=.(tract,gp_respon)]
+    kids_grand_marital[,("gp_r_id") := paste0(tract,gp_respon,as.character(1000000+sample(1:.N))),
+                       by=.(tract,gp_respon)]
+    kids_grand_marital[,c("gp_hh_parent_present","grandkid_age"):=
+                         kids_gp_resp[.SD,c(list(parent_present),list(grandkid_age)),on=.(gp_r_id)]]
+    kids_gp_resp[,("missing"):=kids_grand_marital[.SD,list(gp_hh_parent_present),on=.(gp_r_id)]]
+    #nrow(kids_gp_resp[!is.na(missing)])==nrow(kids_grand_marital[!is.na(gp_hh_parent_present)])
+    kids_gp_resp[is.na(missing),("gp_r2_id") := paste0(as.character(1000000+sample(1:.N)))]
+    kids_grand_marital[is.na(gp_hh_parent_present),
+                       ("gp_r2_id") := paste0(as.character(1000000+sample(1:.N)))]
+    kids_grand_marital[is.na(gp_hh_parent_present),
+                       c("gp_hh_parent_present","grandkid_age"):=kids_gp_resp[.SD,c(list(parent_present),list(grandkid_age)),
+                                                               on=.(gp_r2_id)]]
+    kids_gp_resp[is.na(missing),("missing"):=kids_grand_marital[.SD,list(gp_hh_parent_present),on=.(gp_r2_id)]]
+    #test hh11a
+    #test <- table(kids_gp_resp$parent_present)==table(kids_grand_marital$gp_hh_parent_present)
+    #length(test[test==F])==0
+    kids_grand_marital[,("is_householder"):=if_else(!is.na(gp_hh_parent_present),"Grandparent is hh","Grandparent not hh")]
+
+    #add how long gp has been responsible
+    kids_gp_time[,("gp_t_id") := paste0(tract,gp_respon,as.character(1000000+sample(1:.N))),
+                 by=.(tract,gp_respon)]
+    kids_grand_marital[,("gp_t_id") := paste0(tract,gp_respon,as.character(1000000+sample(1:.N))),
+                       by=.(tract,gp_respon)]
+    kids_grand_marital[,c("time_gp_respon"):=
+                         kids_gp_time[.SD,c(list(time_gp_respon)),on=.(gp_t_id)]]
+    #test hh11b
+    #test <- table(
+    #  kids_gp_time$tract,
+    #  kids_gp_time$time_gp_respon
+    #)==table(
+    #  kids_grand_marital$tract,
+    #  kids_grand_marital$time_gp_respon
+    #)
+    #length(test[test==F])==0
+    
+    #add race/eth
+    kids_grand_race[race%in%LETTERS[1:7],("gp_t_id") := paste0(tract,gp_respon,as.character(1000000+sample(1:.N))),
+                 by=.(tract,gp_respon)]
+    kids_grand_marital[,c("race"):=
+                         kids_grand_race[.SD,c(list(race)),on=.(gp_t_id)]]
+    kids_grand_race[race%in%LETTERS[8:9],("gp_e_id") := paste0(tract,gp_respon,as.character(1000000+sample(1:.N))),
+                       by=.(tract,gp_respon)]
+    kids_grand_marital[,("gp_e_id") := paste0(tract,gp_respon,as.character(1000000+sample(1:.N))),
+                       by=.(tract,gp_respon)]
+    kids_grand_marital[,c("ethnicity"):=
+                         kids_grand_race[.SD,c(list(race)),on=.(gp_e_id)]]
+    #test hh11b
+    #test <- table(
+    #  kids_grand_race[race%in%LETTERS[1:7],tract],
+    #  kids_grand_race[race%in%LETTERS[1:7],gp_respon],
+    #  kids_grand_race[race%in%LETTERS[1:7],race]
+    #)==table(
+    #  kids_grand_marital$tract,
+    #  kids_grand_marital$gp_respon,
+    #  kids_grand_marital$race
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  #kids_grand_race[race%in%LETTERS[8:9],tract], #only   664 tracts
+    #  kids_grand_race[race%in%LETTERS[8:9],gp_respon],
+    #  kids_grand_race[race%in%LETTERS[8:9],race]
+    #)==table(
+    #  #kids_grand_marital$tract,
+    #  kids_grand_marital$gp_respon,
+    #  kids_grand_marital$ethnicity
+    #)
+    #length(test[test==F])==0
+    
     #add related kids age_ranges (can be more than one kid in category, but does give you "no children") - will be trumped by some of individual stuff on each child
     hh_kids[order(match(kid_age,c("No children","Under 6 years only","6 to 17 years only","Under 6 years and 6 to 17 years"))),
             ("hh_kids_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]
@@ -3232,7 +3406,334 @@ createHouseholds <- function() {
     #  sam_eth_hh$kids_by_age
     #)
     #length(test[test==F])==0
+    
+    #add grandparents, assuming they don't have kids of their own
+#    "marital_status_gp"    "gp_respon"            "age_range_gp""gp_hh_parent_present" "grandkid_age" "is_householder" "time_gp_respon"       "race""ethnicity"
+    kids_grand_marital[,("age_range_gp"):=if_else(age_range_gp=="not responsible","60 years and over",age_range_gp)]
+    kids_grand_marital[,("kids_by_age"):=if_else(grandkid_age=="Grandchildren under 6 years","Under 6 years only",
+                                                 "6 to 17 years only")] #i.e., assuming only one grandchild for the matching...
+    sam_eth_hh[,("age_range_gp"):=case_when(
+      age_range_w3=="60 years and over" ~ age_range_w3,
+      age_range_6=="55 to 59 years" ~ "30 to 59 years",
+      age_range_6=="45 to 54 years" ~ "30 to 59 years",
+      TRUE ~ "not grandparent age"
+    )]
+    sam_eth_hh[,("marital_status_gp"):=if_else(family_type=="Married-couple family","Now married (including separated and spouse absent)",
+                                        "Unmarried (never married widowed and divorced)")]
+    sam_race_hh[,("age_range_gp"):=case_when(
+      age_range_w3=="60 years and over" ~ age_range_w3,
+      age_range_6=="55 to 59 years" ~ "30 to 59 years",
+      age_range_6=="45 to 54 years" ~ "30 to 59 years",
+      TRUE ~ "not grandparent age"
+    )]
+    #race
+    #marital_status_gp is a matching variable - correct for number married, but not for unmarried...
+    sam_race_hh[,("marital_status_gp"):=if_else(family_type=="Married-couple family","Now married (including separated and spouse absent)",
+                                               "Unmarried (never married widowed and divorced)")]
+    kids_grand_marital[is_householder=="Grandparent is hh" & gp_hh_parent_present=="Parent present",
+                       ("gpr_id"):=paste0(tract,marital_status_gp,age_range_gp,race,as.character(1000000+sample(1:.N))),
+                       by=.(tract,marital_status_gp,age_range_gp,race)]
+    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3,
+                ("gpr_id"):=paste0(tract,marital_status_gp,age_range_gp,race,as.character(1000000+sample(1:.N))),
+                by=.(tract,marital_status_gp,age_range_gp,race)]
+    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3,
+                c("gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                  kids_grand_marital[.SD,c(list(gp_respon),list(gp_hh_parent_present),
+                                           list(time_gp_respon),list(kids_by_age)),
+                                     on=.(gpr_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & gp_hh_parent_present=="Parent present",
+                       ("missing_race"):=sam_race_hh[.SD,list(gp_respon),
+                                                     on=.(gpr_id)]]
+    #track
+    kg <- as.data.frame(Sys.time())
+    kg$r1kg <- nrow(kids_grand_marital[!is.na(missing_race)])
+    kg$r1kgT <- nrow(kids_grand_marital[!is.na(missing_race)])==nrow(sam_race_hh[!is.na(gp_respon)])
+    #pick up but still for parent present
+    kids_grand_marital[is_householder=="Grandparent is hh" & gp_hh_parent_present=="Parent present" & is.na(missing_race),
+                       ("gpr2_id"):=paste0(tract,marital_status_gp,age_range_gp,race,as.character(1000000+sample(1:.N))),
+                       by=.(tract,marital_status_gp,age_range_gp,race)]
+    sam_race_hh[as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon),
+                ("gpr2_id"):=paste0(tract,marital_status_gp,age_range_gp,race,as.character(1000000+sample(1:.N))),
+                by=.(tract,marital_status_gp,age_range_gp,race)]
+    sam_race_hh[as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon),
+                c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                           list(time_gp_respon),list(kids_by_age)),
+                                     on=.(gpr2_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & gp_hh_parent_present=="Parent present" & is.na(missing_race),
+                       ("missing_race"):=sam_race_hh[.SD,list(gp_respon),
+                                                     on=.(gpr2_id)]]
+    kg$r2kg <- nrow(kids_grand_marital[!is.na(missing_race)])
+    kg$r2kgT <- nrow(kids_grand_marital[!is.na(missing_race)])==nrow(sam_race_hh[!is.na(gp_respon)])
+    #pick up for all parents - 
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_race),
+                       ("gpr3_id"):=paste0(tract,marital_status_gp,age_range_gp,race,as.character(1000000+sample(1:.N))),
+                       by=.(tract,marital_status_gp,age_range_gp,race)]
+    sam_race_hh[as.numeric(substr(hh_size,1,1))>2 & is.na(gp_respon),
+                ("gpr3_id"):=paste0(tract,marital_status_gp,age_range_gp,race,as.character(1000000+sample(1:.N))),
+                by=.(tract,marital_status_gp,age_range_gp,race)]
+    sam_race_hh[as.numeric(substr(hh_size,1,1))>2 & is.na(gp_respon),
+                c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                           list(time_gp_respon),list(kids_by_age)),
+                                     on=.(gpr3_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_race),
+                       ("missing_race"):=sam_race_hh[.SD,list(gp_respon),
+                                                     on=.(gpr3_id)]]
+    kg$r3kg <- nrow(kids_grand_marital[!is.na(missing_race)])
+    kg$r3kgT <- nrow(kids_grand_marital[!is.na(missing_race)])==nrow(sam_race_hh[!is.na(gp_respon)])
+    #pick up for all parents and without attention to tract - I can't figure out what else is going on - 
+    #it seems like the gp data itself is wonky, esp. per tract but also race and age on hh_size is odd
+    #reshuffle sam_race_hh on hh_size race and age
+    
+    
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_race),
+                       ("gpr4_id"):=paste0(marital_status_gp,age_range_gp,race,as.character(1000000+sample(1:.N))),
+                       by=.(marital_status_gp,age_range_gp,race)]
+    sam_race_hh[as.numeric(substr(hh_size,1,1))>1 & is.na(gp_respon),
+                ("gpr4_id"):=paste0(marital_status_gp,age_range_gp,race,as.character(1000000+sample(1:.N))),
+                by=.(marital_status_gp,age_range_gp,race)]
+    sam_race_hh[as.numeric(substr(hh_size,1,1))>1 & is.na(gp_respon),
+                c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                           list(time_gp_respon),list(kids_by_age)),
+                                     on=.(gpr4_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_race),
+                       ("missing_race"):=sam_race_hh[.SD,list(gp_respon),
+                                                     on=.(gpr4_id)]]
+    kg$r4kg <- nrow(kids_grand_marital[!is.na(missing_race)])
+    kg$r4kgT <- nrow(kids_grand_marital[!is.na(missing_race)])==nrow(sam_race_hh[!is.na(gp_respon)])
+    #without marital
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_race),
+                       ("gpr5_id"):=paste0(age_range_gp,as.character(1000000+sample(1:.N))),
+                       by=.(age_range_gp)]
+    sam_race_hh[as.numeric(substr(hh_size,1,1))>1 & is.na(gp_respon),
+               ("gpr5_id"):=paste0(age_range_gp,as.character(1000000+sample(1:.N))),
+               by=.(age_range_gp)]
+    sam_race_hh[as.numeric(substr(hh_size,1,1))>1 & is.na(gp_respon),
+               c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                 kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                          list(time_gp_respon),list(kids_by_age)),
+                                    on=.(gpr5_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_race),
+                       ("missing_race"):=sam_race_hh[.SD,list(gp_respon),
+                                                   on=.(gpr5_id)]]
+    sam_race_hh[hh_size=="2-person household"&!is.na(gp_respon),("hh_size"):="5-person household"]
+    sam_race_hh[hh_size_4=="2-person household"&!is.na(gp_respon),("hh_size_4"):="4 or more person household"]
+    sam_race_hh[hh_size_10=="02-person household"&!is.na(gp_respon),("hh_size_10"):="05-person household"]
+    kg$r5kg <- nrow(kids_grand_marital[!is.na(missing_race)])
+    kg$r5kgT <- nrow(kids_grand_marital[!is.na(missing_race)])==nrow(sam_race_hh[!is.na(gp_respon)])
+    #assign gp to non-gp-hhs
+    kids_grand_marital[is.na(missing_race),
+                       ("gpro_id"):=paste0(tract,race,as.character(1000000+sample(1:.N))),
+                       by=.(tract,race)]
+    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               ("gpro_id"):=paste0(tract,race,as.character(1000000+sample(1:.N))),
+               by=.(tract,race)]
+    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               c("marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age"):=
+                 kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(time_gp_respon),list(kids_by_age)),
+                                    on=.(gpro_id)]]
+    kids_grand_marital[is.na(missing_race),
+                       ("missing_race"):=sam_race_hh[.SD,list(non_hh_gp_respon),
+                                                   on=.(gpro_id)]]
+    kg$ro1kg <- nrow(kids_grand_marital[!is.na(missing_race)])
+    kg$ro1kgT <- nrow(kids_grand_marital[!is.na(missing_race)])==nrow(sam_race_hh[!is.na(gp_respon) | !is.na(non_hh_gp_respon)])
+    kids_grand_marital[is.na(missing_race),
+                       ("gpro2_id"):=paste0(race,as.character(1000000+sample(1:.N))),
+                       by=.(race)]
+    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               ("gpro2_id"):=paste0(race,as.character(1000000+sample(1:.N))),
+               by=.(race)]
+    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               c("marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age"):=
+                 kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(time_gp_respon),list(kids_by_age)),
+                                    on=.(gpro2_id)]]
+    kids_grand_marital[is.na(missing_race),
+                       ("missing_race"):=sam_race_hh[.SD,list(non_hh_gp_respon),
+                                                   on=.(gpro2_id)]]
+    kg$ro2kg <- nrow(kids_grand_marital[!is.na(missing_race)])
+    kg$ro2kgT <- nrow(kids_grand_marital[!is.na(missing_race)])==nrow(sam_race_hh[!is.na(gp_respon)  | !is.na(non_hh_gp_respon)])
+    kg$ro2kgT2 <- nrow(kids_grand_marital[is.na(missing_race)])==0
 
+    #eth
+    sam_eth_hh[,("marital_status_gp"):=if_else(family_type=="Married-couple family","Now married (including separated and spouse absent)",
+                                                "Unmarried (never married widowed and divorced)")]
+    kids_grand_marital[is_householder=="Grandparent is hh" & gp_hh_parent_present=="Parent present",
+                       ("gpe_id"):=paste0(tract,marital_status_gp,age_range_gp,ethnicity,as.character(1000000+sample(1:.N))),
+                       by=.(tract,marital_status_gp,age_range_gp,ethnicity)]
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3,
+                ("gpe_id"):=paste0(tract,marital_status_gp,age_range_gp,ethnicity,as.character(1000000+sample(1:.N))),
+                by=.(tract,marital_status_gp,age_range_gp,ethnicity)]
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3,
+                c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                           list(time_gp_respon),list(kids_by_age)),
+                                     on=.(gpe_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & gp_hh_parent_present=="Parent present",
+                       ("missing_eth"):=sam_eth_hh[.SD,list(gp_respon),
+                                                     on=.(gpe_id)]]
+    #track
+    kg$e1kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
+    kg$e1kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon)])
+    #pick up but still for parent present
+    kids_grand_marital[is_householder=="Grandparent is hh" & gp_hh_parent_present=="Parent present" & is.na(missing_eth),
+                       ("gpe2_id"):=paste0(tract,marital_status_gp,age_range_gp,ethnicity,as.character(1000000+sample(1:.N))),
+                       by=.(tract,marital_status_gp,age_range_gp,ethnicity)]
+    sam_eth_hh[as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon),
+                ("gpe2_id"):=paste0(tract,marital_status_gp,age_range_gp,ethnicity,as.character(1000000+sample(1:.N))),
+                by=.(tract,marital_status_gp,age_range_gp,ethnicity)]
+    sam_eth_hh[as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon),
+                c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                           list(time_gp_respon),list(kids_by_age)),
+                                     on=.(gpe2_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & gp_hh_parent_present=="Parent present" & is.na(missing_eth),
+                       ("missing_eth"):=sam_eth_hh[.SD,list(gp_respon),
+                                                     on=.(gpe2_id)]]
+    kg$e2kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
+    kg$e2kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon)])
+    #pick up for all parents - 
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_eth),
+                       ("gpe3_id"):=paste0(tract,marital_status_gp,age_range_gp,ethnicity,as.character(1000000+sample(1:.N))),
+                       by=.(tract,marital_status_gp,age_range_gp,ethnicity)]
+    sam_eth_hh[as.numeric(substr(hh_size,1,1))>2 & is.na(gp_respon),
+                ("gpe3_id"):=paste0(tract,marital_status_gp,age_range_gp,ethnicity,as.character(1000000+sample(1:.N))),
+                by=.(tract,marital_status_gp,age_range_gp,ethnicity)]
+    sam_eth_hh[as.numeric(substr(hh_size,1,1))>2 & is.na(gp_respon),
+                c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                           list(time_gp_respon),list(kids_by_age)),
+                                     on=.(gpe3_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_eth),
+                       ("missing_eth"):=sam_eth_hh[.SD,list(gp_respon),
+                                                     on=.(gpe3_id)]]
+    kg$e3kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
+    kg$e3kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon)])
+    #pick up for all parents and without attention to tract - I can't figure out what else is going on - 
+    #it seems like the gp data itself is wonky, esp. per tract but also ethnicity and age on hh_size is odd
+    
+    
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_eth),
+                       ("gpe4_id"):=paste0(marital_status_gp,age_range_gp,ethnicity,as.character(1000000+sample(1:.N))),
+                       by=.(marital_status_gp,age_range_gp,ethnicity)]
+    sam_eth_hh[as.numeric(substr(hh_size,1,1))>1 & is.na(gp_respon),
+                ("gpe4_id"):=paste0(marital_status_gp,age_range_gp,ethnicity,as.character(1000000+sample(1:.N))),
+                by=.(marital_status_gp,age_range_gp,ethnicity)]
+    sam_eth_hh[as.numeric(substr(hh_size,1,1))>1 & is.na(gp_respon),
+                c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                           list(time_gp_respon),list(kids_by_age)),
+                                     on=.(gpe4_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_eth),
+                       ("missing_eth"):=sam_eth_hh[.SD,list(gp_respon),
+                                                     on=.(gpe4_id)]]
+    kg$e4kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
+    kg$e4kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon)])
+    #without marital
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_eth),
+                       ("gpe5_id"):=paste0(age_range_gp,as.character(1000000+sample(1:.N))),
+                       by=.(age_range_gp)]
+    sam_eth_hh[as.numeric(substr(hh_size,1,1))>1 & is.na(gp_respon),
+               ("gpe5_id"):=paste0(age_range_gp,as.character(1000000+sample(1:.N))),
+               by=.(age_range_gp)]
+    sam_eth_hh[as.numeric(substr(hh_size,1,1))>1 & is.na(gp_respon),
+               c("marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon","gkids_by_age"):=
+                 kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(gp_hh_parent_present),
+                                          list(time_gp_respon),list(kids_by_age)),
+                                    on=.(gpe5_id)]]
+    kids_grand_marital[is_householder=="Grandparent is hh" & is.na(missing_eth),
+                       ("missing_eth"):=sam_eth_hh[.SD,list(gp_respon),
+                                                   on=.(gpe5_id)]]
+    sam_eth_hh[hh_size=="2-person household"&!is.na(gp_respon),("hh_size"):="5-person household"]
+    sam_eth_hh[hh_size_4=="2-person household"&!is.na(gp_respon),("hh_size_4"):="4 or more person household"]
+    sam_eth_hh[hh_size_10=="02-person household"&!is.na(gp_respon),("hh_size_10"):="05-person household"]
+    kg$e5kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
+    kg$e5kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon)])
+    
+    #mark grandparents in other hh
+    kids_grand_marital[is.na(missing_eth),
+                       ("gpeo_id"):=paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
+                       by=.(tract,ethnicity)]
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               ("gpeo_id"):=paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
+               by=.(tract,ethnicity)]
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               c("marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age"):=
+                 kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(time_gp_respon),list(kids_by_age)),
+                                    on=.(gpeo_id)]]
+    kids_grand_marital[is.na(missing_eth),
+                       ("missing_eth"):=sam_eth_hh[.SD,list(non_hh_gp_respon),
+                                                   on=.(gpeo_id)]]
+    kg$eo1kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
+    kg$eo1kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon) | !is.na(non_hh_gp_respon)])
+    kids_grand_marital[is.na(missing_eth),
+                       ("gpeo2_id"):=paste0(ethnicity,as.character(1000000+sample(1:.N))),
+                       by=.(ethnicity)]
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               ("gpeo2_id"):=paste0(ethnicity,as.character(1000000+sample(1:.N))),
+               by=.(ethnicity)]
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               c("marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age"):=
+                 kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(time_gp_respon),list(kids_by_age)),
+                                    on=.(gpeo2_id)]]
+    kids_grand_marital[is.na(missing_eth),
+                       ("missing_eth"):=sam_eth_hh[.SD,list(non_hh_gp_respon),
+                                                   on=.(gpeo2_id)]]
+    kg$eo2kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
+    kg$eo2kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon) | !is.na(non_hh_gp_respon)])
+    kg$eo2kgT2 <- nrow(kids_grand_marital[is.na(missing_eth)])==0
+    #still a few to catch somehow!
+    kids_grand_marital[is.na(missing_eth),
+                       ("gpeo3_id"):=paste0(as.character(1000000+sample(1:.N)))]
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               ("gpeo3_id"):=paste0(as.character(1000000+sample(1:.N)))]
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+               c("marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age"):=
+                 kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(time_gp_respon),list(kids_by_age)),
+                                    on=.(gpeo3_id)]]
+    kids_grand_marital[is.na(missing_eth),
+                       ("missing_eth"):=sam_eth_hh[.SD,list(non_hh_gp_respon),
+                                                   on=.(gpeo3_id)]]
+    kg$eo3kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
+    kg$eo3kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon)])
+    kg$eo3kgT2 <- nrow(kids_grand_marital[is.na(missing_eth)])==0
+    
+    
+    #need some tests beyond kg on totals...
+    #test hh_??
+    test <- table(
+      kids_grand_marital$tract,
+      kids_grand_marital$marital_status_gp,
+      kids_grand_marital$kids_by_age,
+      kids_grand_marital$time_gp_respon,
+      kids_grand_marital$gp_respon
+    )==table(
+      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),tract],
+      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(marital_status_gp,marital_status_non_hh_gp)],
+      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(time_gp_respon,time_non_hh_gp_respon)],
+      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(gkids_by_age,non_hh_gkids_by_age)],
+      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(gp_respon,non_hh_gp_respon)]
+    )
+    length(test[test==F])==0
+    test <- table(
+      kids_grand_marital$tract,
+      kids_grand_marital$marital_status_gp,
+      kids_grand_marital$kids_by_age,
+      kids_grand_marital$time_gp_respon,
+      kids_grand_marital$gp_respon
+    )==table(
+      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),tract],
+      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(marital_status_gp,marital_status_non_hh_gp)],
+      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(time_gp_respon,time_non_hh_gp_respon)],
+      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(gkids_by_age,non_hh_gkids_by_age)],
+      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(gp_respon,non_hh_gp_respon)]
+    )
+    length(test[test==F])==0
+    #move gkids_age over to kids_age for the ones who are hh
+    sam_eth_hh[is.na(hh_gp_parent_present)&kids_by_age=="No children",("kids_by_age"):=gkids_age]
+    sam_race_hh[is.na(hh_gp_parent_present)&kids_by_age=="No children",("kids_by_age"):=gkids_age]
+    
     #add employment for family - census file is misssing 4384, all married couple families...
     #because the number_of_workers came through the workers by transportation side, it has other info like age
     #implicitly coded
@@ -3657,22 +4158,26 @@ createHouseholds <- function() {
     
     sam_eth_hh <- sam_eth_hh[,c("household_id","inhousehold_id","tract","sex","ethnicity","age_range_6","own_rent","family","family_type",
                                 "family_role","family_role_4","single_hh_sex","householder_age","householder_age_9",
-                                "housing_units","housing_units_6","num_structures","householder_age_3","people_per_room",
+                                "housing_units","housing_units_6","num_structures","people_per_room",
                                 "hh_size","hh_size_4","hh_size_10","num_rooms","num_bedrooms","when_moved_in",
                                 "means_transport","number_workers_in_hh","industry","occupation",
                                 "commute_time","when_go_to_work","language","English_level","income_range_workers",
                                 "number_vehicles_hh","kids_by_age","own_kids",
                                 "husband_employed","wife_employed","single_hh_employed",
-                                "partner_type","sex_partner","role_in_family")]
+                                "partner_type","sex_partner","role_in_family",
+                                "marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age", 
+                                "marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon")]
     sam_race_hh <- sam_race_hh[,c("household_id","inhousehold_id","tract","sex","race","age_range_6","own_rent","family","family_type",
                                   "family_role","family_role_4","single_hh_sex","householder_age","householder_age_9",
-                                  "housing_units","housing_units_6","num_structures","householder_age_3","people_per_room",
+                                  "housing_units","housing_units_6","num_structures","people_per_room",
                                   "hh_size","hh_size_4","hh_size_10","num_rooms","num_bedrooms","when_moved_in",
                                   "means_transport","number_workers_in_hh","industry","occupation",
                                   "commute_time","when_go_to_work","language","English_level","income_range_workers",
                                   "number_vehicles_hh","kids_by_age","own_kids",
                                   "husband_employed","wife_employed","single_hh_employed",
-                                  "partner_type","sex_partner","role_in_family")]
+                                  "partner_type","sex_partner","role_in_family",
+                                  "marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age", 
+                                  "marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon")]
     
     #save working files
     saveRDS(sam_eth_hh,file = paste0(housingdir, vintage, "/sam_eth_hh_",Sys.Date(),".RDS"))

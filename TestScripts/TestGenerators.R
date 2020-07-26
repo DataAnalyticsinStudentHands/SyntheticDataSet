@@ -271,7 +271,29 @@ test <- table(
 )
 length(test[test==F])==0
 
-#test hh6
+#test hh5b1 - housing_units matched on family, race/eth
+test <- table(
+  housing_per_room_age_dt$tract,
+  housing_per_room_age_dt$num_per,
+  housing_per_room_age_dt$householder_age
+)==table(
+  housing_per_room_eth_dt$tract,
+  housing_per_room_eth_dt$num_per,
+  housing_per_room_eth_dt$householder_age
+)
+length(test[test==F])==0
+test <- table(
+  housing_per_room_age_dt$tract,
+  housing_per_room_age_dt$num_per,
+  housing_per_room_age_dt$householder_age
+)==table(
+  housing_per_room_race_dt$tract,
+  housing_per_room_race_dt$num_per,
+  housing_per_room_race_dt$householder_age
+)
+length(test[test==F])==0
+
+#test hh6 - won't work until fix reshuffle!!!
 test <- table(
   sam_eth_hh$tract,
   sam_eth_hh$people_per_room
@@ -500,6 +522,30 @@ test <- table(
 )==table(
   hh_size_dt$tract,
   hh_size_dt$hh_size
+)
+length(test[test==F])==0
+
+#test hh11
+test <- table(
+  kids_grand_age$tract,
+  kids_grand_age$grandkid_age
+)==table(
+  kids_gp_resp$tract,
+  kids_gp_resp$grandkid_age
+)
+length(test[test==F])==0
+
+#test hh11a
+test <- table(kids_gp_resp$parent_present)==table(kids_grand_marital$gp_hh_parent_present)
+length(test[test==F])==0
+
+#test hh11b
+test <- table(
+  kids_gp_time$tract,
+  kids_gp_time$time_gp_respon
+)==table(
+  kids_grand_marital$tract,
+  kids_grand_marital$time_gp_respon
 )
 length(test[test==F])==0
 

@@ -30,8 +30,24 @@ createFamilies <- function() {
     
     hh_relations_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_race_2020-05-30.RDS")
     hh_relations_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_eth_2020-05-30.RDS")
+    sam_pw_hh_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_race_2020-07-25.RDS")
+    sam_pw_hh_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_eth_2020-07-25.RDS")
+
+#at some point pick these up - assuming they are after partner_workers, they have missing written on them for further matching....        
+    #additional_workers_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/additional_workers_race_2020-07-25.RDS")
+    #additional_workers_ethe <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/additional_workers_eth_2020-07-25.RDS")
+    
+    #expand first set of kids
+    sam_pw_hh_eth[,("kids_0_5"):=if_else(kids_by_age=="Under 6 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
+                                          1,0)]
+    sam_pw_hh_eth[,("kids_6_17"):=if_else(kids_by_age=="6 to 17 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
+                                          1,0)]
+    
+    #make a match for family_roles that allows matching by age / worker, etc.?
     
     
+    
+    #from expand_fam
     
     #hh_income_dt
     #computer_internet_hh

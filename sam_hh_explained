@@ -232,6 +232,13 @@ Employed or in Armed Forces  Husband not in labor force          Not in labor fo
 
 Moved in 1979 or earlier    Moved in 1980 to 1989    Moved in 1990 to 1999    Moved in 2000 to 2009   Moved in 2010 or later 
                    75841                    73398                   165834                   446584                   801156
+                   
+                   
+#gp_hh_parent_present only for grandparents who are hh - it tells you whether the parents are also under that hh - the not-responsible part is odd, since parent could be present in that case...
+> table(sam_eth_hh$gp_hh_parent_present)
+
+      gp_not_resp No parent present    Parent present 
+            53505             12650             37753 
 
 
 > table(sam_eth_hh$hh_income_level)
