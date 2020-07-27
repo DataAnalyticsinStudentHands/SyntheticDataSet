@@ -3527,10 +3527,10 @@ createHouseholds <- function() {
     kids_grand_marital[is.na(missing_race),
                        ("gpro_id"):=paste0(tract,race,as.character(1000000+sample(1:.N))),
                        by=.(tract,race)]
-    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon),
                ("gpro_id"):=paste0(tract,race,as.character(1000000+sample(1:.N))),
                by=.(tract,race)]
-    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+    sam_race_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon),
                c("marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age"):=
                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(time_gp_respon),list(kids_by_age)),
                                     on=.(gpro_id)]]
@@ -3655,10 +3655,10 @@ createHouseholds <- function() {
     kids_grand_marital[is.na(missing_eth),
                        ("gpeo_id"):=paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
                        by=.(tract,ethnicity)]
-    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon),
                ("gpeo_id"):=paste0(tract,ethnicity,as.character(1000000+sample(1:.N))),
                by=.(tract,ethnicity)]
-    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon) & is.na(non_hh_gp_respon),
+    sam_eth_hh[kids_by_age=="No children" & as.numeric(substr(hh_size,1,1))>3 & is.na(gp_respon),
                c("marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age"):=
                  kids_grand_marital[.SD,c(list(marital_status_gp),list(gp_respon),list(time_gp_respon),list(kids_by_age)),
                                     on=.(gpeo_id)]]
@@ -3696,40 +3696,37 @@ createHouseholds <- function() {
                        ("missing_eth"):=sam_eth_hh[.SD,list(non_hh_gp_respon),
                                                    on=.(gpeo3_id)]]
     kg$eo3kg <- nrow(kids_grand_marital[!is.na(missing_eth)])
-    kg$eo3kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon)])
+    kg$eo3kgT <- nrow(kids_grand_marital[!is.na(missing_eth)])==nrow(sam_eth_hh[!is.na(gp_respon) | !is.na(non_hh_gp_respon)])
     kg$eo3kgT2 <- nrow(kids_grand_marital[is.na(missing_eth)])==0
     
     
     #need some tests beyond kg on totals...
-    #test hh_??
-    test <- table(
-      kids_grand_marital$tract,
-      kids_grand_marital$marital_status_gp,
-      kids_grand_marital$kids_by_age,
-      kids_grand_marital$time_gp_respon,
-      kids_grand_marital$gp_respon
-    )==table(
-      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),tract],
-      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(marital_status_gp,marital_status_non_hh_gp)],
-      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(time_gp_respon,time_non_hh_gp_respon)],
-      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(gkids_by_age,non_hh_gkids_by_age)],
-      sam_eth_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(gp_respon,non_hh_gp_respon)]
-    )
-    length(test[test==F])==0
-    test <- table(
-      kids_grand_marital$tract,
-      kids_grand_marital$marital_status_gp,
-      kids_grand_marital$kids_by_age,
-      kids_grand_marital$time_gp_respon,
-      kids_grand_marital$gp_respon
-    )==table(
-      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),tract],
-      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(marital_status_gp,marital_status_non_hh_gp)],
-      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(time_gp_respon,time_non_hh_gp_respon)],
-      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(gkids_by_age,non_hh_gkids_by_age)],
-      sam_race_hh[!is.na(marital_status_gp) | !is.na(marital_status_non_hh_gp),c(gp_respon,non_hh_gp_respon)]
-    )
-    length(test[test==F])==0
+    #test hh_14a
+    #test <- table(
+    #  kids_grand_marital$marital_status_gp
+    #)==table(
+    #  sam_eth_hh[,c(marital_status_gp,marital_status_non_hh_gp)]
+    #)
+    #test[[1]]==T #because only the married counted - the rest were the negative of an if_else
+    #test <- table(
+    #  kids_grand_marital$marital_status_gp
+    #)==table(
+    #  sam_race_hh[,c(marital_status_gp,marital_status_non_hh_gp)]
+    #)
+    #test[[1]]==T #because only the married counted - the rest were the negative of an if_else
+    #test <- table(
+    #  kids_grand_marital$gp_respon
+    #)==table(
+    #  sam_eth_hh[,c(gp_respon,non_hh_gp_respon)]
+    #)
+    #length(test[test==F])==0
+    #test <- table(
+    #  kids_grand_marital$gp_respon
+    #)==table(
+    #  sam_race_hh[,c(gp_respon,non_hh_gp_respon)]
+    #)
+    #length(test[test==F])==0
+    
     #move gkids_age over to kids_age for the ones who are hh
     sam_eth_hh[is.na(hh_gp_parent_present)&kids_by_age=="No children",("kids_by_age"):=gkids_age]
     sam_race_hh[is.na(hh_gp_parent_present)&kids_by_age=="No children",("kids_by_age"):=gkids_age]

@@ -831,6 +831,33 @@ test<-table(
 )
 length(test[test==F])==0
 
+#test hh_14a
+test <- table(
+  kids_grand_marital$marital_status_gp
+)==table(
+  sam_eth_hh[,c(marital_status_gp,marital_status_non_hh_gp)]
+)
+test[[1]]==T #because only the married counted - the rest were the negative of an if_else
+test <- table(
+  kids_grand_marital$marital_status_gp
+)==table(
+  sam_race_hh[,c(marital_status_gp,marital_status_non_hh_gp)]
+)
+test[[1]]==T #because only the married counted - the rest were the negative of an if_else
+test <- table(
+  kids_grand_marital$gp_respon
+)==table(
+  sam_eth_hh[,c(gp_respon,non_hh_gp_respon)]
+)
+length(test[test==F])==0
+test <- table(
+  kids_grand_marital$gp_respon
+)==table(
+  sam_race_hh[,c(gp_respon,non_hh_gp_respon)]
+)
+length(test[test==F])==0
+
+
 #test hh15
 test<-table(
   hh_income_dt$tract,
