@@ -233,13 +233,53 @@ Employed or in Armed Forces  Husband not in labor force          Not in labor fo
 Moved in 1979 or earlier    Moved in 1980 to 1989    Moved in 1990 to 1999    Moved in 2000 to 2009   Moved in 2010 or later 
                    75841                    73398                   165834                   446584                   801156
                    
-                   
+
+#for grandparents - hh and non
+> table(sam_pw_hh_eth[role_in_family=="Householder"]$marital_status_non_hh_gp)
+
+Now married (including separated and spouse absent)      Unmarried (never married widowed and divorced) 
+                                              16607                                                9955 
+
+> table(sam_pw_hh_eth[role_in_family=="Householder"]$non_hh_gp_respon)
+
+Grandparent not responsible for own grandchildren under 18 years     Grandparent responsible for own grandchildren under 18 years 
+                                                           22417                                                             4145 
+ 
+> table(sam_pw_hh_eth[role_in_family=="Householder"]$time_non_hh_gp_respon)
+
+                               gp_not_resp       Grandparent responsible 1 or 2 years       Grandparent responsible 3 or 4 years 
+                                     22417                                        929                                        770 
+   Grandparent responsible 5 years or more     Grandparent responsible 6 to 11 months Grandparent responsible less than 6 months 
+                                      1743                                        243                                        460 
+
+#tells whether parent living with hh who is also a grandparent is married or not
+> table(sam_pw_hh_eth[role_in_family=="Householder"]$marital_status_gp)
+
+Now married (including separated and spouse absent)      Unmarried (never married widowed and divorced) 
+                                              67012                                              445510 
+
+> table(sam_pw_hh_eth[role_in_family=="Householder"]$gp_respon)
+
+Grandparent not responsible for own grandchildren under 18 years     Grandparent responsible for own grandchildren under 18 years 
+                                                           63352                                                            40556 
+
 #gp_hh_parent_present only for grandparents who are hh - it tells you whether the parents are also under that hh - the not-responsible part is odd, since parent could be present in that case...
-> table(sam_eth_hh$gp_hh_parent_present)
+> table(sam_pw_hh_eth[role_in_family=="Householder"]$gp_hh_parent_present)
 
       gp_not_resp No parent present    Parent present 
             53505             12650             37753 
 
+#for grandparents who are householders
+> table(sam_pw_hh_eth[role_in_family=="Householder"]$time_gp_respon)
+
+                               gp_not_resp       Grandparent responsible 1 or 2 years       Grandparent responsible 3 or 4 years 
+                                     63352                                       8385                                       7602 
+   Grandparent responsible 5 years or more     Grandparent responsible 6 to 11 months Grandparent responsible less than 6 months 
+                                     16515                                       3799                                       4255 
+
+
+
+#moved below to after family
 
 > table(sam_eth_hh$hh_income_level)
 

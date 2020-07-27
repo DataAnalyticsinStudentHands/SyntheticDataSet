@@ -1622,11 +1622,14 @@ createIndividuals <- function() {
     #        marital_status_race_dt$race,
     #        marital_status_race_dt$age_range)
     #length(test[test==F])==0
-    #new def. for marital match - for eth
+    #new def. for marital match - for eth - need to think through the separated folks!!
     marital_status_eth_dt[,("not_married"):=if_else(marital_status=="Now married","married","not married")]
     hh_relations_eth[,("not_married"):=case_when(
       role_in_family=="Spouse" | role_in_family=="Son-in-law or daughter-in-law" ~ "married",
       role_in_family=="Householder" | role_in_family=="Parent" | role_in_family=="Parent-in-law" ~ "maybe",
+      in_family_type=="In married-couple family" & role_in_family=="Householder" ~ "married",
+      in_family_type=="In male householder no wife present family" & role_in_family=="Householder" ~ "not married",
+      in_family_type=="In female householder no husband present family" & role_in_family=="Householder" ~ "not married",
       TRUE ~ "not married"
     )]
     #catch ~1k strays:
@@ -1641,6 +1644,9 @@ createIndividuals <- function() {
     hh_relations_race[,("not_married"):=case_when(
       role_in_family=="Spouse" | role_in_family=="Son-in-law or daughter-in-law" ~ "married",
       role_in_family=="Householder" | role_in_family=="Parent" | role_in_family=="Parent-in-law" ~ "maybe",
+      in_family_type=="In married-couple family" & role_in_family=="Householder" ~ "married",
+      in_family_type=="In male householder no wife present family" & role_in_family=="Householder" ~ "not married",
+      in_family_type=="In female householder no husband present family" & role_in_family=="Householder" ~ "not married",
       TRUE ~ "not married"
     )]
     #catch ~1k strays:
@@ -1665,7 +1671,7 @@ createIndividuals <- function() {
                                               on = .(marital_rel_id)]]
     marital_status_eth_dt[,("missed"):=hh_relations_eth[.SD,list(marital_status),
                                                         on = .(marital_rel_id)]]
-    #had 1448051 match
+    #had 1458168 match
     #nrow(marital_status_eth_dt[is.na(missed)])==nrow(hh_relations_eth[is.na(marital_status)&substr(eth_age_range,1,2)>14])
     #######pickup a few more without place_born, since it was always inexact
     #######marital_status_eth_dt[is.na(missed),("marital_rel_2_id"):= 

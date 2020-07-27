@@ -31,6 +31,10 @@ sam <- createBaseSAM(censusdir, housingdir, vintage,
                      numberOfCores = numberOfCores, state = state, county = county, tract = tract)
 
 #createBaseSAM will need to call exp_census_hh, prob. from within householdsGenerator.; then exp_census from within Individuals_generator
+#current 8/2020 manual order: source Census_Data, workflow (ll. 3-24),
+#Individuals_generator (expand_from_census), 
+#householdsGenerator (expand_hh_from_census), partner_workers, 
+#families_generator (expand_fam_from_census)
 #HCAD_merge and HCAD_geo have not been functioned; all need error handling and sanity checks internally
 
 # do some sanity checks and more columns

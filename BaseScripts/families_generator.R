@@ -28,21 +28,68 @@ createFamilies <- function() {
     
     
     
-    hh_relations_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_race_2020-05-30.RDS")
-    hh_relations_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_eth_2020-05-30.RDS")
-    sam_pw_hh_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_race_2020-07-25.RDS")
-    sam_pw_hh_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_eth_2020-07-25.RDS")
+    hh_relations_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_race_2020-07-27.RDS")
+    hh_relations_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_eth_2020-07-27.RDS")
+    sam_pw_hh_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_race_2020-07-26.RDS")
+    sam_pw_hh_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_eth_2020-07-26.RDS")
 
 #at some point pick these up - assuming they are after partner_workers, they have missing written on them for further matching....        
     #additional_workers_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/additional_workers_race_2020-07-25.RDS")
     #additional_workers_ethe <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/additional_workers_eth_2020-07-25.RDS")
+    
+    #cleaning up from colnames
+    sam_pw_hh_eth[,grep("match_id",colnames(sam_pw_hh_eth)):=NULL]
+    sam_pw_hh_race[,grep("match_id",colnames(sam_pw_hh_race)):=NULL]
+    
+    #first match Householder so it will get right pb etc. when expand on children
+    #match on race/eth, age, sex [eth_sex_relations], in_family_type with family_role
+    #still something weird around in_family_type=="In female householder no husband present family" having people who are married with spouse present
+    hh_relations_eth[role_in_family=="Householder",("family_role"):=case_when(
+      in_family_type=="In female householder no husband present family" ~ "Female householder no husband present",
+      in_family_type=="In male householder no wife present family" ~ "Male householder no wife present",
+      in_family_type=="In married-couple family" ~ "Married-couple family",
+      TRUE ~ in_family_type
+    )]
+    hh_relations_eth[role_in_family=="Householder",("householder_age_9"):=case_when(
+      eth_age_range=="15 to 17 years" ~ "Householder 15 to 24 years",
+      eth_age_range=="18 to 19 years" ~ "Householder 15 to 24 years",
+      eth_age_range=="20 to 24 years" ~ "Householder 15 to 24 years",
+      eth_age_range=="25 to 29 years" ~ "Householder 25 to 34 years",
+      eth_age_range=="30 to 34 years" ~ "Householder 25 to 34 years",
+      eth_age_range=="35 to 44 years" ~ "Householder 35 to 44 years",
+      eth_age_range=="45 to 54 years" ~ "Householder 45 to 54 years",
+      eth_age_range=="55 to 64 years" ~ sample(c("Householder 55 to 59 years","Householder 60 to 64 years"),size=.N,replace = TRUE),
+      eth_age_range=="65 to 74 years" ~ "Householder 65 to 74 years",
+      eth_age_range=="75 to 84 years" ~ "Householder 75 to 84 years",
+      eth_age_range=="85 to 94 years" ~ "Householder 85 years and over",
+      TRUE ~ eth_age_range
+    )]
+    #if marital_status_5 fixed, then family_role captures what we need... eth_sex is 
+    sam_pw_hh_eth[role_in_family=="Householder",("hh_match_id"):=
+                    paste0(tract,ethnicity,family_role,householder_age_9,as.character(1000000+seq.int(1:.N))),
+                  by=.(tract,ethnicity,family_role,householder_age_9)]
+    hh_relations_eth[role_in_family=="Householder",("hh_match_id"):=
+                    paste0(tract,ethnicity,family_role,householder_age_9,as.character(1000000+seq.int(1:.N))),
+                  by=.(tract,ethnicity,family_role,householder_age_9)]
+    
     
     #expand first set of kids
     sam_pw_hh_eth[,("kids_0_5"):=if_else(kids_by_age=="Under 6 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
                                           1,0)]
     sam_pw_hh_eth[,("kids_6_17"):=if_else(kids_by_age=="6 to 17 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
                                           1,0)]
+    sam_pw_hh_race[,("kids_0_5"):=if_else(kids_by_age=="Under 6 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
+                                         1,0)]
+    sam_pw_hh_race[,("kids_6_17"):=if_else(kids_by_age=="6 to 17 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
+                                          1,0)]
+    #make kids, then add a .N on household_id, so we can subtract that from hh_size and see where we are
+    #these kids are all related, and the relations stuff should let you break out for Grandchild, Child, and Adopted, etc.
     
+    #should be able to match with a worker?
+    sam_pw_hh_eth[role_in_family=="Householder" & !is.na(marital_status_non_hh_gp),
+                  ("parent_of_hh"):=if_else(str_detect(marital_status_non_hh_gp,"Now"),2,1)]
+    sam_pw_hh_race[role_in_family=="Householder" & !is.na(marital_status_non_hh_gp),
+                  ("parent_of_hh"):=if_else(str_detect(marital_status_non_hh_gp,"Now"),2,1)]
     #make a match for family_roles that allows matching by age / worker, etc.?
     
     
