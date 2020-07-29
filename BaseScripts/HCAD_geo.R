@@ -145,6 +145,7 @@ HCAD$civic_club=civic_clubs$NAME[civic_within_unlist]
 
 #bus - 
 bus <- st_read(paste0(houstondatadir, "Bus_Stops/Bus_Stops.shp"))
+bus$geometry <- st_transform(bus$geometry,st_crs(HCAD$ptcoords))
 #find buses within tracts, and then calculate distance??
 bus_distance <- st_distance(HCAD$ptcoords,bus$geometry,by_element = FALSE) 
 #calculate distances to stops?
