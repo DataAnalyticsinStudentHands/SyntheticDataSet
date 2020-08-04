@@ -984,16 +984,26 @@ test <- nrow(marital_status_race_dt[!is.na(pregnant)]) == nrow(preg_race_dt)
 
 #test3
 test<-table(sex_age_race[age>64]$tract,sex_age_race[age>64]$sex,sex_age_race[age>64]$race,sex_age_race[age>64]$age_range)==
-  table(sr_relations$tract,sr_relations$race_sex_sr_relations,sr_relations$race,sr_relations$race_age_range)
-test<-table(sex_by_age_eth[age>64]$tract,sex_by_age_eth[age>64]$sex,sex_by_age_eth[age>64]$ethnicity,sex_by_age_eth[age>64]$age_range)==
-  table(sr_relations$tract,sr_relations$eth_sex_sr_relations,sr_relations$ethnicity,sr_relations$eth_age_range)
+  table(sr_relations$tract,sr_relations$sex,sr_relations$race,sr_relations$age_range)
 length(test[test==F])==0
-#test3a
-#there are 4 tracts from sr_relations not in hh_relations
-test<-table(hh_relations_dt[tract%in%unique(sr_relations$tract)]$tract,hh_relations_dt[tract%in%unique(sr_relations$tract)]$sex_sr_hh,
-            hh_relations_dt[tract%in%unique(sr_relations$tract)]$sr_hh_living_alone,hh_relations_dt[tract%in%unique(sr_relations$tract)]$race,
-            hh_relations_dt[tract%in%unique(sr_relations$tract)]$ethnicity,hh_relations_dt[tract%in%unique(sr_relations$tract)]$eth_age_range)==
-  table(sr_relations$tract,sr_relations$sex_sr_relations,sr_relations$living_alone,sr_relations$race,sr_relations$ethnicity,sr_relations$eth_age_range)
+test<-table(sex_by_age_eth[age>64]$tract,sex_by_age_eth[age>64]$sex,sex_by_age_eth[age>64]$ethnicity,sex_by_age_eth[age>64]$age_range)==
+  table(sr_relations$tract,sr_relations$sex,sr_relations$ethnicity,sr_relations$age_range)
+length(test[test==F])==0
+nrow(sex_age_race[!is.na(missing_race)])==nrow(sr_relations)
+nrow(sex_age_race[!is.na(missing_race)])==nrow(sex_age_race[age>64])
+#test3a - need to work this out - not working now
+test<-table(hh_relations_dt[!is.na(age_range)]$tract,
+            hh_relations_dt[!is.na(age_range)]$race,
+            hh_relations_dt[!is.na(age_range)]$sex,
+            #hh_relations_dt[!is.na(age_range)]$living_alone, #two missing???
+            hh_relations_dt[!is.na(age_range)]$age_range
+)==
+  table(sr_relations$tract,
+        sr_relations$race,
+        sr_relations$sex,
+        #sr_relations$living_alone,
+        sr_relations$age_range
+  )
 length(test[test==F])==0
 #test3b
 test<-table(sex_age_race[age>17&age<65&missing_race=="In households"]$tract,sex_age_race[age>17&age<65&missing_race=="In households"]$sex,

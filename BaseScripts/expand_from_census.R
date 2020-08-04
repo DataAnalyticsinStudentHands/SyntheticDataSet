@@ -66,7 +66,7 @@ exp_census <- function() {
       pivot_longer(4:ncol(sex_by_age_race_data_from_census),names_to = "tract", values_to = "number_sams") %>%
       separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%  #NA warnings in rows with only one; not a problem
       mutate(age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), #have to regularize and make possible to compare
-             age_range = str_replace(age_range,"5 to 9 years","5  to  9 years"),
+             age_range = str_replace(age_range,"5 to 9 years","05 to  9 years"),
              age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
              age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to skew left when assigning.
              first_age = as.numeric(substr(age_range,1,2)),
@@ -314,7 +314,7 @@ exp_census <- function() {
       filter(label != "In households!!In nonfamily households!!Householder!!Male") %>%
       filter(label != "In households!!In nonfamily households!!Householder!!Female") %>%
       pivot_longer(4:ncol(household_seniors_relation_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("group_or_hh","family_or_non","relative","sex_sr_relations","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("group_or_hh","family_or_non","relative","sex","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
       uncount(as.numeric(number_sams),.id = "sr_role_id",.remove = TRUE)
     sr_relations <- as.data.table(household_seniors_relation_data)
     rm(household_seniors_relation_from_census)
@@ -326,21 +326,21 @@ exp_census <- function() {
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
       pivot_longer(4:ncol(household_type_relation_from_census),names_to = "tract", values_to = "number_sams") %>% 
-      separate(label, c("group_or_hh","family_or_non","relative","role_in_family","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
+      separate(label, c("group_or_hh","family_or_non","relative","role_family","living_alone"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(
-        group_quarters = if_else(str_detect(group_or_hh,"group"),TRUE,FALSE),
-        nonfamily = if_else(str_detect(family_or_non,"nonfamily"),TRUE,FALSE),
-        sex = if_else(str_detect(role_in_family,"ale"),role_in_family,'none'),
-        sex = if_else(is.na(sex),'none',sex),
-        role_in_family = if_else(group_quarters,"in_group_quarters", #you can't define family_role in series...(except that is.na)
-                              if_else(relative=="Child" | relative=="Nonrelatives",if_else(is.na(role_in_family),'del',role_in_family),
-                                      if_else(relative=="Householder",relative,role_in_family))),
-        role_in_family = if_else(is.na(role_in_family),relative,role_in_family),
-        del = if_else(sex == "Male" | sex == "Female" & is.na(living_alone),TRUE,if_else((sex == "Male" | sex == "Female") & nonfamily,TRUE,FALSE)),
-        del = if_else(role_in_family=="del",TRUE,del)
-      ) %>% #want each role to have 786 before uncount
-      filter(!del) %>%
-      filter(number_sams > 0) %>%
+        living_alone = if_else(family_or_non=="In family households" & relative=="Householder","Not living alone",living_alone),
+        sex = if_else(str_detect(role_family,"ale")&!is.na(living_alone),role_family,"none"),
+        role_in_family = case_when(
+          group_or_hh=="In group quarters" ~ "In group quarters", 
+          relative=="Child" | relative=="Nonrelatives" ~ role_family,
+          relative=="Parent" | relative=="Spouse" | relative=="Parent-in-law" |
+            relative=="Son-in-law or daughter-in-law" |
+            relative=="Brother or sister" | relative=="Other relatives" |
+            relative=="Grandchild" |
+            sex!="none" ~ relative,
+        )
+      ) %>%
+      filter(number_sams > 0 & !is.na(role_in_family)) %>%
       uncount(as.numeric(number_sams),.id = "role_id") #not sure why it needed as.numeric this time, but still works on filter above...
     hh_relations_dt <- as.data.table(household_type_relation_data)
     rm(household_type_relation_from_census)
@@ -731,350 +731,6 @@ exp_census <- function() {
     #not used yet
     
     
-    #household_id
-    sam_hh[,c("household_id") := list(paste0(state,county,tract,as.character(2000000+sample(.N)))),by=.(tract)] #sample defaults to replace=FALSE
-    sam_hh[,c("hh_1_role") := "self"]
-    sam_hh[,c("householder") := TRUE]
-    sam_hh[,("age_range"):=householder_age_9]
-    relations_dt[,c("relations_id"):=list(paste0(family_role,tract,as.character(3000000+sample(.N)))),by=.(tract)]
-    
-#build household matches from edge cases back to middle
-    #add group quarters - look up GQ_sam for jail stuff and nursing homes from sr_relations
-    gq1 <- sr_relations[(group_or_hh=="In group quarters"),c("tract","group_or_hh")]
-    gq2 <- relations_dt[(i.group_quarters)]
-    gq3 <- rbindlist(list(gq2,gq1),fill = TRUE)
-    gq3[is.na(tract),("tract"):=if_else(is.na(i.tract),i.tract.1,i.tract)]
-    gq3[,("tract_tot"):=nrow(.SD[!is.na(i.tract.1)]),by=.(tract)] 
-    gq3[order(match(age_range,c("65 years and over","18 to 64 years"))),("tokeep"):=seq.int(1:.N)<=tract_tot,by=.(tract)]
-    gq4 <- gq3[(tokeep),c("tract","age_range","relations_id")]
-    gq4[,("group_quarters"):=TRUE]
-    relations_dt_no_GQ <- relations_dt_no_hh[!relations_id %in% unique(gq2[,relations_id])]
-    sam_hh_gq <- rbindlist(list(sam_hh,gq4),fill = TRUE)
-    #can add the rest of logic on jail - for some reason, went down to 40911 (from 41220) - I think there are weird cases on tracts...
-    
-    #add hh_size == 8, children
-    sam_hh_gq[as.numeric(substr(hh_size,1,1))==7,
-           ("hh_size"):=sample(c("7-person household","8-person household"),.N,prob=c(.7,.3), replace = TRUE)]
-    sam_hh_gq[as.numeric(substr(hh_size,1,1))>7 & kids_by_age!="No children" & family_role=="Householder",
-              c("child_8_match_id"):=list(paste0(tract,"child8",as.character(2000000+sample(.N)))),by=.(tract)]
-    relations_dt_no_GQ[,c("child_8_match_id"):=list(paste0(tract,"child8",as.character(2000000+sample(.N)))),by=.(tract)]
-    sam_hh_gq[as.numeric(substr(hh_size,1,1))>7 & kids_by_age!="No children",
-              c("hh_8_id","hh_8_role"):=relations_dt_no_GQ[.SD, c(list(relations_id),list(family_role)),on=c("child_8_match_id")]]
-    
-    #adults - 
-                    #use number of workers and number of vehicles to match as expand
-                    #concept is: NUMBER OF WORKERS IN HOUSEHOLD BY VEHICLES AVAILABLE - total is 3125626 - which is all adults??
-                    vehicles_workers_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B08203")
-                    vehicles_workers_data <- vehicles_workers_from_census %>%
-                      mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
-                      filter(label != "Estimate!!Total") %>%
-                      pivot_longer(4:ncol(vehicles_workers_from_census),names_to = "tract", values_to = "number_sams") %>% 
-                      separate(label, c("number_workers_in_hh","number_vehicles_in_hh"), sep = "!!", remove = F, convert = FALSE) %>%
-                      filter(str_detect(number_workers_in_hh,"worker") & number_sams > 0) %>%
-                      uncount(as.numeric(number_sams),.id = "workers_vehicles_id",.remove = TRUE)
-    
-    
-    #take them out of relations_dt and expand sam
-    relations_dt_no_GQ <- relations_dt_no_hh[!relations_id %in% unique(gq2[,relations_id])]
-    
-    
-    #clean up sam - if .id of expand == 2, then householder == FALSE - and add other logic
-    
-    #do last
-    sam_hh[as.numeric(substr(hh_size,1,1))==1 & partner_type != "Not a partner household",
-           ("hh_size"):=sample(c("2-person household","3-person household"),.N,replace = TRUE)]
-    sam_hh[partner_type!="Not a partner household",("family_type"):="Other family"]
-    sam_hh[as.numeric(substr(hh_size,1,1))==1 & family_type=="Married-couple family",
-           ("hh_size"):=sample(c("2-person household","3-person household"),.N,replace = TRUE)]
-    sam_hh[partner_type!="Not a partner household", 
-           ("hh_2_role"):="Unmarried partner"]
-    sam_hh[hh_2_role=="Unmarried partner" & as.numeric(substr(hh_size,1,1))==1,("hh_size"):="2-person household"]
-    sam_hh[hh_2_role=="Unmarried partner" & as.numeric(substr(hh_size_4,1,1))==1,("hh_size_4"):="2-person household"]
-    sam_hh[family_type=="Married-couple family",
-           ("hh_2_role"):="Spouse"] #will be only Female
-     #so that the spouses and the hh will be close in age, once we randomize
-    
-    
-    
-#    saveRDS(sam_hh,file = paste0(housingdir, vintage, "/sam_hh_l.973",Sys.Date(),".RDS")) #"2020-04-15"
-#    saveRDS(relations_dt,file = paste0(housingdir, vintage, "/relations_dt_",Sys.Date(),".RDS")) #"2020-04-13" 
-    
-    sam_hh[order(-age_range),c("hh_match_id"):=list(paste0(tract,"hh",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt[family_role=="Householder" & order(-age_range), 
-                           c("hh_match_id"):=list(paste0(tract,"hh",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-
-    sam_hh[,c("hh_1_id","relations_age_range"):=relations_dt[.SD, c(list(relations_id),list(age_range)),on=c("hh_match_id")]]
-    sam_hh[is.na(hh_1_id),("hh1_match_id"):=list(paste0(tract,"hh1",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt[relative=="Nonrelatives" & age_range!="0 to 17 years",("hh1_match_id"):=list(paste0(tract,"hh1",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    sam_hh[is.na(hh_1_id),c("hh_1_id","relations_age_range"):=relations_dt[.SD, c(list(relations_id),list(age_range)),on=c("hh1_match_id")]]
-    sam_hh[is.na(hh_1_id),("hh_rest_match_id"):=list(paste0("hh2",as.character(2000000+seq.int(1:.N))))]
-    #trying to pick up last 2k, and help balance for Spouse, below
-    relations_dt[family_role=="Housemate or roommate" | family_role== "Roomer or boarder",("hh_rest_match_id"):=list(paste0("hh2",as.character(2000000+seq.int(1:.N))))]
-    sam_hh[is.na(hh_1_id),c("hh_1_id","relations_age_range"):=relations_dt[.SD, c(list(relations_id),list(age_range)),on=c("hh_rest_match_id")]]
-    relations_dt_no_hh <- relations_dt[!relations_id %in% unique(sam_hh[,hh_1_id])]
-    #still missing over 1k HH - should come out in the wash later...
-    
-    #add group quarters folks 
-    
-
-#START WITH     sam_hh_l.973, above
-#WHY DOESN'T IT LET ME PUT AN ID ON spouse_partner_id==1, if it lets me do it on 2?    #DO THE MATCH, THEN THE EXPAND!!! #make sure only expanding original householder
-#and should start with hh_7_id and hh_7_role
-    
-    
-        #using rbindlist instead of bind_rows and as.data.table a second time, prevent the invalid .internal.selfref problem
-    
-    #give all the 7 and above to the 8s - using same size as 7 above 
-
-    
-    
-    
-    
-    relations_dt_no_5kids <- relations_dt_no_4adults[!relations_id %in% unique(exp_sam[,hh_5_id])]
-    
-    exp_sam[as.numeric(substr(hh_size,1,1))>4 & number_workers_in_hh=="3 or more workers",
-            ("hh_5_role"):="adult"]  
-    exp_sam <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_5_role) & hh_5_role=="adult",2,1),.id="adult_5_id",.remove = TRUE)])
-    exp_sam[hh_5_role=="adult",("employed"):= sample(c(TRUE,FALSE))]
-    exp_sam[adult_5_id==2 & hh_5_role=="adult",
-            c("working_5_id"):=list(paste0(tract,"adult5",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_5kids[age_range=="18 to 34 years" | age_range=="35 to 64 years" | age_range=="18 to 64 years", 
-                          c("working_5_id"):=list(paste0(tract,"adult5",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam[adult_5_id==2 & hh_5_role=="adult",
-            c("hh_5_id","hh_5_role"):=relations_dt_no_5kids[.SD, c(list(relations_id),list(family_role)),on=c("working_5_id")]]
-    exp_sam <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_5_role) & hh_5_role=="child",2,1),.id="child_5_id",.remove = TRUE)])
-    relations_dt_no_5adults <- relations_dt_no_5kids[!relations_id %in% unique(exp_sam[,hh_5_id])]
-    
-    
-    
-    
-    
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",
-            c("spouse_id"):=list(paste0(tract,"spouse",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_GQ[family_role=="Spouse",
-                       c("spouse_id"):=list(paste0(tract,"spouse",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam <- as.data.table(sam_hh_gq[,uncount(.SD,if_else(!is.na(hh_2_role),2,1),.id="spouse_partner_id",.remove = TRUE)])
-    exp_sam[spouse_partner_id==2 & !is.na(sex_partner),("sex"):=sex_partner]
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("sex"):="Female"]
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("family_role"):="Spouse"]
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("relation_hh_1"):="Spouse"]
-    
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",("hh_2_id"):=relations_dt_no_GQ[.SD, list(relations_id),on=c("spouse_id")]]
-
-    #exp_sam[hh_2_role=="Spouse",("hh_2_id"):=.SD[.N,hh_2_id],by=.(household_id)]
-    
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("hh_1_role"):="Spouse"] 
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Spouse",c("hh_2_role"):="self"] 
-    relations_dt_no_spouse <- relations_dt_no_GQ[!relations_id %in% unique(exp_sam[,hh_2_id])]
-    
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",c("family_role"):="Unmarried partner"]
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",c("hh_1_role"):="Unmarried partner"]
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",
-            c("unmarried_partner_id"):=list(paste0(tract,"unm_p",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_spouse[family_role=="Unmarried partner", 
-                       c("unmarried_partner_id"):=list(paste0(tract,"unm_p",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",
-            ("hh_2_id"):=relations_dt_no_spouse[.SD, list(relations_id),on=c("unmarried_partner_id")]]
-    #exp_sam[hh_2_role=="Unmarried partner",("hh_2_id"):=.SD[.N,hh_2_id],by=.(household_id)]
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",c("hh_1_role"):="Unmarried partner"]
-    exp_sam[spouse_partner_id==2 & hh_2_role=="Unmarried partner",c("hh_2_role"):="self"]
-    relations_dt_no_partners <- relations_dt_no_spouse[!relations_id %in% unique(exp_sam[,hh_2_id])]
-    
-    #a lot of disagreement over unmarried partner, which was much higher in relations than in hh_partners - went for the higher number, but ended up taking some away from Spouse
-    
-    
-#    saveRDS(exp_sam,file = paste0(housingdir, vintage, "/exp_sam_l.1033_",Sys.Date(),".RDS")) #"2020-04-15"
-#    saveRDS(relations_dt_no_hh,file = paste0(housingdir, vintage, "/relations_dt_no_hh_",Sys.Date(),".RDS")) #"2020-04-15"
-#    saveRDS(relations_dt_no_partners,file = paste0(housingdir, vintage, "/relations_dt_no_partners_",Sys.Date(),".RDS"))
-
-    #do for hh_2_id, with a few tweaks from others
-    #logic for adults, no kids and workers
-    #if hh_size has room and no kids add workers - for other adults...
-    exp_sam[hh_size=="1-person household",("employed"):= if_else(number_workers_in_hh=="1 worker",TRUE,FALSE)] 
-    #NEED TO FIX THIS
-    exp_sam[hh_size=="2-person household" & number_workers_in_hh=="1 worker",("employed"):= sample(c(TRUE,FALSE),size=.N,replace = TRUE)]
-    exp_sam[hh_size=="2-person household" & number_workers_in_hh=="2 workers",("employed"):= TRUE]
-    exp_sam[hh_size=="2-person household" & number_workers_in_hh=="No workers",("employed"):= FALSE]
-    exp_sam[as.numeric(substr(hh_size,1,1))>=2 & is.na(hh_2_role) & kids_by_age=="No children",
-            ("hh_2_role"):="adult"] #hh_2_role will be replaced by matching 
-    #the uncount screws with something about the dt
-    exp_sam2 <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_2_role) & hh_2_role=="adult",2,1),.id="adult_2_id",.remove = TRUE)])
-    
-    exp_sam2[adult_2_id==2 & hh_2_role=="adult",
-            c("working_adult_id"):=list(paste0(tract,"adult1",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_partners[age_range=="18 to 34 years" | age_range=="35 to 64 years" | age_range=="18 to 64 years", 
-                           c("working_adult_id"):=list(paste0(tract,"adult1",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam2[adult_2_id==2 & hh_2_role=="adult",
-            c("hh_2_id","hh_2_role"):=relations_dt_no_partners[.SD, c(list(relations_id),list(family_role)),on=c("working_adult_id")]]
-    relations_dt_no_2workers <- relations_dt_no_partners[!relations_id %in% unique(exp_sam2[,hh_2_id])]
-    
-    #kids_by_age works off of family=="Family households" 
-    exp_sam2[kids_by_age!="No children" & as.numeric(substr(hh_size,1,1))>=2 & is.na(hh_2_role),("hh_2_role"):="child"]
-    exp_sam3 <- as.data.table(exp_sam2[,uncount(.SD,if_else(!is.na(hh_2_role) & hh_2_role=="child",2,1),.id="child_2_id",.remove = TRUE)])
-    exp_sam3[child_2_id==2 & hh_2_role=="child",
-            c("child_2_match_id"):=list(paste0(tract,"child2",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_2workers[, 
-                             c("child_2_match_id"):=list(paste0(tract,"child2",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam3[child_2_id==2 & hh_2_role=="child",
-            c("hh_2_id","hh_2_role"):=relations_dt_no_2workers[.SD, c(list(relations_id),list(family_role)),on=c("child_2_match_id")]]
-    relations_dt_no_2kids <- relations_dt_no_2workers[!relations_id %in% unique(exp_sam3[,hh_2_id])]
-    exp_sam3[!is.na(hh_2_role),c("hh_2_id"):=shift(.SD[,c(hh_2_id)],n=1L,type = "lead")]
-#    exp_sam3[!is.na(hh_2_role),c("hh_2_id","hh_2_role"):=.SD[.N,c(hh_2_id,hh_2_role)],by=.(household_id)]
-    
-    exp_sam <- exp_sam3 #reducing clutter
-#do same for hh_3_id
-    #but kids first
-    exp_sam[kids_by_age!="No children" & as.numeric(substr(hh_size,1,1))>2,("hh_3_role"):="child"]
-    exp_sam <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_3_role) & hh_3_role=="child",2,1),.id="child_3_id",.remove = TRUE)])
-    exp_sam[child_3_id==2 & hh_3_role=="child",
-            c("child_3_match_id"):=list(paste0(tract,"child3",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_2kids[,c("child_3_match_id"):=list(paste0(tract,"child3",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam[child_3_id==2 & hh_3_role=="child",
-            c("hh_3_id","hh_3_role"):=relations_dt_no_2kids[.SD, c(list(relations_id),list(family_role)),on=c("child_3_match_id")]]
-    relations_dt_no_3kids <- relations_dt_no_2kids[!relations_id %in% unique(exp_sam[,hh_3_id])]
-    
-    exp_sam[as.numeric(substr(hh_size,1,1))>2 & number_workers_in_hh=="3 or more workers",
-            ("hh_3_role"):="adult"] #hh_2_role will be replaced by matching 
-    exp_sam <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_3_role) & hh_3_role=="adult",2,1),.id="adult_3_id",.remove = TRUE)])
-    exp_sam[hh_3_role=="adult",("employed"):= TRUE]
-    exp_sam[adult_3_id==2 & hh_3_role=="adult",
-            c("working_3_id"):=list(paste0(tract,"adult3",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_3kids[age_range=="18 to 34 years" | age_range=="35 to 64 years" | age_range=="18 to 64 years", 
-                             c("working_3_id"):=list(paste0(tract,"adult3",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam[adult_3_id==2 & hh_3_role=="adult",
-            c("hh_3_id","hh_3_role"):=relations_dt_no_3kids[.SD, c(list(relations_id),list(family_role)),on=c("working_3_id")]]
-    relations_dt_no_3adults <- relations_dt_no_3kids[!relations_id %in% unique(exp_sam[,hh_3_id])]
-#    exp_sam[!is.na(hh_3_role),c("hh_3_id","hh_3_role"):=.SD[.N,c(hh_3_id,hh_3_role)],by=.(household_id)]
-    
-
-    saveRDS(exp_sam,file = paste0(housingdir, vintage, "/exp_sam_l.1102_",Sys.Date(),".RDS")) #"2020-04-15"
-    saveRDS(relations_dt_no_3adults,file = paste0(housingdir, vintage, "/relations_dt_no_3adults_",Sys.Date(),".RDS")) #"2020-04-15"
-    
-    #check how many 3 or more workers are left, and then just move to adults only - in general, should add automatically through hh_size==5
-    #could add vehicles by worker here and see how many workers are left??? - or just move to adults / children and do workers at end??
-    #point is how to get kids and adults spread around
-    
-    #do same for hh_4_id
-    #kids first
-    exp_sam[kids_by_age!="No children" & as.numeric(substr(hh_size,1,1))>3,("hh_4_role"):="child"]
-    exp_sam <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_4_role) & hh_4_role=="child",2,1),.id="child_4_id",.remove = TRUE)])
-    exp_sam[child_4_id==2 & hh_4_role=="child",
-            c("child_4_match_id"):=list(paste0(tract,"child4",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_3adults[,c("child_4_match_id"):=list(paste0(tract,"child4",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam[child_4_id==2 & hh_4_role=="child",
-            c("hh_4_id","hh_4_role"):=relations_dt_no_3adults[.SD, c(list(relations_id),list(family_role)),on=c("child_4_match_id")]]
-    relations_dt_no_4kids <- relations_dt_no_3adults[!relations_id %in% unique(exp_sam[,hh_4_id])]
-    
-    exp_sam[as.numeric(substr(hh_size,1,1))>3 & number_workers_in_hh=="3 or more workers",
-            ("hh_4_role"):="adult"] #hh_2_role will be replaced by matching 
-    exp_sam <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_4_role) & hh_4_role=="adult",2,1),.id="adult_4_id",.remove = TRUE)])
-    exp_sam[hh_4_role=="adult",("employed"):= TRUE] #better to get real number of total workers, but sample(c(TRUE,FALSE)) after this
-    exp_sam[adult_4_id==2 & hh_4_role=="adult",
-            c("working_4_id"):=list(paste0(tract,"adult4",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_4kids[age_range=="18 to 34 years" | age_range=="35 to 64 years" | age_range=="18 to 64 years", 
-                          c("working_4_id"):=list(paste0(tract,"adult4",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam[adult_4_id==2 & hh_4_role=="adult",
-            c("hh_4_id","hh_4_role"):=relations_dt_no_4kids[.SD, c(list(relations_id),list(family_role)),on=c("working_4_id")]]
-    relations_dt_no_4adults <- relations_dt_no_4kids[!relations_id %in% unique(exp_sam[,hh_4_id])]
-#    exp_sam[!is.na(hh_4_role),c("hh_4_id","hh_4_role"):=.SD[.N,c(hh_4_id,hh_4_role)],by=.(household_id)]
-    
-    #do same for hh_5_id
-    #kids first
-    exp_sam[kids_by_age!="No children" & as.numeric(substr(hh_size,1,1))>4,("hh_5_role"):="child"]
-    exp_sam <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_5_role) & hh_5_role=="child",2,1),.id="child_5_id",.remove = TRUE)])
-    exp_sam[child_5_id==2 & hh_5_role=="child",
-            c("child_5_match_id"):=list(paste0(tract,"child5",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_4adults[,c("child_5_match_id"):=list(paste0(tract,"child5",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam[child_5_id==2 & hh_5_role=="child",
-            c("hh_5_id","hh_5_role"):=relations_dt_no_4adults[.SD, c(list(relations_id),list(family_role)),on=c("child_5_match_id")]]
-    relations_dt_no_5kids <- relations_dt_no_4adults[!relations_id %in% unique(exp_sam[,hh_5_id])]
-    
-    exp_sam[as.numeric(substr(hh_size,1,1))>4 & number_workers_in_hh=="3 or more workers",
-            ("hh_5_role"):="adult"]  
-    exp_sam <- as.data.table(exp_sam[,uncount(.SD,if_else(!is.na(hh_5_role) & hh_5_role=="adult",2,1),.id="adult_5_id",.remove = TRUE)])
-    exp_sam[hh_5_role=="adult",("employed"):= sample(c(TRUE,FALSE))]
-    exp_sam[adult_5_id==2 & hh_5_role=="adult",
-            c("working_5_id"):=list(paste0(tract,"adult5",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    relations_dt_no_5kids[age_range=="18 to 34 years" | age_range=="35 to 64 years" | age_range=="18 to 64 years", 
-                          c("working_5_id"):=list(paste0(tract,"adult5",as.character(2000000+seq.int(1:.N)))),by=.(tract)]
-    exp_sam[adult_5_id==2 & hh_5_role=="adult",
-            c("hh_5_id","hh_5_role"):=relations_dt_no_5kids[.SD, c(list(relations_id),list(family_role)),on=c("working_5_id")]]
-    relations_dt_no_5adults <- relations_dt_no_5kids[!relations_id %in% unique(exp_sam[,hh_5_id])]
-#    exp_sam[!is.na(hh_5_role),c("hh_5_id","hh_5_role"):=.SD[.N,c(hh_5_id,hh_5_role)],by=.(household_id)]
-    
-    #then fill out final by referring back to age_race for whole
-    
-    
-                      #assign ids #what you want is for each id to have counted out for the family_role, so that the family role total will match
-                      sex_age_race[order(match(race,c("A","F","G","C","B","E","D"))),
-                                   ("num_eth_id"):=paste0(tract,sex,age_range,as.character(1000000+seq.int(1:.N))),by=.(tract,sex,age_range)]
-                      sex_by_age_eth[order(match(ethnicity,c("H","I","_"))),
-                                     ("num_eth_id"):=paste0(tract,sex,age_range,as.character(1000000+seq.int(1:.N))),by=.(tract,sex,age_range)]
-                      #test<-table(sex_by_age_eth$tract,sex_by_age_eth$ethnicity)==table(sex_age_race$tract,sex_age_race$ethnicity)
-                      #length(test[test==FALSE])/length(test) = .31  length(test[test[,2:3]==FALSE])/length(test) = 0
-                      #join back to sex_age_race - ethnicity is really just "hispanic and/or latino" and "white alone, not hispanic"; the _ doesn't get right total, but H and I do, and for each tract
-                      sex_age_race[,c("ethnicity") := sex_by_age_eth[.SD, list(ethnicity), on = .(num_eth_id)]]
-    
-    
- 
-    
-    #sam_workers[is.na(number_workers_in_hh),c("number_workers_in_hh") := hh_workers_1[.SD, list(number_workers_in_hh), on = .(num_workers_id_1)]]
-    #      hh_partner_dt[order(-unmarried),("partner_type_id"):=paste0(tract,as.character(1000000+seq.int(1:.N))),by=.(tract)]
-  #  sam_hh[order(-family_type),("partner_type_id"):=paste0(tract,as.character(1000000+sample(.N))),by=.(tract)]
-  #  setkey(sam_hh,partner_type_id)
-  #  setkey(hh_partner_dt,partner_type_id)
-  #  sam_partners <- hh_partner_dt[sam_hh,]
-#need to keep both variables to merge with sam    hh_relations_dt[,c("relation_hh","relation_age_range"):=c(list(relation_hh),list(relation_age_range))]
-    
-    #by tract, group quarters can be just added and uncounted?
-    #unmarried partner 
-    
-
-    #adding a few things to get the right total number of workers by sex, age
-    
-    
-    #maybe go back and reduce size of RHS for next step of matching...
-    #on average employment for a group was that different from real numbers.
-                    #assign for subgroup - this is sort of brute force for obvious cases
-                    #sam_workers[householder_age=="Householder 65 years and over" & as.numeric(substr(hh_size,1,1)) < 3,
-                     #           c("number_workers_in_hh") := sample(c("No workers","1 worker"),1,prob = c(.15,.85),replace=TRUE)] #some for 2nd member working
-                    #now find and take out a matching set from hh_workers - redo indices
-                    #sam_workers[order(match(number_workers_in_hh,c("No workers","1 worker"))),
-                    #            ("num_workers_id_1"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-                    #hh_workers[order(match(number_workers_in_hh,c("No workers","1 worker","2 workers","3 or more workers"))),
-                    #           ("num_workers_id_1"):=paste0(tract,hh_size_4,as.character(1000000+seq.int(1:.N))),by=.(tract,hh_size_4)]
-                    #hh_workers_1 <- hh_workers[sam_workers[is.na(number_workers_in_hh)], on = .(num_workers_id_1)]
-                    #sam_workers[is.na(number_workers_in_hh),c("number_workers_in_hh") := hh_workers_1[.SD, list(number_workers_in_hh), on = .(num_workers_id_1)]]
-    
-    
-    #remember wife_employ, too
-    #add the ones we have that are slightly larger - educ, workers, adults, then whole
-    #doing hh_educ into over 18 educ, and then will add to whole? (that way we keep the rest of distribution?)
-    #or pause on hh now, and add what we can to sam, with a designation of it as a household from relation file's householder?
-    
-
-    #add own_rent to sex_age, by education_level, sampling inside the ids by age and counting if it's over...
-    
-    
-    
-    
-    
-
-    
-    
-        
-    #add number of workers per household - same logic, but only has four factors for size, not seven
-    
-    
-    
-    
-
-
-    
-    
-    
-     #see if language here can help get them on the right ethnicity???
-    
 
     
     #concept is:"RATIO OF INCOME TO POVERTY LEVEL IN THE PAST 12 MONTHS BY NATIVITY OF CHILDREN UNDER 18 YEARS IN FAMILIES AND SUBFAMILIES BY LIVING ARRANGEMENTS AND NATIVITY OF PARENTS"
@@ -1230,34 +886,8 @@ exp_census <- function() {
                        )
       )
     
-    sam_marital <- joined_sam_marital %>% #adding sex_num so PCA will have it as numeric
-      mutate(
-        sex_num := case_when(sex == "Male" ~ 0, sex == "Female" ~1)
-      )
     
-    sam_marital_GQ <- rbindlist(list(sam_marital,GQ_sam),fill = TRUE) #bind them so that the PCA includes GQ by tract 
-    sam_marital_DT <- as.data.table(sam_marital_GQ)
-
-    #GQ doesn't include race, so it's imputed by the mean of the variable for the tract - which is reasonable, but not perfect.
-
-    sam_marital_DT[,"white" := if_else(is.na(temp_id),white,mean(white,na.rm = TRUE)),tract]
-    sam_marital_DT[,"black" := if_else(is.na(temp_id),black,mean(black,na.rm = TRUE)),tract]
-    sam_marital_DT[,"hispanic" := if_else(is.na(temp_id),hispanic,mean(hispanic,na.rm = TRUE)),tract]
-    sam_marital_DT[,"asian" := if_else(is.na(temp_id),asian,mean(asian,na.rm = TRUE)),tract]
-    sam_marital_DT[,"other_race" := if_else(is.na(temp_id),other_race,mean(other_race,na.rm = TRUE)),tract]
-    sam_marital_DT[,"american_indian" := if_else(is.na(temp_id),american_indian,mean(american_indian,na.rm = TRUE)),tract]
-    sam_marital_DT[,"pacific_islander" := if_else(is.na(temp_id),pacific_islander,mean(pacific_islander,na.rm = TRUE)),tract]
-    sam_marital_DT[,"bi_racial" := if_else(is.na(temp_id),bi_racial,mean(bi_racial,na.rm = TRUE)),tract]
  
-#something like this should work - tried lots of variations, but decided to do it by hand, as needed, above       
-    add_means <- function(dt,facts){  
-      for(fact in facts){
-        print(fact)
-        print(mean(dt[,..fact][[1]],na.rm = TRUE))
-        dt[,(fact) := if_else(is.na(temp_id),fact,mean(dt[,..fact][[1]],na.rm = TRUE)),tract]
-      }
-      return(dt)
-    }
 
     #for whole, to compare with by tract and to have the GQ_Sam included in the PCA so matching by distance makes sense for whole
     sam_marital_PCA_res <- PCA(sam_marital_DT[,c('age','sex_num','white','black','hispanic','asian','other_race','american_indian','pacific_islander','bi_racial')],scale.unit=TRUE, ncp=3)
@@ -1341,21 +971,7 @@ exp_census <- function() {
   sam_GQ <- readRDS("sam_GQ.RDS")
   
   
-    #give a delivery date? expand by race and by age - then do both as PCAs, then assign age to the ones that have race, and then assign age, race, delivery date?
     
-    
-    preg_data_DT[,("age_range_race") := sample(rep(.SD[!is.na(age_range),.(age_range)][[1]],2),size = .N,replace = TRUE,
-                                                  prob = c(rep(1/.N,.N))),
-                 by=.(tract)]
-    #if they're equal, then sampling this way should give everyone an age_range according to distribution
-    pregnancy_data_DT <- preg_data_DT[race!='_']
-    #assign numeric to race, marital_status, etc. then do all the PCA? 
-    
-  
-    
-  
-  return(exp_census)
-}
 
     #gather information from census data,
     #Household - multigenerational B11017 all NA
@@ -1370,11 +986,8 @@ exp_census <- function() {
     
     #by tenure B17019 (whether renter or not)
     household_tenure_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B17019")
-    
-  saveRDS(sam_hh,file = paste0(censusdir, vintage,"/sam_hh.RDS"))
-  #and a dated copy?
-  saveRDS(sam_hh,file = paste0(censusdir, vintage, "/sam_hh_",Sys.Date(),".RDS"))
-}
+
+
 
 
 moved_1yr_age_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B07001")

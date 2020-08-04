@@ -19,6 +19,11 @@ censustracts <- st_read(paste0(censusdir, vintage, "/geo_census/cb_", vintage, "
 # put them in same CRS as Parcels
 censustracts <- st_transform(censustracts, st_crs(HCAD_parcels))
 
+
+
+#https://catalog.data.gov/dataset/tiger-line-shapefile-2017-county-harris-county-tx-topological-faces-polygons-with-all-geocodes-
+census_tl_face <- st_read(paste0(censusdir, vintage, "/geo_census/tl_", vintage, "_", state, county, "_faces/tl_",vintage, "_", state, county, "_faces.shp"))
+
 # match parcels with tracts
 CensusTractforHCADParcels <- st_within(HCAD_parcels, censustracts)
 #unlist into vector
@@ -143,12 +148,33 @@ civic_within_unlist <- rapply(civic_within,function(x) ifelse(length(x)==0,99999
 civic_within_unlist <- unlist(civic_within_unlist)
 HCAD$civic_club=civic_clubs$NAME[civic_within_unlist] 
 
-#bus - 
 bus <- st_read(paste0(houstondatadir, "Bus_Stops/Bus_Stops.shp"))
-bus$geometry <- st_transform(bus$geometry,st_crs(HCAD$ptcoords))
+#bus$geometry <- st_transform(bus$geometry,st_crs(HCAD$ptcoords))
 #find buses within tracts, and then calculate distance??
-bus_distance <- st_distance(HCAD$ptcoords,bus$geometry,by_element = FALSE) 
+#bus_distance_1 <- st_distance(HCAD$ptcoords,bus[1:1000,]$geometry,by_element = FALSE) 
 #calculate distances to stops?
+#doing buses within censustracts for side project - buses from below
+bus <- st_transform(bus,st_crs(censustracts)) 
+bus_within <- st_within(bus,censustracts)
+bus_within_unlist <- rapply(bus_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+bus_within_unlist <- unlist(bus_within_unlist)
+bus$tract=censustracts$GEOID[bus_within_unlist]
+#zip
+zip <- st_read(paste0(houstondatadir, "zipcode/ZIPCODE.shp"))
+zip <- st_transform(zip,st_crs(bus)) 
+zbus_within <- st_within(bus,zip)
+zbus_within_unlist <- rapply(zbus_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+zbus_within_unlist <- unlist(zbus_within_unlist)
+bus$zip=zip$ZIPCODE[zbus_within_unlist]
+
+superneighborhoods <- st_read(paste0(houstondatadir, "COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
+superneighborhoods <- st_transform(superneighborhoods, st_crs(bus)) #HCAD is renamed from sf_HCAD in this run - can change
+superb_within <- st_within(bus, superneighborhoods)
+superb_within_unlist <- rapply(superb_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+superb_within_unlist <- unlist(superb_within_unlist)
+bus$superneighborhood=superneighborhoods$SNBNAME[superb_within_unlist]
+
+saveRDS(bus,file = paste0(censusdir, vintage, "/temp/bus.RDS"))
 
 #parks - 
 parks <- st_read(paste0(houstondatadir, "COH_PARK_SECTOR/COH_PARK_SECTOR.shp"))

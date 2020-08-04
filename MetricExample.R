@@ -236,7 +236,90 @@ ggplot(sam_build,
   ggtitle("Sam build: alluvial with family type and age")
 
 
+#for Josh
+chw_stories <- import("~/Downloads/dat_cleaned.csv")
+chw_stories$gender <- factor(chw_stories$gender,
+                             levels = c(1,2),
+                             labels = c("Male","Female"))
+chw_stories$age_4 <- factor(chw_stories$age_4,
+                             levels = c(1,2,3,4),
+                             labels = c("18-24","25-44","45-64","65+"))
+chw_stories$race <- factor(chw_stories$race,
+                            levels = c(1,2,3,4,5,6),
+                            labels = c("White","Black","Asian","Latinx","MENA","Other"))
+#just to force order on edu - I like data.table:
+chw_stories <- as.data.table(chw_stories)
+chw_stories[edu_5==5,("edu_5"):=0]
+chw_stories$edu_5 <- factor(chw_stories$edu_5,
+                           levels = c(0,1,2,3,4),
+                           labels = c("<MS","<HS","HS/GED","Some College","College"))
 
+
+library(ggalluvial)
+library(ggplot2)
+library(hrbrthemes)
+library(viridis)
+ggplot(chw_stories,
+       aes(
+         axis1 = gender, axis2 = age_4, axis3 = race, axis4 = edu_5)) +
+  geom_alluvium(aes(fill=edu_5), 
+                width = .5, knot.pos = 0, reverse = TRUE) +
+  #guides(fill=FALSE) + #without it prints legend
+  geom_stratum(width = 1/8, reverse = TRUE) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(discrete=TRUE,option="D",direction = 1) +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), reverse = TRUE, angle = 0, size=3.5) +
+  scale_x_discrete(breaks = 1:4, labels = c("gender","age","race","education")) +
+  ggtitle("CHW Stories: alluvial with gender, race, age, and education")
+
+#for Brandon
+library(stringr)
+covid_divergence <- import("~/Downloads/DivergenceTexasCounties_pop.xlsx")
+covid_divergence <- as.data.table(covid_divergence)
+covid_divergence[,("pop_1k"):=Population/1000]
+covid_divergence[,("White_pop"):=as.integer(`Non-Hispanic White population (%)`*pop_1k)]
+covid_divergence[,("Black_pop"):=as.integer(`Non-Hispanic Black Population (%)`*pop_1k)]
+covid_divergence[,("Asian_pop"):=as.integer(`Non-Hispanic Asian Population (%)`*pop_1k)]
+covid_divergence[,("Hispanic_pop"):=as.integer(`Hispanic population (%)`*pop_1k)]
+covid_divergence[,("White_covid_death"):=`Non-Hispanic White COVID-19 deaths (%)`*`COVID-19 deaths total`]
+covid_divergence[,("Black_covid_death"):=`Non-Hispanic Black COVID-19 deaths (%)`*`COVID-19 deaths total`]
+covid_divergence[,("Asian_covid_death"):=`Non-Hispanic Asian COVID-19 deaths (%)`*`COVID-19 deaths total`]
+covid_divergence[,("Hispanic_covid_death"):=`Hispanic COVID-19 deaths (%)`*`COVID-19 deaths total`]
+covid_divergencew <- uncount(covid_divergence,White_pop,.remove = TRUE,.id="white_id")
+#covid_divergencew[white_id>1,("Covid_death"):=if_else(white_id<White_covid_death+1,"death","pop/1k")]
+covid_divergencew[white_id>1 & white_id<White_covid_death+1,("Covid_death"):="fatality"]
+covid_divergencew[white_id>1,c("race"):="White"]
+covid_divergenceb <- uncount(covid_divergence,Black_pop,.remove = TRUE,.id="black_id")
+#covid_divergenceb[black_id>1,("Covid_death"):=if_else(black_id<Black_covid_death+1,"death","pop/1k")]
+covid_divergenceb[black_id>1 & black_id<Black_covid_death+1,("Covid_death"):="fatality"]
+covid_divergenceb[black_id>1,c("race"):="Black"]
+covid_divergencea <- uncount(covid_divergence,Asian_pop,.remove = TRUE,.id="asian_id")
+#covid_divergencea[asian_id>1,("Covid_death"):=if_else(asian_id<Asian_covid_death+1,"death","pop/1k")]
+covid_divergencea[asian_id>1 & asian_id<Asian_covid_death+1,("Covid_death"):="fatality"]
+covid_divergencea[asian_id>1,c("race"):="Asian"]
+covid_divergencel <- uncount(covid_divergence,Hispanic_pop,.remove = TRUE,.id="latinx_id")
+#covid_divergencel[latinx_id>1,("Covid_death"):=if_else(latinx_id<Hispanic_covid_death+1,"death","pop/1k")]
+covid_divergencel[latinx_id>1 & latinx_id<Hispanic_covid_death+1,("Covid_death"):="fatality"]
+covid_divergencel[latinx_id>1,c("race"):="Latinx"]
+covid_d <- bind_rows(covid_divergencea,covid_divergenceb,covid_divergencew,covid_divergencel)
+covid_d[,("County"):=str_remove(County," County")]
+
+library(ggalluvial)
+library(ggplot2)
+library(hrbrthemes)
+library(viridis)
+ggplot(covid_d[County%in%c("Harris","Bexar","Travis")],
+       aes(
+         axis1 = County, axis2 = race, axis3 = Covid_death)) +
+  geom_alluvium(aes(fill=Covid_death), 
+                width = .5, knot.pos = 0, reverse = TRUE) +
+  #guides(fill=FALSE) + #without it prints legend
+  geom_stratum(width = 1/3, reverse = TRUE) +
+  scale_fill_viridis(discrete=TRUE,option="D",direction = 1) +
+  scale_color_viridis(discrete=TRUE,option="D",direction = 1) +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), reverse = TRUE, angle = 0, size=3.5) +
+  scale_x_discrete(breaks = 1:3, labels = c("County","Race/eth","Covid Deaths")) +
+  ggtitle("Covid Divergence: alluvial with County, Race/ethnicity, Covid Deaths")
 
 
 

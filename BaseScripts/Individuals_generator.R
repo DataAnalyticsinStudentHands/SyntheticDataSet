@@ -223,60 +223,104 @@ createIndividuals <- function() {
     rm(list=ls(pattern="^preg"))
     
     #put an age/race on seniors, to recalibrate at end and to store references to group_quarters
-    #test <- table(sr_relations$tract)==table(sex_age_race[age>64]$tract) #sex_sr_relations is only for married couples
-    sr_relations[,("race_sr_id"):=
-                   paste0(tract,sex_sr_relations,
+    #test <- table(sr_relations$tract)==table(sex_age_race[age>64]$tract) #sex is only for married couples
+    sr_relations[group_or_hh=="In households",("race_sr_id"):=
+                   paste0(tract,sex,
                           as.character(1000000+sample(.N))),
-                 by=.(tract,sex_sr_relations)]
+                 by=.(tract,sex)]
     sex_age_race[age>64,("race_sr_id"):=
                    paste0(tract,sex,
                           as.character(1000000+sample(.N))),
                  by=.(tract,sex)]
-    sex_by_age_eth[age>64,("race_sr_id"):=
-                   paste0(tract,sex,
+    sr_relations[group_or_hh=="In households",c("race","age_range","individual_id"):=
+                   sex_age_race[.SD, c(list(race),list(age_range),list(individual_id)), on = .(race_sr_id)]]
+    sr_relations[group_or_hh=="In households",("eth_sr_id"):=
+                   paste0(tract,sex,age_range,
                           as.character(1000000+sample(.N))),
-                 by=.(tract,sex)]
-    sr_relations[,c("race","race_age_range","individual_id"):=
-                  sex_age_race[.SD, c(list(race),list(age_range),list(individual_id)), on = .(race_sr_id)]]
+                 by=.(tract,sex,age_range)]
+    sex_by_age_eth[age>64,("eth_sr_id"):=
+                   paste0(tract,sex,age_range,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract,sex,age_range)]
+    sr_relations[group_or_hh=="In households",c("ethnicity","ind_id_eth"):=  #does not match what final ethnicity will be v. race
+                   sex_by_age_eth[.SD, c(list(ethnicity),list(ind_id_eth)), on = .(eth_sr_id)]]
     sex_age_race[age>64,("missing_race"):=
-                   sr_relations[.SD, c(list(group_or_hh)), on = .(race_sr_id)]] #put group_quarters on for potential matching...
-    sr_relations[,c("ethnicity","eth_age_range","ind_id_eth"):=
-                   sex_by_age_eth[.SD, c(list(ethnicity),list(age_range),list(ind_id_eth)), on = .(race_sr_id)]]
+                   sr_relations[.SD, c(list(race)), on = .(race_sr_id)]] 
     sex_by_age_eth[age>64,("missing_eth"):=
-                   sr_relations[.SD, c(list(group_or_hh)), on = .(race_sr_id)]]
-    #then rest (that didn't have sex listed)
-    sr_relations[is.na(race),("race_sr2_id"):=
+                   sr_relations[.SD, c(list(ethnicity)), on = .(eth_sr_id)]]
+    #then rest (that didn't have sex listed) - with less than 75 first in households, then hh and gq for rest
+    sr_relations[group_or_hh=="In households" & is.na(race),("race_sr2_id"):=
                    paste0(tract,as.character(1000000+sample(.N))),
                  by=.(tract)]
-    sr_relations[is.na(ethnicity),("eth_sr2_id"):=
+    sex_age_race[age>64 & age<75 & is.na(missing_race),("race_sr2_id"):=
                    paste0(tract,as.character(1000000+sample(.N))),
                  by=.(tract)]
-    sex_age_race[age>64 & is.na(missing_race),("race_sr2_id"):=
+    sr_relations[group_or_hh=="In households" & is.na(race),c("race","sex","age_range","individual_id"):=
+                   sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), 
+                                on = .(race_sr2_id)]]
+    
+    sr_relations[group_or_hh=="In households" & is.na(ethnicity),("eth_sr2_id"):=
+                   paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                 by=.(tract,sex,age_range)]
+    
+    sex_by_age_eth[age>64 & age<75 & is.na(missing_eth),("eth_sr2_id"):=
+                     paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                   by=.(tract,sex,age_range)]
+    sr_relations[group_or_hh=="In households" & is.na(ethnicity),c("ethnicity","sex","age_range","ind_id_eth"):=
+                   sex_by_age_eth[.SD, c(list(ethnicity),list(sex),list(age_range),list(ind_id_eth)), 
+                                  on = .(eth_sr2_id)]]
+    sex_age_race[age>64 & age<75 & is.na(missing_race),c("missing_race","gq_race_wrk"):=  #all in households now
+                   sr_relations[.SD, c(list(race),list(group_or_hh)), on = .(race_sr2_id)]]
+    sex_by_age_eth[age>64 & age<75 & is.na(missing_eth),c("missing_eth","gq_eth_wrk"):=
+                     sr_relations[.SD, c(list(ethnicity),list(group_or_hh)), on = .(eth_sr2_id)]]
+    #for gq and hh all ages
+    sr_relations[is.na(race),("race_sr3_id"):=
                    paste0(tract,as.character(1000000+sample(.N))),
                  by=.(tract)]
-    sex_by_age_eth[age>64 & is.na(missing_eth),("eth_sr2_id"):=
-                     paste0(tract,as.character(1000000+sample(.N))),
-                   by=.(tract)]
-    sr_relations[,("race_sex_relations"):=sex_sr_relations]
-    sr_relations[is.na(race),c("race","race_sex_relations","race_age_range","individual_id"):=
-                   sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), on = .(race_sr2_id)]]
-    sex_age_race[age>64 & is.na(missing_race),("missing_race"):=
-                   sr_relations[.SD, c(list(group_or_hh)), on = .(race_sr2_id)]]
-    sr_relations[,("eth_sex_relations"):=sex_sr_relations]
-    sr_relations[is.na(ethnicity),c("ethnicity","eth_sex_relations","eth_age_range","ind_id_eth"):=
-                   sex_by_age_eth[.SD, c(list(ethnicity),list(sex),list(age_range),list(ind_id_eth)), on = .(eth_sr2_id)]]
-    sex_by_age_eth[age>64 & is.na(missing_eth),("missing_eth"):=
-                     sr_relations[.SD, c(list(group_or_hh)), on = .(eth_sr2_id)]]
+    sex_age_race[age>64 & is.na(missing_race),("race_sr3_id"):=
+                   paste0(tract,as.character(1000000+sample(.N))),
+                 by=.(tract)]
+    sr_relations[is.na(race),c("race","sex","age_range","individual_id"):=
+                   sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), 
+                                on = .(race_sr3_id)]]
+    
+    sr_relations[is.na(ethnicity),("eth_sr3_id"):=
+                   paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                 by=.(tract,sex,age_range)]
+    
+    sex_by_age_eth[age>64 & is.na(missing_eth),("eth_sr3_id"):=
+                     paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                   by=.(tract,sex,age_range)]
+    #sr_relations[,("race_sex_relations"):=sex_sr_relations]
+    sr_relations[is.na(ethnicity),c("ethnicity","sex","age_range","ind_id_eth"):=
+                   sex_by_age_eth[.SD, c(list(ethnicity),list(sex),list(age_range),list(ind_id_eth)), 
+                                  on = .(eth_sr3_id)]]
+    sex_age_race[age>64 & is.na(missing_race),c("missing_race","gq_race_wrk"):=
+                   sr_relations[.SD, c(list(race),list(group_or_hh)), on = .(race_sr3_id)]]
+    sex_age_race[age>64 & gq_race_wrk=="In group quarters",("gq_race"):=gq_race_wrk]
+    #sex_age_race[age>64 & is.na(missing_race),("gq_race"):=list("In group quarters")]
+    sex_by_age_eth[age>64 & is.na(missing_eth),c("missing_eth","gq_eth_wrk"):=
+                     sr_relations[.SD, c(list(ethnicity),list(group_or_hh)), on = .(eth_sr3_id)]]
+    sex_by_age_eth[age>64 & gq_eth_wrk=="In group quarters",("gq_eth"):=gq_eth_wrk]
+    #sex_by_age_eth[age>64 & is.na(missing_eth),("gq_eth"):=list("In group quarters")]
+    #should test to see if they match the ones that are listed as gq in seniors
     sex_age_race$race_sr_id <-NULL
     sex_age_race$race_sr2_id <-NULL
-    sex_by_age_eth$race_sr_id <-NULL
+    sex_age_race$race_sr3_id <-NULL
+    sex_age_race$gq_race_wrk <-NULL
+    sex_by_age_eth$eth_sr_id <-NULL
     sex_by_age_eth$eth_sr2_id <-NULL
+    sex_by_age_eth$eth_sr3_id <-NULL
+    sex_by_age_eth$gq_eth_wrk <-NULL
     #test3
     #test<-table(sex_age_race[age>64]$tract,sex_age_race[age>64]$sex,sex_age_race[age>64]$race,sex_age_race[age>64]$age_range)==
-    #  table(sr_relations$tract,sr_relations$race_sex_relations,sr_relations$race,sr_relations$race_age_range)
-    #test<-table(sex_by_age_eth[age>64]$tract,sex_by_age_eth[age>64]$sex,sex_by_age_eth[age>64]$ethnicity,sex_by_age_eth[age>64]$age_range)==
-    #  table(sr_relations$tract,sr_relations$eth_sex_relations,sr_relations$ethnicity,sr_relations$eth_age_range)
+    #  table(sr_relations$tract,sr_relations$sex,sr_relations$race,sr_relations$age_range)
     #length(test[test==F])==0
+    #test<-table(sex_by_age_eth[age>64]$tract,sex_by_age_eth[age>64]$sex,sex_by_age_eth[age>64]$ethnicity,sex_by_age_eth[age>64]$age_range)==
+    #  table(sr_relations$tract,sr_relations$sex,sr_relations$ethnicity,sr_relations$age_range)
+    #length(test[test==F])==0
+    #nrow(sex_age_race[!is.na(missing_race)])==nrow(sr_relations)
+    #nrow(sex_age_race[!is.na(missing_race)])==nrow(sex_age_race[age>64])
     
     #to match sr_relations$relative - 1472 folks who are >= 65 are Child of Householder in original; make sure to get old HH
     hh_relations_dt[,("relative_sr"):=case_when(
@@ -286,53 +330,160 @@ createIndividuals <- function() {
       relative=="Parent" ~ "Parent",
       relative=="Parent-in-law" ~ "Parent-in-law",
       relative=="Child" ~ "Child of householder",
-      relative=="Other relatives" | relative=="Brother or sister" | 
-        relative=="Grandchild" ~ "Other relatives",
+      relative=="Other relatives" ~ "Other relatives",
       TRUE ~ relative
     )]
     sr_relations[,("age_range_3"):=list("65 years and over")] 
-    hh_relations_dt[,("rel_sr_id"):=
-                      paste0(tract,group_or_hh,family_or_non,relative_sr,
+    sr_relations[relative=="Householder"&family_or_non=="In family households",("living_alone"):="Not living alone"]
+    hh_relations_dt[group_or_hh=="In households",("rel_sr_id"):=
+                      paste0(tract,group_or_hh,family_or_non,relative_sr,sex,living_alone,
                              as.character(1000000+sample(.N))),
-                    by=.(tract,group_or_hh,family_or_non,relative_sr)]
-    sr_relations[,("rel_sr_id"):=
-                   paste0(tract,group_or_hh,family_or_non,relative,
+                    by=.(tract,group_or_hh,family_or_non,relative_sr,sex,living_alone)]
+    sr_relations[group_or_hh=="In households",("rel_sr_id"):=
+                   paste0(tract,group_or_hh,family_or_non,relative,sex,living_alone,
                           as.character(1000000+sample(.N))),
-                 by=.(tract,group_or_hh,family_or_non,relative)]
-    hh_relations_dt[,c("sex_sr_hh","sr_hh_living_alone","age_range_3","ethnicity","eth_sex_relations","eth_age_range",
-                       "race","race_sex_relations","race_age_range","individual_id","ind_id_eth"):=
-                      sr_relations[.SD, c(list(sex_sr_relations),list(living_alone),list(age_range_3),
-                                          list(ethnicity),list(eth_sex_relations),list(eth_age_range),
-                                          list(race),list(race_sex_relations),list(race_age_range),
+                 by=.(tract,group_or_hh,family_or_non,relative,sex,living_alone)]
+    hh_relations_dt[group_or_hh=="In households",c("age_range_3","sex","ethnicity","age_range",
+                       "race","individual_id","ind_id_eth"):=
+                      sr_relations[.SD, c(list(age_range_3),list(sex),
+                                          list(ethnicity),list(age_range),
+                                          list(race),
                                           list(individual_id),list(ind_id_eth)), 
                                    on = .(rel_sr_id)]]
-    #25 folks were missing - a bit OCD to get them...
     anti_sr_rel <- as.data.table(anti_join(sr_relations,hh_relations_dt,by="rel_sr_id"))
-    hh_relations_dt[is.na(age_range_3),("rel_sr2_id"):=
-                      paste0(tract,group_or_hh,
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    ("rel_sr3_id"):=
+                      paste0(tract,relative_sr,
                              as.character(1000000+sample(.N))),
-                    by=.(tract,group_or_hh)]
-    anti_sr_rel[,("rel_sr2_id"):=
-                   paste0(tract,group_or_hh,
+                    by=.(tract,relative_sr)]
+    anti_sr_rel[group_or_hh=="In households",("rel_sr3_id"):=
+                   paste0(tract,relative,
                           as.character(1000000+sample(.N))),
-                 by=.(tract,group_or_hh)]
-    hh_relations_dt[is.na(age_range_3),c("sex_sr_hh","sr_hh_living_alone","age_range_3","ethnicity","eth_sex_relations","eth_age_range",
-                                         "race","race_sex_relations","race_age_range","individual_id","ind_id_eth"):=
-                      anti_sr_rel[.SD, c(list(sex_sr_relations),list(living_alone),list(age_range_3),
-                                         list(ethnicity),list(eth_sex_relations),list(eth_age_range),
-                                         list(race),list(race_sex_relations),list(race_age_range),
+                 by=.(tract,relative)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    c("age_range_3","ethnicity","age_range","sex",
+                                         "race","individual_id","ind_id_eth"):=
+                      anti_sr_rel[.SD, c(list(age_range_3),
+                                         list(ethnicity),list(age_range),
+                                         list(sex),list(race),
                                          list(individual_id),list(ind_id_eth)), 
-                                  on = .(rel_sr2_id)]]
+                                  on = .(rel_sr3_id)]]
     
+    anti_sr2_rel <- as.data.table(anti_join(anti_sr_rel,hh_relations_dt,by="rel_sr3_id"))
+    anti_sr2_rel[group_or_hh=="In households",("relative"):="Parent"]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    ("rel_sr4_id"):=
+                      paste0(tract,relative_sr,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract,relative_sr)]
+    anti_sr2_rel[group_or_hh=="In households",("rel_sr4_id"):=
+                  paste0(tract,relative,
+                         as.character(1000000+sample(.N))),
+                by=.(tract,relative)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    c("age_range_3","ethnicity","age_range","sex",
+                                         "race","individual_id","ind_id_eth"):=
+                      anti_sr2_rel[.SD, c(list(age_range_3),
+                                         list(ethnicity),list(age_range),
+                                         list(sex),list(race),
+                                         list(individual_id),list(ind_id_eth)), 
+                                  on = .(rel_sr4_id)]]
+    anti_sr3_rel <- as.data.table(anti_join(anti_sr2_rel,hh_relations_dt,by="rel_sr4_id"))
+    anti_sr3_rel[group_or_hh=="In households",("relative"):="Parent-in-law"]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    ("rel_sr5_id"):=
+                      paste0(tract,relative_sr,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract,relative_sr)]
+    anti_sr3_rel[group_or_hh=="In households",("rel_sr5_id"):=
+                   paste0(tract,relative,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract,relative)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    c("age_range_3","ethnicity","age_range","sex",
+                                         "race","individual_id","ind_id_eth"):=
+                      anti_sr3_rel[.SD, c(list(age_range_3),
+                                          list(ethnicity),list(age_range),
+                                          list(sex),list(race),
+                                          list(individual_id),list(ind_id_eth)), 
+                                   on = .(rel_sr5_id)]]
+    anti_sr4_rel <- as.data.table(anti_join(anti_sr3_rel,hh_relations_dt,by="rel_sr5_id"))
+    anti_sr4_rel[group_or_hh=="In households",("relative"):="Nonrelatives"]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    ("rel_sr6_id"):=
+                      paste0(tract,relative_sr,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract,relative_sr)]
+    anti_sr4_rel[group_or_hh=="In households",("rel_sr6_id"):=
+                   paste0(tract,relative,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract,relative)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    c("age_range_3","ethnicity","age_range","sex",
+                                         "race","individual_id","ind_id_eth"):=
+                      anti_sr4_rel[.SD, c(list(age_range_3),
+                                          list(ethnicity),list(age_range),
+                                          list(sex),list(race),
+                                          list(individual_id),list(ind_id_eth)), 
+                                   on = .(rel_sr6_id)]]
+    #OCD Dan catches last 6 missing!!
+    anti_sr5_rel <- as.data.table(anti_join(anti_sr4_rel,hh_relations_dt,by="rel_sr6_id"))
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    ("rel_sr6a_id"):=
+                      paste0(tract,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract)]
+    anti_sr5_rel[group_or_hh=="In households",("rel_sr6a_id"):=
+                   paste0(tract,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
+                    c("age_range_3","ethnicity","age_range","sex",
+                      "race","individual_id","ind_id_eth"):=
+                      anti_sr5_rel[.SD, c(list(age_range_3),
+                                          list(ethnicity),list(age_range),
+                                          list(sex),list(race),
+                                          list(individual_id),list(ind_id_eth)), 
+                                   on = .(rel_sr6a_id)]]
+    #move group_quarter info over
+    hh_relations_dt[group_or_hh=="In group quarters" & is.na(age_range),
+                    ("rel_sr7_id"):=
+                      paste0(tract,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract)]
+    sr_relations[group_or_hh=="In group quarters",("rel_sr7_id"):=
+                   paste0(tract,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract)]
+    hh_relations_dt[group_or_hh=="In group quarters" & is.na(age_range),
+                    c("age_range_3","ethnicity","age_range","sex",
+                      "race","individual_id","ind_id_eth"):=
+                      sr_relations[.SD, c(list(age_range_3),
+                                          list(ethnicity),list(age_range),
+                                          list(sex),list(race),
+                                          list(individual_id),list(ind_id_eth)), 
+                                   on = .(rel_sr7_id)]]
+    #test no dups:
+    nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))
     #4 tracts from sr_relations not in hh_relations
-    #test3a
-    #test<-table(hh_relations_dt[tract%in%unique(sr_relations$tract)]$tract,hh_relations_dt[tract%in%unique(sr_relations$tract)]$sex_sr_hh,
-    #            hh_relations_dt[tract%in%unique(sr_relations$tract)]$sr_hh_living_alone,hh_relations_dt[tract%in%unique(sr_relations$tract)]$race,
-    #            hh_relations_dt[tract%in%unique(sr_relations$tract)]$ethnicity,hh_relations_dt[tract%in%unique(sr_relations$tract)]$eth_age_range)==
-    #  table(sr_relations$tract,sr_relations$sex_sr_relations,sr_relations$living_alone,sr_relations$race,sr_relations$ethnicity,sr_relations$eth_age_range)
+    #test3a - need to work this out - not working now
+    #test<-table(hh_relations_dt[!is.na(age_range)]$tract,
+    #            hh_relations_dt[!is.na(age_range)]$race,
+    #            hh_relations_dt[!is.na(age_range)]$sex,
+    #            #hh_relations_dt[!is.na(age_range)]$living_alone, #one missing???
+    #            hh_relations_dt[!is.na(age_range)]$age_range
+    #        )==
+    #  table(sr_relations$tract,
+    #        sr_relations$race,
+    #        sr_relations$sex,
+    #        #sr_relations$living_alone,
+    #        sr_relations$age_range
+    #        )
     #length(test[test==F])==0
     rm(sr_relations)
-
+    rm(list=ls(pattern="^anti"))
+    hh_relations_dt[,c("rel_sr3_id","rel_sr4_id","rel_sr5_id","rel_sr6_id","rel_sr7_id","rel_sr6a_id","role_id","relative_sr","rel_sr_id"):=NULL]
+    
     #now do adults - giving all a possible race and age - just by sample within each tract
     adults_relations[age_range_3=="18 to 34 years",("race_adults_id"):=
                    paste0(tract,as.character(1000000+sample(.N))),
@@ -340,201 +491,287 @@ createIndividuals <- function() {
     sex_age_race[age>17&age<35,("race_adults_id"):=
                    paste0(tract,as.character(1000000+sample(.N))),
                  by=.(tract)]
-    sex_by_age_eth[age>17&age<35,("race_adults_id"):=
-                     paste0(tract,as.character(1000000+sample(.N))),
-                   by=.(tract)]
-    adults_relations[age_range_3=="18 to 34 years",c("race","race_sex_relations","race_age_range","individual_id"):=
-                   sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), on = .(race_adults_id)]]
+    adults_relations[age_range_3=="18 to 34 years",c("race","sex","age_range","individual_id"):=
+                       sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), on = .(race_adults_id)]]
+    adults_relations[age_range_3=="18 to 34 years",("eth_adults_id"):=
+                       paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                     by=.(tract,sex,age_range)]
+    sex_by_age_eth[age>17&age<35,("eth_adults_id"):=
+                     paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                   by=.(tract,sex,age_range)]
+    #add ethnicity, but not going to line up with final - divide out below
+    adults_relations[age_range_3=="18 to 34 years",c("ethnicity","ind_id_eth"):=
+                       sex_by_age_eth[.SD, c(list(ethnicity),list(ind_id_eth)), on = .(eth_adults_id)]]
+    #nrow(adults_relations[!is.na(ethnicity)])==nrow(adults_relations[!is.na(race)])
+    #nrow(adults_relations[!is.na(race)])==nrow(adults_relations[age_range_3=="18 to 34 years"])
+    #nrow(sex_age_race[age>17&age<35])-nrow(adults_relations[age_range_3=="18 to 34 years"]) #21231, presumably in GQ
     sex_age_race[age>17&age<35,("missing_race"):=
-                   adults_relations[.SD, list(race_sex_relations), on = .(race_adults_id)]]
-    sex_age_race[age>17&age<35&is.na(missing_race),("missing_race"):=list("In group quarters")]
-    sex_age_race[age>17&age<35,("missing_race"):=if_else(missing_race=="Male" | missing_race=="Female","In households","In group quarters")]
-    adults_relations[age_range_3=="18 to 34 years",c("ethnicity","eth_sex_relations","eth_age_range","ind_id_eth"):=
-                   sex_by_age_eth[.SD, c(list(ethnicity),list(sex),list(age_range),list(ind_id_eth)), on = .(race_adults_id)]]
+                   adults_relations[.SD, list(race), on = .(race_adults_id)]]
+    sex_age_race[age>17&age<35&is.na(missing_race),("gq_race"):=list("In group quarters")]
     sex_by_age_eth[age>17&age<35,("missing_eth"):=
-                     adults_relations[.SD, list(eth_sex_relations), on = .(race_adults_id)]]
-    sex_by_age_eth[age>17&age<35&is.na(missing_eth),("missing_eth"):=list("In group quarters")]
-    sex_by_age_eth[age>17&age<35,("missing_eth"):=if_else(missing_eth=="Male" | missing_eth=="Female","In households","In group quarters")]
+                     adults_relations[.SD, list(ethnicity), on = .(eth_adults_id)]]
+    sex_by_age_eth[age>17&age<35&is.na(missing_eth),("gq_eth"):=list("In group quarters")]
     sex_age_race$race_adults_id <-NULL
-    sex_by_age_eth$race_adults_id <-NULL
+    sex_by_age_eth$eth_adults_id <-NULL
     #now do 35 to 64
-    adults_relations[age_range_3=="35 to 64 years",("race_adults2_id"):=
+    adults_relations[age_range_3=="35 to 64 years",("race2_adults_id"):=
                        paste0(tract,as.character(1000000+sample(.N))),
                      by=.(tract)]
-    sex_age_race[age>34&age<65,("race_adults2_id"):=
+    sex_age_race[age>34&age<65,("race2_adults_id"):=
                    paste0(tract,as.character(1000000+sample(.N))),
                  by=.(tract)]
-    sex_by_age_eth[age>34&age<65,("race_adults2_id"):=
-                     paste0(tract,as.character(1000000+sample(.N))),
-                   by=.(tract)]
-    adults_relations[age_range_3=="35 to 64 years",c("race","race_sex_relations","race_age_range","individual_id"):=
-                       sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), on = .(race_adults2_id)]]
-    sex_age_race[age>34&age<65,("missing_race"):=
-                   adults_relations[.SD, list(race_sex_relations), on = .(race_adults2_id)]]
-    sex_age_race[age>34&age<65,("missing_race"):=if_else(missing_race=="Male" | missing_race=="Female","In households","In group quarters")]
-    sex_age_race[age>34&age<65&is.na(missing_race),("missing_race"):="In group quarters"]
-    adults_relations[age_range_3=="35 to 64 years",c("ethnicity","eth_sex_relations","eth_age_range","ind_id_eth"):=
-                       sex_by_age_eth[.SD, c(list(ethnicity),list(sex),list(age_range),list(ind_id_eth)), on = .(race_adults2_id)]]
-    sex_by_age_eth[age>34&age<65,("missing_eth"):=
-                     adults_relations[.SD, list(eth_sex_relations), on = .(race_adults2_id)]]
-    sex_by_age_eth[age>34&age<65&is.na(missing_eth),("missing_eth"):="In group quarters"]
-    sex_by_age_eth[age>34&age<65,("missing_eth"):=if_else(missing_eth=="Male" | missing_eth=="Female","In households","In group quarters")]
-    sex_age_race$race_adults2_id <-NULL
-    sex_by_age_eth$race_adults2_id <-NULL
+    adults_relations[age_range_3=="35 to 64 years",c("race","sex","age_range","individual_id"):=
+                       sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), 
+                                    on = .(race2_adults_id)]]
+    adults_relations[age_range_3=="35 to 64 years",("eth2_adults_id"):=
+                       paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                     by=.(tract,sex,age_range)]
+    sex_by_age_eth[age>34&age<65,("eth2_adults_id"):=
+                     paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                   by=.(tract,sex,age_range)]
+    #add ethnicity, but not going to line up with final - divide out below
+    adults_relations[age_range_3=="35 to 64 years",c("ethnicity","ind_id_eth"):=
+                       sex_by_age_eth[.SD, c(list(ethnicity),list(ind_id_eth)), 
+                                      on = .(eth2_adults_id)]]
+    #nrow(adults_relations[!is.na(ethnicity)])==nrow(adults_relations[!is.na(race)])
+    #nrow(adults_relations[!is.na(race)])==nrow(adults_relations[age_range_3=="18 to 34 years" | age_range_3=="35 to 64 years"])
+    #nrow(sex_age_race[age>34&age<65])-nrow(adults_relations[age_range_3=="35 to 64 years"]) #11184, presumably in GQ
+    sex_age_race[age>34&age<65&is.na(missing_race),("missing_race"):=
+                   adults_relations[.SD, list(race), on = .(race2_adults_id)]]
+    sex_age_race[age>34&age<65&is.na(missing_race),("gq_race"):=list("In group quarters")]
+    sex_by_age_eth[age>34&age<65&is.na(missing_eth),("missing_eth"):=
+                     adults_relations[.SD, list(ethnicity), on = .(eth2_adults_id)]]
+    sex_by_age_eth[age>34&age<65&is.na(missing_eth),("gq_eth"):=list("In group quarters")]
+    sex_age_race$race2_adults_id <-NULL
+    sex_by_age_eth$eth2_adults_id <-NULL
     #test3b
-    #test<-table(sex_age_race[age>17&age<65&missing_race=="In households"]$tract,sex_age_race[age>17&age<65&missing_race=="In households"]$sex,
-    #            sex_age_race[age>17&age<65&missing_race=="In households"]$race,sex_age_race[age>17&age<65&missing_race=="In households"]$age_range)==
-    #  table(adults_relations[age_range_3!="65 years and over"]$tract,adults_relations[age_range_3!="65 years and over"]$race_sex_relations,
-    #        adults_relations[age_range_3!="65 years and over"]$race,adults_relations[age_range_3!="65 years and over"]$race_age_range)
-    #test<-table(sex_by_age_eth[age>17&age<65&missing_eth=="In households"]$tract,sex_by_age_eth[age>17&age<65&missing_eth=="In households"]$sex,
-    #            sex_by_age_eth[age>17&age<65&missing_eth=="In households"]$ethnicity,sex_by_age_eth[age>17&age<65&missing_eth=="In households"]$age_range)==
-    #  table(adults_relations[age_range_3!="65 years and over"]$tract,adults_relations[age_range_3!="65 years and over"]$eth_sex_relations,adults_relations[age_range_3!="65 years and over"]$ethnicity,adults_relations[age_range_3!="65 years and over"]$eth_age_range)
+    #test<-table(sex_age_race[age>17&age<65&is.na(gq_race)]$tract,
+    #            sex_age_race[age>17&age<65&is.na(gq_race)]$sex,
+    #            sex_age_race[age>17&age<65&is.na(gq_race)]$age_range,
+    #            sex_age_race[age>17&age<65&is.na(gq_race)]$race)==
+    #  table(adults_relations[age_range_3!="65 years and over"]$tract,
+    #        adults_relations[age_range_3!="65 years and over"]$sex,
+    #        adults_relations[age_range_3!="65 years and over"]$age_range,
+    #        adults_relations[age_range_3!="65 years and over"]$race)
+    #length(test[test==F])==0
+    #test<-table(sex_by_age_eth[age>17&age<65&is.na(gq_eth)]$tract,
+    #            sex_by_age_eth[age>17&age<65&is.na(gq_eth)]$sex,
+    #            sex_by_age_eth[age>17&age<65&is.na(gq_eth)]$age_range,
+    #            sex_by_age_eth[age>17&age<65&is.na(gq_eth)]$ethnicity)==
+    #  table(adults_relations[age_range_3!="65 years and over"]$tract,
+    #        adults_relations[age_range_3!="65 years and over"]$sex,
+    #        adults_relations[age_range_3!="65 years and over"]$age_range,
+    #        adults_relations[age_range_3!="65 years and over"]$ethnicity)
     #length(test[test==F])==0
     
     hh_relations_dt[group_or_hh=="In households",("relation_hh"):=case_when(
       relative=="Child" | relative=="Grandchild" ~ "Child of householder", #but only for adults; Foster child is non-relative
-      relative=="Spouse" ~ "Householder living with spouse or spouse of householder",
-      role_in_family=="Unmarried partner" ~ "Householder living with unmarried partner or unmarried partner of householder",
+      #relative=="Spouse" ~ "Householder living with spouse or spouse of householder",
+      #role_in_family=="Unmarried partner" ~ "Householder living with unmarried partner or unmarried partner of householder",
       relative=="Nonrelatives" | relative=="Parent-in-law" ~ "Other nonrelatives",
       relative=="Other relatives" | relative =="Parent" | relative=="Brother or sister" |
         relative=="Son-in-law or daughter-in-law"~ "Other relatives",
       TRUE ~ "Householder" 
     )]
-    adults_relations[relation_hh=="Lives alone",("relation_hh"):="Householder"]
-    #test 4 
-    #nrow(hh_relations_dt[relation_hh=="Householder"])==nrow(hh_relations_dt[relative=="Householder"])
-    
+    adults_relations[relation_hh=="Lives alone",("relation_hh"):="Householder"] #still have hh not living alone
+    adults_relations[,("relation_hh_hh"):=case_when(
+      relation_hh=="Householder living with unmarried partner or unmarried partner of householder" |
+        relation_hh=="Householder living with spouse or spouse of householder" ~ "Householder",
+      TRUE ~ relation_hh
+    )]
     #matching hh_relations and adults_relations at highest level, because there's not much to go on and it's not exact
-    hh_relations_dt[is.na(age_range_3) & group_or_hh=="In households" & relative!="Grandchild",
+    #sex is only known for Householders
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range) & relative!="Grandchild",
                     ("rel_adults_id"):=
-                      paste0(tract,relation_hh,
+                      paste0(tract,relation_hh,sex,
                              as.character(1000000+sample(.N))),
-                    by=.(tract,relation_hh)]
+                    by=.(tract,relation_hh,sex)]
     adults_relations[age_range_3!="65 years and over",
                      ("rel_adults_id"):=
-                       paste0(tract,relation_hh,
+                       paste0(tract,relation_hh_hh,sex,
                               as.character(1000000+sample(.N))),
-                     by=.(tract,relation_hh)]
-    hh_relations_dt[is.na(age_range_3) & group_or_hh=="In households" & relative!="Grandchild",
-                    c("age_range_3","ethnicity","eth_sex_relations","eth_age_range",
-                      "race","race_sex_relations","race_age_range","individual_id","ind_id_eth"):=
+                     by=.(tract,relation_hh_hh,sex)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range) & relative!="Grandchild",
+                    c("age_range_3","ethnicity","age_range",
+                      "race","individual_id","ind_id_eth"):=
                       adults_relations[.SD, c(list(age_range_3),
-                                              list(ethnicity),list(eth_sex_relations),list(eth_age_range),
-                                              list(race),list(race_sex_relations),list(race_age_range),
+                                              list(ethnicity),list(age_range),
+                                              list(race),
                                               list(individual_id),list(ind_id_eth)), 
                                        on = .(rel_adults_id)]]
     adults_relations[age_range_3!="65 years and over",
-                     ("adults_matched"):=
+                     c("adults_matched"):=
                        hh_relations_dt[.SD,list(group_or_hh),
                                        on = .(rel_adults_id)]]
-    
-#    adults_relations[relation_hh=="Lives alone",("relation_hh"):="Householder Lives alone"]
-    hh_relations_dt[is.na(age_range_3) & str_detect(relation_hh,"Householder") & group_or_hh=="In households",
-#    hh_relations_dt[is.na(age_range_3) & group_or_hh=="In households" & !str_detect(relation_hh,"Child"),
-                    ("rel_hh_id"):=
-                      paste0(tract,as.character(1000000+sample(.N))),
+    #this should give you all the hh, 
+    #using relative=="Householder" not relation_hh=="Householder" because it includes Spouse, etc.
+    #looks like 15908 hh under 18?
+    #do for rest of relatives
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range) & relative!="Grandchild",
+                    ("rel_adults2_id"):=
+                      paste0(tract,relation_hh,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract,relation_hh)]
+    adults_relations[age_range_3!="65 years and over"&is.na(adults_matched),
+                     ("rel_adults2_id"):=
+                       paste0(tract,relation_hh_hh,
+                              as.character(1000000+sample(.N))),
+                     by=.(tract,relation_hh_hh)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range) & relative!="Grandchild",
+                    c("age_range_3","sex","ethnicity","age_range",
+                      "race","individual_id","ind_id_eth"):=
+                      adults_relations[.SD, c(list(age_range_3),list(sex),
+                                              list(ethnicity),list(age_range),
+                                              list(race),
+                                              list(individual_id),list(ind_id_eth)), 
+                                       on = .(rel_adults2_id)]]
+    adults_relations[age_range_3!="65 years and over"&is.na(adults_matched),
+                     c("adults_matched"):=
+                       hh_relations_dt[.SD,list(group_or_hh),
+                                       on = .(rel_adults2_id)]]
+    #test no dups:
+    nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))
+    #clean up on non-relatives vs. relatives
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range) & !str_detect(role_in_family,"ild"), 
+                    ("rel_adults3_id"):=
+                      paste0(tract,
+                             as.character(1000000+sample(.N))),
                     by=.(tract)]
-    #adults_relations[age_range_3!="65 years and over" & str_detect(relation_hh,"Householder"), 
-    adults_relations[age_range_3!="65 years and over" & is.na(adults_matched),
-                     ("rel_hh_id"):=
-                       paste0(tract,as.character(1000000+sample(.N))),
+    adults_relations[age_range_3!="65 years and over"&is.na(adults_matched),
+                     ("rel_adults3_id"):=
+                       paste0(tract,
+                              as.character(1000000+sample(.N))),
                      by=.(tract)]
-    hh_relations_dt[is.na(age_range_3) & str_detect(relation_hh,"Householder") & group_or_hh=="In households",
-#    hh_relations_dt[is.na(age_range_3) & !str_detect(relation_hh,"Child"),
-                    c("age_range_3","ethnicity","eth_sex_relations","eth_age_range",
-                      "race","race_sex_relations","race_age_range","individual_id","ind_id_eth"):= 
-                      adults_relations[.SD, c(list(age_range_3),list(ethnicity),list(eth_sex_relations),
-                                              list(eth_age_range),list(race),list(race_sex_relations),
-                                              list(race_age_range),list(individual_id),list(ind_id_eth)), 
-                                       on = .(rel_hh_id)]]
-    #give age race/eth to group_quarters folks later, straight from missing_race/eth on sex_age_race/eth, although the fact that the
-    #missing tracts are places where the jails are may mean we should juggle ages at the end in favor of this age group
-    #test <= table(hh_relations_dt)
-    
-    #nrow(hh_relations_dt[!is.na(age_range_3)])-nrow(adults_relations) =~ -8k 
-    #clean up ~ 1550 edge cases?
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range)  & !str_detect(role_in_family,"ild"),
+                    c("age_range_3","sex","ethnicity","age_range",
+                      "race","individual_id","ind_id_eth"):=
+                      adults_relations[.SD, c(list(age_range_3),list(sex),
+                                              list(ethnicity),list(age_range),
+                                              list(race),
+                                              list(individual_id),list(ind_id_eth)), 
+                                       on = .(rel_adults3_id)]]
+    adults_relations[age_range_3!="65 years and over"&is.na(adults_matched),
+                     c("adults_matched"):=
+                       hh_relations_dt[.SD,list(group_or_hh),
+                                       on = .(rel_adults3_id)]]
+    #test no dups:
+    nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))
+    #nrow(hh_relations_dt[!is.na(age_range_3)])-nrow(adults_relations) # = -464 not at all sure what to do and if it's worth it... because sr_relations had gq!!!
+    #clean up ~ 600 edge cases? - test again!!
     hh_relations_dt[is.na(age_range_3) & str_detect(relative,"Parent"),("role_in_family") :="Son-in-law or daughter-in-law"]
     hh_relations_dt[is.na(age_range_3) & str_detect(relative,"Parent"),("relative") :="Son-in-law or daughter-in-law"]
     #length(unique(hh_relations_dt$individual_id))-nrow(sex_age_race[age>17]) #-48638
     #rm(adults_relations)
     
-    #now do kids - giving all a possible race and age
+    #now do kids - giving all a possible race and age - for gq, it's a small number, but could be that we should have it skew older???
     hh_type_kids[,("race_kids_id"):=
                        paste0(tract,as.character(1000000+sample(.N))),
                      by=.(tract)]
-    hh_type_kids[,("eth_kids_id"):=
-                   paste0(tract,as.character(1000000+sample(.N))),
-                 by=.(tract)]
     sex_age_race[age<18,("race_kids_id"):=
                    paste0(tract,as.character(1000000+sample(.N))),
                  by=.(tract)]
+    hh_type_kids[,c("race","sex","age_range","individual_id"):=
+                   sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), 
+                                on = .(race_kids_id)]]
+    hh_type_kids[,("eth_kids_id"):=
+                   paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                 by=.(tract,sex,age_range)]
     sex_by_age_eth[age<18,("eth_kids_id"):=
-                     paste0(tract,as.character(1000000+sample(.N))),
-                   by=.(tract)]
-    hh_type_kids[,c("race","race_sex_relations","race_age_range","individual_id"):=
-                       sex_age_race[.SD, c(list(race),list(sex),list(age_range),list(individual_id)), on = .(race_kids_id)]]
+                     paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                   by=.(tract,sex,age_range)]
+    hh_type_kids[,c("ethnicity","sex","age_range","ind_id_eth"):=
+                   sex_by_age_eth[.SD, c(list(ethnicity),list(sex),list(age_range),list(ind_id_eth)), on = .(eth_kids_id)]]
     sex_age_race[age<18,("missing_race"):=
                    hh_type_kids[.SD, list(sex), on = .(race_kids_id)]]
-    sex_age_race[age<18&is.na(missing_race),("missing_race"):="In group quarters"]
-    sex_age_race[age<18,("missing_race"):=if_else(missing_race=="Male" | missing_race=="Female","In households","In group quarters")]
-    hh_type_kids[,c("ethnicity","eth_sex_relations","eth_age_range","ind_id_eth"):=
-                       sex_by_age_eth[.SD, c(list(ethnicity),list(sex),list(age_range),list(ind_id_eth)), on = .(eth_kids_id)]]
+    sex_age_race[age<18&is.na(missing_race)&is.na(gq_race),("gq_race"):=list("In group quarters")]
     sex_by_age_eth[age<18,("missing_eth"):=
-                     hh_type_kids[.SD, list(eth_sex_relations), on = .(eth_kids_id)]]
-    sex_by_age_eth[age<18&is.na(missing_eth),("missing_eth"):="In group quarters"]
-    sex_by_age_eth[age<18,("missing_eth"):=if_else(missing_eth=="Male" | missing_eth=="Female","In households","In group quarters")]
-    sex_age_race$race_kids_id <-NULL
+                   hh_type_kids[.SD, list(sex), on = .(eth_kids_id)]]
+    sex_by_age_eth[age<18&is.na(missing_eth)&is.na(gq_eth),("gq_eth"):=list("In group quarters")]
+    #test 
+    #test <- table(sex_age_race[age<18&is.na(gq_race),sex],
+    #              sex_age_race[age<18&is.na(gq_race),race],
+    #              sex_age_race[age<18&is.na(gq_race),age_range]
+    #              )==table(hh_type_kids$sex,
+    #                       hh_type_kids$race,
+    #                       hh_type_kids$age_range
+    #                       )
+    #length(test[test==F])==0
+    #test <- table(sex_by_age_eth[age<18&is.na(gq_eth),sex],
+    #              sex_by_age_eth[age<18&is.na(gq_eth),ethnicity],
+    #              sex_by_age_eth[age<18&is.na(gq_eth),age_range]
+    #)==table(hh_type_kids$sex,
+    #         hh_type_kids$ethnicity,
+    #         hh_type_kids$age_range
+    #)
+    #length(test[test==F])==0
     
     #hh_type_kids includes grandkids, but excludes hh, spouses, partners, and is everyone under 18 otherwise - marital should give that extra - could be less than 1k
     #hh_type_kids[family_or_non=="In nonfamily households",("in_family_type"):="In nonfamily households"]
     
     hh_relations_dt[!is.na(age_range_3),("age_range_4"):=age_range_3]
-    hh_type_kids[eth_age_range=="15 to 17 years",("age_range_3"):=list("15-17")]
     hh_type_kids[,("age_range_4"):=list("0  to 17 years")]  #seems to need list type for later stuff
-    hh_type_kids[eth_age_range=="15 to 17 years",("rel_kidsb4_id"):= 
-                   paste0(tract,family_or_non,
+    hh_type_kids[age_range=="15 to 17 years",("rel_kidsb4_id"):= 
+                   paste0(tract,
                           as.character(1000000+sample(.N))),
-                 by=.(tract,family_or_non)]
+                 by=.(tract)]
     hh_relations_dt[group_or_hh=="In households" & is.na(age_range_3) & relative=="Householder",
                     ("rel_kidsb4_id"):=
-                      paste0(tract,family_or_non,
+                      paste0(tract,
                              as.character(1000000+sample(.N))),
-                    by=.(tract,family_or_non)]
-    hh_relations_dt[group_or_hh=="In households" & is.na(age_range_3) & relative=="Householder",
-                    c("age_range_3","in_family_type","family_role_3","age_range_4",
-                      "ethnicity","eth_sex_relations","eth_age_range",
-                      "race","race_sex_relations","race_age_range","individual_id","ind_id_eth"):= 
-                      hh_type_kids[.SD, c(list(age_range_3),list(in_family_type),list(family_role_3),list(age_range_4),
-                                          list(ethnicity),list(eth_sex_relations),list(eth_age_range),
-                                          list(race),list(race_sex_relations),list(race_age_range),
+                    by=.(tract)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range_3) & relative=="Householder", #1409 match this
+                    c("age_range","in_family_type","family_role_3","age_range_4",
+                      "ethnicity","sex","race","individual_id","ind_id_eth"):= 
+                      hh_type_kids[.SD, c(list(age_range),list(in_family_type),list(family_role_3),list(age_range_4),
+                                          list(ethnicity),list(sex),list(race),
                                           list(individual_id),list(ind_id_eth)), 
                                    on = .(rel_kidsb4_id)]]
-    hh_type_kids[eth_age_range=="15 to 17 years",c("matched_17","matched_fam"):=
-                   hh_relations_dt[.SD,c(list(age_range_3),list(family_or_non)),on = .(rel_kidsb4_id)]]
-    hh_type_kids[is.na(matched_fam),("rel_kids_id"):= 
+    hh_type_kids[age_range=="15 to 17 years",c("matched_17","matched_fam"):=
+                   hh_relations_dt[.SD,c(list(group_or_hh),list(family_or_non)),on = .(rel_kidsb4_id)]]
+    #for spouses 15-17 - when married-couple hh, the spouse is the female by census rules up to 2010, and still usually it looks like
+    hh_type_kids[age_range=="15 to 17 years"&sex=="Female",("sp_kidsb4_id"):= 
+                   paste0(tract,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range) & relative=="Householder",
+                    ("sp_kidsb4_id"):=
+                      paste0(tract,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract)]
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range) & relative=="Householder", #1409 match this
+                    c("age_range","in_family_type","family_role_3","age_range_4",
+                      "ethnicity","sex","race","individual_id","ind_id_eth"):= 
+                      hh_type_kids[.SD, c(list(age_range),list(in_family_type),list(family_role_3),list(age_range_4),
+                                          list(ethnicity),list(sex),list(race),
+                                          list(individual_id),list(ind_id_eth)), 
+                                   on = .(sp_kidsb4_id)]]
+    #test 
+    #nrow(hh_relations_dt[age_range=="15 to 17 years"])==nrow(hh_relations_dt[group_or_hh=="In households" & is.na(age_range_3) & relative=="Householder"])
+    hh_type_kids[age_range=="15 to 17 years"&is.na(matched_17),c("matched_17","matched_fam"):=
+                   hh_relations_dt[.SD,c(list(group_or_hh),list(family_or_non)),on = .(sp_kidsb4_id)]]
+    hh_type_kids[is.na(matched_17),("rel_kids_id"):= 
                    paste0(tract,family_or_non,
                                          as.character(1000000+sample(.N))),
                                 by=.(tract,family_or_non)]
-    hh_relations_dt[group_or_hh=="In households" & is.na(age_range_3),
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
                     ("rel_kids_id"):=
                       paste0(tract,family_or_non,
                                     as.character(1000000+sample(.N))),
                            by=.(tract,family_or_non)]
     
     #family_role_3 is a rewrite of in_family_type and matches sam_hh categories, but isn't only for Householders
-    hh_relations_dt[group_or_hh=="In households" & is.na(age_range_3),
+    hh_relations_dt[group_or_hh=="In households" & is.na(age_range),
                     c("in_family_type","family_role_3","age_range_4",
-                      "ethnicity","eth_sex_relations","eth_age_range",
-                      "race","race_sex_relations","race_age_range","individual_id","ind_id_eth"):= 
+                      "ethnicity","sex","age_range",
+                      "race","individual_id","ind_id_eth"):= 
                              hh_type_kids[.SD, c(list(in_family_type),list(family_role_3),list(age_range_4),
-                                                 list(ethnicity),list(eth_sex_relations),list(eth_age_range),
-                                                 list(race),list(race_sex_relations),list(race_age_range),
-                                                 list(individual_id),list(ind_id_eth)), 
+                                                 list(ethnicity),list(sex),list(age_range),
+                                                 list(race),list(individual_id),list(ind_id_eth)), 
                                                          on = .(rel_kids_id)]]
-    #p/u last 8k
+    #p/u last 22k
     hh_type_kids[is.na(matched_fam),c("matched_17","matched_fam"):=
-                   hh_relations_dt[.SD,c(list(age_range_3),list(family_or_non)),on = .(rel_kids_id)]]
-    hh_type_kids[is.na(matched_fam),("rel_kids2_id"):= 
+                   hh_relations_dt[.SD,c(list(group_or_hh),list(family_or_non)),on = .(rel_kids_id)]]
+    hh_type_kids[is.na(matched_17),("rel_kids2_id"):= 
                    paste0(tract,
                           as.character(1000000+sample(.N))),
                  by=.(tract)]
@@ -543,44 +780,93 @@ createIndividuals <- function() {
                       paste0(tract,
                              as.character(1000000+sample(.N))),
                     by=.(tract)]
-    
-    #family_role_3 is a rewrite of in_family_type and matches sam_hh categories, but isn't only for Householders
     hh_relations_dt[group_or_hh=="In households" & is.na(age_range_4),
                     c("in_family_type","family_role_3","age_range_4",
-                      "ethnicity","eth_sex_relations","eth_age_range",
-                      "race","race_sex_relations","race_age_range","individual_id","ind_id_eth"):= 
+                      "ethnicity","sex","age_range",
+                      "race","individual_id","ind_id_eth"):= 
                       hh_type_kids[.SD, c(list(in_family_type),list(family_role_3),list(age_range_4),
-                                          list(ethnicity),list(eth_sex_relations),list(eth_age_range),
-                                          list(race),list(race_sex_relations),list(race_age_range),
-                                          list(individual_id),list(ind_id_eth)), 
+                                          list(ethnicity),list(sex),list(age_range),
+                                          list(race),list(individual_id),list(ind_id_eth)), 
                                    on = .(rel_kids2_id)]]
+    #p/u last 9k - get younger kids first, so that older ones are the ones in group_quarters??
+    #7 listed as Spouse and 90 Nonrelatives, still - just moving them into Child
+    ##hh_relations_dt[relative=="Spouse" | relative=="Nonrelatives",("relative"):="Child"]
+    ###hh_type_kids[is.na(matched_fam),c("matched_17","matched_fam"):=
+    ###               hh_relations_dt[.SD,c(list(group_or_hh),list(family_or_non)),on = .(rel_kids2_id)]]
+    ###hh_type_kids[is.na(matched_17),("rel_kids3_id"):= 
+    ###               paste0(tract,
+    ###                      as.character(1000000+sample(.N))),
+    ###             by=.(tract)]
+    ###hh_relations_dt[group_or_hh=="In households" & is.na(age_range_4),
+    ###                ("rel_kids3_id"):=
+    ###                  paste0(tract,
+    ###                         as.character(1000000+sample(.N))),
+    ###                by=.(tract)]
+    ###hh_relations_dt[group_or_hh=="In households" & is.na(age_range_4),
+    ###                c("in_family_type","family_role_3","age_range_4",
+    ###                  "ethnicity","sex","age_range",
+    ###                  "race","individual_id","ind_id_eth"):= 
+    ###                  hh_type_kids[.SD, c(list(in_family_type),list(family_role_3),list(age_range_4),
+    ###                                      list(ethnicity),list(sex),list(age_range),
+    ###                                      list(race),list(individual_id),list(ind_id_eth)), 
+    ###                               on = .(rel_kids3_id)]]
+    ###
+    #DO THE TESTS ON WHAT HASN'T BEEN FILLED, AND IT SHOULD ONLY BE GROUP_QUARTERS - BELOW
     #test 4a
-    #test <- table(hh_relations_dt$eth_age_range,hh_relations_dt$age_range_4)
+    #test <- table(hh_relations_dt$age_range,hh_relations_dt$age_range_4)
     #sum(colSums(test==0/nrow(test)*100))==42
-    #test <- table(hh_relations_dt$race_age_range,hh_relations_dt$age_range_4)
-    #sum(colSums(test==0/nrow(test)*100))==42
-    #tester <- hh_relations_dt[tract%in%unique(hh_type_kids$tract) & age_range_4=="0  to 17 years"]
-    #test <- table(tester$tract,
-    #              tester$eth_age_range,
-    #              tester$eth_sex_relations,
-    #              tester$ethnicity,
-    #              tester$race,
-    #              tester$race_age_range,
-    #              tester$race_sex_relations,
-    #              tester$in_family_type)==
-    #  table(hh_type_kids$tract,
-    #        hh_type_kids$eth_age_range,
-    #        hh_type_kids$eth_sex_relations,
-    #        hh_type_kids$ethnicity,
-    #        hh_type_kids$race,
-    #        hh_type_kids$race_age_range,
-    #        hh_type_kids$race_sex_relations,
-    #        hh_type_kids$in_family_type)
-    #length(test[test==F])==0
+    tester <- hh_relations_dt[tract%in%unique(hh_type_kids$tract) & age_range_4=="0  to 17 years"]
+    test <- table(#tester$tract,
+                  #tester$age_range,
+                  tester$sex#,
+                  #tester$ethnicity,
+                  #tester$race#,
+                  #tester$in_family_type
+                  )==
+      table(#hh_type_kids$tract,
+            #hh_type_kids$age_range,
+            hh_type_kids$sex#,
+            #hh_type_kids$ethnicity,
+            #hh_type_kids$race#,
+            #hh_type_kids$in_family_type
+            )
+    length(test[test==F])==0
         
-    #length(unique(hh_relations_dt$individual_id))-nrow(sex_age_race) #42659 (~1%) - mostly folks in group quarters, but 9k in hh
+    #length(unique(hh_relations_dt$individual_id))-nrow(sex_age_race) #~50k (~1%) - mostly folks in group quarters, but 9k in hh
     #get missing from hh_relations, ethnicity side
     #add tract back in from sex_age_race/eth with that as final source for each
+    
+    #get Group quarters matches
+    sex_age_race[!is.na(gq_race),("gq_race_id"):= 
+                   paste0(tract,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract)]
+    hh_relations_dt[group_or_hh=="In group quarters",
+                    ("gq_race_id"):=
+                      paste0(tract,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract)]
+    hh_relations_dt[group_or_hh=="In group quarters",
+                    c("race","sex","age_range","individual_id"):= 
+                      sex_age_race[.SD, c(list(race),list(sex),list(age_range),
+                                          list(individual_id)), 
+                                   on = .(gq_race_id)]]
+    sex_by_age_eth[!is.na(gq_eth),("gq_eth_id"):= 
+                   paste0(tract,sex,age_range,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract,sex,age_range)]
+    hh_relations_dt[group_or_hh=="In group quarters",
+                    ("gq_eth_id"):=
+                      paste0(tract,sex,age_range,
+                             as.character(1000000+sample(.N))),
+                    by=.(tract,sex,age_range)]
+    hh_relations_dt[group_or_hh=="In group quarters",
+                    c("ethnicity","sex","age_range","individual_id"):= 
+                      sex_by_age_eth[.SD, c(list(ethnicity),list(sex),list(age_range),
+                                          list(individual_id)), 
+                                   on = .(gq_eth_id)]]
+    
+    
     anti_sae_rel <- as.data.table(anti_join(sex_by_age_eth,hh_relations_dt,by="ind_id_eth"))
     #put trackers on b/c we haven't separated out race/eth yet
     hh_relations_dt[,("miss_id"):=paste0(tract,as.character(10000000+sample(.N))),by=.(tract)]
@@ -1164,13 +1450,14 @@ createIndividuals <- function() {
     #length(test[test==F])==0   
     
     #divide up eth/race for ease (should have done earlier)
-    hh_relations_eth <- hh_relations_dt[,c("ind_id_eth","tract","ethnicity","eth_sex_relations","eth_age_range","age_range_3","age_range_4",
+    hh_relations_eth <- hh_relations_dt[,c("ind_id_eth","tract","sex","ethnicity","eth_sex_relations","eth_age_range","age_range_3","age_range_4",
                                            "group_or_hh","family_or_non","relative","role_in_family","relation_hh",
-                                           "sr_hh_living_alone","in_family_type")]
-    hh_relations_race <- hh_relations_dt[,c("individual_id","tract","race","race_sex_relations","race_age_range","age_range_3","age_range_4",
+                                           "living_alone","in_family_type")]
+    hh_relations_race <- hh_relations_dt[,c("individual_id","tract","sex","race","race_sex_relations","race_age_range","age_range_3","age_range_4",
                                             "group_or_hh","family_or_non","relative","role_in_family","relation_hh",
-                                            "sr_hh_living_alone","in_family_type")]
-    
+                                            "living_alone","in_family_type")]
+    hh_relations_eth[sex=="none",("sex"):=eth_sex_relations]
+    hh_relations_race[sex=="none",("sex"):=race_sex_relations]
     
     #test 8  - suite
     #test <- table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations)==
