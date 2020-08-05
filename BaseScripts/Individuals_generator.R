@@ -91,7 +91,7 @@ createIndividuals <- function() {
                                                    on = .(married_id2)]]
     #
     anti_msr <- as.data.table(anti_join(marital_status_race_dt,marital_status_age_dt,by="married_id2"))
-    #nrow(anti_msr)/nrow(marital_status_race_dt) = 0.07409486
+    #nrow(anti_msr)/nrow(marital_status_race_dt) = 0.07409486 - this anti_msa gives you a way to shuffle age_range race from sex_race/eth_age 
     anti_msa <- as.data.table(anti_join(marital_status_age_dt,marital_status_race_dt,by="married_id2"))
     anti_msa[,("married2_id"):=  #letting it vary on marital status, so we can do that match
                paste0(tract,sex,race,
@@ -120,6 +120,9 @@ createIndividuals <- function() {
                              anti_msr[.SD, c(list(age_range),list(spouse_present),list(separated),
                                              list(place_born),list(marital_status),list(marital_status_5),list(individual_id)), 
                                       on = .(married_id2)]]
+#match back to age with both an ind_eth_id and an individual_id, so we can also do with relations
+    
+    
     #separate line developed for ethnicity
     marital_status_eth_dt[,("married_id3"):=
                              paste0(tract,marital_status,sex,ethnicity,
@@ -464,7 +467,7 @@ createIndividuals <- function() {
                                           list(individual_id),list(ind_id_eth)), 
                                    on = .(rel_sr7_id)]]
     #test no dups:
-    nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))
+    #nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))-1 #NAs count as one
     #4 tracts from sr_relations not in hh_relations
     #test3a - need to work this out - not working now
     #test<-table(hh_relations_dt[!is.na(age_range)]$tract,
@@ -630,7 +633,7 @@ createIndividuals <- function() {
                        hh_relations_dt[.SD,list(group_or_hh),
                                        on = .(rel_adults2_id)]]
     #test no dups:
-    nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))
+    #nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))-1
     #clean up on non-relatives vs. relatives
     hh_relations_dt[group_or_hh=="In households" & is.na(age_range) & !str_detect(role_in_family,"ild"), 
                     ("rel_adults3_id"):=
@@ -655,8 +658,40 @@ createIndividuals <- function() {
                        hh_relations_dt[.SD,list(group_or_hh),
                                        on = .(rel_adults3_id)]]
     #test no dups:
-    nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))
-    #nrow(hh_relations_dt[!is.na(age_range_3)])-nrow(adults_relations) # = -464 not at all sure what to do and if it's worth it... because sr_relations had gq!!!
+    nrow(hh_relations_dt[!is.na(individual_id)])==length(unique(hh_relations_dt[,individual_id]))-1
+    
+    #group_quarters are slightly off for adults_relations - making match with hh_relations gq counts, but after kids are mostly assigned
+    sex_age_race[age>17&age<65&!is.na(gq_race),("egq_adults_id"):=
+                   paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                 by=.(tract,sex,age_range)]
+    sex_by_age_eth[age>17&age<65&!is.na(gq_eth),("egq_adults_id"):=
+                     paste0(tract,sex,age_range,as.character(1000000+sample(.N))),
+                   by=.(tract,sex,age_range)]
+    sex_age_race[age>17&age<65&!is.na(gq_race),c("ethnicity","ind_id_eth"):=
+                   sex_by_age_eth[.SD,c(list(ethnicity),list(ind_id_eth)),
+                                  on = .(egq_adults_id)]]
+    hh_relations_dt[is.na(age_range)&group_or_hh=="In households"&str_detect(relative,"ouse"),
+                    ("rgq_adults_id"):=
+                      paste0(tract,as.character(1000000+sample(.N))),
+                    by=.(tract)]
+    sex_age_race[age>17&age<65&!is.na(gq_race),("rgq_adults_id"):=
+                   paste0(tract,as.character(1000000+sample(.N))),
+                 by=.(tract)]
+    hh_relations_dt[is.na(age_range)&group_or_hh=="In households"&str_detect(relative,"ouse"),#Householder and Spouse
+                    c("sex","age_range","ethnicity",
+                      "race","individual_id","ind_id_eth"):=
+                      sex_age_race[.SD, c(list(sex),
+                                          list(age_range),list(ethnicity),
+                                          list(race),
+                                          list(individual_id),list(ind_id_eth)), 
+                                   on = .(rgq_adults_id)]]
+    sex_age_race[age>17&age<65&!is.na(gq_race),("gq_race2"):=hh_relations_dt[.SD,list(group_or_hh),
+                                                                            on=.(rgq_adults_id)]]
+    sex_by_age_eth[age>17&age<65&!is.na(gq_eth),("gq_eth2"):=sex_age_race[.SD,list(gq_race2),
+                                                                          on=.(egq_adults_id)]]
+    sex_age_race[gq_race2=="In households",("gq_race"):=gq_race2]
+    sex_by_age_eth[gq_eth2=="In households",("gq_eth"):=gq_eth2]
+    
     #clean up ~ 600 edge cases? - test again!!
     hh_relations_dt[is.na(age_range_3) & str_detect(relative,"Parent"),("role_in_family") :="Son-in-law or daughter-in-law"]
     hh_relations_dt[is.na(age_range_3) & str_detect(relative,"Parent"),("relative") :="Son-in-law or daughter-in-law"]
@@ -768,6 +803,7 @@ createIndividuals <- function() {
                                                  list(ethnicity),list(sex),list(age_range),
                                                  list(race),list(individual_id),list(ind_id_eth)), 
                                                          on = .(rel_kids_id)]]
+    
     #p/u last 22k
     hh_type_kids[is.na(matched_fam),c("matched_17","matched_fam"):=
                    hh_relations_dt[.SD,c(list(group_or_hh),list(family_or_non)),on = .(rel_kids_id)]]
@@ -788,6 +824,10 @@ createIndividuals <- function() {
                                           list(ethnicity),list(sex),list(age_range),
                                           list(race),list(individual_id),list(ind_id_eth)), 
                                    on = .(rel_kids2_id)]]
+    
+    
+    
+#CHECK IF MISSING TRACTS IS ISSUE!!!    
     #p/u last 9k - get younger kids first, so that older ones are the ones in group_quarters??
     #7 listed as Spouse and 90 Nonrelatives, still - just moving them into Child
     ##hh_relations_dt[relative=="Spouse" | relative=="Nonrelatives",("relative"):="Child"]
