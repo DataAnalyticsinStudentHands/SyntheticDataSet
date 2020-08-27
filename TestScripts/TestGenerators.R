@@ -962,6 +962,39 @@ test <- table(sex_age_race[age>14]$tract,sex_age_race[age>14]$sex,sex_age_race[a
 test <- table(sex_by_age_eth[age>14]$tract,sex_by_age_eth[age>14]$sex,sex_by_age_eth[age>14]$age_range,sex_by_age_eth[age>14]$ethnicity)==
    table(marital_status_age_dt$tract,marital_status_age_dt$sex,marital_status_age_dt$age_range,marital_status_age_dt$ethnicity)
 length(test[test==F])==0
+#test 2b1
+test <- table(marital_status_race_dt$tract,
+              marital_status_race_dt$marital_status,
+              marital_status_race_dt$sex,
+              marital_status_race_dt$age_range
+)==table(marital_status_age_dt$tract,
+         marital_status_age_dt$marital_status_4,
+         marital_status_age_dt$sex,
+         marital_status_age_dt$age_range
+)
+length(test[test==F])==0
+#test 2b2
+test <- table(marital_status_eth_dt$tract,
+              marital_status_eth_dt$marital_status,
+              marital_status_eth_dt$sex,
+              marital_status_eth_dt$age_range
+)==table(marital_status_age_dt$tract,
+         marital_status_age_dt$marital_status_4,
+         marital_status_age_dt$sex,
+         marital_status_age_dt$age_range
+)
+length(test[test==F])==0
+#test 2b3
+test <- table(marital_status_eth_dt$tract,
+              marital_status_eth_dt$marital_status,
+              marital_status_eth_dt$sex,
+              marital_status_eth_dt$age_range
+)==table(marital_status_race_dt$tract,
+         marital_status_race_dt$marital_status,
+         marital_status_race_dt$sex,
+         marital_status_race_dt$age_range
+)
+length(test[test==F])==0
 #test2c
 test <- table(sex_age_race[age>14]$tract,sex_age_race[age>14]$sex,sex_age_race[age>14]$age_range,sex_age_race[age>14]$race)==
   table(marital_status_race_dt$tract,marital_status_race_dt$sex,marital_status_race_dt$age_range,marital_status_race_dt$race)
@@ -982,15 +1015,27 @@ length(test[test==F])==0
 test <- nrow(marital_status_eth_dt[!is.na(pregnant)]) == nrow(preg_eth_dt)
 test <- nrow(marital_status_race_dt[!is.na(pregnant)]) == nrow(preg_race_dt)
 
-#test3
-test<-table(sex_age_race[age>64]$tract,sex_age_race[age>64]$sex,sex_age_race[age>64]$race,sex_age_race[age>64]$age_range)==
-  table(sr_relations$tract,sr_relations$sex,sr_relations$race,sr_relations$age_range)
+#test3 - 
+nrow(sr_relations[is.na(race)])==0
+nrow(sr_relations)==length(unique(sr_relations$individual_id))
+nrow(sr_relations)==length(unique(sr_relations$ind_id_eth))
+test <- table(marital_status_race_dt[age>64]$tract,
+              marital_status_race_dt[age>64]$sex,
+              marital_status_race_dt[age>64]$race,
+              marital_status_race_dt[age>64]$ethnicity,
+              marital_status_race_dt[age>64]$place_born,
+              marital_status_race_dt[age>64]$marital_status,
+              marital_status_race_dt[age>64]$marital_status_5
+)==table(
+  sr_relations$tract,
+  sr_relations$sex,
+  sr_relations$race,
+  sr_relations$ethnicity,
+  sr_relations$place_born,
+  sr_relations$marital_status,
+  sr_relations$marital_status_5
+)
 length(test[test==F])==0
-test<-table(sex_by_age_eth[age>64]$tract,sex_by_age_eth[age>64]$sex,sex_by_age_eth[age>64]$ethnicity,sex_by_age_eth[age>64]$age_range)==
-  table(sr_relations$tract,sr_relations$sex,sr_relations$ethnicity,sr_relations$age_range)
-length(test[test==F])==0
-nrow(sex_age_race[!is.na(missing_race)])==nrow(sr_relations)
-nrow(sex_age_race[!is.na(missing_race)])==nrow(sex_age_race[age>64])
 #test3a - need to work this out - not working now
 test<-table(hh_relations_dt[!is.na(age_range)]$tract,
             hh_relations_dt[!is.na(age_range)]$race,
