@@ -1036,29 +1036,39 @@ test <- table(marital_status_race_dt[age>64]$tract,
   sr_relations$marital_status_5
 )
 length(test[test==F])==0
-#test3a - need to work this out - not working now
+#test3a 
 test<-table(hh_relations_dt[!is.na(age_range)]$tract,
             hh_relations_dt[!is.na(age_range)]$race,
             hh_relations_dt[!is.na(age_range)]$sex,
-            #hh_relations_dt[!is.na(age_range)]$living_alone, #two missing???
+            hh_relations_dt[!is.na(age_range)]$marital_status,
+            hh_relations_dt[!is.na(age_range)]$place_born,
+            #hh_relations_dt[!is.na(age_range)]$living_alone, #one missing???
             hh_relations_dt[!is.na(age_range)]$age_range
 )==
   table(sr_relations$tract,
         sr_relations$race,
         sr_relations$sex,
+        sr_relations$marital_status,
+        sr_relations$place_born,
         #sr_relations$living_alone,
         sr_relations$age_range
   )
 length(test[test==F])==0
 #test3b
-test<-table(sex_age_race[age>17&age<65&missing_race=="In households"]$tract,sex_age_race[age>17&age<65&missing_race=="In households"]$sex,
-            sex_age_race[age>17&age<65&missing_race=="In households"]$race,sex_age_race[age>17&age<65&missing_race=="In households"]$age_range)==
-  table(adults_relations[age_range_3!="65 years and over"]$tract,adults_relations[age_range_3!="65 years and over"]$race_sex_relations,
-        adults_relations[age_range_3!="65 years and over"]$race,adults_relations[age_range_3!="65 years and over"]$race_age_range)
-length(test[test==F])==0
-test<-table(sex_by_age_eth[age>17&age<65&missing_eth=="In households"]$tract,sex_by_age_eth[age>17&age<65&missing_eth=="In households"]$sex,
-            sex_by_age_eth[age>17&age<65&missing_eth=="In households"]$ethnicity,sex_by_age_eth[age>17&age<65&missing_eth=="In households"]$age_range)==
-  table(adults_relations[age_range_3!="65 years and over"]$tract,adults_relations[age_range_3!="65 years and over"]$eth_sex_relations,adults_relations[age_range_3!="65 years and over"]$ethnicity,adults_relations[age_range_3!="65 years and over"]$eth_age_range)
+test<-table(marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$tract,
+            marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$sex,
+            marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$age,
+            marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$marital_status_5,
+            marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$place_born,
+            marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$ethnicity,
+            marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$race)==
+  table(adults_relations[age_range_3!="65 years and over"]$tract,
+        adults_relations[age_range_3!="65 years and over"]$sex,
+        adults_relations[age_range_3!="65 years and over"]$age,
+        adults_relations[age_range_3!="65 years and over"]$marital_status_5,
+        adults_relations[age_range_3!="65 years and over"]$place_born,
+        adults_relations[age_range_3!="65 years and over"]$ethnicity,
+        adults_relations[age_range_3!="65 years and over"]$race)
 length(test[test==F])==0
 
 #test4
