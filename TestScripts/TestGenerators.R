@@ -1139,20 +1139,6 @@ test <- table(sex_by_age_eth$tract,
 )
 length(test[test==F])==0
 
-#test 5
-test<-nrow(hh_relations_dt[is.na(ind_id_eth)])==0
-test<-nrow(hh_relations_dt[is.na(eth_age_range)])==0
-test<-nrow(hh_relations_dt[is.na(individual_id)])==0
-test<-nrow(hh_relations_dt[is.na(race_age_range)])==0
-test<-length(unique(hh_relations_dt$ind_id_eth))==nrow(sex_by_age_eth)
-test<-length(unique(hh_relations_dt$individual_id))==nrow(sex_age_race)
-#redo 4a
-test<-table(hh_relations_dt$tract,hh_relations_dt$eth_age_range,hh_relations_dt$ethnicity,hh_relations_dt$eth_sex_relations)==
-  table(sex_by_age_eth$tract,sex_by_age_eth$age_range,sex_by_age_eth$ethnicity,sex_by_age_eth$sex)
-length(test[test==F])==0
-test<-table(hh_relations_dt$tract,hh_relations_dt$race_age_range,hh_relations_dt$race,hh_relations_dt$race_sex_relations)==
-  table(sex_age_race$tract,sex_age_race$age_range,sex_age_race$race,sex_age_race$sex)
-length(test[test==F])==0
 
 #test 6
 test <- table(sex_place_when_dt$tract,sex_place_when_dt$sex,sex_place_when_dt$sn_age_range)==
@@ -1223,27 +1209,56 @@ test <- table(place_born_age_full_dt$tract,
         place_born_race_dt$age_range_14)
 length(test[test==F])==0   
 
-#test 8  - suite
-test <- table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations)==
-  table(hh_relations_race$tract,hh_relations_race$race_sex_relations)
-length(test[test==F])==0
-test <- table(sex_by_age_eth$tract,sex_by_age_eth$sex)==
-  table(hh_relations_eth$tract,hh_relations_eth$eth_sex_relations)
-length(test[test==F])==0
-#eth_age_range and race_age_range don't match
-test <- table(hh_relations_eth$tract,hh_relations_eth$eth_age_range)==
-  table(hh_relations_race$tract,hh_relations_race$race_age_range)
-length(test[test==F])==0
-#but these each are true, so much better
-test <- table(sex_by_age_eth$tract,sex_by_age_eth$ethnicity,sex_by_age_eth$sex,sex_by_age_eth$age_range)==
-  table(hh_relations_eth$tract,hh_relations_eth$ethnicity,hh_relations_eth$eth_sex_relations,hh_relations_eth$eth_age_range)
-length(test[test==F])==0
-test <- table(sex_age_race$tract,sex_age_race$race,sex_age_race$sex,sex_age_race$age_range)==
-  table(hh_relations_race$tract,hh_relations_race$race,hh_relations_race$race_sex_relations,hh_relations_race$race_age_range)
+#test9
+table(hh_relations_eth[!is.na(latinx),place_born])-table(place_born_eth_dt$place_born)==c(0,0,0,0)
+test <- table(hh_relations_eth$tract,
+              hh_relations_eth$fb_citizen,
+              hh_relations_eth$fb_origin_place,
+              hh_relations_eth$fb_origin_country,
+              hh_relations_eth$latinx_family_origin,
+              hh_relations_eth$latinx,
+              hh_relations_eth$place_born
+)==table(
+  place_born_eth_dt$tract,
+  place_born_eth_dt$fb_citizen,
+  place_born_eth_dt$fb_origin_place,
+  place_born_eth_dt$fb_origin_country,
+  place_born_eth_dt$latinx_family_origin,
+  place_born_eth_dt$latinx,
+  place_born_eth_dt$place_born
+)
 length(test[test==F])==0
 
-#test 10
-#still close to 100k off, but not worth further effort
+#test9b
+test <- table(place_born_race_dt$tract,
+              place_born_race_dt$race,
+              place_born_race_dt$age_range
+)==table(
+  place_born_eth_dt$tract,
+  place_born_eth_dt$race,
+  place_born_eth_dt$age_range
+)
+length(test[test==F])==0
+
+#test10
+#table(hh_relations_race[!is.na(latinx),place_born])-table(place_born_race_dt$place_born)==c(0,0,0,0)
+test <- table(hh_relations_race$tract,
+              hh_relations_race$fb_citizen,
+              hh_relations_race$fb_origin_place,
+              hh_relations_race$fb_origin_country,
+              hh_relations_race$latinx_family_origin,
+              hh_relations_race$latinx,
+              hh_relations_race$place_born
+)==table(
+  place_born_race_dt$tract,
+  place_born_race_dt$fb_citizen,
+  place_born_race_dt$fb_origin_place,
+  place_born_race_dt$fb_origin_country,
+  place_born_race_dt$latinx_family_origin,
+  place_born_race_dt$latinx,
+  place_born_race_dt$place_born
+)
+length(test[test==F])==0
 
 #test 11
 test <- table(place_born_language_dt$tract,
@@ -1253,39 +1268,15 @@ test <- table(place_born_language_dt$tract,
         hh_relations_race$English_proficiency,
         hh_relations_race$fb_language_at_home)
 length(test[test==F])==0
-
-#test 12 pre
-test<-table(hh_relations_eth[substr(eth_age_range,1,2)>14,tract],
-            hh_relations_eth[substr(eth_age_range,1,2)>14,eth_sex_relations],
-            hh_relations_eth[substr(eth_age_range,1,2)>14,ethnicity],
-            hh_relations_eth[substr(eth_age_range,1,2)>14,eth_age_range])==
-  table(marital_status_eth_dt$tract,
-        marital_status_eth_dt$sex,
-        marital_status_eth_dt$ethnicity,
-        marital_status_eth_dt$age_range)
-length(test[test==F])==0
-test<-table(hh_relations_race[substr(race_age_range,1,2)>14,tract],
-            hh_relations_race[substr(race_age_range,1,2)>14,race_sex_relations],
-            hh_relations_race[substr(race_age_range,1,2)>14,race],
-            hh_relations_race[substr(race_age_range,1,2)>14,race_age_range])==
-  table(marital_status_race_dt$tract,
-        marital_status_race_dt$sex,
-        marital_status_race_dt$race,
-        marital_status_race_dt$age_range)
+test <- table(place_born_language_dt$tract,
+              place_born_language_dt$English_proficiency,
+              place_born_language_dt$language_at_home)==
+  table(hh_relations_eth$tract,
+        hh_relations_eth$English_proficiency,
+        hh_relations_eth$fb_language_at_home)
 length(test[test==F])==0
 
-#test 12
-test <- table(hh_relations_race[substr(race_age_range,1,2)>14,tract],
-              hh_relations_race[substr(race_age_range,1,2)>14,race],
-              hh_relations_race[substr(race_age_range,1,2)>14,race_sex_relations],
-              hh_relations_race[substr(race_age_range,1,2)>14,race_age_range],
-              hh_relations_race[substr(race_age_range,1,2)>14,marital_status])==
-  table(marital_status_race_dt$tract,
-        marital_status_race_dt$race,
-        marital_status_race_dt$sex,
-        marital_status_race_dt$age_range,
-        marital_status_race_dt$marital_status)
-length(test[test==F])==0
+
 
 
 

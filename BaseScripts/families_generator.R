@@ -28,8 +28,8 @@ createFamilies <- function() {
     
     
     
-    hh_relations_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_race_2020-07-27.RDS")
-    hh_relations_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_eth_2020-07-27.RDS")
+    hh_relations_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_race_2020-08-30.RDS")
+    hh_relations_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_eth_2020-08-30.RDS")
     sam_pw_hh_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_race_2020-07-26.RDS")
     sam_pw_hh_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_eth_2020-07-26.RDS")
 
