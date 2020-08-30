@@ -966,10 +966,22 @@ length(test[test==F])==0
 test <- table(marital_status_race_dt$tract,
               marital_status_race_dt$marital_status,
               marital_status_race_dt$sex,
+              marital_status_race_dt$race,
               marital_status_race_dt$age_range
 )==table(marital_status_age_dt$tract,
          marital_status_age_dt$marital_status_4,
          marital_status_age_dt$sex,
+         marital_status_age_dt$race,
+         marital_status_age_dt$age_range
+)
+length(test[test==F])==0
+test <- table(sex_age_race[age>14]$tract,
+              sex_age_race[age>14]$sex,
+              sex_age_race[age>14]$race,
+              sex_age_race[age>14]$age_range
+)==table(marital_status_age_dt$tract,
+         marital_status_age_dt$sex,
+         marital_status_age_dt$race,
          marital_status_age_dt$age_range
 )
 length(test[test==F])==0
@@ -977,10 +989,12 @@ length(test[test==F])==0
 test <- table(marital_status_eth_dt$tract,
               marital_status_eth_dt$marital_status,
               marital_status_eth_dt$sex,
+              marital_status_eth_dt$ethnicity,
               marital_status_eth_dt$age_range
 )==table(marital_status_age_dt$tract,
          marital_status_age_dt$marital_status_4,
          marital_status_age_dt$sex,
+         marital_status_age_dt$ethnicity,
          marital_status_age_dt$age_range
 )
 length(test[test==F])==0
@@ -988,10 +1002,12 @@ length(test[test==F])==0
 test <- table(marital_status_eth_dt$tract,
               marital_status_eth_dt$marital_status,
               marital_status_eth_dt$sex,
+              marital_status_eth_dt$ethnicity,
               marital_status_eth_dt$age_range
 )==table(marital_status_race_dt$tract,
          marital_status_race_dt$marital_status,
          marital_status_race_dt$sex,
+         marital_status_race_dt$ethnicity,
          marital_status_race_dt$age_range
 )
 length(test[test==F])==0
@@ -1060,6 +1076,7 @@ test<-table(marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$t
             marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$age,
             marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$marital_status_5,
             marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$place_born,
+            marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$pregnant,
             marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$ethnicity,
             marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$race)==
   table(adults_relations[age_range_3!="65 years and over"]$tract,
@@ -1067,35 +1084,59 @@ test<-table(marital_status_race_dt[age>17&age<65&group_or_hh=="In households"]$t
         adults_relations[age_range_3!="65 years and over"]$age,
         adults_relations[age_range_3!="65 years and over"]$marital_status_5,
         adults_relations[age_range_3!="65 years and over"]$place_born,
+        adults_relations[age_range_3!="65 years and over"]$pregnant,
         adults_relations[age_range_3!="65 years and over"]$ethnicity,
         adults_relations[age_range_3!="65 years and over"]$race)
 length(test[test==F])==0
 
-#test4
-nrow(hh_relations_dt[relation_hh=="Householder"])==nrow(hh_relations_dt[relative=="Householder"])
+#test3c
+test <- table(#hh_relations_dt[group_or_hh=="In group quarters" & !is.na(age_range),tract],
+  hh_relations_dt[group_or_hh=="In group quarters" & !is.na(age_range),pregnant])==
+  table(#marital_status_race_dt[group_or_hh=="In group quarters",tract],
+    marital_status_race_dt[group_or_hh=="In group quarters",pregnant])
+length(test[test==F])==0
 
-#test 4a
-test <- table(hh_relations_dt$eth_age_range,hh_relations_dt$age_range_4)
-sum(colSums(test==0/nrow(test)*100))==42
-test <- table(hh_relations_dt$race_age_range,hh_relations_dt$age_range_4)
-sum(colSums(test==0/nrow(test)*100))==42
-tester <- hh_relations_dt[tract%in%unique(hh_type_kids$tract) & age_range_4=="0  to 17 years"]
-test <- table(tester$tract,
-              tester$eth_age_range,
-              tester$eth_sex_relations,
-              tester$ethnicity,
-              tester$race,
-              tester$race_age_range,
-              tester$race_sex_relations,
-              tester$in_family_type)==
-  table(hh_type_kids$tract,
-        hh_type_kids$eth_age_range,
-        hh_type_kids$eth_sex_relations,
-        hh_type_kids$ethnicity,
-        hh_type_kids$race,
-        hh_type_kids$race_age_range,
-        hh_type_kids$race_sex_relations,
-        hh_type_kids$in_family_type)
+#test4 #there are 55 kids who didn't match a tract from marital!
+test <- table(hh_relations_dt[age_range!="15 to 17 years"]$tract,
+              hh_relations_dt[age_range!="15 to 17 years"]$race,
+              hh_relations_dt[age_range!="15 to 17 years"]$ethnicity,
+              hh_relations_dt[age_range!="15 to 17 years"]$sex,
+              hh_relations_dt[age_range!="15 to 17 years"]$pregnant,
+              hh_relations_dt[age_range!="15 to 17 years"]$place_born,
+              hh_relations_dt[age_range!="15 to 17 years"]$marital_status_5,
+              hh_relations_dt[age_range!="15 to 17 years"]$age_range)==
+  table(marital_status_race_dt[age_range!="15 to 17 years"]$tract,
+        marital_status_race_dt[age_range!="15 to 17 years"]$race,
+        marital_status_race_dt[age_range!="15 to 17 years"]$ethnicity,
+        marital_status_race_dt[age_range!="15 to 17 years"]$sex,
+        marital_status_race_dt[age_range!="15 to 17 years"]$pregnant,
+        marital_status_race_dt[age_range!="15 to 17 years"]$place_born,
+        marital_status_race_dt[age_range!="15 to 17 years"]$marital_status_5,
+        marital_status_race_dt[age_range!="15 to 17 years"]$age_range)
+length(test[test==F])==0
+
+#test4a 
+test <- table(sex_age_race$tract,
+              sex_age_race$sex,
+              sex_age_race$age_range,
+              sex_age_race$race
+)==table(
+  hh_relations_dt$tract,
+  hh_relations_dt$sex,
+  hh_relations_dt$age_range,
+  hh_relations_dt$race
+)
+length(test[test==F])==0
+test <- table(sex_by_age_eth$tract,
+              sex_by_age_eth$sex,
+              sex_by_age_eth$age_range,
+              sex_by_age_eth$ethnicity
+)==table(
+  hh_relations_dt$tract,
+  hh_relations_dt$sex,
+  hh_relations_dt$age_range,
+  hh_relations_dt$ethnicity
+)
 length(test[test==F])==0
 
 #test 5
