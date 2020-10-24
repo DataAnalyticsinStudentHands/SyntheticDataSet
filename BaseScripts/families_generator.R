@@ -30,8 +30,8 @@ createFamilies <- function() {
     
     hh_relations_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_race_2020-08-30.RDS")
     hh_relations_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_eth_2020-08-30.RDS")
-    sam_pw_hh_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_race_2020-07-26.RDS")
-    sam_pw_hh_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_eth_2020-07-26.RDS")
+   # sam_pw_hh_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_race_2020-07-26.RDS")
+  #  sam_pw_hh_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_eth_2020-07-26.RDS")
 
 #at some point pick these up - assuming they are after partner_workers, they have missing written on them for further matching....        
     #additional_workers_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/additional_workers_race_2020-07-25.RDS")
@@ -44,44 +44,77 @@ createFamilies <- function() {
     #first match Householder so it will get right pb etc. when expand on children
     #match on race/eth, age, sex [eth_sex_relations], in_family_type with family_role
     #still something weird around in_family_type=="In female householder no husband present family" having people who are married with spouse present
-    hh_relations_eth[role_in_family=="Householder",("family_role"):=case_when(
-      in_family_type=="In female householder no husband present family" ~ "Female householder no husband present",
-      in_family_type=="In male householder no wife present family" ~ "Male householder no wife present",
-      in_family_type=="In married-couple family" ~ "Married-couple family",
-      TRUE ~ in_family_type
-    )]
+    #hh_relations_eth[role_in_family=="Householder",("family_role"):=case_when(
+    #  in_family_type=="In female householder no husband present family" ~ "Female householder no husband present",
+    #  in_family_type=="In male householder no wife present family" ~ "Male householder no wife present",
+    #  in_family_type=="In married-couple family" ~ "Married-couple family",
+    #  TRUE ~ in_family_type
+    #)]
     hh_relations_eth[role_in_family=="Householder",("householder_age_9"):=case_when(
-      eth_age_range=="15 to 17 years" ~ "Householder 15 to 24 years",
-      eth_age_range=="18 to 19 years" ~ "Householder 15 to 24 years",
-      eth_age_range=="20 to 24 years" ~ "Householder 15 to 24 years",
-      eth_age_range=="25 to 29 years" ~ "Householder 25 to 34 years",
-      eth_age_range=="30 to 34 years" ~ "Householder 25 to 34 years",
-      eth_age_range=="35 to 44 years" ~ "Householder 35 to 44 years",
-      eth_age_range=="45 to 54 years" ~ "Householder 45 to 54 years",
-      eth_age_range=="55 to 64 years" ~ sample(c("Householder 55 to 59 years","Householder 60 to 64 years"),size=.N,replace = TRUE),
-      eth_age_range=="65 to 74 years" ~ "Householder 65 to 74 years",
-      eth_age_range=="75 to 84 years" ~ "Householder 75 to 84 years",
-      eth_age_range=="85 to 94 years" ~ "Householder 85 years and over",
-      TRUE ~ eth_age_range
+      age>14&age<25 ~ "Householder 15 to 24 years",
+      age>24&age<35 ~ "Householder 25 to 34 years",
+      age>34&age<45 ~ "Householder 35 to 44 years",
+      age>44&age<55 ~ "Householder 45 to 54 years",
+      age>54&age<60 ~ "Householder 55 to 59 years",
+      age>59&age<65 ~ "Householder 60 to 64 years",
+      age>64&age<75 ~ "Householder 65 to 74 years",
+      age>74&age<85 ~ "Householder 75 to 84 years",
+      age>84 ~ "Householder 85 years and over",
+      TRUE ~ age_range
     )]
-    #if marital_status_5 fixed, then family_role captures what we need... eth_sex is 
-    sam_pw_hh_eth[role_in_family=="Householder",("hh_match_id"):=
-                    paste0(tract,ethnicity,family_role,householder_age_9,as.character(1000000+seq.int(1:.N))),
-                  by=.(tract,ethnicity,family_role,householder_age_9)]
-    hh_relations_eth[role_in_family=="Householder",("hh_match_id"):=
-                    paste0(tract,ethnicity,family_role,householder_age_9,as.character(1000000+seq.int(1:.N))),
-                  by=.(tract,ethnicity,family_role,householder_age_9)]
+    sam_pw_hh_eth[English_level=="Speak only English",("English_level"):="Only English Speaker"]
+    hh_relations_eth[marital_status_5!="no status given",
+                     ("marital_status_gp"):=if_else(marital_status=="Now married",
+                                                     "Now married (including separated and spouse absent)",
+                                                    "Unmarried (never married widowed and divorced)")]
+    #get language and English_level as part of match, with when_moved_in as something controlled and marital_status of gp rspected..
+    #note that the grandkids / grandparents data from census doesn't line up, so some approximations done (see notes in householdsGenerator)
+    #do marital_status of gp and do English_level match? then do rest?
+    sam_pw_hh_eth[role_in_family=="Householder",
+                  ("hh_match_id"):=
+                    paste0(tract,sex,ethnicity,householder_age_9,
+                           marital_status_gp,English_level,as.character(1000000+seq.int(1:.N))),
+                  by=.(tract,sex,ethnicity,householder_age_9,
+                       marital_status_gp,English_level)]
+    hh_relations_eth[role_in_family=="Householder",
+                     ("hh_match_id"):=
+                    paste0(tract,sex,ethnicity,householder_age_9,
+                           marital_status_gp,English_proficiency,as.character(1000000+seq.int(1:.N))),
+                  by=.(tract,sex,ethnicity,householder_age_9,
+                       marital_status_gp,English_proficiency)]
+    hh_relations_eth[role_in_family=="Householder",
+                     c("household_id","inhousehold_id","housing_units",
+                        "people_per_room","hh_size","hh_size_10",
+                        "num_rooms","num_bedrooms","when_moved_in",
+                        "means_transport","number_workers_in_hh","industry","occupation",
+                        "commute_time","when_go_to_work","income_range_workers",
+                        "number_vehicles_hh","employment","husband_employed","wife_employed",
+                        "partner_type","sex_partner","own_kids","kids_by_age",
+                        "marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon",
+                        "non_hh_gkids_by_age","marital_status_gp","gp_respon",
+                        "gp_hh_parent_present","time_gp_respon"):=  
+                       sam_pw_hh_eth[.SD, c(list(household_id),list(inhousehold_id),list(housing_units),
+                                            list(people_per_room),list(hh_size),list(hh_size_10),
+                                            list(num_rooms),list(num_bedrooms),list(when_moved_in),
+                                            list(means_transport),list(number_workers_in_hh),list(industry),list(occupation),
+                                            list(commute_time),list(when_go_to_work),list(income_range_workers),
+                                            list(number_vehicles_hh),list(employment),list(husband_employed),list(wife_employed),
+                                            list(partner_type),list(sex_partner),list(own_kids),list(kids_by_age),
+                                            list(marital_status_non_hh_gp),list(non_hh_gp_respon),list(time_non_hh_gp_respon),
+                                            list(non_hh_gkids_by_age),list(marital_status_gp),list(gp_respon),
+                                            list(gp_hh_parent_present),list(time_gp_respon)), 
+                                     on = .(hh_match_id)]]
+    sam_pw_hh_eth[role_in_family=="Householder",
+                  ("matched"):=
+                    hh_relations_eth[.SD,household_id,on=.(hh_match_id)]]
     
     
     #expand first set of kids
-    sam_pw_hh_eth[,("kids_0_5"):=if_else(kids_by_age=="Under 6 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
+    hh_relations_eth[,("kids_0_5"):=if_else(kids_by_age=="Under 6 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
                                           1,0)]
-    sam_pw_hh_eth[,("kids_6_17"):=if_else(kids_by_age=="6 to 17 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
+    hh_relations_eth[,("kids_6_17"):=if_else(kids_by_age=="6 to 17 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
                                           1,0)]
-    sam_pw_hh_race[,("kids_0_5"):=if_else(kids_by_age=="Under 6 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
-                                         1,0)]
-    sam_pw_hh_race[,("kids_6_17"):=if_else(kids_by_age=="6 to 17 years only" | kids_by_age=="Under 6 years and 6 to 17 years",
-                                          1,0)]
+    
     #make kids, then add a .N on household_id, so we can subtract that from hh_size and see where we are
     #these kids are all related, and the relations stuff should let you break out for Grandchild, Child, and Adopted, etc.
     

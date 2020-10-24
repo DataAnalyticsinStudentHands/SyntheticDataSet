@@ -205,3 +205,9 @@ libraries <- st_read(paste0(houstondatadir, "COH_LIBRARIES/COH_LIBRARIES.shp"))
 #could do annual waste summaries, too: https://www.tceq.texas.gov/agency/data/lookup-data/ihw-datasets.html / https://www.tceq.texas.gov/tires/tires 
 #municipal solid waste https://www.tceq.texas.gov/permitting/waste_permits/msw_permits/msw-data 
 
+#enviromapper: https://geopub.epa.gov/myem/efmap/index.html?ve=13,29.760588,-95.369680&pText=77203,%20Houston,%20Texas
+#TRI: https://www.epa.gov/toxics-release-inventory-tri-program/find-understand-and-use-tri
+#https://svi.cdc.gov/data-and-tools-download.html (social vulnerability index)
+
+
+east_end_tracts = c("324200","311400","311300","311500","311600","311000","311100","310900","320200","320100")

@@ -351,6 +351,9 @@ createIndividuals <- function() {
     
     rm(list=ls(pattern="^preg"))
     
+    sam_pw_hh_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_race_2020-07-26.RDS")
+    sam_pw_hh_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_eth_2020-07-26.RDS")
+    
     #put an age/race on seniors, to recalibrate at end and to store references to group_quarters
     #test <- table(sr_relations$tract)==table(sex_age_race[age>64]$tract) 
     #clean up a bit - these are roughly equal in number, just moving a bit to get lined up

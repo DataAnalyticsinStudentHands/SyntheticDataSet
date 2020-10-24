@@ -304,9 +304,10 @@ covid_divergencel[latinx_id>1,c("race"):="Latinx"]
 covid_d <- bind_rows(covid_divergencea,covid_divergenceb,covid_divergencew,covid_divergencel)
 covid_d[,("County"):=str_remove(County," County")]
 
-library(ggalluvial)
 library(ggplot2)
+library(ggalluvial)
 library(hrbrthemes)
+library(viridisLite)
 library(viridis)
 ggplot(covid_d[County%in%c("Harris","Bexar","Travis")],
        aes(
@@ -586,5 +587,7 @@ ggplot(as.data.frame(Master),
   scale_x_continuous(breaks = 1:3, labels = c("race", "essential_worker", "work_from_home")) +
   #coord_flip() +
   ggtitle("Covid Chart from Brandon")
+
+
 
 
