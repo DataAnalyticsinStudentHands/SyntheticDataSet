@@ -16,7 +16,7 @@ createFamilies <- function() {
     print(sprintf("Done reading sam residents RDS from %s", sam_residents_data_file ))
   } else {
     
-    #get relations and start matching... preferring numbers from individual totals when necessary - need to redo with LaTex 
+    #get relations and start matching... preferring numbers from individual totals when necessary - need to redo with LaTex or quiver
     
     
     #should remember kids_grand_age, too
