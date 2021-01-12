@@ -354,6 +354,69 @@ createIndividuals <- function() {
     sam_pw_hh_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_race_2020-07-26.RDS")
     sam_pw_hh_eth <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/sam_pw_hh_eth_2020-07-26.RDS")
     
+    marital_status_race_dt[,("householder_age_9"):=case_when(
+      age < 25 ~ "Householder 15 to 24 years",
+      age > 24 & age < 35 ~ "Householder 25 to 34 years",
+      age > 34 & age < 45 ~ "Householder 25 to 34 years",
+      age > 44 & age < 55 ~ "Householder 45 to 54 years",
+      age > 54 & age < 60 ~ "Householder 54 to 59 years",
+      age > 59 & age < 65 ~ "Householder 60 to 64 years",
+      age > 64 & age < 75 ~ "Householder 65 to 74 years",
+      age > 74 & age < 85 ~ "Householder 75 to 84 years",
+      TRUE ~ "Householder 85 years and over"
+    )]
+    sam_pw_hh_race[,("marital_match"):=case_when( #gets a shallow copy warning
+      family_role == "Married-couple family" ~ "Married",
+      family_role == "Wife" ~ "Married",
+      TRUE ~ "Not married"
+    )]
+    marital_status_race_dt[,("marital_match"):=if_else(
+      marital_status_5!="Now married except separated","Not married","Married"
+    )]
+    sam_pw_hh_eth[,("marital_match"):=case_when( #gets a shallow copy warning
+      family_role == "Married-couple family" ~ "Married",
+      family_role == "Wife" ~ "Married",
+      TRUE ~ "Not married"
+    )]
+    sam_pw_hh_race[,("hh_marital_id"):=
+                   paste0(tract,sex,householder_age_9,race,marital_match,
+                          as.character(1000000+sample(.N))),
+                 by=.(tract,sex,householder_age_9,race,marital_match)]
+    marital_status_race_dt[,("hh_marital_id"):=
+                             paste0(tract,sex,householder_age_9,race,marital_match,
+                                    as.character(1000000+sample(.N))),
+                           by=.(tract,sex,householder_age_9,race,marital_match)]
+    marital_status_race_dt[,c(c("household_id","inhousehold_id","own_rent","family","family_type",
+                                "family_role","family_role_4","single_hh_sex",
+                                "housing_units","housing_units_6","num_structures","people_per_room",
+                                "hh_size","hh_size_4","hh_size_10","num_rooms","num_bedrooms","when_moved_in",
+                                "means_transport","number_workers_in_hh","industry","occupation",
+                                "commute_time","when_go_to_work","income_range_workers",
+                                "number_vehicles_hh","kids_by_age","own_kids",
+                                "husband_employed","wife_employed","single_hh_employed",
+                                "partner_type","sex_partner","role_in_family",
+                                "marital_status_non_hh_gp","non_hh_gp_respon","time_non_hh_gp_respon","non_hh_gkids_by_age", 
+                                "marital_status_gp","gp_respon","gp_hh_parent_present","time_gp_respon")):=
+                     sam_pw_hh_race[.SD, c(list(household_id),list(inhousehold_id),list(own_rent),list(family),
+                                           list(family_type),list(family_role),list(family_role_4),list(single_hh_sex),
+                                           list(housing_units),list(housing_units_6),list(num_structures),list(people_per_room),
+                                           list(hh_size),list(hh_size_4),list(hh_size_10),list(num_rooms),list(num_bedrooms),
+                                           list(when_moved_in),list(means_transport),list(number_workers_in_hh),list(industry),
+                                           list(occupation),list(commute_time),list(when_go_to_work),list(income_range_workers),
+                                           list(number_vehicles_hh),list(kids_by_age),list(own_kids),list(husband_employed),
+                                           list(wife_employed),list(single_hh_employed),list(partner_type),list(sex_partner),
+                                           list(role_in_family),list(marital_status_non_hh_gp),list(non_hh_gp_respon),
+                                           list(time_non_hh_gp_respon),list(non_hh_gkids_by_age),list(marital_status_gp),
+                                           list(gp_respon),list(gp_hh_parent_present),list(time_gp_respon)), 
+                                    on = .(hh_marital_id)]]
+    sam_pw_hh_race[,("missing_hh_race"):=
+                     marital_status_race_dt[.SD, c(list(race)), on = .(hh_marital_id)]]
+    
+    
+    marital_status_eth2_dt <- marital_status_race_dt[,c("sex","marital_status","age_range","age","preg_age_range",
+                                                        "spouse_present","separated","place_born","marital_status_5",
+                                                        "ethnicity","ind_id_eth","pregnant","householder_age_9")]
+    
     #put an age/race on seniors, to recalibrate at end and to store references to group_quarters
     #test <- table(sr_relations$tract)==table(sex_age_race[age>64]$tract) 
     #clean up a bit - these are roughly equal in number, just moving a bit to get lined up
@@ -379,10 +442,10 @@ createIndividuals <- function() {
       relative=="Householder" & family_or_non=="In family households" & sex=="Male" ~ "Now married", #this puts them all in first match, then spreads them out on last
       TRUE ~ "Not married" # marital_match
     )]
-    marital_status_race_dt[,("marital_match"):=if_else(
-      marital_status_5!="Now married except separated","Not married","Now married"
+#    marital_status_race_dt[,("marital_match"):=if_else(
+##      marital_status_5!="Now married except separated","Not married","Now married"
       #marital_status!="Now married","Not married","Now married"
-    )]
+#    )]
     #sr_relations only has sex for householders living alone or not
     sr_relations[group_or_hh=="In households",("race_sr_id"):=
                    paste0(tract,sex,marital_match,
