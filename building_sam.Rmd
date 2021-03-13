@@ -15,9 +15,30 @@ date: "`r Sys.Date()`"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Sam City - Houston on a first name basis
-Sam started as an effort to think more carefully about how individuals are embedded in a context and how to model the relations between individual and aggregated levels of health outcomes. Story of why teaching CHWs and being involved in the HCAT with HUD was so important.
+Sam started as an effort to think more carefully about how individuals are embedded in a context and how to model the relations between individual and aggregated levels of health outcomes. Our team had been involved in adapting and developing mapping tools for non-professional community members to help policy makers decide on priorities for different sorts of interventions. At the same time, we were starting the Community Health Worker Initiative, which used a project-based curriculum to provide Texas' certification for community health workers. The core of the course was built around advocacy through better communication, and we were disappointed to find that the mapping tools were not particularly well-suited for communicating strengths in a community, even when explicitly engaged in "asset mapping," and other techniques for communicating strengths. The Sam City project utilized several approaches, both in terms of visualization and modeling, to better convey individual and aggregate levels of strength and potential pathways for enhancing individual and community capacity to succeed in shared project development. 
 
-The idea is to show how a strengths based model also requires a more careful representation of individual trajectories. Teaching communication / advocacy as opposed to the idea that they already have all the capacity they need and only need obstacles removed. The process of communication is the process of finding ways to share a project with other people - to work together toward an end of some sort. 
+The beginning intuition is that the dichotomy between system and individual suffers from a fundamental and avoidable contradiction in the representation of transformation over time. This contradiction takes slightly different forms in varying approaches, but is captured broadly in the idea that the surface of representation is properly the place where interactions are determined to have happened in one way or another. Instead, the structuring across time should be envisioned as continuous constraint on possible outcomes, as time passes, even though individuals may experience opening possibilities as particular structural barriers are removed at the intersection of larger systems. The limiting of possible outcomes - as opposed to the instantaneous creation of determined limits at a given time, against which other times are compared - should be respected as the structuring movement of the representational space across time. 
+
+In order to properly capture this alternative sense of structuring, we will utilize some of the tools of applied category theory. We will try to generate an understanding of the need for that move concretely, and without assuming the reader has knowledge of any particular mathematical discipline in advance of the motivating examples. 
+
+By way of preview, and as a sketch for much larger conceptual work that will have to be completed elsewhere, we note that there are philosophical arguments about the ways in which the speaking subject grounds category theory [Lawvere on Hegel; Badiou, Livingston], and how structuralism grounds different interpretations of category theory as emerging from either topological or set-theoretical impulses,  but broad agreement on the grand strokes of the development of the approach. Category theory began as an abstraction about mathematical theories, and more specifically the understanding that the transformations implied in different operations could be understood by concentrating on the transformation of the ways of phrasing a claim (the morphisms) even when the operations were not comparable and did not allow for a determined solution. (The idea that functions can be solved in a unified approach to representation arising from set theory continues to animate much mathematical work, but is explicitly not a feature of topology and thus only a subset of category theory). This allows category theory to treat mathematical tools and theorems as objects with structure, fundamentally connected to the idea that different ways of saying the same thing can be compared - as "equal" (as in two functions producing the same determined result), "equivalent" (as in two ways of saying something are the same), "isomorphic" (two transformations can be inverted in such a way that the "shapes" are the same) or "adjoint" (the inversion of the transformations allows for a shared delimitation of the conceptual space) ways of talking about a mathematical claim. The objects of those theories are compared and how they embody fundamental decisions about the representational regimes of the competing theories are made explicit. Applied category theory notes that this sense of being able to represent situations in different ways is also found in applied mathematics, and that a process of eliciting structures from understanding how the different possible representations relate is available in concrete use cases. 
+
+The concluding intuition is that mathematical approaches that communicate the structures of transformative activity allow different ways of mapping activity to be compared, both in terms of how well each describes a situation, and how well each points to potential future work, both individually and as groups. To do such, we need to employ mathematical tools that capture transformative activity, that respect individual difference and embed individual activity within shared projects. Models developed with these tools allow the unifying representation of human activity to reflect and embody the strength of communicating ideas to others and working in common toward a transforming world. 
+
+##Plan of this argument
+Introduction of Sam as a representational problem
+Embedding as levels - promise and shortcomings
+Embedding in a determinative context - promise and shortcomings
+Embedding within a structuring field - promise and shortcomings
+Embedding as a set of paths - promise and shortcomings
+Embedding arrows that are not sets of functions - promise and future work
+
+
+##Mapping and communicating possibility.
+
+Story of why teaching CHWs and being involved in the HCAT with HUD was so important.
+
+The idea is to show how a strengths based model also requires a more careful representation of individual trajectories. Teaching communication / advocacy as opposed to the idea that they already have all the capacity they need and only need obstacles removed. The process of communication is the process of finding ways to share a project with other people - to work together toward an end of some sort. Math is also a way of learning to speak to each other - of finding common ways of speaking. And at certain levels of abstraction, it's no longer that you have to learn an arcane set of rules, but that you can understand schematically how we differ in our ways of talking - and how that is different from multiple perspectives, or from complexity.
 
 Even in Emile, the teacher has to employ artifice to bring out the natural; there's something about learning something that is not natural that is needed to make the innate strengths flourish.
 
@@ -39,6 +60,34 @@ How it avoids/subsumes the Markov condition.
 Group theory; rings. 
 
 Hypergraphs
+
+## Census data and individuals as determined by the intersection of factors
+This is broadly true of any way we talk about factors determining an outcome, but here we are talking about what it means for a neighborhood to represent a structure that determines outcomes. Eventually, we will speak of more traditional biomedical outcomes, like heart attacks and diabetes, but begin with determinate descriptive outcomes like whether an individual is married, has children, or is employed. The census data is provided to the public in a way that masks individual identities but allows us to demonstrate the power of representing constraint as the structuring movement of the developing identities. 
+
+For our beginning example, the American Community Survey takes decennial census data and updates it every year based on models generated from a large and detailed survey (~3 million people and ?? questions). The modeled population is available to the researchers who created it at the individual level, but the public is given tables at the census tract block group level [explain], with separate tables that contain estimated error margins. Of course, one of the more disturbing aspects of our data capacities in the last decade has been to render that bashful approach to shileding individual data essentially moot. Business interests, and political parties, now boast of incredibly detailed knowledge (or well-educated guesses) concerning almost every real resident at the household level. Our purpose was heuristic, and allows for control of the mapping process without concerns about having unethically accessed individual data. 
+
+Take, for example, the tables for race, ethnicity, age and gender, as provided for Harris County, Texas, which encompasses most of Houston. 
+```r {table_demographics}
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(data.table)
+source('BaseScripts/Census_Data.R')
+#maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
+maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+#maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
+housingdir = paste0(maindir,"HCAD/")
+houstondatadir = paste0(maindir,"HoustonCityData/") 
+censusdir = paste0(maindir,"Census/") 
+vintage = 2017 
+#numberOfCores = 1
+state = 48
+county = 201
+tract = "*"
+group_name = "B01001"
+
+#make a table for the race_eth_age_sex
+```
 
 
 ## R Markdown

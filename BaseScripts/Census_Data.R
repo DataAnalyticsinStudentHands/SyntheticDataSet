@@ -15,10 +15,9 @@ library(data.table)
 #' @param county The county for which the data is being pulled
 #' @param groupname the variable groupname we are pulling the data for
 #' @return census_data A dataframe of the Census data used for simulations in this package
-censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county, tract, censuskey, groupname) {
-  
+censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num, tract, censuskey, groupname) {
   #check whether file for the requested group data already exists
-  file_path <- paste0(censusdir, vintage, "/downloaded/", state, "_", county, "_", groupname, ".csv")
+  file_path <- paste0(censusdir, vintage, "/downloaded/", state, "_", county_num, "_", groupname, ".csv")
   if (file.exists(file_path)) {
     print(sprintf("Reading file from %s", file_path))
     result <- read_csv(file_path, col_types = cols())
@@ -37,7 +36,9 @@ censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county, tra
                                          key = censuskey)
     
     #transpose the data to be joined with variable information after filter for county
-    acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == 201) %>%
+    #have to test if county == county works below, instead of hard-coding
+    #acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == 201) %>%
+    acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == county_num) %>%
       gather(var, value, -tract) %>% 
       spread(tract, value)
     
