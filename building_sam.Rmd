@@ -1,0 +1,83 @@
+---
+title: "Building Sam"
+output: html_document
+#output: pdf_document
+#header-includes:
+#  - \usepackage{titling}
+#  - \pretitle{\begin{center}
+#    \includegraphics[width=2in,height=2in]{CHWI_Color.png}\LARGE\\}
+#  - \posttitle{\end{center}}
+author: "Dan Price"
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Sam City - Houston on a first name basis
+Sam started as an effort to think more carefully about how individuals are embedded in a context and how to model the relations between individual and aggregated levels of health outcomes. Story of why teaching CHWs and being involved in the HCAT with HUD was so important.
+
+The idea is to show how a strengths based model also requires a more careful representation of individual trajectories. Teaching communication / advocacy as opposed to the idea that they already have all the capacity they need and only need obstacles removed. The process of communication is the process of finding ways to share a project with other people - to work together toward an end of some sort. 
+
+Even in Emile, the teacher has to employ artifice to bring out the natural; there's something about learning something that is not natural that is needed to make the innate strengths flourish.
+
+The current description of the social context of health is often shortened to "the social determinants of health" and it is explicitly designed to combat the idea that disease happens to individuals in isolation. The earlier introduction of the social-ecological model of health, in the 1970s, had been directed against the ascendance of the language of personal responsibility, etc., and introduces the idea that preventive health - especially as it depends on behavior change - is embedded in a determinative context. 
+[Marmot book; https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(05)71146-6/fulltext; Bronfenbrenner, U. (1979). The Ecology of Human Development: Experiments by Nature and Design. Cambridge, Massachusetts: Harvard University Press. (ISBN 0-674-22457-4)]
+
+The longer trajectory of the development of epidemiological approaches to modeling public health includes the articulation of the "ecological fallacy" and concentration on individual as opposed to aggregate levels of analysis. [Krieger - Revisiting Robinson:... ; could expand with Spider, Summing to 100 and book]
+
+Although there are many approaches to systems thinking, this tension between individual and community levels of analyses in one way or another depends on a theory of the structure of causation that is appropriate to the idea of health. The WHO definition of health as well-being, and not as the absence of disease, however, creates a difficulty for measurement, both at individual and aggregate levels. Healthy outcomes, if not the overcoming of a particular disease, are experienced as a feeling of robust personal, family, and community well-being in physical and psychological terms. We follow the shorthand of speaking of this starting point for measurement as "strengths," and recognize that even if it helpfully keeps us from seeing individuals and communities as passively shaped by circumstance, it still must account for the community-level effects. We propose thinking of these as "constraints," and model them as acting on strengths, both at individual and community levels, but as channeling potential outcomes along independent trajectories rather than as opposed forces within a single encompassing system of forces in opposition to each other. This puts it at odds with the representation of self-interested actors or independent particles exchanging forces within a physically deterministic system.
+
+Note on Hilbert spaces and PCA sorts of things?
+
+Note on channeling vs. perspective; operator spaces vs. multiplying complexity
+
+Note on outcomes as points on the trajectory in the operator space and not as endpoints with their own orthorgonality, etc.; that this gets you to quantum vs. relativistic / Riemannian ideas of continuity. 
+
+How it avoids/subsumes the Markov condition.
+
+Group theory; rings. 
+
+Hypergraphs
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+x <- seq(-10, 10, length= 30)
+y <- x
+f <- function(x, y) { r <- sqrt(x^2+y^2); 10 * sin(r)/r }
+z <- outer(x, y, f)
+z[is.na(z)] <- 1
+op <- par(bg = "white")
+persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue")
+persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue",
+      ltheta = 120, shade = 0.75, ticktype = "detailed",
+      xlab = "X", ylab = "Y", zlab = "Sinc( r )"
+) -> res
+round(res, 3)
+```
+
+```{r volcano}
+z <- 2 * volcano        # Exaggerate the relief
+x <- 10 * (1:nrow(z))   # 10 meter spacing (S to N)
+y <- 10 * (1:ncol(z))   # 10 meter spacing (E to W)
+## Don't draw the grid lines :  border = NA
+par(bg = "slategray")
+persp(x, y, z, theta = 135, phi = 30, col = "green3", scale = FALSE,
+      ltheta = -120, shade = 0.75, border = NA, box = FALSE)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
