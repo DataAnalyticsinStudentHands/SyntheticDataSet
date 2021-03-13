@@ -25,7 +25,9 @@ createFamilies <- function() {
     #on sam_hh already kids_ages_dt #5 age range, family_type - F/M householder or married couple - only own_kids - needs related kids to find
     
     
-    
+    #Gulfton: gulfton_tracts <- unique(`HCAD_res_2020-03-29`[superneighborhood=="GULFTON",tract])#421500 421600 421401 421101 421700 421403
+    #East End: east_end_tracts <- c("324200","311400","311300","311500","311600","311000","311100","310900","320200","320100") #need to compare with list
+    #Sunnyside: sunnyside_tracts <- unique(`HCAD_res_2020-03-29`[superneighborhood=="SUNNYSIDE",tract]) #331100 332000 331200 331800 331300 331400 331900 <NA>
     
     
     hh_relations_race <- readRDS("/Users/dan/Downloads/UH_OneDrive/OneDrive - University Of Houston/Social Network Hypergraphs/HCAD/2017/hh_relations_race_2020-08-30.RDS")

@@ -210,4 +210,4 @@ libraries <- st_read(paste0(houstondatadir, "COH_LIBRARIES/COH_LIBRARIES.shp"))
 #https://svi.cdc.gov/data-and-tools-download.html (social vulnerability index)
 
 
-east_end_tracts = c("324200","311400","311300","311500","311600","311000","311100","310900","320200","320100")
+east_end_tracts <- c("324200","311400","311300","311500","311600","311000","311100","310900","320200","320100")
