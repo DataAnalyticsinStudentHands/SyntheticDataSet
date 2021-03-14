@@ -67,7 +67,7 @@ This is broadly true of any way we talk about factors determining an outcome, bu
 For our beginning example, the American Community Survey takes decennial census data and updates it every year based on models generated from a large and detailed survey (~3 million people and ?? questions). The modeled population is available to the researchers who created it at the individual level, but the public is given tables at the census tract block group level [explain], with separate tables that contain estimated error margins. Of course, one of the more disturbing aspects of our data capacities in the last decade has been to render that bashful approach to shileding individual data essentially moot. Business interests, and political parties, now boast of incredibly detailed knowledge (or well-educated guesses) concerning almost every real resident at the household level. Our purpose was heuristic, and allows for control of the mapping process without concerns about having unethically accessed individual data. 
 
 Take, for example, the tables for race, ethnicity, age and gender, as provided for Harris County, Texas, which encompasses most of Houston. 
-```r {table_demographics}
+```{r table_demographics}
 library(tidyr)
 library(dplyr)
 library(stringr)
@@ -85,7 +85,7 @@ state = 48
 county = 201
 tract = "*"
 group_name = "B01001"
-
+sex_by_age_race_data_from_census[1:13,2:9]
 #make a table for the race_eth_age_sex
 ```
 

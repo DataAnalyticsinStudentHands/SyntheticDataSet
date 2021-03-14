@@ -8,7 +8,7 @@
 # got Parcels 2015, Hwy, School, City, Sub_poly (subdivisions), TIRZ
 #on 12/27/2019 got 2017 of Parcels, and most recent of others
 
-#got 2015 acct information from: http://pdata.hcad.org/download/2015.html
+#got 2015 acct information from: http://pdata.hcad.org/download/2015.html - 2005 - 2020 is available.
 # PP-files, real_account, and real_building
 #downloaded 2017 from http://pdata.hcad.org/download/2017.html on Dec. 27, 2019.
 
