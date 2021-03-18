@@ -53,7 +53,10 @@ exp_census <- function() {
     #                   ("num_eth_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]  #seq.int can also be by sample
     #clean up variables
     #create factor levels
-    
+    dec_vintage <- "2010"
+    dec_sex_by_age <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "PCT12")
+    dec_race <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "P3")
+    dec_eth <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "P5")
     #go back to the most detailed individual level without duplication to assign missing pieces from build
     #concept is SEX BY AGE for each race / ethnicity - 4525519 2017 Harris County
     sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")

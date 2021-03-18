@@ -64,7 +64,7 @@ Hypergraphs
 ## Census data and individuals as determined by the intersection of factors
 This is broadly true of any way we talk about factors determining an outcome, but here we are talking about what it means for a neighborhood to represent a structure that determines outcomes. Eventually, we will speak of more traditional biomedical outcomes, like heart attacks and diabetes, but begin with determinate descriptive outcomes like whether an individual is married, has children, or is employed. The census data is provided to the public in a way that masks individual identities but allows us to demonstrate the power of representing constraint as the structuring movement of the developing identities. 
 
-For our beginning example, the American Community Survey takes decennial census data and updates it every year based on models generated from a large and detailed survey (~3 million people and ?? questions). The modeled population is available to the researchers who created it at the individual level, but the public is given tables at the census tract block group level [explain], with separate tables that contain estimated error margins. Of course, one of the more disturbing aspects of our data capacities in the last decade has been to render that bashful approach to shileding individual data essentially moot. Business interests, and political parties, now boast of incredibly detailed knowledge (or well-educated guesses) concerning almost every real resident at the household level. Our purpose was heuristic, and allows for control of the mapping process without concerns about having unethically accessed individual data. 
+For our beginning example, the American Community Survey takes decennial census data and updates it every year based on models generated from a large and detailed survey (~3 million people and ?? questions). The modeled population is available to the researchers who created it at the individual level, but the public is given tables at the census tract block group level [explain], with separate tables that contain estimated error margins. Of course, one of the more disturbing aspects of our data capacities in the last decade has been to render that bashful approach to shileding individual data essentially moot. Business interests, and political parties, now boast of incredibly detailed knowledge (or well-educated guesses) concerning almost every real resident at the household level. Our purpose was heuristic, and allows for control of the mapping process without concerns about having unethically accessed individual data. [cf. Census' history of privacy protections: https://www.census.gov/library/visualizations/2019/comm/history-privacy-protection.html]
 
 Take, for example, the tables for race, ethnicity, age and gender, as provided for Harris County, Texas, which encompasses most of Houston. 
 ```{r table_demographics}
@@ -85,9 +85,43 @@ state = 48
 county = 201
 tract = "*"
 group_name = "B01001"
-sex_by_age_race_data_from_census[1:13,2:9]
+sex_by_age_race_data_from_census[order(sex_by_age_race_data_from_census$concept,sex_by_age_race_data_from_census$label),2:9]
 #make a table for the race_eth_age_sex
 ```
+
+The census has announced that it will use differential privacy methods in future releases of data (starting with 2020) and it has used a number of different ways to both store and release data that mask the underlying identities of respondents. [https://www.census.gov/content/dam/Census/library/working-papers/2018/adrm/Disclosure%20Avoidance%20Techniques%20for%20the%201970-2010%20Censuses.pdf; Zayatz, L. (2007). Disclosure avoidance practices and research at the U.S. census bureau: An update. Journal of Official Statistics, 23(2), 253.] The American Community Survey also reviews its releases for various levels, and what one finds is that even at the census tract level, the numbers of people in the cell of a crosstab will be improbably set, as a combination of data suppression and swapping means that the reported numbers are not usable at that level of analysis. If you look at just one section of ages by gender, before getting into the further specification around race and ethnicity, you see implausibly non-linear distributions.
+```{r specification_plot}
+sex_by_age_spec <- sex_by_age_race_data_from_census[order(sex_by_age_race_data_from_census$concept,sex_by_age_race_data_from_census$label),2:19]
+sex_by_age_spec[1:24,c(1,16:18)]
+```
+
+How would we decide if this distribution is by chance? Let's look at a couple of graphs? Maybe it's too much to ask people to think about the whole paradigm of statistics as subject-based point of seeing and judging whether something is likely to have been by chance or has a cause, is part of the issue. Is a Bayesian prior enough to solve the issue? Can we bring that to bear, here? There are two different implicit pictures of the underlying geometry involved. In one, the intersection of forces occurs at a surface that is determined by the current situation - an assessment of the data or evidence given - and lines of force are drawn back from it into various causal systems that might explain the event. In that geometry, each system might have a different logic of organization, but they all come together, in the form of a representation of the given fact at a given time (which can be abstractly large, but has a unity). The other geometry, stops being representable as "a" geometry, and it has lines of force that move through what is given in the evidence, and that don't necessarily converge in a single moment, or determinate being as "the case" or the "way things are, were, or will be" as determined. The example here can make that sense of topology clear, but let's take several steps.
+First, what steps might you take to decide if the distribution in question is statistically likely? It's a question that depends on a number of decisions one must make about the categories at stake. For example, if one looks at the female population in 211600 (lower Fifth Ward), one can regroup to have the same size age gaps, and ask how likely it is that 65-69 has 0, and 60-64 has 107. Or, that 70-74 has 64, 80-84 has 58, but 75-79 has 0. [The point being that the way in which that collides with the need to distribute by race, and across other tracts drives the distribution differently than just throwing the dice at each square; matching by the distribution in the decennial? (which has each year)] - could try to do it as solving simultaneous equations or as a group of possible linked transformations. (like guessing how it fits)
+
+[How the ACS gets it wrong: The story of the American Community
+Survey and a small, inner city neighborhood; Applied Geography, 2013]
+[NRC on Group Quarters from 2012 - Small Populations, Large Effects]
+[NAS, 2007 - Using the American Community Survey: Benefits and Challenges]
+[Folch, 2016 Spatial Variation in the Quality of the American Community Survey Estimates]
+[Swanson, 2012, An Evaluation of Persons per Household (PPH) Estimates Generated by the American Community Survey: A Demographic Perspective]
+[download 500 cities data for Census tract; https://chronicdata.cdc.gov/browse?category=500+Cities+%26+Places&sortBy=newest&utf8]
+[OData endpoint for 500 cities; https://chronicdata.cdc.gov/api/odata/v4/yjkw-uj5s ; https://chronicdata.cdc.gov/500-Cities-Places/PLACES-Census-Tract-Data-GIS-Friendly-Format-2020-/yjkw-uj5s;
+https://www.cdc.gov/places/about/500-cities-2016-2019/index.html
+https://www.urban.org/sites/default/files/publication/90376/500-cities-project_1.pdf]
+[Kong, 2020 - The Use of Small Area Estimates in Place-Based Health Research (we have pdf)]
+[Gourevitch, 2019: City-Level Measures of Health, Health
+Determinants, and Equity to Foster Population
+Health Improvement: The City Health Dashboard]
+[Small Area Estimation:
+500 Cities, SMART and BRFSS Data for New Orleans and Baton Rouge; 2016 - compares ranges for health outcome estimates]
+[SAE_Drexel.pdf explains how small area estimation is done]
+[cluster analysis - 2018_PCD_500cities.pdf]
+[State and Local Chronic Disease Surveillance Using Electronic Health Record Systems, 2017]
+
+
+
+[I remember an article comparing 500 cities to a small known neighborhood and saying they only used some of the variables to avoid overfitting]
+
 
 
 ## R Markdown

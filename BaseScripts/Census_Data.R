@@ -114,13 +114,14 @@ decennial_Census_DataFromAPI_byGroupName <- function(censusdir, dec_vintage, sta
     dec_data_for_vars <- getCensus(name = "dec/sf1",
                                          vintage = dec_vintage,
                                          vars = c("NAME", dec_variables$name),
-                                         region = paste0("block:*"), 
-                                         regionin = paste0("state:", state,"+county:",county,"+tract:*"),
+                                         region = paste0("tract:*"),
+                                         #region = paste0("block:*"), #block seems to always be too small to report
+                                         regionin = paste0("state:", state,"+county:",county),#,"+tract:*"),
                                          key = censuskey) %>%
     #transpose the data to be joined with variable information 
-      mutate(geoid_15 = paste0(state,"_",county,"_",tract,"_",block)) %>%
-      gather(var, value, -geoid_15) %>% 
-      spread(geoid_15, value)
+     # mutate(geoid_15 = paste0(state,"_",county,"_",tract,"_",block)) %>%
+      gather(var, value, -tract) %>% 
+      spread(tract, value) #spread(geoid_15, value)
     
     #join data and variable information and remove unnecessary columns
     result <- dplyr::left_join(dec_variables, dec_data_for_vars, by = c("name" = "var")) %>%
