@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Sam City - Houston on a first name basis
 Sam started as an effort to think more carefully about how individuals are embedded in a context and how to model the relations between individual and aggregated levels of health outcomes. Our team had been involved in adapting and developing mapping tools for non-professional community members to help policy makers decide on priorities for different sorts of interventions. At the same time, we were starting the Community Health Worker Initiative, which used a project-based curriculum to provide Texas' certification for community health workers. The core of the course was built around advocacy through better communication, and we were disappointed to find that the mapping tools were not particularly well-suited for communicating strengths in a community, even when explicitly engaged in "asset mapping," and other techniques for communicating strengths. The Sam City project utilized several approaches, both in terms of visualization and modeling, to better convey individual and aggregate levels of strength and potential pathways for enhancing individual and community capacity to succeed in shared project development. 
 
-The beginning intuition is that the dichotomy between system and individual suffers from a fundamental and avoidable contradiction in the representation of transformation over time. This contradiction takes slightly different forms in varying approaches, but is captured broadly in the idea that the surface of representation is properly the place where interactions are determined to have happened in one way or another. Instead, the structuring across time should be envisioned as continuous constraint on possible outcomes, as time passes, even though individuals may experience opening possibilities as particular structural barriers are removed at the intersection of larger systems. The limiting of possible outcomes - as opposed to the instantaneous creation of determined limits at a given time, against which other times are compared - should be respected as the structuring movement of the representational space across time. 
+The beginning intuition is that the dichotomy between system and individual suffers from a fundamental and avoidable contradiction in the representation of transformation over time. This contradiction takes slightly different forms in varying approaches, but is captured broadly in the idea that the surface of representation is properly the place where interactions are determined to have happened in one way or another. Instead, the structuring across time should be envisioned as continuous constraint on possible outcomes, as time passes; even though individuals may experience a sense of opening possibilities as particular structural barriers are removed at the intersection of larger systems, the more original structuring movement is the constraint within which the sense of opening comes to be defined. The limiting of possible outcomes - not the instantaneous creation of determined limits at a given time standing in the way of a sui generis self-enclosed thing in itself that is determined as one thing at one time and against which other times are compared - should be respected as the structuring movement of the representational space across time. 
 
 In order to properly capture this alternative sense of structuring, we will utilize some of the tools of applied category theory. We will try to generate an understanding of the need for that move concretely, and without assuming the reader has knowledge of any particular mathematical discipline in advance of the motivating examples. 
 
@@ -49,6 +49,16 @@ The longer trajectory of the development of epidemiological approaches to modeli
 
 Although there are many approaches to systems thinking, this tension between individual and community levels of analyses in one way or another depends on a theory of the structure of causation that is appropriate to the idea of health. The WHO definition of health as well-being, and not as the absence of disease, however, creates a difficulty for measurement, both at individual and aggregate levels. Healthy outcomes, if not the overcoming of a particular disease, are experienced as a feeling of robust personal, family, and community well-being in physical and psychological terms. We follow the shorthand of speaking of this starting point for measurement as "strengths," and recognize that even if it helpfully keeps us from seeing individuals and communities as passively shaped by circumstance, it still must account for the community-level effects. We propose thinking of these as "constraints," and model them as acting on strengths, both at individual and community levels, but as channeling potential outcomes along independent trajectories rather than as opposed forces within a single encompassing system of forces in opposition to each other. This puts it at odds with the representation of self-interested actors or independent particles exchanging forces within a physically deterministic system.
 
+We should also note how this relates to thinking about language. Constraint, as opposed to determination, in what you name - as you work toward what is worth saying, you choose what you are constrained by in the saying - by an idea of eternal truth, by a sense of responding to the original question? By responding to a universal question? Probably below, but the idea that equality is about numbers being the same; equivalence is about ways of saying being the same; isomorphism is about invertibility of the equivalence (and homotopy as the idea that a continuous transformation between topologies is possible); adjunction is that they are describing paired ways of describing in the same regime. 
+
+If you're trying to really work through the idea of coherence / equivalence, part of the point of the stories is that you don't have to get to a one-to-one correspondence to get at the coherence of the situation and an understanding of the way toward a better space of agreement.
+
+More importantly, the point behind the matching on Sam is that you're trying to match along trajectories - each stage as a percentage of the choices applied at individual level, not a percentage versus the total context. Rethinking possibility.
+
+Telling a story is a preorder - whether you're trying to tell a story with statistics or a narrative; with categories or by situating in a space.
+
+The ethics of telling a story that is true - and figuring out how to make that truth resonant with a future that is well-formed, and not one that is simply "more" is TD
+
 Note on Hilbert spaces and PCA sorts of things?
 
 Note on channeling vs. perspective; operator spaces vs. multiplying complexity
@@ -68,24 +78,11 @@ For our beginning example, the American Community Survey takes decennial census 
 
 Take, for example, the tables for race, ethnicity, age and gender, as provided for Harris County, Texas, which encompasses most of Houston. 
 ```{r table_demographics}
-library(tidyr)
-library(dplyr)
-library(stringr)
-library(data.table)
-source('BaseScripts/Census_Data.R')
-#maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
-maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
-#maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
-housingdir = paste0(maindir,"HCAD/")
-houstondatadir = paste0(maindir,"HoustonCityData/") 
-censusdir = paste0(maindir,"Census/") 
-vintage = 2017 
-#numberOfCores = 1
-state = 48
-county = 201
-tract = "*"
-group_name = "B01001"
-sex_by_age_race_data_from_census[order(sex_by_age_race_data_from_census$concept,sex_by_age_race_data_from_census$label),2:9]
+#ACS data 2017 
+ACS_sar_2017 <-as.data.table(sex_by_age_race_data_from_census)
+FW_ACS_SAR_2017 <- ACS_sar_2017[str_detect(label,"Female")&!str_detect(concept,"O")]
+FW_ACS_SAR_2017 <- FW_ACS_SAR_2017[order(label),list(`label`,`211600`,`211300`,`211100`,`211200`,`211000`,`211700`)]
+FW_ACS_SAR_2017
 #make a table for the race_eth_age_sex
 ```
 

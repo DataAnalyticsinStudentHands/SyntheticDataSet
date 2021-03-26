@@ -38,7 +38,12 @@ exp_census <- function() {
     #setup race codes https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
     acs_race_codes <- c("A","B","C","D","E","F","G") #could collect all - add them up, without H and I, and you get the total! H is white alone, not hispanic and I is hispanic and if you add them up they don't equal white alone
     #acs_ethnicity <- c("H","I") #H is White Alone, not Hispanic or Latino; I is Hispanic or Latino #usually just use !acs_race_codes
-    
+    #for comparison with decennial: 
+    #dec_vintage <- "2010"
+    #dec_sex_by_age_bg <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "P12")
+    #dec_sex_by_age_bg_black <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "P12B")
+    #dec_race_bg <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "P3")
+    #dec_eth_bg <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "P5")
         
     #may have better way of dealing with age numbers...
     #add age_range to work for merge with marital data, uses data.table to make this fast
@@ -53,13 +58,9 @@ exp_census <- function() {
     #                   ("num_eth_id"):=paste0(tract,family_role,as.character(1000000+seq.int(1:.N))),by=.(tract,family_role)]  #seq.int can also be by sample
     #clean up variables
     #create factor levels
-    dec_vintage <- "2010"
-    dec_sex_by_age <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "PCT12")
-    dec_race <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "P3")
-    dec_eth <- decennial_Census_DataFromAPI_byGroupName(censusdir, dec_vintage, state, county, tract, censuskey, groupname = "P5")
     #go back to the most detailed individual level without duplication to assign missing pieces from build
     #concept is SEX BY AGE for each race / ethnicity - 4525519 2017 Harris County
-    sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")
+    sex_by_age_race_data_from_census_2010 <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!"),
              race = substr(name,7,7)) %>%
