@@ -60,7 +60,7 @@ exp_census <- function() {
     #create factor levels
     #go back to the most detailed individual level without duplication to assign missing pieces from build
     #concept is SEX BY AGE for each race / ethnicity - 4525519 2017 Harris County
-    sex_by_age_race_data_from_census_2010 <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001")
+    sex_by_age_race_data_from_census_2013 <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001",tr_bg = "bg")
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!"),
              race = substr(name,7,7)) %>%
@@ -139,7 +139,7 @@ exp_census <- function() {
     
     #I think it has one for age and one for race; then join to age_race and join that to hh_type / eth and race, then put eth together?
     #concept:SEX BY MARITAL STATUS BY AGE FOR THE POPULATION 15 YEARS AND OVER == nrow(sex_age_race[age>14]) - 3494885
-    marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002")
+    marital_status_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B12002",tr_bg = "tr")
     marital_status_race_data <- marital_status_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%
@@ -260,7 +260,7 @@ exp_census <- function() {
     rm(pregnancy_data_race_marriage_from_census)
     
     #concept:SEX BY AGE BY EDUCATIONAL ATTAINMENT FOR THE POPULATION 18 YEARS AND OVER - 
-    sex_age_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B15001") 
+    sex_age_educ_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B15001",tr_bg = "bg") 
     sex_age_educ_data <- sex_age_educ_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!")) %>%
       filter(label != "Estimate!!Total") %>%

@@ -16,7 +16,7 @@ library(dplyr)
 #' @param county The county for which the data is being pulled
 #' @param groupname the variable groupname we are pulling the data for
 #' @return census_data A dataframe of the Census data used for simulations in this package
-censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num, tract, censuskey, groupname) {
+censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num, tract, censuskey, groupname,tr_bg) {
   #check whether folders exist
   if (file.exists(paste0(censusdir,vintage,"/downloaded"))){
     print(sprintf("found folder %s", paste0(censusdir,vintage,"/downloaded")))
@@ -53,31 +53,59 @@ censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num,
       filter(name != "GEO_ID") %>%
       filter(str_detect(name, groupname))
     
-    acs_data_for_vars_state <- getCensus(name = "acs/acs5",
-                                         vintage = vintage,
-                                         vars = c("NAME", acs_variables$name),
-                                         region = paste0("tract:", tract), 
-                                         regionin = paste0("state:", state),
-                                         key = censuskey)
-    #transpose the data to be joined with variable information after filter for county
-    acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == county_num) %>%
-      gather(var, value, -tract) %>% 
-      spread(tract, value)
+    if(tr_bg == "bg"){
+      acs_data_for_vars_state <- getCensus(name = "acs/acs5",
+                                           vintage = vintage,
+                                           vars = c("NAME", acs_variables$name),
+                                           region = paste0("block group:*"), 
+                                           regionin = paste0("state:", state,"+county:",county,"+tract:*"),
+                                           key = censuskey)
+      #transpose the data to be joined with variable information after filter for county
+      acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == county_num) %>%
+        mutate(geoid_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
+        gather(var, value, -geoid_15) %>% 
+        spread(geoid_15, value)
+    }else{
+      acs_data_for_vars_state <- getCensus(name = "acs/acs5",
+                                           vintage = vintage,
+                                           vars = c("NAME", acs_variables$name),
+                                           region = paste0("tract:", tract), 
+                                           regionin = paste0("state:", state),
+                                           key = censuskey)
+      #transpose the data to be joined with variable information after filter for county
+      acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == county_num) %>%
+        gather(var, value, -tract) %>% 
+        spread(tract, value)
+    }
     
     acs_variables$nameM <- paste0(substr(acs_variables$name,1,nchar(as.character(acs_variables$name))-1),"M")
     #https://ccrpc.org/wp-content/uploads/2015/02/american-community-survey-guide.pdf
     #https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch07.pdf for discussion of error reporting
     #https://www.census.gov/programs-surveys/acs/technical-documentation/variance-tables.html to calculate new margins for combined geographies
-    acs_err_for_vars_state <- getCensus(name = "acs/acs5",
-                                         vintage = vintage,
-                                         vars = c("NAME", acs_variables$nameM),
-                                         region = paste0("tract:", tract), 
-                                         regionin = paste0("state:", state),
-                                         key = censuskey)
+    if(tr_bg == "bg"){
+      acs_err_for_vars_state <- getCensus(name = "acs/acs5",
+                                          vintage = vintage,
+                                          vars = c("NAME", acs_variables$nameM),
+                                          region = paste0("block group:*"), 
+                                          regionin = paste0("state:", state,"+county:",county,"+tract:*"),
+                                          key = censuskey)
     #transpose the data to be joined with variable information after filter for county
-    acs_err_for_vars_county <- filter(acs_err_for_vars_state, county == county_num) %>%
-      gather(var, value, -tract) %>% 
-      spread(tract, value)
+      acs_err_for_vars_county <- filter(acs_err_for_vars_state, county == county_num) %>%
+        mutate(geoid_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
+        gather(var, value, -geoid_15) %>% 
+        spread(geoid_15, value)
+    }else{
+      acs_err_for_vars_state <- getCensus(name = "acs/acs5",
+                                          vintage = vintage,
+                                          vars = c("NAME", acs_variables$nameM),
+                                          region = paste0("tract:", tract), 
+                                          regionin = paste0("state:", state),
+                                          key = censuskey)
+      #transpose the data to be joined with variable information after filter for county
+      acs_err_for_vars_county <- filter(acs_err_for_vars_state, county == county_num) %>%
+        gather(var, value, -tract) %>% 
+        spread(tract, value)
+    }
     acs_err_for_vars_county$nameE <- paste0(substr(acs_err_for_vars_county$var,1,nchar(as.character(acs_err_for_vars_county$var))-1),"E")
     
     #join data and variable information and remove unnecessary columns
@@ -85,7 +113,7 @@ censusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num,
       select(-predicateType, -group, -limit, -attributes, -required)
     
     result <- dplyr::left_join(resultEst, acs_err_for_vars_county, by = c("name" = "nameE"),
-                               suffix = c("_e","_m")) %>%  #e is for Estimate Total and m is for Margin of Error
+                               suffix = c("_e","_m")) # #e is for Estimate Total and m is for Margin of Error
       
     print("Writing census file for variable group as csv ...")
     write_csv(result,file_path)
@@ -135,7 +163,7 @@ decennial_Census_DataFromAPI_byGroupName <- function(censusdir, dec_vintage, sta
                                          vintage = dec_vintage,
                                          vars = c("NAME", dec_variables$name),
                                          #region = paste0("tract:*"),
-                                         region = paste0("block group:*"), #block seems to always be too small to report
+                                         region = paste0("block group:*"), 
                                          regionin = paste0("state:", state,"+county:",county,"+tract:*"),
                                          key = censuskey) %>%
     #transpose the data to be joined with variable information 
