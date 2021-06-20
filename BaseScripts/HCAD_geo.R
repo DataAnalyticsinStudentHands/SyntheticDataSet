@@ -209,5 +209,7 @@ libraries <- st_read(paste0(houstondatadir, "COH_LIBRARIES/COH_LIBRARIES.shp"))
 #TRI: https://www.epa.gov/toxics-release-inventory-tri-program/find-understand-and-use-tri
 #https://svi.cdc.gov/data-and-tools-download.html (social vulnerability index)
 
+#might be interesting to look at pulse surveys around covid, too: https://www.census.gov/programs-surveys/household-pulse-survey/data.html#phase3.1
+
 
 east_end_tracts <- c("324200","311400","311300","311500","311600","311000","311100","310900","320200","320100")
