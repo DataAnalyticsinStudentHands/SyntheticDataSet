@@ -15,10 +15,6 @@ HCAD_parcels <- readRDS(paste0(censusdir, vintage, "/temp/HCAD_parcels_valid.RDS
 
 #add geo information from U.S. census: https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.2017.html
 #my download is 12/27/2019
-censustracts <- st_read(paste0(censusdir, vintage, "/geo_census/cb_", vintage, "_", state, "_tract_500k/cb_", vintage, "_", state, "_tract_500k.shp"))
-# put them in same CRS as Parcels
-censustracts <- st_transform(censustracts, st_crs(HCAD_parcels))
-
 
 
 #https://catalog.data.gov/dataset/tiger-line-shapefile-2017-county-harris-county-tx-topological-faces-polygons-with-all-geocodes-

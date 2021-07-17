@@ -29,7 +29,7 @@ exp_census <- function() {
   } else {
     
     #get the census key
-    censuskey <- readLines(paste0(censusdir, vintage, "/key"))
+    censuskey <- readLines(paste0(censusdir, "2017", "/key"))
     
     #American community survey 1yr variables: https://api.census.gov/data/2018/acs/acs1/variables.html
     #American community survey 5yr variables: https://api.census.gov/data/2018/acs/acs5/variables.html
@@ -59,8 +59,9 @@ exp_census <- function() {
     #clean up variables
     #create factor levels
     #go back to the most detailed individual level without duplication to assign missing pieces from build
+    #for census block-group, you can get sex by age, but not sex_by_age by race (you can get that for 2010, but need to add together lots of files)
     #concept is SEX BY AGE for each race / ethnicity - 4525519 2017 Harris County
-    sex_by_age_race_data_from_census_2013 <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001",tr_bg = "bg")
+    sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001",tr_bg = "tr")
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!"),
              race = substr(name,7,7)) %>%
