@@ -284,14 +284,14 @@ block_est_CensusDataFromAPI_byGroupName <- function(censusdir, vintage, state, c
       rbindlist(fill = TRUE) %>%
       filter(name != "GEO_ID") %>%
       filter(str_detect(name, groupname))
-    acs_data_for_vars_state <- getCensus(name = "acs/acs5",
+    acs_data_for_vars_county <- getCensus(name = "acs/acs5",
                                          vintage = vintage,
                                          vars = c("NAME", acs_variables$name),
                                          region = paste0("block group:*"), 
-                                         regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
+                                         regionin = paste0("state:", state,"+county:",county,"+tract:*"),
                                          key = censuskey)
     #transpose the data to be joined with variable information after filter for county
-    acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == county_num) %>%
+    acs_data_for_vars_county <- acs_data_for_vars_county %>%
       mutate(geoid_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
       gather(var, value, -geoid_15) %>% 
       spread(geoid_15, value)
