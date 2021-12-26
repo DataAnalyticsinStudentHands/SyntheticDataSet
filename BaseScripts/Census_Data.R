@@ -13,11 +13,14 @@ library(dplyr)
 #' @param censusdir The base_url for the API
 #' @param vintage The census data year
 #' @param state The state for which the data is being pulled
-#' @param county_num "all" or the county for which the data is being pulled; other FIPS only work at tract level without changing call to getCensus
 #' @param groupname the variable groupname we are pulling the data for
+#' @param county_num the census code for the county - only needed if there are blockgroups
+#' @param api_type the census api called from - https://www.census.gov/data/developers/data-sets.html
+#' @path_suff the suffix for the variable file and whether estimate or error - either "est.csv" | "err.csv" | "dec.csv"
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
-est_StateCensusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname){
+#tools
+valid_file_path <- function(censusdir,vintage,state,api_type,block,groupname,path_suff){
   folder_path <- paste0(censusdir,vintage,"/state_",state)
   if (file.exists(paste0(folder_path,"/downloaded"))){
     print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))
@@ -30,399 +33,93 @@ est_StateCensusData_byGroupName <- function(censusdir,vintage,state,censuskey,gr
     }
     print(sprintf("created folder %s", paste0(folder_path,"/downloaded")))
   }
-  file_path <- paste0(censusdir,vintage,"/state_",state,"/downloaded/", state, "_", groupname, "_est.csv")
-  if (file.exists(file_path)){
-    result <- read_csv(file_path, col_types = cols())
-    print(sprintf("Reading file from %s", file_path))
-  }else{
-    # get census variables from variables metadata file for a group
-    variables_json <- paste0(censusdir, vintage, "/Variables_MetaData.json")
-    if (!file.exists(variables_json)){
-      acs_variables_new <- listCensusMetadata(
-        name = paste0(vintage,"/acs/acs5"), 
-        type = "variables") 
-      write_json(acs_variables_new,variables_json)
-      print(sprintf("retrieved variable options from census api"))
-    }else{
-      print(sprintf("Read variable options from %s", variables_json))
-    }
-    #do I need to do something to keep it from trying to read too fast after write?
-    acs_variables <- read_json(variables_json) %>%
-      map(as.data.table) %>%
-      rbindlist(fill = TRUE) %>%
-      filter(name != "GEO_ID") %>%
-      filter(str_detect(name, groupname))
-    acs_data_for_vars_state <- getCensus(name = "acs/acs5",
-                                         vintage = vintage,
-                                         vars = c("NAME", acs_variables$name),
-                                         region = paste0("tract:", tract), 
-                                         regionin = paste0("state:", state),
-                                         key = censuskey)
-    #transpose the data to be joined with variable information 
-    acs_data_for_vars <- acs_data_for_vars_state %>%
-      mutate(GEOID = paste0(state,county,tract)) %>%
-      gather(var, value, -GEOID) %>% 
-      spread(GEOID, value)
-    #join data and variable information and remove unnecessary columns
-    result <- dplyr::left_join(acs_variables, acs_data_for_vars, by = c("name" = "var")) %>%
-      select(-predicateType, -group, -limit, -attributes, -required)
-    print("Writing census file for variable group as csv ...")
-    write_csv(result,file_path)
-    print("Done.")
-  } 
-  return(result)
+  api <- str_replace_all(api_type,"/","_")
+  file_path <- paste0(censusdir,vintage,"/state_",state,"/downloaded/", state, "_", api, "_", block, "_", groupname, "_", path_suff)
+  return(file_path)
 }
 
-err_StateCensusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname){
-  folder_path <- paste0(censusdir,vintage,"/state_",state)
-  if (file.exists(paste0(folder_path,"/downloaded"))){
-    print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))
+#https://www.census.gov/data/developers/data-sets.html
+#"/acs/acs5" / "dec/pl" (2020) / "dec/sf1" or dec/sf2 or dec/pl (2010 summary) / 2000 has 4 summary files and demo profiles
+#https://www.census.gov/data/developers/data-sets/decennial-census.2000.html
+valid_census_vars <- function(censusdir, vintage, api_type, groupname){ 
+  api <- str_replace_all(api_type,"/","_")
+  variables_json <- paste0(censusdir, vintage, "/Variables_",api,".json")
+  if (!file.exists(variables_json)){
+    census_variables <- listCensusMetadata(
+      name = paste0(vintage,"/",api_type), 
+      type = "variables") 
+    write_json(census_variables,variables_json)
+    print(sprintf("retrieved variable options from census api"))
   }else{
-    if (!file.exists(paste0(folder_path))){
-      dir.create(paste0(folder_path))
-      dir.create(paste0(folder_path,"/downloaded"))
-    }else{
-      dir.create(paste0(folder_path,"/downloaded"))
-    }
-    print(sprintf("created folder %s", paste0(folder_path,"/downloaded")))
+    #census_variables <- read_json(variables_json)
+    print(sprintf("Read variable options from %s", variables_json))
   }
-  file_path <- paste0(censusdir,vintage,"/state/",state,"/downloaded/", state, "_", groupname, "_err.csv")
-  if (file.exists(file_path)){
-    result <- read_csv(file_path, col_types = cols())
-    print(sprintf("Reading file from %s", file_path))
+  #doing read here and not in else, above, doesn't seem right, but otherwise returns nested lists...
+  if(str_detect(api_type,"dec")){
+    census_variables_dt <- read_json(variables_json) %>%
+      map(as.data.table) %>%
+      rbindlist(fill = TRUE) %>%
+      filter(name != "GEO_ID") %>%
+      filter(str_detect(group, groupname))
   }else{
-    # get census variables from variables metadata file for a group
-    variables_json <- paste0(censusdir, vintage, "/Variables_MetaData.json")
-    if (!file.exists(variables_json)){
-      acs_variables_new <- listCensusMetadata(
-        name = paste0(vintage,"/acs/acs5"), 
-        type = "variables") 
-      write_json(acs_variables_new,variables_json)
-      print(sprintf("retrieved variable options from census api"))
-    }else{
-      print(sprintf("Read variable options from %s", variables_json))
-    }
-    #do I need to do something to keep it from trying to read too fast after write?
-    acs_variables <- read_json(variables_json) %>%
+    census_variables_dt <- read_json(variables_json) %>%
       map(as.data.table) %>%
       rbindlist(fill = TRUE) %>%
       filter(name != "GEO_ID") %>%
       filter(str_detect(name, groupname))
-    acs_variables$nameM <- paste0(substr(acs_variables$name,1,nchar(as.character(acs_variables$name))-1),"M")
-    #https://ccrpc.org/wp-content/uploads/2015/02/american-community-survey-guide.pdf
-    #https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch07.pdf for discussion of error reporting
-    #https://www.census.gov/programs-surveys/acs/technical-documentation/variance-tables.html to calculate new margins for combined geographies
-    acs_data_for_vars_state <- getCensus(name = "acs/acs5",
-                                         vintage = vintage,
-                                         vars = c("NAME", acs_variables$nameM),
-                                         region = paste0("tract:", tract), 
-                                         regionin = paste0("state:", state),
-                                         key = censuskey)
-    #transpose the data to be joined with variable information 
-    acs_data_for_vars <- acs_data_for_vars_state %>%
-      mutate(GEOID = paste0(state,county,tract)) %>%
-      gather(var, value, -GEOID) %>% 
-      spread(GEOID, value)
-    #join data and variable information and remove unnecessary columns
-    result <- dplyr::left_join(acs_variables, acs_data_for_vars_state, by = c("name" = "var")) %>%
-      select(-predicateType, -group, -limit, -attributes, -required)
-    print("Writing census file for variable group as csv ...")
-    write_csv(result,file_path)
-    print("Done.")
-  } 
-  return(result)
+  }
+  return(census_variables_dt)
 }
 
-#may just do joins at state, and then filter for smaller geographies - this does county selection before writing csv
-est_CensusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num, tract, censuskey, groupname) {
-  #check whether folders exist
-  folder_path <- paste0(censusdir,vintage,"/",state,"_",county_num)
-  if (file.exists(paste0(folder_path,"/downloaded"))){
-    print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))
-    }else{
-      if (!file.exists(folder_path)){
-        dir.create(folder_path)
-        dir.create(paste0(folder_path,"/downloaded"))
-      }else{
-        dir.create(paste0(folder_path,"/downloaded"))
+censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,county_num,block,api_type,path_suff){
+  file_path <- valid_file_path(censusdir,vintage,state,api_type,block,groupname,path_suff)
+  if (file.exists(file_path)){
+    result <- read_csv(file_path, col_types = cols())
+    print(sprintf("Reading file from %s", file_path))
+  }else{
+    census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
+    if(path_suff=="err.csv"){
+      census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
+      census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
+      #https://www2.census.gov/programs-surveys/acs/tech_docs/statistical_testing/2018_Instructions_for_Stat_Testing_ACS.pdf?
+      #https://ccrpc.org/wp-content/uploads/2015/02/american-community-survey-guide.pdf
+      #https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch07.pdf for discussion of error reporting
+      #https://www.census.gov/programs-surveys/acs/technical-documentation/variance-tables.html to calculate new margins for combined geographies
       }
-  }
-  #check whether file for the requested group data already exists
-  file_path <- paste0(folder_path, "/downloaded/", state, "_", county_num, "_", groupname, "_est", ".csv")
-  if (file.exists(file_path)){
-    result <- read_csv(file_path, col_types = cols())
-    print(sprintf("Reading file from %s", file_path))
-  }else{
-    # get census variables from variables metadata file for a group
-    variables_json <- paste0(censusdir, vintage, "/Variables_MetaData.json")
-    if (!file.exists(variables_json)){
-      acs_variables_new <- listCensusMetadata(
-        name = paste0(vintage,"/acs/acs5"), 
-        type = "variables") 
-      write_json(acs_variables_new,variables_json)
-      print(sprintf("retrieved variable options from census api"))
+    if(block=="block_group"){
+      region = paste0("block group:*")
+      regionin = paste0("state:", state,"+county:",county_num,"+tract:*") #it gets confused if this var is named "county" 
     }else{
-      print(sprintf("Read variable options from %s", variables_json))
+      region = paste0("tract:", tract)
+      regionin = paste0("state:", state)
     }
-    #do I need to do something to keep it from trying to read too fast after write?
-    acs_variables <- read_json(variables_json) %>%
-      map(as.data.table) %>%
-      rbindlist(fill = TRUE) %>%
-      filter(name != "GEO_ID") %>%
-      filter(str_detect(name, groupname))
-    acs_data_for_vars_state <- getCensus(name = "acs/acs5",
+    data_for_vars_state <- getCensus(name = api_type,
                                          vintage = vintage,
-                                         vars = c("NAME", acs_variables$name),
-                                         region = paste0("tract:", tract), 
-                                         regionin = paste0("state:", state),
+                                         vars = c("NAME", census_variables$name),
+                                         region = region, 
+                                         regionin = regionin,
                                          key = censuskey)
-    #transpose the data to be joined with variable information after filter for county
-    acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == county_num) %>%
-      gather(var, value, -tract) %>% 
-      spread(tract, value)
-    result <- dplyr::left_join(acs_variables, acs_data_for_vars_county, by = c("name" = "var")) %>%
-      select(-predicateType, -group, -limit, -attributes, -required)
-    print("Writing census file for variable group as csv ...")
-    write_csv(result,file_path)
-    print("Done.")
-  }
-  return(result)
-}
-
-err_CensusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num, tract, censuskey, groupname) {
-  #check whether folders exist
-  folder_path <- paste0(censusdir,vintage,"/",state,"_",county_num)
-  if (file.exists(paste0(folder_path,"/downloaded"))){
-    print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))
-  }else{
-    if (!file.exists(folder_path)){
-      dir.create(folder_path)
-      dir.create(paste0(folder_path,"/downloaded"))
-    }else{
-      dir.create(paste0(folder_path,"/downloaded"))
-    }
-  }
-  #check whether file for the requested group data already exists
-  file_path <- paste0(folder_path, "/downloaded/", state, "_", county_num, "_", groupname, "_err", ".csv")
-  if (file.exists(file_path)){
-    result <- read_csv(file_path, col_types = cols())
-    print(sprintf("Reading file from %s", file_path))
-  }else{
-    # get census variables from variables metadata file for a group
-    variables_json <- paste0(censusdir, vintage, "/Variables_MetaData.json")
-    if (!file.exists(variables_json)){
-      acs_variables_new <- listCensusMetadata(
-        name = paste0(vintage,"/acs/acs5"), 
-        type = "variables") 
-      write_json(acs_variables_new,variables_json)
-      print(sprintf("retrieved variable options from census api"))
-    }else{
-      print(sprintf("Read variable options from %s", variables_json))
-    }
-    #do I need to do something to keep it from trying to read too fast after write?
-    acs_variables <- read_json(variables_json) %>%
-      map(as.data.table) %>%
-      rbindlist(fill = TRUE) %>%
-      filter(name != "GEO_ID") %>%
-      filter(str_detect(name, groupname))
-    acs_variables$nameM <- paste0(substr(acs_variables$name,1,nchar(as.character(acs_variables$name))-1),"M")
-    #https://ccrpc.org/wp-content/uploads/2015/02/american-community-survey-guide.pdf
-    #https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch07.pdf for discussion of error reporting
-    #https://www.census.gov/programs-surveys/acs/technical-documentation/variance-tables.html to calculate new margins for combined geographies
-    acs_data_for_vars_state <- getCensus(name = "acs/acs5",
-                                         vintage = vintage,
-                                         vars = c("NAME", acs_variables$nameM),
-                                         region = paste0("tract:", tract), 
-                                         regionin = paste0("state:", state),
-                                         key = censuskey)
-    #transpose the data to be joined with variable information after filter for county
-    acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == county_num) %>%
-      gather(var, value, -tract) %>% 
-      spread(tract, value)
-    result <- dplyr::left_join(acs_variables, acs_data_for_vars_county, by = c("name" = "var")) %>%
-      select(-predicateType, -group, -limit, -attributes, -required)
-    print("Writing census file for variable group as csv ...")
-    write_csv(result,file_path)
-    print("Done.")
-  }
-  return(result)
-}
-
-block_est_CensusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num, tract, censuskey, groupname) {
-  #check whether folders exist
-  folder_path <- paste0(censusdir,vintage,"/",state,"_",county_num)
-  if (file.exists(paste0(folder_path,"/downloaded"))){
-    print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))
-  }else{
-    if (!file.exists(folder_path)){
-      dir.create(folder_path)
-      dir.create(paste0(folder_path,"/downloaded"))
-    }else{
-      dir.create(paste0(folder_path,"/downloaded"))
-    }
-  }
-  #check whether file for the requested group data already exists
-  file_path <- paste0(folder_path, "/downloaded/", state, "_", county_num, "_", groupname, "_est_block", ".csv")
-  if (file.exists(file_path)){
-    result <- read_csv(file_path, col_types = cols())
-    print(sprintf("Reading file from %s", file_path))
-  }else{
-    # get census variables from variables metadata file for a group
-    variables_json <- paste0(censusdir, vintage, "/Variables_MetaData.json")
-    if (!file.exists(variables_json)){
-      acs_variables_new <- listCensusMetadata(
-        name = paste0(vintage,"/acs/acs5"), 
-        type = "variables") 
-      write_json(acs_variables_new,variables_json)
-      print(sprintf("retrieved variable options from census api"))
-    }else{
-      print(sprintf("Read variable options from %s", variables_json))
-    }
-    #do I need to do something to keep it from trying to read too fast after write?
-    acs_variables <- read_json(variables_json) %>%
-      map(as.data.table) %>%
-      rbindlist(fill = TRUE) %>%
-      filter(name != "GEO_ID") %>%
-      filter(str_detect(name, groupname))
-    acs_data_for_vars_county <- getCensus(name = "acs/acs5",
-                                         vintage = vintage,
-                                         vars = c("NAME", acs_variables$name),
-                                         region = paste0("block group:*"), 
-                                         regionin = paste0("state:", state,"+county:",county,"+tract:*"),
-                                         key = censuskey)
-    #transpose the data to be joined with variable information after filter for county
-    acs_data_for_vars_county <- acs_data_for_vars_county %>%
-      mutate(geoid_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
-      gather(var, value, -geoid_15) %>% 
-      spread(geoid_15, value)
-    result <- dplyr::left_join(acs_variables, acs_data_for_vars_county, by = c("name" = "var")) %>%
-      select(-predicateType, -group, -limit, -attributes, -required)
-    print("Writing census file for variable group as csv ...")
-    write_csv(result,file_path)
-    print("Done.")
-  }
-  return(result)
-}
-
-block_err_CensusDataFromAPI_byGroupName <- function(censusdir, vintage, state, county_num, tract, censuskey, groupname) {
-  #check whether folders exist
-  folder_path <- paste0(censusdir,vintage,"/",state,"_",county_num)
-  if (file.exists(paste0(folder_path,"/downloaded"))){
-    print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))
-  }else{
-    if (!file.exists(folder_path)){
-      dir.create(folder_path)
-      dir.create(paste0(folder_path,"/downloaded"))
-    }else{
-      dir.create(paste0(folder_path,"/downloaded"))
-    }
-  }
-  #check whether file for the requested group data already exists
-  file_path <- paste0(folder_path, "/downloaded/", state, "_", county_num, "_", groupname, "_err_block", ".csv")
-  if (file.exists(file_path)){
-    result <- read_csv(file_path, col_types = cols())
-    print(sprintf("Reading file from %s", file_path))
-  }else{
-    # get census variables from variables metadata file for a group
-    variables_json <- paste0(censusdir, vintage, "/Variables_MetaData.json")
-    if (!file.exists(variables_json)){
-      acs_variables_new <- listCensusMetadata(
-        name = paste0(vintage,"/acs/acs5"), 
-        type = "variables") 
-      write_json(acs_variables_new,variables_json)
-      print(sprintf("retrieved variable options from census api"))
-    }else{
-      print(sprintf("Read variable options from %s", variables_json))
-    }
-    #do I need to do something to keep it from trying to read too fast after write?
-    acs_variables <- read_json(variables_json) %>%
-      map(as.data.table) %>%
-      rbindlist(fill = TRUE) %>%
-      filter(name != "GEO_ID") %>%
-      filter(str_detect(name, groupname))
-    acs_variables$nameM <- paste0(substr(acs_variables$name,1,nchar(as.character(acs_variables$name))-1),"M")
-    #https://ccrpc.org/wp-content/uploads/2015/02/american-community-survey-guide.pdf
-    #https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch07.pdf for discussion of error reporting
-    #https://www.census.gov/programs-surveys/acs/technical-documentation/variance-tables.html to calculate new margins for combined geographies
-    acs_data_for_vars_state <- getCensus(name = "acs/acs5",
-                                         vintage = vintage,
-                                         vars = c("NAME", acs_variables$nameM),
-                                         region = paste0("block group:*"), 
-                                         regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
-                                         key = censuskey)
-    #transpose the data to be joined with variable information after filter for county
-    acs_data_for_vars_county <- filter(acs_data_for_vars_state, county == county_num) %>%
-      mutate(geoid_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
-      gather(var, value, -geoid_15) %>% 
-      spread(geoid_15, value)
-    result <- dplyr::left_join(acs_variables, acs_data_for_vars_county, by = c("name" = "var")) %>%
-      select(-predicateType, -group, -limit, -attributes, -required)
-    print("Writing census file for variable group as csv ...")
-    write_csv(result,file_path)
-    print("Done.")
-  }
-  return(result)
-}
-
-decennial_Census_DataFromAPI_byGroupName <- function(censusdir, dec_vintage, state, county_num, tract, censuskey, groupname) {
-  #check whether folders exist
-  if (file.exists(paste0(censusdir,dec_vintage,"/downloaded"))){
-           print(sprintf("found folder %s", paste0(censusdir,dec_vintage,"/downloaded")))
-    }else{
-           if (!file.exists(paste0(censusdir,dec_vintage))){
-             dir.create(paste0(censusdir,dec_vintage))
-             dir.create(paste0(censusdir,dec_vintage,"/downloaded"))
-           }else{
-           dir.create(paste0(censusdir,dec_vintage,"/downloaded"))
-           }
-    }
-  #check whether file for the requested group data already exists
-  file_path <- paste0(censusdir, dec_vintage, "/downloaded/decennial_", state, "_", county_num, "_", groupname, ".csv")
-  if (file.exists(file_path)){
-    result <- read_csv(file_path, col_types = cols())
-    print(sprintf("Reading file from %s", file_path))
-  }else{
-    # get census variables from variables metadata file for a group
-    #https://api.census.gov/data/2010/dec/sf1/variables.html
-    variables_json <- paste0(censusdir, dec_vintage, "/Dec_Variables_MetaData.json")
-    if (!file.exists(variables_json)){
-      new_dec_variables <- listCensusMetadata(
-        name = paste0(dec_vintage,"/dec/sf1"), 
-        type = "variables")
-      write_json(new_dec_variables,variables_json)
-      print(sprintf("retrieved variable options from census api"))
-    }else{
-      print(sprintf("Read variable options from %s", variables_json))
-    }
-    dec_variables <- read_json(variables_json) %>%
-      map(as.data.table) %>%
-      rbindlist(fill = TRUE) %>%
-      filter(name != "GEO_ID") %>%
-      filter(group == groupname)
-      #filter(str_detect(group, groupname))
-    dec_data_for_vars <- getCensus(name = "dec/sf1",
-                                         vintage = dec_vintage,
-                                         vars = c("NAME", dec_variables$name),
-                                         #region = paste0("tract:*"),
-                                         region = paste0("block group:*"), 
-                                         regionin = paste0("state:", state,"+county:",county,"+tract:*"),
-                                         key = censuskey) %>%
     #transpose the data to be joined with variable information 
-      mutate(geoid_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
-      gather(var, value, -geoid_15) %>% 
-      spread(geoid_15, value) #spread(tract, value) #
-    #for PCT12 - no mutate
-     #gather(var, value, -tract) %>% 
-     #spread(tract, value) #
-    
+    if(block=="block_group"){
+      data_for_vars <- data_for_vars_state %>%  
+        mutate(GEOID_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
+        gather(var, value, -GEOID_15) %>% 
+        spread(GEOID_15, value)
+    }else{
+      data_for_vars <- data_for_vars_state %>%
+        mutate(GEOID = paste0(state,county,tract)) %>%
+        gather(var, value, -GEOID) %>% 
+        spread(GEOID, value)
+    }
     #join data and variable information and remove unnecessary columns
-    result <- dplyr::left_join(dec_variables, dec_data_for_vars, by = c("name" = "var")) %>%
-      select(-predicateType, -limit, -attributes, -required)
-    
-    print("Writing decennial census file for variable group as csv ...")
+    result <- dplyr::left_join(census_variables, data_for_vars, by = c("name" = "var")) %>%
+      select(-predicateType, -group, -limit, -attributes, -required)
+    percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+    print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
+    print("Writing census file for variable group as csv ...")
     write_csv(result,file_path)
     print("Done.")
-  }
-  
+  } 
   return(result)
 }
+

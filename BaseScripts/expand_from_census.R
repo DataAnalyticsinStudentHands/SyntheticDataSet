@@ -61,7 +61,106 @@ exp_census <- function() {
     #go back to the most detailed individual level without duplication to assign missing pieces from build
     #for census block-group, you can get sex by age, but not sex_by_age by race (you can get that for 2010, but need to add together lots of files)
     #concept is SEX BY AGE for each race / ethnicity - 4525519 2017 Harris County
-    sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001",tr_bg = "tr")
+    
+#DO THESE FOR NEIGHBORING YEARS AND COMPARE
+    sex_by_age_race_data_from_census_17 <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                                  groupname = "B01001",county_num = "201",
+                                                                  block="tract",api_type="acs/acs5",path_suff="est.csv")
+    err_sex_by_age_race_data_from_census_17 <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                                      groupname = "B01001",county_num = "201",
+                                                                      block="tract",api_type="acs/acs5",path_suff="err.csv")
+    #block_group is same estimate - divided up into the areas, but only tells you overall age, not subgroups.
+    bg_sex_by_age_race_data_from_census_17 <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                                  groupname = "B01001",county_num = "201",
+                                                                  block="block_group",api_type="acs/acs5",path_suff="est.csv")
+    
+    bg_err_sex_by_age_race_data_from_census_17 <- censusData_byGroupName(censusdir, vintage="2017", state, censuskey, 
+                                                                     groupname = "B01001",county_num = "201",
+                                                                     block="block_group",api_type="acs/acs5",path_suff="err.csv")
+    
+    sex_by_age_race_data_from_census_19 <- censusData_byGroupName(censusdir, vintage="2019", state, censuskey, 
+                                                                  groupname = "B01001",county_num = "201",
+                                                                  block="tract",api_type="acs/acs5",path_suff="est.csv")
+    
+    err_sex_by_age_race_data_from_census_19 <- censusData_byGroupName(censusdir, vintage="2019", state, censuskey, 
+                                                                      groupname = "B01001",county_num = "201",
+                                                                      block="tract",api_type="acs/acs5",path_suff="err.csv")
+    
+    bg_sex_by_age_race_data_from_census_19 <- censusData_byGroupName(censusdir, vintage="2019", state, censuskey, 
+                                                                     groupname = "B01001",county_num = "201",
+                                                                     block="block_group",api_type="acs/acs5",path_suff="est.csv")
+    
+    bg_err_sex_by_age_race_data_from_census_19 <- censusData_byGroupName(censusdir, vintage="2019", state, censuskey, 
+                                                                         groupname = "B01001",county_num = "201",
+                                                                         block="block_group",api_type="acs/acs5",path_suff="err.csv")
+    
+    dec_sex_by_age_race_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                      groupname = "P12",county_num = "201",
+                                                                      block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_tenure_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                      groupname = "H4",county_num = "201",
+                                                                      block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_tenure_age_race_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                             groupname = "H17",county_num = "201",
+                                                             block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_sex_age_in_hh_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                      groupname = "PCT13",county_num = "201",
+                                                                      block="tract",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_vacancy_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "H5",county_num = "201",
+                                                                block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_race_hh_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                              groupname = "H6",county_num = "201",
+                                                              block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_eth_hh_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                              groupname = "H7",county_num = "201",
+                                                              block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_occupancy_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "H3",county_num = "201",
+                                                                block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    #good one to use
+    dec_tenure_hh_size_race_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                             groupname = "H16",county_num = "201",
+                                                             block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_tenure_hh_size_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                             groupname = "H7",county_num = "201",
+                                                             block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_eth_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
+                                                                      groupname = "P2",county_num = "201",
+                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
+    
+    dec_race_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
+                                                                groupname = "P1",county_num = "201",
+                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
+    
+    dec_group_quarters_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
+                                                                       groupname = "P5",county_num = "201",
+                                                                       block="block_group",api_type="dec/pl",path_suff="est.csv")
+    
+    dec_sex_by_age_tract_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                              groupname = "PCT12",county_num = "201",
+                                                                              block="tract",api_type="dec/sf1",path_suff="est.csv")
+
+    
+    
+    ACS_sar_2019 <-as.data.table(sex_by_age_race_data_from_census)
+    F_ACS_SAR_2019 <- ACS_sar_2019[str_detect(label,"Female")&!str_detect(concept,"O")]
+    F_ACS_SAR_2019 <- F_ACS_SAR_2019[order(label),list(`label`,`312200`,`310300`,`411900`)]
+    
+    err_sex_by_age_race_data_from_census <- err_StateCensusData_byGroupName(censusdir,vintage,state,censuskey,groupname = "B01001")
+    
+    
+    
+    #sex_by_age_race_data_from_census <- censusDataFromAPI_byGroupName(censusdir, vintage, state, county, tract, censuskey, groupname = "B01001",tr_bg = "tr")
     sex_by_age_race_data <- sex_by_age_race_data_from_census %>%
       mutate(label = str_remove_all(label,"Estimate!!Total!!"),
              race = substr(name,7,7)) %>%

@@ -367,7 +367,8 @@ HarrisTracts <- tractsDT[COUNTYFP=="201"]  #[str_starts(GEOID,"48201")]
 #or
 HarrisTracts <- Harris_tracts_demog
 #HarrisTracts[,("centroids"):=st_centroid(geometry)]
-vaccines <- as.data.table(read.csv2(file="~/Downloads/Percentage\ of\ Population\ Vaccinated\ by\ Census\ tract\ 2021-06-22.csv",sep = ","))
+#vaccines <- as.data.table(read.csv2(file="~/Downloads/Percentage\ of\ Population\ Vaccinated\ by\ Census\ tract\ 2021-06-22.csv",sep = ","))
+vaccines <- as.data.table(read.csv2(file="~/Downloads/Percentage\ of\ Population\ Vaccinated\ by\ Census\ tract\ 2021-07-20.csv",sep = ","))
 vaccines$GEOID <- as.character(vaccines$GEOID)
 vaccines_male <- vaccines[Gender=="Male"]
 setnames(vaccines_male,"X..Population.Vaccinated","men_vaccinated_pct")
@@ -383,6 +384,21 @@ HarrisTracts[,("men_vaxed"):=if_else(men_vaxed>100,100,as.numeric(men_vaxed))]
 HarrisTracts[,("women_vaxed"):=as.integer(`women_vaccinated_pct`)]
 HarrisTracts[,("women_vaxed"):=if_else(women_vaxed>100,100,as.numeric(women_vaxed))]
 
+vaccines_8_31 <- as.data.table(read.csv2(file="~/Downloads/Immtrac_Vaccine_by_Census_tract_2021-08-31.csv",sep = ","))
+vaccines_8_31$GEOID <- as.character(vaccines_8_31$GEOID)
+setnames(vaccines_8_31,"X..Population.Vaccinated","vaccinated_pct")
+HarrisTracts <- vaccines_8_31[HarrisTracts, on="GEOID"]
+HarrisTracts[,("8_31_vaxed"):=as.integer(`vaccinated_pct`)]
+HarrisTracts[,("8_31_vaxed"):=if_else(`8_31_vaxed`>100,100,as.numeric(`8_31_vaxed`))]
+vaccines_female <- as.data.table(vaccines_female)
+vaccines_female[,("women_pop"):=as.integer(as.numeric(Number.of.People.Vaccinated)/(as.numeric(women_vaccinated_pct)/100))]
+vaccines_female[,("women_raw"):=as.numeric(Number.of.People.Vaccinated)]
+vaccines_male[,("men_pop"):=as.integer(as.numeric(Number.of.People.Vaccinated)/(as.numeric(men_vaccinated_pct)/100))]
+vaccines_male[,("men_raw"):=as.numeric(Number.of.People.Vaccinated)]
+HarrisTracts <- vaccines_male[HarrisTracts, on="GEOID"]
+HarrisTracts <- vaccines_female[HarrisTracts, on="GEOID"]
+HarrisTracts[,("July_pct"):=100*(men_raw+women_raw)/(men_pop+women_pop)] #doesn't work - too many places with imbalanced gender?
+HarrisTracts[,("new_vax_Aug"):=July_pct-as.numeric(vaccinated_pct)]
 
 #do some quick plots
 library(ggplot2)
@@ -395,7 +411,10 @@ ggplot(HarrisTracts[,c("Black_pct","women_vaxed")],aes(`Black_pct`,`women_vaxed`
   #theme(plot.title = element_text(hjust=0.5, size=20, face='bold')) 
   
 
-
+HarrisVax_8_31 <- st_as_sf(HarrisTracts[!is.na(STATEFP),
+                                      c("8_31_vaxed",
+                                        "geometry")],sf_column_name = "geometry")
+st_write(HarrisVax_8_31,"~/Downloads/HarrisVax_8_31.geojson",driver="GeoJSON")
 
 
 HarrisVaxDem <- st_as_sf(HarrisTracts[!is.na(STATEFP),
