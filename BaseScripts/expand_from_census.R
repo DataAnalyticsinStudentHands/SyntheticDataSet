@@ -150,10 +150,11 @@ exp_census <- function() {
                                                              groupname = "H7",county_num = "201",
                                                              block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
+    #should already have
     dec_eth_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
                                                                       groupname = "P2",county_num = "201",
                                                                       block="block_group",api_type="dec/pl",path_suff="est.csv")
-    
+    #should already have
     dec_race_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
                                                                 groupname = "P1",county_num = "201",
                                                                 block="block_group",api_type="dec/pl",path_suff="est.csv")
@@ -162,10 +163,26 @@ exp_census <- function() {
                                                                        groupname = "P5",county_num = "201",
                                                                        block="block_group",api_type="dec/pl",path_suff="est.csv")
     
+    #this gives you by every year at the tract level - could be a good example for adding together - PCTs never go below tract level
     dec_sex_by_age_tract_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                               groupname = "PCT12",county_num = "201",
                                                                               block="tract",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_hh_over75_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                       groupname = "P26",county_num = "201",
+                                                                       block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_hh_relation_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "P29",county_num = "201",
+                                                                block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    
+    dec_hh_age_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                  groupname = "P16",county_num = "201",
+                                                                  block="block_group",api_type="dec/sf1",path_suff="est.csv")
 
+    dec_race_allocation_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                  groupname = "P46",county_num = "201",
+                                                                  block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
     #for alluvials to show problems with ACS at Tract Level
     
@@ -207,11 +224,49 @@ exp_census <- function() {
     BF_SAR_2017 <- SAR_2017[str_detect(label,"Female")&str_detect(concept,"BLACK")]
     BF3_SAR_2017 <- BF_SAR_2017[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
     
+    SAR_2019 <- as.data.table(sex_by_age_race_data_from_census_19)
+    F_SAR_2019 <- SAR_2019[str_detect(label,"Female")&!str_detect(concept,"O")] #all the designations have o in them except totals for all races
+    F3_SAR_2019 <- F_SAR_2019[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    BF_SAR_2019 <- SAR_2019[str_detect(label,"Female")&str_detect(concept,"BLACK")]
+    BF3_SAR_2019 <- BF_SAR_2019[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    
     errSAR_2017 <- as.data.table(err_sex_by_age_race_data_from_census_17)
     errF_SAR_2017 <- errSAR_2017[str_detect(label,"Female")&!str_detect(concept,"O")]
     errF3_SAR_2017 <- errF_SAR_2017[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
     errBF_SAR_2017 <- errSAR_2017[str_detect(label,"Female")&str_detect(concept,"BLACK")]
     errBF3_SAR_2017 <- errBF_SAR_2017[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    
+    
+    years <- c("2010","2017","2018","2019")
+    total_fem_312200 <- c(F3_SAR_2010[label=="Total!!Female",14])
+    total_fem_310300 <- c(F3_SAR_2017[label=="Estimate!!Total!!Female",15])
+    total_fem_411900 <- c(F3_SAR_2018[label=="Estimate!!Total!!Female",16])
+    total_fem_411900 <- c(F3_SAR_2018[label=="Estimate!!Total!!Female",16])
+    total_Black_fem <- c(BF3_SAR_2010[label=="Total!!Female",14])
+    total_Black_fem <- c(BF3_SAR_2017[label=="Total!!Female",15])
+    total_Black_fem <- c(BF3_SAR_2018[label=="Total!!Female",16])
+    total_Black_fem <- c(BF3_SAR_2010[label=="Total!!Female",14])
+    
+    dt_female_tract_years <- data.table(years,total_females,total_Black_females)
+    
+    df_female_tract <- data.frame(years = c("2010","2017","2018","2019"),total_females = 
+                                  c(F3_SAR_2010[label=="Total!!Female",`48201312200`],
+                                    F3_SAR_2017[label=="Estimate!!Total!!Female",`48201312200`],
+                                    F3_SAR_2018[label=="Estimate!!Total!!Female",`48201312200`],
+                                    F3_SAR_2019[label=="Estimate!!Total:!!Female:",`48201312200`]),
+                                  total_Black_females=c(BF3_SAR_2010[label=="Total!!Female",`48201312200`],
+                                  BF3_SAR_2017[label=="Estimate!!Total!!Female",`48201312200`],
+                                  BF3_SAR_2018[label=="Estimate!!Total!!Female",`48201312200`],
+                                  BF3_SAR_2019[label=="Estimate!!Total:!!Female:",`48201312200`]))
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     

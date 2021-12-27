@@ -3,6 +3,7 @@ title: "Problems with American Community Survey"
 author: "Dan Price"
 date: "`r Sys.Date()`"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 geometry: margin=1in
@@ -226,7 +227,8 @@ Clearly, this is a deep problem for using the American Community Survey for smal
 
 To just point out one of the most obvious choices, in those mappings, the census wanted to preserve the statistical structure at certain levels and was willing to sacrifice other structures in order to keep that broad horizon of being able to justify each step in terms of a representation of statistical likelihood relative to any particular combination instead of seeing the problem as how to optimize distribution among potential categories (either real or conceptual spaces). We learned this at great expense - and very great frustration for a gifted student who spent many hours trying to make it work in an early version of Sam City. She had been asked by our faculty team to create the pedagogical tool by calculating the percentage chance for any individual to be found in the next category of interest, and then to distribute them by that likelihood. She would try to create ever more complicated examples, but always ran into insurmountable walls as the pieces refused to fall into place. We later stepped back and looked at the problem again. We saw that regardless of our view of the ultimate horizon of truth or falsity, we were dealing with a certain type of game, where the problem was to put people into spaces (conceptual and real) that recaptured the original dispensation of people in those spaces (which was, itself, a bit of a game). 
 
-We are inspired here by certain quite technical innovation in mathematics (cf. https://arxiv.org/abs/1703.03007 for an overview on homotopy type theory and conceptual spaces) and in statistics, especially as related to language (cf. T-D Bradley, https://arxiv.org/abs/2004.05631, and https://arxiv.org/abs/2106.07890)
+We are inspired here by certain quite technical innovation in mathematics (cf. https://arxiv.org/abs/1703.03007 for an overview on homotopy type theory and conceptual spaces) and in statistics, especially as related to language (cf. T-D Bradley, https://arxiv.org/abs/2004.05631, and https://arxiv.org/abs/2106.07890). Lawvere's own intro to math is also very much about spaces.
+We also hope to have some concrete answers to problems in small area estimation. https://datascience.codata.org/articles/10.5334/dsj-2018-008/ could be a starting point for that.
 
 Perhaps example of Hispanic ethnicity/race and how they have to add up? 
 

@@ -19,6 +19,47 @@ censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 ## Preliminaries -- very broad
 
 Plan: find smallest units of space combined from 2010 census
+https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf
+Gives a nice place to look - P1, P5, P6, P8 - look at each and discuss briefly.
+
+```{r look at PCT12}
+#this gives you by every year at the tract level - could be a good example for adding together - PCTs never go below tract level
+    dec_sex_by_age_tract_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                              groupname = "PCT12",county_num = "201",
+                                                                              block="tract",api_type="dec/sf1",path_suff="est.csv")
+#check if row that label!="Total"*3==sum of whole column
+```
+show how some of the testing works
+```{r test for na}
+    result <- as.data.table(dec_sex_by_age_tract_data_from_census_10)
+    percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+    paste("Percentage of NAs in file:",as.integer(100*percent_na))
+```
+
+could be interesting to just show how that casting works from every year to the groups
+```{r block_group sex by age}
+dec_sex_by_age_race_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                      groupname = "P12",county_num = "201",
+                                                                      block="block_group",api_type="dec/sf1",path_suff="est.csv")
+```
+
+should show the testing and the questions
+
+https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf
+put in households
+add P15, then other hh stuff that can be added without problems, then add people in
+P21 should also be good; p29, p30...
+
+have to think about how family info is different from hh
+
+group quarters are needed b/c hh don't include them
+```{r group quarters to add}
+dec_group_quarters_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
+                                                                       groupname = "P5",county_num = "201",
+                                                                       block="block_group",api_type="dec/pl",path_suff="est.csv")
+```
+
+
 
 expand from census
 
