@@ -1,0 +1,31 @@
+---
+title: "Making Sam"
+author: "Dan Price"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+geometry: margin=1in
+fontsize: 11pt
+documentclass: article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('~/Documents/Projects/SyntheticDataSet/BaseScripts/Census_Data.R')
+source('~/Documents/Projects/SyntheticDataSet/workflow.R')
+censuskey <- readLines(paste0(censusdir, "2017", "/key"))
+```
+## Preliminaries -- very broad
+
+Plan: find smallest units of space combined from 2010 census
+
+expand from census
+
+rearrange so that they all add to same whole and then figure out how to distribute them among that space
+
+tests of each step
+
+discussion of power sets vs. categories? 
+
+

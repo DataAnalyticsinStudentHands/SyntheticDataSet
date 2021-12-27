@@ -78,6 +78,22 @@ exp_census <- function() {
                                                                      groupname = "B01001",county_num = "201",
                                                                      block="block_group",api_type="acs/acs5",path_suff="err.csv")
     
+    sex_by_age_race_data_from_census_18 <- censusData_byGroupName(censusdir, vintage="2018", state, censuskey, 
+                                                                  groupname = "B01001",county_num = "201",
+                                                                  block="tract",api_type="acs/acs5",path_suff="est.csv")
+    
+    err_sex_by_age_race_data_from_census_18 <- censusData_byGroupName(censusdir, vintage="2018", state, censuskey, 
+                                                                      groupname = "B01001",county_num = "201",
+                                                                      block="tract",api_type="acs/acs5",path_suff="err.csv")
+    
+    bg_sex_by_age_race_data_from_census_18 <- censusData_byGroupName(censusdir, vintage="2018", state, censuskey, 
+                                                                     groupname = "B01001",county_num = "201",
+                                                                     block="block_group",api_type="acs/acs5",path_suff="est.csv")
+    
+    bg_err_sex_by_age_race_data_from_census_18 <- censusData_byGroupName(censusdir, vintage="2018", state, censuskey, 
+                                                                         groupname = "B01001",county_num = "201",
+                                                                         block="block_group",api_type="acs/acs5",path_suff="err.csv")
+    
     sex_by_age_race_data_from_census_19 <- censusData_byGroupName(censusdir, vintage="2019", state, censuskey, 
                                                                   groupname = "B01001",county_num = "201",
                                                                   block="tract",api_type="acs/acs5",path_suff="est.csv")
@@ -151,12 +167,51 @@ exp_census <- function() {
                                                                               block="tract",api_type="dec/sf1",path_suff="est.csv")
 
     
+    #for alluvials to show problems with ACS at Tract Level
     
-    ACS_sar_2019 <-as.data.table(sex_by_age_race_data_from_census)
-    F_ACS_SAR_2019 <- ACS_sar_2019[str_detect(label,"Female")&!str_detect(concept,"O")]
-    F_ACS_SAR_2019 <- F_ACS_SAR_2019[order(label),list(`label`,`312200`,`310300`,`411900`)]
+    SAR_2010 <- as.data.table(dec_sex_by_age_race_data_from_census_10)
+    F_SAR_2010 <- SAR_2010[str_detect(label,"Female")&!str_detect(concept,"O")] #all the designations have o in them except totals for all races
+    F3_SAR_2010 <- F_SAR_2010[order(label),list(`label`,`48_201_312200_1`,`48_201_312200_2`,`48_201_312200_3`,
+                                                `48_201_310300_1`,`48_201_310300_2`,`48_201_310300_3`,`48_201_310300_4`,`48_201_310300_5`,`48_201_310300_6`,
+                                                `48_201_411900_1`,`48_201_411900_2`,`48_201_411900_3`)]
+    #add summary columns
+    F3_SAR_2010$`48201312200` <- as.integer(F3_SAR_2010$`48_201_312200_1`) + 
+      as.integer(F3_SAR_2010$`48_201_312200_2`) + as.integer(F3_SAR_2010$`48_201_312200_3`)
+    F3_SAR_2010$`48201310300` <- as.integer(F3_SAR_2010$`48_201_310300_1`) + as.integer(F3_SAR_2010$`48_201_310300_2`) +
+      as.integer(F3_SAR_2010$`48_201_310300_3`) + as.integer(F3_SAR_2010$`48_201_310300_4`) +as.integer(F3_SAR_2010$`48_201_310300_5`) +
+      as.integer(F3_SAR_2010$`48_201_310300_6`)
+    F3_SAR_2010$`48201411900` <- as.integer(F3_SAR_2010$`48_201_411900_1`) + 
+      as.integer(F3_SAR_2010$`48_201_411900_2`) + as.integer(F3_SAR_2010$`48_201_411900_3`)
     
-    err_sex_by_age_race_data_from_census <- err_StateCensusData_byGroupName(censusdir,vintage,state,censuskey,groupname = "B01001")
+    F3s_SAR_2010 <- F3_SAR_2010[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    
+    #or for Black females only
+    BF_SAR_2010 <- SAR_2010[str_detect(label,"Female")&str_detect(concept,"BLACK")]
+    BF3_SAR_2010 <- BF_SAR_2010[order(label),list(`label`,`concept`,`48_201_312200_1`,`48_201_312200_2`,`48_201_312200_3`,
+                                                `48_201_310300_1`,`48_201_310300_2`,`48_201_310300_3`,`48_201_310300_4`,`48_201_310300_5`,`48_201_310300_6`,
+                                                `48_201_411900_1`,`48_201_411900_2`,`48_201_411900_3`)]
+    #add summary columns
+    BF3_SAR_2010$`48201312200` <- as.integer(BF3_SAR_2010$`48_201_312200_1`) + 
+      as.integer(BF3_SAR_2010$`48_201_312200_2`) + as.integer(BF3_SAR_2010$`48_201_312200_3`)
+    BF3_SAR_2010$`48201310300` <- as.integer(BF3_SAR_2010$`48_201_310300_1`) + as.integer(BF3_SAR_2010$`48_201_310300_2`) +
+      as.integer(BF3_SAR_2010$`48_201_310300_3`) + as.integer(BF3_SAR_2010$`48_201_310300_4`) +as.integer(BF3_SAR_2010$`48_201_310300_5`) +
+      as.integer(BF3_SAR_2010$`48_201_310300_6`)
+    BF3_SAR_2010$`48201411900` <- as.integer(BF3_SAR_2010$`48_201_411900_1`) + 
+      as.integer(BF3_SAR_2010$`48_201_411900_2`) + as.integer(BF3_SAR_2010$`48_201_411900_3`)
+    
+    BF3s_SAR_2010 <- BF3_SAR_2010[order(label),list(`label`,`concept`,`48201312200`,`48201310300`,`48201411900`)]
+    
+    SAR_2017 <- as.data.table(sex_by_age_race_data_from_census_17)
+    F_SAR_2017 <- SAR_2017[str_detect(label,"Female")&!str_detect(concept,"O")] #all the designations have o in them except totals for all races
+    F3_SAR_2017 <- F_SAR_2017[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    BF_SAR_2017 <- SAR_2017[str_detect(label,"Female")&str_detect(concept,"BLACK")]
+    BF3_SAR_2017 <- BF_SAR_2017[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    
+    errSAR_2017 <- as.data.table(err_sex_by_age_race_data_from_census_17)
+    errF_SAR_2017 <- errSAR_2017[str_detect(label,"Female")&!str_detect(concept,"O")]
+    errF3_SAR_2017 <- errF_SAR_2017[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    errBF_SAR_2017 <- errSAR_2017[str_detect(label,"Female")&str_detect(concept,"BLACK")]
+    errBF3_SAR_2017 <- errBF_SAR_2017[order(label),list(`label`,`48201312200`,`48201310300`,`48201411900`)]
     
     
     

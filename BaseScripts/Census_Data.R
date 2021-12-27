@@ -1,9 +1,9 @@
-library(jsonlite)
+library(jsonlite) #may not be using; need to check
 library(censusapi)
 library(readr)
-library(purrr)
+library(purrr) #may not be using; need to check
 library(data.table)
-library(dplyr)
+library(dplyr) #may not be using; need to check
 
 #' Census Data from API for a variable group
 #'
@@ -16,7 +16,7 @@ library(dplyr)
 #' @param groupname the variable groupname we are pulling the data for
 #' @param county_num the census code for the county - only needed if there are blockgroups
 #' @param api_type the census api called from - https://www.census.gov/data/developers/data-sets.html
-#' @path_suff the suffix for the variable file and whether estimate or error - either "est.csv" | "err.csv" | "dec.csv"
+#' @path_suff the suffix for the variable file and whether estimate or error -   "dec.csv" | "est.csv" | "err.csv"
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
 #tools

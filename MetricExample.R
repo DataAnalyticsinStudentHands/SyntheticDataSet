@@ -76,6 +76,8 @@ sam_build_eth$ethnicity <- factor(sam_build_eth$ethnicity, levels = c("Anglo","L
 #  geom_point() +
 #  geom_smooth()
 
+
+
 #first a histogram
 ggplot(sam_build,
        aes(x=race,

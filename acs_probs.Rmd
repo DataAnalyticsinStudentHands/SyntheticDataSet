@@ -1,0 +1,239 @@
+---
+title: "Problems with American Community Survey"
+author: "Dan Price"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+geometry: margin=1in
+fontsize: 11pt
+documentclass: article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('~/Documents/Projects/SyntheticDataSet/BaseScripts/Census_Data.R')
+source('~/Documents/Projects/SyntheticDataSet/workflow.R')
+censuskey <- readLines(paste0(censusdir, "2017", "/key"))
+```
+## Preliminaries -- very broad
+In the effort to create a simulated Harris County - Sam City - we tried to work with the American Community Survey (ACS) from the US Census Bureau. The decennial census is broken into small groups and gives the answers provided by respondents to the household questionnaires in block groups. In the intervening years, the ACS provides estimates for the same categories. When we began this process, the 2020 census hadn't been completed, although we will talk about how to integrate it later. Our first task was to see whether the ACS estimates could help us. Block group data is the smallest unit made available to the public and is made available for some ACS tables, but we ran into the problem at the tract level, which is comprised of from 1 to 4 block groups, and the block group totals aggregate correctly into the tracts. (https://www.census.gov/programs-surveys/geography/about/glossary.html)
+Using our libraries (Census_Data.R and workflow.R) we were able to save the appropriate data locally. I reproduce the code, below, for completeness' sake, but there's no need to follow it closely. Using the three tracts that we had selected because we were familiar with the areas and they represented demographic variability, we wanted to look at the distribution of females by age, and then by race. When aggregating by tract. For the 2010 decennial census, these are women by age (with some overlap in age categories). 
+```{r female_age_2010}
+    dec_sex_by_age_race_data_from_census_10 <- 
+          censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                 groupname = "P12",county_num = "201",
+                                 block="block_group",api_type="dec/sf1",path_suff="est.csv")
+    SAR_2010 <- as.data.table(dec_sex_by_age_race_data_from_census_10)
+    #all the designations have o in them except totals for all races
+    F_SAR_2010 <- SAR_2010[str_detect(label,"Female")&!str_detect(concept,"O")] 
+    F3_SAR_2010 <- F_SAR_2010[order(label),
+                      list(`label`,`48_201_312200_1`,`48_201_312200_2`,`48_201_312200_3`,
+                           `48_201_310300_1`,`48_201_310300_2`,`48_201_310300_3`,
+                           `48_201_310300_4`,`48_201_310300_5`,`48_201_310300_6`,
+                           `48_201_411900_1`,`48_201_411900_2`,`48_201_411900_3`)]
+    #add summary columns
+    F3_SAR_2010$`48201312200` <- as.integer(F3_SAR_2010$`48_201_312200_1`) + 
+      as.integer(F3_SAR_2010$`48_201_312200_2`) + 
+      as.integer(F3_SAR_2010$`48_201_312200_3`)
+    F3_SAR_2010$`48201310300` <- as.integer(F3_SAR_2010$`48_201_310300_1`) + 
+      as.integer(F3_SAR_2010$`48_201_310300_2`) +
+      as.integer(F3_SAR_2010$`48_201_310300_3`) + 
+      as.integer(F3_SAR_2010$`48_201_310300_4`) +
+      as.integer(F3_SAR_2010$`48_201_310300_5`) +
+      as.integer(F3_SAR_2010$`48_201_310300_6`)
+    F3_SAR_2010$`48201411900` <- as.integer(F3_SAR_2010$`48_201_411900_1`) + 
+      as.integer(F3_SAR_2010$`48_201_411900_2`) + 
+      as.integer(F3_SAR_2010$`48_201_411900_3`)
+    
+    F3s_SAR_2010 <- F3_SAR_2010[order(label),
+                      list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+
+F3s_SAR_2010
+```
+
+If we further restrict the display to Black females
+```{r black_female_age_2010}
+    BF_SAR_2010 <- SAR_2010[str_detect(label,"Female")&str_detect(concept,"BLACK")]
+    BF3_SAR_2010 <- BF_SAR_2010[order(label),
+                      list(`label`,`concept`,`48_201_312200_1`,`48_201_312200_2`,
+                           `48_201_312200_3`,
+                        `48_201_310300_1`,`48_201_310300_2`,`48_201_310300_3`,
+                        `48_201_310300_4`,`48_201_310300_5`,`48_201_310300_6`,
+                        `48_201_411900_1`,`48_201_411900_2`,`48_201_411900_3`)]
+    #add summary columns
+    BF3_SAR_2010$`48201312200` <- as.integer(BF3_SAR_2010$`48_201_312200_1`) + 
+      as.integer(BF3_SAR_2010$`48_201_312200_2`) + 
+      as.integer(BF3_SAR_2010$`48_201_312200_3`)
+    BF3_SAR_2010$`48201310300` <- as.integer(BF3_SAR_2010$`48_201_310300_1`) + 
+      as.integer(BF3_SAR_2010$`48_201_310300_2`) +
+      as.integer(BF3_SAR_2010$`48_201_310300_3`) + 
+      as.integer(BF3_SAR_2010$`48_201_310300_4`) +
+      as.integer(BF3_SAR_2010$`48_201_310300_5`) +
+      as.integer(BF3_SAR_2010$`48_201_310300_6`)
+    BF3_SAR_2010$`48201411900` <- as.integer(BF3_SAR_2010$`48_201_411900_1`) + 
+      as.integer(BF3_SAR_2010$`48_201_411900_2`) + 
+      as.integer(BF3_SAR_2010$`48_201_411900_3`)
+    
+    BF3s_SAR_2010 <- BF3_SAR_2010[order(label),
+                      list(`label`,`concept`,`48201312200`,`48201310300`,`48201411900`)]
+BF3s_SAR_2010
+```
+
+But if we look at the 2017 estimates at the tract level
+```{r female_age_2017}
+    sex_by_age_race_data_from_census_17 <- 
+          censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                 groupname = "B01001",county_num = "201",
+                                 block="tract",api_type="acs/acs5",path_suff="est.csv")
+    SAR_2017 <- as.data.table(sex_by_age_race_data_from_census_17)
+    #all the designations have o in them except totals for all races
+    F_SAR_2017 <- SAR_2017[str_detect(label,"Female")&!str_detect(concept,"O")] 
+    F3_SAR_2017 <- F_SAR_2017[order(label),
+            list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+F3_SAR_2017
+```
+
+
+```{r black_female_age_2017}
+    BF_SAR_2017 <- SAR_2017[str_detect(label,"Female")&str_detect(concept,"BLACK")]
+    BF3_SAR_2017 <- BF_SAR_2017[order(label),
+                      list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    BF3_SAR_2017
+```
+
+
+```{r error_female_age_2017}
+    err_sex_by_age_race_data_from_census_17 <- 
+          censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                 groupname = "B01001",county_num = "201",
+                                 block="tract",api_type="acs/acs5",path_suff="err.csv")
+    errSAR_2017 <- as.data.table(err_sex_by_age_race_data_from_census_17)
+    errF_SAR_2017 <- errSAR_2017[str_detect(label,"Female")&!str_detect(concept,"O")]
+    errF3_SAR_2017 <- errF_SAR_2017[order(label),
+                        list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    errF3_SAR_2017
+```
+
+
+```{r error_black_female_age_2017}
+    errBF_SAR_2017 <- errSAR_2017[str_detect(label,"Female")&str_detect(concept,"BLACK")]
+    errBF3_SAR_2017 <- errBF_SAR_2017[order(label),
+                          list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    errBF3_SAR_2017
+```
+
+
+```{r female_age_2018}
+    sex_by_age_race_data_from_census_18 <- 
+            censusData_byGroupName(censusdir, vintage="2018", state, censuskey, 
+                                   groupname = "B01001",county_num = "201",
+                                   block="tract",api_type="acs/acs5",path_suff="est.csv")
+    SAR_2018 <- as.data.table(sex_by_age_race_data_from_census_18)
+    #all the designations have o in them except totals for all races
+    F_SAR_2018 <- SAR_2018[str_detect(label,"Female")&!str_detect(concept,"O")] 
+    F3_SAR_2018 <- F_SAR_2018[order(label),
+                    list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    F3_SAR_2018
+```
+
+
+```{r black_female_age_2018}
+    BF_SAR_2018 <- SAR_2018[str_detect(label,"Female")&str_detect(concept,"BLACK")]
+    BF3_SAR_2018 <- BF_SAR_2018[order(label),
+                      list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    BF3_SAR_2018
+```
+
+Look at how errors correlate across years
+```{r error_female_age_2018}
+    err_sex_by_age_race_data_from_census_18 <- 
+            censusData_byGroupName(censusdir, vintage="2018", state, censuskey, 
+                                   groupname = "B01001",county_num = "201",
+                                   block="tract",api_type="acs/acs5",path_suff="err.csv")
+    errSAR_2018 <- as.data.table(err_sex_by_age_race_data_from_census_18)
+    errF_SAR_2018 <- errSAR_2018[str_detect(label,"Female")&!str_detect(concept,"O")] 
+    errF3_SAR_2018 <- errF_SAR_2018[order(label),
+                        list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    errF3_SAR_2018
+```
+
+Look at how the margin of error numbers compare between 2017-2018 
+```{r compare_errors}
+    errF3_SAR_2018[,2:4]-errF3_SAR_2017[,2:4]
+```
+
+
+
+
+```{r error_black_female_age_2018}
+    errBF_SAR_2018 <- errSAR_2018[str_detect(label,
+                          "Female")&str_detect(concept,"BLACK")]
+    errBF3_SAR_2018 <- errBF_SAR_2018[order(label),
+                          list(`label`,`48201312200`,`48201310300`,`48201411900`)]
+    errBF3_SAR_2018
+```
+
+Look at how the margin of error numbers compare between 2017-2018 
+```{r compare_errors Black female}
+    errBF3_SAR_2018[,2:4]-errBF3_SAR_2017[,2:4]
+```
+
+for females and using the Census' guide for calculating standard error
+Standard Error = Margin of Error / Z,  where Z = 1.645 for census products after 2005.
+```{r standard error female}
+errF3_SAR_2018[,2:4]/1.645
+```
+
+Standard error Black female
+```{r standard error Black female}
+errBF3_SAR_2018[,2:4]/1.645
+```
+
+And then the estimated value minus the standard error for 2018
+
+```{r est minus standard}
+BF3_SAR_2018[,2:4]-(errBF3_SAR_2018[,2:4]/1.645)
+```
+
+If we assumed that there was a sort of expected variation
+```{r showing standard errors in general}
+#from https://statisticsglobe.com/add-standard-error-bars-barchart-r - with diff numbers
+library(ggplot2)
+df_example <- data.frame(values = rnorm(100,10,7),group = letters[1:4])
+ggplot(df_example, aes(values, group, fill = group)) + 
+  coord_flip() +
+  stat_summary(geom = "bar", fun = mean, position = "dodge") +
+  stat_summary(geom = "errorbar", fun.data = mean_se, position = "dodge")
+```
+
+If we do the setup for calculating standard error and map it
+```{r showing standard error females}
+#left_join -example_data would be ... talk to Ioannis about what to show - have to just pick one or two, I guess...
+```
+
+Line up each of the years as stacked by age, starting with 2010, and then go to next year
+```{r alluvial_female_age_2017_2019}
+#left_join()
+```
+
+
+```{r alluvial_black_female_age_2017_2019}
+
+```
+
+Clearly, this is a deep problem for using the American Community Survey for small area estimation - or more generally, for the modeling that health professionals (and community members and students) would like to do to understand what health interventions are more likely to be effective. For example, new data tools are being developed and bulk data downloads made available for small area estimation of health outcomes. This included some help on ways to create health rankings within cities from the data modeled by the 500 Cities Project (https://www.cdc.gov/places/about/500-cities-2016-2019/index.html), later replaced by the Places project (https://www.cdc.gov/places/index.html).  At first glance, this is what Sam City was also supposed to give us, but the published approaches had not addressed any of our concerns, either the philosophical ones we will examine in the next part or the simpler ones about continuity that we just saw in the numbers assigned to the tracts. The proliferation of other sites that made the same data available in slightly different forms, often for homebuyers and not policy-makers (https://www.cityhealthdashboard.com/, http://www.city-data.com/, https://www.neighborhoodscout.com/, https://www.trulia.com/neighborhoods/, https://www.neighborhoodatlas.medicine.wisc.edu/), added to our confusion about messaging and put into doubt the utility of Sam City even for limited pedagogical uses. The official caveats on use of the ACS suggest complex statistical tests on each level, and take no responsibility for bad uses. A buried caveat about confidence intervals and margins of error will not dissuade someone from creating an automatic map that makes it look like diabetes or maternal health has changed in a particular neighborhood, when in fact everything is an artifact of the choices that were made in creating that map - and specifically, the mapping of the larger numbers at aggregated levels of analysis onto the smaller areas that constitute our daily places of engagement.
+
+To just point out one of the most obvious choices, in those mappings, the census wanted to preserve the statistical structure at certain levels and was willing to sacrifice other structures in order to keep that broad horizon of being able to justify each step in terms of a representation of statistical likelihood relative to any particular combination instead of seeing the problem as how to optimize distribution among potential categories (either real or conceptual spaces). We learned this at great expense - and very great frustration for a gifted student who spent many hours trying to make it work in an early version of Sam City. She had been asked by our faculty team to create the pedagogical tool by calculating the percentage chance for any individual to be found in the next category of interest, and then to distribute them by that likelihood. She would try to create ever more complicated examples, but always ran into insurmountable walls as the pieces refused to fall into place. We later stepped back and looked at the problem again. We saw that regardless of our view of the ultimate horizon of truth or falsity, we were dealing with a certain type of game, where the problem was to put people into spaces (conceptual and real) that recaptured the original dispensation of people in those spaces (which was, itself, a bit of a game). 
+
+We are inspired here by certain quite technical innovation in mathematics (cf. https://arxiv.org/abs/1703.03007 for an overview on homotopy type theory and conceptual spaces) and in statistics, especially as related to language (cf. T-D Bradley, https://arxiv.org/abs/2004.05631, and https://arxiv.org/abs/2106.07890)
+
+Perhaps example of Hispanic ethnicity/race and how they have to add up? 
+
+```{r trying assignment by probability}
+```
+
+
+So how do we fix this? Next part is "Making Sam"
+
+

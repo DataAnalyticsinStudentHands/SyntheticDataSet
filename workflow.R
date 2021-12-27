@@ -22,13 +22,13 @@ housingStockFromRDS = TRUE
 state = 48 #48 Texas; 22 Louisiana
 county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
 tract = "*"
-seed = 135
-set.seed(seed = seed) #  have to reinvoke for each function call, but haven't decided where yet
+#seed = 135
+#set.seed(seed = seed) #  have to reinvoke for each function call, but haven't decided where yet
 
 #let's create SAM
-sam <- createBaseSAM(censusdir, housingdir, vintage, 
-                     housingStockFromRDS, 
-                     numberOfCores = numberOfCores, state = state, county = county, tract = tract)
+#sam <- createBaseSAM(censusdir, housingdir, vintage, 
+#                     housingStockFromRDS, 
+#                     numberOfCores = numberOfCores, state = state, county = county, tract = tract)
 
 #createBaseSAM will need to call exp_census_hh, prob. from within householdsGenerator.; then exp_census from within Individuals_generator
 #current 8/2020 manual order: source Census_Data, workflow (ll. 3-24),
@@ -38,23 +38,23 @@ sam <- createBaseSAM(censusdir, housingdir, vintage,
 #HCAD_merge and HCAD_geo have not been functioned; all need error handling and sanity checks internally
 
 # do some sanity checks and more columns
-if (sanityChecks(sam)) {
-  # Add column to add level to data
-  sam <- one_of(sam)
-  
-  # TODO move into HCAD preprocessing - adds cooordinates to the model based on the geometry column
-  sam <- add_lat_long(sam)
-  
-  # This converts all the columns in to the model to the appropriate class (either character or numeric)
-  sam <- convertColumnTypes(sam)
-  
-} else {
-  print("Did not pass sanity checks!")
-}
+#if (sanityChecks(sam)) {
+#  # Add column to add level to data
+#  sam <- one_of(sam)
+#  
+#  # TODO move into HCAD preprocessing - adds cooordinates to the model based on the geometry column
+#  sam <- add_lat_long(sam)
+#  
+#  # This converts all the columns in to the model to the appropriate class (either character or numeric)
+#  sam <- convertColumnTypes(sam)
+#  
+#} else {
+#  print("Did not pass sanity checks!")
+#}
 
 #add extension columns - NHANES etc.
 
 
 
 #Save the final result
-saveRDS(sam, paste0(maindir,"complete_sam", Sys.Date(), ".RDS"))
+#saveRDS(sam, paste0(maindir,"complete_sam", Sys.Date(), ".RDS"))
