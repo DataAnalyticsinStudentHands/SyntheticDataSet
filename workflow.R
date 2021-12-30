@@ -22,7 +22,7 @@ housingStockFromRDS = TRUE
 state = 48 #48 Texas; 22 Louisiana
 county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
 tract = "*"
-#seed = 135
+Sam_seed = 135
 #set.seed(seed = seed) #  have to reinvoke for each function call, but haven't decided where yet
 
 #let's create SAM
