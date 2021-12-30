@@ -87,7 +87,8 @@ We can use a little trick because of how the R library dyplyr performs the trans
       mutate(re_code = substr(name,7,7),
              race = str_replace(concept,"SEX BY AGE \\(",""),
              race = str_replace(race,"\\)",""),
-             age = str_replace(age,"years"," years"),
+             age = str_replace(age, "Under 1 year", "0"),
+             age = str_replace(age,"year"," year"),
              age = as.integer(substr(age,1,3))
              ) %>%
       filter(number_sams > 0, !is.na(age))
@@ -115,27 +116,86 @@ And then one for ethnicity:
       filter(re_code %in% ethnicity_codes) %>%
       uncount(number_sams,.id = "sams_ethnicity_id") #will create different id later
 ```
-Can do some tests on them, but both get a total of 3,949,562, which is about 158,000 short of published...
+Can do some tests on them, but both get a total of 4092459, which is about 15,000 short of published...
 Group quarters?
 
 Talk a little bit about how it doesn't work to just give every White person a 40% chance of also being Hispanic or Latino....
+At some point, will also want to talk about using data.table vs. dyplyr / tidyr and what, in general one is looking for in rows, columns, and vectors, etc.
 
 What we do, instead, is to order each of the sets by their shared characteristics and assign an id, with numbers assigned sequentially for rows that match on all characteristics. 
 
 ```{r join SAE and SAR}
+dec_SAR_Harris_10 <- as.data.table(dec_SAR_Harris_10)
+dec_SAE_Harris_10 <- as.data.table(dec_SAE_Harris_10)
 dec_SAR_Harris_10[,("sar_match_id"):=
-                    paste0(tract,sex,age,race)]
-hh_relations_eth[role_in_family=="Householder",
-                     ("hh_match_id"):=
-                    paste0(tract,sex,ethnicity,householder_age_9,
-                           marital_status_gp,English_proficiency,as.character(1000000+seq.int(1:.N))),
-                  by=.(tract,sex,ethnicity,householder_age_9,
-                       marital_status_gp,English_proficiency)]
+                    paste0(tract,sex,age,race,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,sex,age,race)]
+dec_SAE_Harris_10[,("sar_match_id"):=
+                    paste0(tract,sex,age,race,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,sex,age,race)]
+dec_SAR_Harris_10[,("ethnicity"):=
+                    dec_SAE_Harris_10[.SD, list(re_code), on = .(sar_match_id)]]
+#then add a marker to dec_SAE_Harris_10 that those individuals are already represented in SAR
+dec_SAE_Harris_10[,("race2"):=
+                    dec_SAR_Harris_10[.SD, list(re_code), on = .(sar_match_id)]]
+#the ones that don't match are the ones that are Hispanic
+dec_SAR_Harris_10[is.na(ethnicity),("sar_match1_id"):=
+                    paste0(tract,sex,age,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,sex,age)]
+dec_SAE_Harris_10[is.na(race2),("sar_match1_id"):=
+                    paste0(tract,sex,age,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,sex,age)]
+dec_SAR_Harris_10[is.na(ethnicity),("ethnicity"):=
+                    dec_SAE_Harris_10[.SD, list(re_code), on = .(sar_match1_id)]]
+dec_SAE_Harris_10[is.na(race2),("race2"):=
+                    dec_SAR_Harris_10[.SD, list(re_code), on = .(sar_match1_id)]]
 
 ```
 
-Don't forget to get ages over 100...
+Do some tests
 
+```{r SAE SAR join tests}
+
+```
+
+Don't forget to add ages for those over 100
+Want to make it a smooth function, so figure out how many are over 104, then divide that by 5, and divide 100-104 by 5, then use that as the slope
+```{r expand bgSAR}
+dec_bgSARE_10 <- dec_bgSAR_data_10 %>%
+  pivot_longer(4:ncol(dec_bgSAR_data_10),names_to = "geoid", values_to = "number_sams",
+                   names_transform = list(geoid=as.character)) %>%
+      separate(label, c("total","sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(re_code = substr(name,5,5),
+             race = str_replace(concept,"SEX BY AGE \\(",""),
+             race = str_replace(race,"\\)",""),
+             age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), #have to regularize and make possible to compare
+             age_range = str_replace(age_range,"5 to 9 years","05 to  9 years"),
+             age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
+             age_range = str_replace(age_range,"20 years","20 to 20 years"),
+             age_range = str_replace(age_range,"21 years","21 to 21 years"),
+             age_range = str_replace(age_range,"85 years and over","85 to 94 years"),  #have to skew left when assigning.
+             first_age = as.numeric(substr(age_range,1,2)),
+             last_age = as.numeric(substr(age_range,7,8)),
+             tract = str_remove_all(geoid,"_"),
+             tract = substr(tract,1,11)
+             ) %>%
+      filter(number_sams > 0, !is.na(age_range))
+```
+
+```{r SAR expand to bg}
+    race_codes <- c("A","B","C","D","E","F","G")
+    dec_bgSAR_10 <- dec_bgSARE_10 %>%
+      filter(re_code %in% race_codes) %>%
+      uncount(number_sams,.id = "sams_race_id")
+```
+
+should put in ethnicity codes for bgSAE and join, so that they get the match as far as possible, even if we don't know all the specifics...
+```{r SAE expand to bg}
+    eth_codes <- c("H","I")
+    dec_bgSAE_10 <- dec_bgSARE_10 %>%
+      filter(re_code %in% eth_codes) %>%
+      uncount(number_sams,.id = "sams_race_id")
+```
 
 https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf
 put in households
