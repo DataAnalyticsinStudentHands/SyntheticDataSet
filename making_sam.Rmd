@@ -22,28 +22,120 @@ Plan: find smallest units of space combined from 2010 census
 https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf
 Gives a nice place to look - P1, P5, P6, P8 - look at each and discuss briefly.
 
+Let's begin with PCT12, which is tract level data but has every age by year, gender, ethnicity and race. It has 101 possible age groups, with 1-99 years and then one for "100 to 104 years" and one for "105 to 109 years". It then has categories for all the built in race and ethnicity categories, with each person counted in the total, and every person categorized by race (there are tables for how many people had to have a race assigned, given they refused to provide, but everyone has an assigned race); Hispanic is a problematic category for counting, as well as for historical reasons, and is dealt with differently in the decennial and ACS reporting. Let's download it, do some quick checks, and then look at it.  
+
 ```{r look at PCT12}
 #this gives you by every year at the tract level - could be a good example for adding together - PCTs never go below tract level
     dec_sex_by_age_tract_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                               groupname = "PCT12",county_num = "201",
                                                                               block="tract",api_type="dec/sf1",path_suff="est.csv")
-#check if row that label!="Total"*3==sum of whole column
+
 ```
-show how some of the testing works
+Show how some of the testing works
 ```{r test for na}
-    result <- as.data.table(dec_sex_by_age_tract_data_from_census_10)
-    percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+    dec_SAR_data_from_census_10 <- as.data.table(dec_sex_by_age_tract_data_from_census_10)
+    percent_na <- dec_SAR_data_from_census_10[,sum(is.na(.SD))] / 
+      (dec_SAR_data_from_census_10[,sum(!is.na(.SD))]+dec_SAR_data_from_census_10[,sum(is.na(.SD))])
     paste("Percentage of NAs in file:",as.integer(100*percent_na))
 ```
 
+Need to check to make sure that their totals at least add up - every so often the census makes mistakes that we need to clean up in some way. This lets us see that we need to check. We had the whole state, so for our case going down to county first
+```{r check for consistency on totals}
+    dec_SAR_Harris_data_from_census_10 <- dec_SAR_data_from_census_10 %>%
+      select(name,label,concept,starts_with("48201"))
+#needs to be numeric for the sum in the test
+    dec_SAR_Harris_data_from_census_10[,4:ncol(dec_SAR_Harris_data_from_census_10)] <- dec_SAR_Harris_data_from_census_10[,lapply(.SD[,4:ncol(dec_SAR_Harris_data_from_census_10)], as.numeric)]
+#there's a total for each concept and for the whole, but in the ones without a total, there are also total female and male.
+test <- colSums(dec_SAR_Harris_data_from_census_10[label=="Total",4:ncol(dec_SAR_Harris_data_from_census_10)])*2 ==
+      colSums(dec_SAR_Harris_data_from_census_10[label!="Total",4:ncol(dec_SAR_Harris_data_from_census_10)])
+#see if any of the tests don't match; if false, need to go back and check on what happened
+length(test[test==F])==0
+```
+
+
+
 could be interesting to just show how that casting works from every year to the groups
 ```{r block_group sex by age}
-dec_sex_by_age_race_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+dec_bgSAR_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                       groupname = "P12",county_num = "201",
                                                                       block="block_group",api_type="dec/sf1",path_suff="est.csv")
 ```
 
 should show the testing and the questions
+```{r demography test problems}
+#point is that you can't do the test on whether totals equal because you have to remove White Alone not Hispanic or Latino and Hispanic or Latino
+#needs to be numeric for the sum in the test
+dec_bgSAR_data_10 <- as.data.table(dec_bgSAR_data_from_census_10)
+    dec_bgSAR_data_10[,4:ncol(dec_bgSAR_data_10)] <- dec_bgSAR_data_10[,lapply(.SD[,4:ncol(dec_bgSAR_data_10)], as.numeric)]
+#there's a total for each concept and for the whole, but in the ones without a total, there are also total female and male.
+test <- colSums(dec_bgSAR_data_10[label=="Total",4:ncol(dec_bgSAR_data_10)])*2 ==
+      colSums(dec_bgSAR_data_10[label!="Total",4:ncol(dec_bgSAR_data_10)])
+#see if any of the tests don't match; if false, need to go back and check on what happened
+length(test[test==F])==0
+```
+
+For the next step, we need to transform the counts we have for demography so that each person is represented as having properties, including geography and demography. Some notes about how this works more abstractly, or maybe add that later...
+Let's take the tract-level data, as the most specific for year and race category, and then add the block_group information because that gives us important geographic differences. We'll work with only Harris County at this point.
+First, we need to identify the rows which, if added together, give us a complete and non-repeating set of the population. There is one way to do that with the overall total row, with the two gender total rows, and with all of the individual age rows without the totals. Unfortunately, the census reports have a somewhat idiosyncratic way of reporting the data, and the way to identify these rows is not always simple. This case is relatively easy, and a good example to start with. The "label" column has three components, separated by double exclamation points. (They made changes in the way the separations work in 2019, so these small scripts will have to be modified for later years. The decennial and ACS also have small differences that have to be accounted for, as we will see.)
+We can use a little trick because of how the R library dyplyr performs the translation and expansion of the representation, so that we're looking at rows of people with geographic and demographic properties and not rows of categories against columns of geography. We will get a warning that NAs were introduced by coercion, but it happens that those will be the rows that we want to exclude in any case.
+
+```{r expand SARE}
+    dec_SARE_Harris_10 <- dec_SAR_Harris_data_from_census_10 %>%
+      pivot_longer(4:ncol(dec_SAR_Harris_data_from_census_10),names_to = "tract", values_to = "number_sams",
+                   names_transform = list(tract=as.character)) %>%
+      separate(label, c("total","sex","age"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(re_code = substr(name,7,7),
+             race = str_replace(concept,"SEX BY AGE \\(",""),
+             race = str_replace(race,"\\)",""),
+             age = str_replace(age,"years"," years"),
+             age = as.integer(substr(age,1,3))
+             ) %>%
+      filter(number_sams > 0, !is.na(age))
+```
+
+Once we have the file for the entire population, we'll want to make a complete population with ethnicity and one with race.
+Doing race first
+
+```{r expand SAR}
+    #setup race codes https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
+    race_codes <- c("A","B","C","D","E","F","G")
+    dec_SAR_Harris_10 <- dec_SARE_Harris_10 %>%
+      filter(re_code %in% race_codes) %>%
+      uncount(number_sams,.id = "sams_race_id") #will create different id later
+```
+(put in something that prints a total pop?)
+
+And then one for ethnicity:
+
+```{r expand SAE}
+    #one for Hispanic and then not Hispanic or Latino for each race; H and I do not match race codes in ACS
+    ethnicity_codes <- c("H","I","J","K","L","M","N","O") 
+    dec_SAE_Harris_10 <- dec_SARE_Harris_10 %>%
+      mutate(race=str_replace(race,", NOT HISPANIC OR LATINO","")) %>%
+      filter(re_code %in% ethnicity_codes) %>%
+      uncount(number_sams,.id = "sams_ethnicity_id") #will create different id later
+```
+Can do some tests on them, but both get a total of 3,949,562, which is about 158,000 short of published...
+Group quarters?
+
+Talk a little bit about how it doesn't work to just give every White person a 40% chance of also being Hispanic or Latino....
+
+What we do, instead, is to order each of the sets by their shared characteristics and assign an id, with numbers assigned sequentially for rows that match on all characteristics. 
+
+```{r join SAE and SAR}
+dec_SAR_Harris_10[,("sar_match_id"):=
+                    paste0(tract,sex,age,race)]
+hh_relations_eth[role_in_family=="Householder",
+                     ("hh_match_id"):=
+                    paste0(tract,sex,ethnicity,householder_age_9,
+                           marital_status_gp,English_proficiency,as.character(1000000+seq.int(1:.N))),
+                  by=.(tract,sex,ethnicity,householder_age_9,
+                       marital_status_gp,English_proficiency)]
+
+```
+
+Don't forget to get ages over 100...
+
 
 https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf
 put in households
@@ -68,5 +160,7 @@ rearrange so that they all add to same whole and then figure out how to distribu
 tests of each step
 
 discussion of power sets vs. categories? 
+
+redoing HCAD first to help with generation of 2011 - a space to move into...
 
 
