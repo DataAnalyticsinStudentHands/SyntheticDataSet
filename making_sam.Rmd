@@ -247,10 +247,9 @@ table(dec_SAR_Harris_10$age)
 
 We know that it's fully commutative with the SAE file at the tract level, and that any specification to the block_group would maintain that commutativity. [can I show that relation with an example? if so, should include it, above, but I think it's probably possible to construct a counter example; for our case, we are justified because the specification by age gives us a granularity that means the commutativity has a very tight representation - think of its simplicial complex? its homotopy degree? - and that is what will be maintained. Is that granularity enough to ensure that the other representations are still commutative? let's see.]
 
-#NEED TO TEST WRITE_CSV, then break into new rmd for hh after also adding a write block for the bgSAR
-Let's set this representation of the population for a moment and look at the block_group level. We'll follow a very similar pattern, although there are small differences that make it impossible to run it simply through the same script. Just because of how limitations work on computer memory, let's save the modified dec_SAR_Harris_10 data. 
+Let's set this representation of the population aside for a moment and look at the block_group level. We'll follow a very similar pattern, although there are small differences that make it impossible to run it simply through the same script. Just because of how limitations work on computer memory, let's save the modified dec_SAR_Harris_10 data. 
 ```{r save SAR Harris csv}
-    file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="SAR_Harris",path_suff="wrk.csv")
+    file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="tract",groupname="SAR_Harris",path_suff="wrk.csv")
     write_csv(dec_SAR_Harris_10,file_path)
 ```
 
@@ -399,78 +398,14 @@ We look to the household data to see if there's a way to help with understanding
 As we mentioned in passing, before, the function of subsetting is conceived differently for dependent type theory than for set theory. Does type theory let us think all the way to adjointness or is that the category theory? What I'm trying to take advantage of is triangle relations that are articulated at different levels and so aren't immediately commutative - but must happen within an overall space where an effective commutativity did exist (their representation, on their protected server, of the entire population). Could draw that in a diagram, but the point is that the commutativity is the first "algebraic" structure to maintain, as opposed to the representability of each produced representation in terms of its statistical relations to the whole (with its troubled attempt to guide its development by tracking the growing levels of uncertainty) - again, have to think about how much of this is already in ACS_probs.
 
 We start with P28 because it captures the relation between race eth hhtype and hhsize. The others have more specificity to add to each.
+We'll do this in the next making_sam_hh.Rmd, for more effective computation, and save the block_group data, for use later.
 
-```{r basic household data download}
-#block - sf1 - P15 and P16 (eth and race of hh) P18 (hhtype by race/eth) P22 (hhtype by age of hh) p28 (hhtype by hhsize by race/eth)
-#plan - looks like P17 and P18 have much more detail than P28, so combine P17 with P28, then P18 with P28xP17
-#then combine P16 with P28xP17xP18 and P15 with P28xP17xP18xP16   
-
-#tract - sf2 - (Tenure by hhtype by age of hh - HCT9) - more age_groups and has tenure
-```
-
-```{r hh_relation download block}
-
-dec_hh_relation_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                                                                groupname = "P29",county_num = "201",
-                                                                block="block_group",api_type="dec/sf1",path_suff="est.csv")
+```{r save SAR Harris csv}
+    file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="bgSAR_Harris",path_suff="wrk.csv")
+    write_csv(dec_bgSAR_10,file_path)
 ```
 
 
 
-The redistricting data collected in 2010 reports population estimates in yet a different format. It has one table that has races and ethnicity data for everyone over 18 and one that has it for everyone, with no ages attached. The race data gives more details on the composition of "Two or More Races" but nothing else new. The ethnicity file gives block level data for Hispanic or Latino who don't identify as White. Gives slightly more contour, but not much, and risks big differences on age and ethnicity or race per block group. (Although some contour is better than none!)
-
-```{r pl data downloaded}
-    dec_eth_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                                                                      groupname = "P2",county_num = "201",
-                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
-    dec_race_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                                                                groupname = "P1",county_num = "201",
-                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
-    dec_eth_over18_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                                                                      groupname = "P4",county_num = "201",
-                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
-    dec_race_over18_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                                                                groupname = "P3",county_num = "201",
-                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
- 
-    
-```
-
-
-
-
-Then have the tract level details join into the bg representation? Should discuss whether to start with the household stuff - check if it has the PCT level of detail on ethnicity anywhere... 
-If not, can just save the demographic_bg to the OneDrive and start from there.
-
-
-
-
-https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf
-put in households
-add P15 or P16, then other hh stuff that can be added without problems, then add people in
-also look at H9
-P21 should also be good; p29, p30...
-
-have to think about how family info is different from hh
-
-group quarters are needed b/c hh don't include them
-```{r group quarters to add}
-dec_group_quarters_block_data_from_census_10 <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                         groupname = "P5",county_num = "201",
-                         block="block_group",api_type="dec/pl",path_suff="est.csv")
-```
-
-
-
-expand from census
-
-rearrange so that they all add to same whole and then figure out how to distribute them among that space
-
-tests of each step
-
-discussion of power sets vs. categories? 
-
-redoing HCAD first to help with generation of 2011 - a space to move into...
 
 
