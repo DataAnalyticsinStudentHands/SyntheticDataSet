@@ -245,7 +245,14 @@ dec_SAR_Harris_10[age==110,("age"):=sample(c(110:113),size = .N,replace = TRUE,p
 table(dec_SAR_Harris_10$age)
 ```
 
-Let's set this representation of the population for a moment and look at the block_group level. We'll follow a very similar pattern, although there are small differences that make it impossible to run it simply through the same script.
+We know that it's fully commutative with the SAE file at the tract level, and that any specification to the block_group would maintain that commutativity. [can I show that relation with an example? if so, should include it, above, but I think it's probably possible to construct a counter example; for our case, we are justified because the specification by age gives us a granularity that means the commutativity has a very tight representation - think of its simplicial complex? its homotopy degree? - and that is what will be maintained. Is that granularity enough to ensure that the other representations are still commutative? let's see.]
+
+#NEED TO TEST WRITE_CSV, then break into new rmd for hh after also adding a write block for the bgSAR
+Let's set this representation of the population for a moment and look at the block_group level. We'll follow a very similar pattern, although there are small differences that make it impossible to run it simply through the same script. Just because of how limitations work on computer memory, let's save the modified dec_SAR_Harris_10 data. 
+```{r save SAR Harris csv}
+    file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="SAR_Harris",path_suff="wrk.csv")
+    write_csv(dec_SAR_Harris_10,file_path)
+```
 
 ```{r expand bgSAR}
 dec_bgSARE_10 <- dec_bgSAR_data_10 %>%
@@ -261,6 +268,7 @@ dec_bgSARE_10 <- dec_bgSAR_data_10 %>%
              age_range = str_replace(age_range,"20 years","20 to 20 years"),
              age_range = str_replace(age_range,"21 years","21 to 21 years"),
              age_range = str_replace(age_range,"85 years and over","85 to 110 years"),
+             age_range = str_replace(age_range,"and","to"),
              first_age = as.integer(substr(age_range,1,2)),
              last_age = as.integer(substr(age_range,7,8)),
              tract = str_remove_all(geoid,"_"),
@@ -289,58 +297,146 @@ Let's put in ethnicity codes for bgSAE and join, so that they get the match as f
       uncount(number_sams,.id = "sams_race_id")
     paste0("Total population in this representation is: ",nrow(dec_bgSAE_10))
     #which is not the same as the totals above, because they didn't provide categorization for all individuals.
-    nrow(dec_bgSAE_10)==sum(pop_totals_bg[,])
+    paste0("nrow = pop_totals: ",nrow(dec_bgSAE_10)==sum(pop_totals_bg[,]))
+    #see if age_ranges line up
+    test <- sort(unique(dec_bgSAE_10$age_range))==sort(unique(dec_bgSAR_10$age_range))
+    length(test[test==FALSE])==0
+    
 ```
 
 Part of what's interesting, here, is that the tract level wanted to keep straight all the potential Hispanic or Latino combinations - for example, Black Hispanic is not listed in the block_group, but is available in the tract. At the tract level, you have both "BLACK OR AFRICAN AMERICAN ALONE" and "BLACK OR AFRICAN AMERICAN ALONE, NOT HISPANIC OR LATINO"), which is what lets you impute Black and Hispanic. We will talk a bit more, later, about the politics of "Hispanic," which have come to be important for many people recently, but have long been evident in the structures of the U.S. census.
 The race_ethnicity codes (re_code) for ethnicity is either H or I.
 
 ```{r table eth_codes}
+dec_bgSAR_10 <- as.data.table(dec_bgSAR_10)
+dec_bgSAE_10 <- as.data.table(dec_bgSAE_10)
+
 #need to figure out how to display
 table(dec_bgSAE_10[,"re_code"])
 table(dec_bgSAE_10[,"concept"])
+
 ```
 
 This means that the only information we know at the block_group level is the number of people who are "Hispanic or Latino" and the number who are "White Alone, Not Hispanic or Latino." But because we do know their sex and age_group, we can add them to the block_group by race representation on White Alone (which, in the race representation, includes many, but not all, of the Hispanic or Latino population). Since no other information is known about the individuals, we are constructing a representation that will not lose the structures of any of the originating contexts. As we add more contexts to construct a more complicated description of the population, that task will become more difficult. This example is one of the simpler versions, and is not controversial. We note, by the way, that one could encode the descriptions in terms of sets, as well. Only as the construction gets yet more complicated will the distinction between types and sets really matter.
 
 As an aside that we will take up more at length, later, the race is allocated by the census taker (or sometimes an automated process) when the surveyed person refuses to give a race (or if the answer given doesn't agree with the algorithms). For the 2010 census, that activity was reported under the table, "Allocation of Race" (P46). There's not much we can do to dive into the detail about why it happened, except to note that a fairly large percentage had to be allocated, and that it was quite variable by tract. Deciding whether there is a source of error also depends on whether the ground truth would be the individual's self-designation, assuming they trusted the census-taker enough to tell them the truth, or whether there is an objective (or objectively consistent) designation that should be followed for the classification. For example, a person who prefers to be called "Latinx" would be grouped with "Hispanic or Latino" in this approach, and the political differences that were already inherent in "Hispanic" vs. "Latino" were collapsed into an awkward category that just had both names, just as "Black or African American" collapses many important distinctions about how people self-identify. The technical details can be found here: https://www.socialexplorer.com/data/C2010/metadata/?ds=SF1&table=P0460, but we will also have a more detailed conversation, below. The important thing to note is that the census tried to conserve structures of consistency and completeness by carefully articulating rules for the data collection and ensuring that everyone fit into some category. This concern for consistency and completeness is completely justified, given the goals of the census, but we should be attentive to the other structures of representation that are not conserved but could have been, including people's right to self-identification, genetic profiles, either patrilineal or matrilineal descent, adoptive or biological descent, or self-identification with particular cultural tropes or characters from popular culture. 
 
-To read the data.table script, below, you'd say that for the rows in dec_bgSAR_Harris_10 that match the White only group (re_code=="A"), assign a match_id with the components of tract, sex, age, and an appropriate random number. Then you do the same for dec_bgSAE_Harris_10. Then the folks left in each tract in the category of Hispanic or Latino should be more than the number of White Alone that are left (presumably some of the Hispanic population was listed as Black or some other category). 
-
 ```{r race allocated 2010}
 dec_race_allocation_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                   groupname = "P46",county_num = "201",
                                                                   block="block_group",api_type="dec/sf1",path_suff="est.csv")
 dec_race_allocation <- as.data.table(dec_race_allocation_data_from_census_10)
- #think about what to show - mean? median? standard_error - it's about 5% - it might be interesting to look at the characteristics of where it's higher and see if that relates to measures of trust in govt.
+paste0("average percent of allocated vs. total race demographics reported: ",
+as.integer(sum(dec_race_allocation[label=="Total!!Allocated",4:ncol(dec_race_allocation)]) *100 / 
+  sum(dec_race_allocation[label=="Total",4:ncol(dec_race_allocation)])),"%")
+
 ```
+
+We are consciously putting these questions to the side, with the expectation that a careful analysis of how we are constructing the mathematical objects will point to an eventual better way to construct the measures associated with demographics. For now, we want to focus on the process of construction. To read the data.table script, below, you'd say that for the rows in dec_bgSAR_Harris_10 that match the White only group (re_code=="A"), assign a match_id with the components of tract, sex, age, and an appropriate random number. Then you do the same for dec_bgSAE_Harris_10. Then the folks left in each tract in the category of Hispanic or Latino should be more than the number of White Alone that are left (presumably some of the Hispanic population was listed as Black or some other category).
 
 With these caveats in mind, let's look at how to best move the detailed tract data onto the block_group, with some discussion of other approaches and inherent dangers to the representations. We begin with the joins on ethnicity and race that are available at the block_group level:
 
 ```{r join bgSAE and bgSAR}
-dec_bgSAR_10 <- as.data.table(dec_bgSAR_10)
-dec_bgSAE_10 <- as.data.table(dec_bgSAE_10)
 dec_bgSAR_10[re_code=="A",("sar_match_id"):=
-                    paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
-                  by=.(tract,sex,age_range)]
-dec_bgSAE_10[re_code=="H",("sar_match_id"):=
-                    paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
-                  by=.(tract,sex,age_range)]
+                    paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
+                  by=.(geoid,sex,age_range)]
+dec_bgSAE_10[re_code=="I",("sar_match_id"):=
+                    paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
+                  by=.(geoid,sex,age_range)]
 dec_bgSAR_10[re_code=="A",("ethnicity"):=
                     dec_bgSAE_10[.SD, list(re_code), on = .(sar_match_id)]]
+nrow(dec_bgSAR_10[!is.na(ethnicity)&re_code=="A"])==nrow(dec_bgSAE_10[re_code=="I"])
+test <- table(dec_bgSAR_10[re_code=="A"&!is.na(ethnicity),geoid],
+              dec_bgSAR_10[re_code=="A"&!is.na(ethnicity),sex],
+              dec_bgSAR_10[re_code=="A"&!is.na(ethnicity),age_range]
+) == table(
+  dec_bgSAE_10[re_code=="I",geoid],
+  dec_bgSAE_10[re_code=="I",sex],
+  dec_bgSAE_10[re_code=="I",age_range]
+)
+length(test[test==FALSE])==0
 #then add the ones that are Hispanic
 dec_bgSAR_10[re_code=="A"&is.na(ethnicity),("sar_match1_id"):=
-                    paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
-                  by=.(tract,sex,age_range)]
-dec_bgSAE_10[re_code=="I",("sar_match1_id"):=
-                    paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
-                  by=.(tract,sex,age_range)]
+                    paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
+                  by=.(geoid,sex,age_range)]
+dec_bgSAE_10[re_code=="H",("sar_match1_id"):=
+                    paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
+                  by=.(geoid,sex,age_range)]
 dec_bgSAR_10[re_code=="A"&is.na(ethnicity),("ethnicity"):=
                     dec_bgSAE_10[.SD, list(re_code), on = .(sar_match1_id)]]
-
+paste0("number of Hispanic or Latino who are not White alone: ",nrow(dec_bgSAE_10)-nrow(dec_bgSAR_10[!is.na(ethnicity)]))
 ```
 
-Make sure on the NAs, etc.
+We can add in the tract data at this point, matching on ethnicity, with race taking care of itself, but there's a potential of having some of the folks who don't have ethnicity assigned at the block_group being misassigned within the tract to the wrong block_group. That is, we can create a commutative representation, but it might break with other commutative relations that depend on how race is combined with ethnicity at the block_group level. 
+
+Some of this may be recap from the ACS_probs Rmd - have to think about the structure of the overall argument and whether to try to recap here.
+At this point, we have several options, all of which we can characterize in terms of the types of structures preserved by the different approaches. If we think of every way of talking about the representation as an object, and our task as being about how we understand the various constructions of representations, then we are being guided by the demand for an overall coherence in our representation and not by the connection between our representation and a set of objects at a particular point. There are philosophical reasons to justify that choice - after all, the connection between our representation and the set of objects would, in every particular case, also have to be a representation, so being guided by the coherence of the ensemble of representations gives you a more encompassing overall approach. That turn toward the coherence of the representation need not be a turn toward relativism, however, even though it deliberately celebrates the proliferation of modes of representation. Ordinary high school mathematics can be a guide here; as you transform an algebra problem, following rules for reshaping each side of the equation, you're dealing with the coherence of the representations and looking for a particular form - or mathematical object - that helps resolve the equations into something more useful. On the other side, one is tempted by the idea that each transformation should be tied to a determination or judgment about the connection of the world to the proposition or sets of propositions being made. 
+In the latter case, for example, one would approach the reconstruction of census data with an eye toward maintaining throughout all the representations the statistical likelihood that any particular representation would be correctly reflected by the ground truth at that step. You would, in our particular conundrum, choose either race, ethnicity, age, sex, or geography (or some known combination of them) to set as a base and then add the other attributes step-wise while tracking the statistical uncertainty introduced. This could be relatively detailed, and derived from the same dataset:
+
+```{r solving race eth statistically}
+#create percentages of people in each tract who are there by age or by race, 
+#or by race, ethnicity, and age - one can go down in the cells to a very detailed level
+#code snippet
+
+#create each individual by saying they have that percentage chance to be 
+#in each of the boxes at that level.
+#code snippet
+
+#see the totals diverge in the way that leads us to the ACS unusability - 
+#where the confidence interval makes some sense at the highest level, i.e., 
+#at the tract by age_range, but stops being realistic as that range is 
+#further spread out when projecting below that level into block_groups or 
+#more specific ages
+#code snippet
+```
+
+In our way of speaking, what that approach does is privilege the structure of the individual confronting an unknown distribution of objects and asking whether that distribution falls within an expected range. We are not questioning the legitimacy of that statistical question, but we are asking what it means to privilege other structures of coherence. Another way of thinking about the problem is to say that the statistical estimation is the place where the encoding of the functions is projected onto the place where an individual subject looks at some particular distribution and describes its embeddedness in another level of an individual subject looking at a distribution describing it - I know what percent by race live in the tract, so I can use that percentage to give an estimation at the block_group level. 
+
+The problem with that set of presuppositions is that it sees the function of assigning characteristics to individuals as a projection of sets and then looks for the coherence in terms of comparing the distributions in the sets. One can make a judgment about whether the assigning function is effective or not, by looking at the outcomes as either being within acceptable distributions as determined by comparison with another set's output, but one is not taking advantage of the way the functions work as an ensemble of potential representations, allowing intermediate steps which conserve other elements of the relations, for example, before we get to the place where the statistical estimation is the right framework for judging efficacity. Treating the ensemble of mappings as a mathematical object is what it means, mathematically, to move from looking at the rules for producing a representation (for example, the arithmetic operations on a collection of objects) and asking whether the rules were correctly applied to looking at the way different rules for producing the same representation cohere and using the tools from the various mappings to move back and forth between operations until a more effective representation can be implemented (for example, solving a problem algebraically by working through the abstract possibilities of the combinations of variables until necessary structures for their possible combination become evident and can be employed to create a solution).  
+
+We look to the household data to see if there's a way to help with understanding how to assign the Hispanic or Latino designation. What we will find is that there is a distribution of householders by race, a distribution of all the population in the households, and a distribution of all adults over 18 in the households, all by block_group. If we conserve the structures of relations between these designations by noting that there is a single distribution stored at the census that has each individual with all characteristics (within the range of problems they have with the initial collection), what we see are clues to the construction of each representation from the full set of characterized individuals to the particular subset produced in the tables. 
+
+As we mentioned in passing, before, the function of subsetting is conceived differently for dependent type theory than for set theory. Does type theory let us think all the way to adjointness or is that the category theory? What I'm trying to take advantage of is triangle relations that are articulated at different levels and so aren't immediately commutative - but must happen within an overall space where an effective commutativity did exist (their representation, on their protected server, of the entire population). Could draw that in a diagram, but the point is that the commutativity is the first "algebraic" structure to maintain, as opposed to the representability of each produced representation in terms of its statistical relations to the whole (with its troubled attempt to guide its development by tracking the growing levels of uncertainty) - again, have to think about how much of this is already in ACS_probs.
+
+We start with P28 because it captures the relation between race eth hhtype and hhsize. The others have more specificity to add to each.
+
+```{r basic household data download}
+#block - sf1 - P15 and P16 (eth and race of hh) P18 (hhtype by race/eth) P22 (hhtype by age of hh) p28 (hhtype by hhsize by race/eth)
+#plan - looks like P17 and P18 have much more detail than P28, so combine P17 with P28, then P18 with P28xP17
+#then combine P16 with P28xP17xP18 and P15 with P28xP17xP18xP16   
+
+#tract - sf2 - (Tenure by hhtype by age of hh - HCT9) - more age_groups and has tenure
+```
+
+```{r hh_relation download block}
+
+dec_hh_relation_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "P29",county_num = "201",
+                                                                block="block_group",api_type="dec/sf1",path_suff="est.csv")
+```
+
+
+
+The redistricting data collected in 2010 reports population estimates in yet a different format. It has one table that has races and ethnicity data for everyone over 18 and one that has it for everyone, with no ages attached. The race data gives more details on the composition of "Two or More Races" but nothing else new. The ethnicity file gives block level data for Hispanic or Latino who don't identify as White. Gives slightly more contour, but not much, and risks big differences on age and ethnicity or race per block group. (Although some contour is better than none!)
+
+```{r pl data downloaded}
+    dec_eth_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                      groupname = "P2",county_num = "201",
+                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
+    dec_race_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "P1",county_num = "201",
+                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
+    dec_eth_over18_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                      groupname = "P4",county_num = "201",
+                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
+    dec_race_over18_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "P3",county_num = "201",
+                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
+ 
+    
+```
+
+
 
 
 Then have the tract level details join into the bg representation? Should discuss whether to start with the household stuff - check if it has the PCT level of detail on ethnicity anywhere... 
@@ -359,7 +455,7 @@ have to think about how family info is different from hh
 
 group quarters are needed b/c hh don't include them
 ```{r group quarters to add}
-dec_group_quarters_block_data_from_census_20 <- 
+dec_group_quarters_block_data_from_census_10 <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "P5",county_num = "201",
                          block="block_group",api_type="dec/pl",path_suff="est.csv")

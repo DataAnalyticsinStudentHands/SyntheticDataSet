@@ -114,22 +114,27 @@ exp_census <- function() {
                                                                       groupname = "P12",county_num = "201",
                                                                       block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
+    #tells you total, owned, mortgaged, renter - no other demos
     dec_tenure_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                       groupname = "H4",county_num = "201",
                                                                       block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
+    #no mortgage, rent/own by ten year age and acs_race of hh by bg
     dec_tenure_age_race_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                              groupname = "H17",county_num = "201",
                                                              block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
+    #tract sex age_range acs_race_codes
     dec_sex_age_in_hh_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                       groupname = "PCT13",county_num = "201",
                                                                       block="tract",api_type="dec/sf1",path_suff="est.csv")
     
+    #housing stock that isn't occupied, with reason why
     dec_vacancy_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                 groupname = "H5",county_num = "201",
                                                                 block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
+    #how many hholder of each race in each block_group 
     dec_race_hh_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                               groupname = "H6",county_num = "201",
                                                               block="block_group",api_type="dec/sf1",path_suff="est.csv")
@@ -141,24 +146,22 @@ exp_census <- function() {
     dec_occupancy_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                 groupname = "H3",county_num = "201",
                                                                 block="block_group",api_type="dec/sf1",path_suff="est.csv")
-    #good one to use
+    #good ones to use
     dec_tenure_hh_size_race_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                              groupname = "H16",county_num = "201",
                                                              block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
-    dec_tenure_hh_size_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+    dec_tenure_hh_size_eth_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                              groupname = "H7",county_num = "201",
                                                              block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
     #should already have
-    dec_eth_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
+    dec_eth_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                       groupname = "P2",county_num = "201",
                                                                       block="block_group",api_type="dec/pl",path_suff="est.csv")
-    #should already have
     dec_race_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
                                                                 groupname = "P1",county_num = "201",
                                                                 block="block_group",api_type="dec/pl",path_suff="est.csv")
-    
     dec_group_quarters_block_data_from_census_20 <- censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
                                                                        groupname = "P5",county_num = "201",
                                                                        block="block_group",api_type="dec/pl",path_suff="est.csv")
@@ -168,6 +171,10 @@ exp_census <- function() {
                                                                               groupname = "PCT12",county_num = "201",
                                                                               block="tract",api_type="dec/sf1",path_suff="est.csv")
     
+    dec_hh_type_by_age_tract_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                       groupname = "PCT12",county_num = "201",
+                                                                       block="tract",api_type="dec/sf2",path_suff="est.csv")
+    
     dec_hh_over75_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                        groupname = "P26",county_num = "201",
                                                                        block="block_group",api_type="dec/sf1",path_suff="est.csv")
@@ -176,6 +183,9 @@ exp_census <- function() {
                                                                 groupname = "P29",county_num = "201",
                                                                 block="block_group",api_type="dec/sf1",path_suff="est.csv")
     
+    
+    
+    #only over 18 or under 18, but looks like it might have all the race eth data from pl
     dec_hh_age_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                   groupname = "P16",county_num = "201",
                                                                   block="block_group",api_type="dec/sf1",path_suff="est.csv")
