@@ -42,6 +42,190 @@ censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 
 For new file, and need a bit of a preamble
 
+We're going to begin with the 2010 block group data table, P28 - Householdtype by Household Size by Race and Ethnicity. We start here not because it provides the greatest granularity, although it is by block group, but because it has the best structured relationality, around which commutative triangles can be built. The longer idea is to see the census bureau's copy of the full data representation as being both perfectly commutable in the ways it can be represented and granular at an individual level (again, setting aside difficulties with their collection and category choice). There are then ways in which the census bureau produces tables, with different concerns at different stages and with different products, but they both try to ensure the structure of commutability is maintained within the particular representation and to ensure that the people interpreting the data understand how it relates statistically as a subset - which is to say, how the granularity of the presentation is related to the underlying granularity as the chance that when you see someone from a particular subset, they fit into the demographics of the larger group. [that could be better phrased, but trying to get at difference between set theory and type theory with the categorical spin]
+
+Let's download P28 and look at it.
+
+```{r download hhtype hhsize race eth bg}
+dec_bgHH_type_size_re_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P28",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+```
+
+Then do our basic checks:
+```{r hh_type_size_re test problems}
+dec_bgHH_data_10 <- as.data.table(dec_bgHH_type_size_re_data_from_census_10)
+    percent_na <- dec_bgHH_data_10[,sum(is.na(.SD))] / 
+      (dec_bgHH_data_10[,sum(!is.na(.SD))]+dec_bgHH_data_10[,sum(is.na(.SD))])
+    paste("Percentage of NAs in file:",as.integer(100*percent_na))
+#make the numbers into numeric type - some operations won't work with either integer or character, although we could play with optimizing it
+    dec_bgHH_data_10[,4:ncol(dec_bgHH_data_10)] <- dec_bgHH_data_10[,lapply(.SD[,4:ncol(dec_bgHH_data_10)], as.numeric)]
+#multiplying the side labeled only "Total" by 2:
+test <- colSums(dec_bgHH_data_10[label=="Total",4:ncol(dec_bgHH_data_10)])*2 ==
+      colSums(dec_bgHH_data_10[label!="Total",4:ncol(dec_bgHH_data_10)])
+#see if any of the tests don't match; if false, need to go back and check on what happened
+length(test[test==F])==0
+pop_totals_bg <- dec_bgHH_data_10[label=="Total"&concept=="HOUSEHOLD TYPE BY HOUSEHOLD SIZE",4:ncol(dec_bgHH_data_10)]
+paste0("Number of Households total for Harris County by block_group: ", sum(pop_totals_bg[,]))
+```
+
+Now we need to convert the census representation into a representation of individual households.
+
+```{r expand P28 into dec_bgHH_10}
+    race_codes <- c("A","B","C","D","E","F","G")
+    dec_bgHHr_10 <- dec_bgHH_data_10 %>%
+      mutate(
+        race = substr(name,5,5),
+        label = str_remove_all(label,"Total!!")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      pivot_longer(4:ncol(dec_bgHH_data_10),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size) & race%in%race_codes) %>% #to get rid of aggregations by family
+      uncount(number_sams,.id = "hhr_size_id",.remove = TRUE) 
+    dec_bgHHr_10 <- as.data.table(dec_bgHHr_10) #dyplyr had stripped it of dt
+    paste0("Number of households in file: ", nrow(dec_bgHHr_10))
+    #break into race and ethnicity files
+    nrow(dec_bgHHr_10)==sum(pop_totals_bg[,])
+    #and same for ethnicity
+    dec_bgHHe_10 <- dec_bgHH_data_10 %>%
+      mutate(
+        ethnicity = substr(name,5,5),
+        label = str_remove_all(label,"Total!!")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      pivot_longer(4:ncol(dec_bgHH_data_10),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size) & ethnicity%in%c("H","I")) %>% 
+      uncount(number_sams,.id = "hhe_size_id",.remove = TRUE) 
+    dec_bgHHr_10 <- as.data.table(dec_bgHHr_10) #dyplyr had stripped it of dt
+    paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
+    #should clean up
+    rm(dec_bgHH_data_10)
+    rm(dec_bgHH_type_size_re_data_from_census_10)
+```
+
+
+Now let's get P17, average household size by age (over and under 18) and race and ethnicity. It will designate some portion of the households by under 18, but doesn't add much more. It adds the question of what happens with other sorts of representations besides summation or subset, with average being easy to understand and important to the underlying idea of maintaining structure. 
+
+```{r download avg hhsize race eth bg}
+dec_bgHH_avg_size_re_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P17",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+```
+Then do our basic checks:
+```{r hh_avg_size_re test problems}
+dec_bgHH_avg_size_data_10 <- as.data.table(dec_bgHH_avg_size_re_data_from_census_10)
+    percent_na <- dec_bgHH_avg_size_data_10[,sum(is.na(.SD))] / 
+      (dec_bgHH_avg_size_data_10[,sum(!is.na(.SD))]+dec_bgHH_avg_size_data_10[,sum(is.na(.SD))])
+    paste("Percentage of NAs in file:",as.integer(100*percent_na))
+#make the numbers into numeric type - some operations won't work with either integer or character, although we could play with optimizing it
+    dec_bgHH_avg_size_data_10[,4:ncol(dec_bgHH_avg_size_data_10)] <- dec_bgHH_avg_size_data_10[,lapply(.SD[,4:ncol(dec_bgHH_avg_size_data_10)], as.numeric)]
+#multiplying the side labeled only "Total" by 2:
+test <- mean(dec_bgHH_avg_size_data_10[label=="Total",4:ncol(dec_bgHH_avg_size_data_10)]) ==
+      mean(dec_bgHH_avg_size_data_10[label!="Total",4:ncol(dec_bgHH_avg_size_data_10)])
+#see if any of the tests don't match; if false, need to go back and check on what happened
+length(test[test==F])==0
+pop_totals_bg <- dec_bgHH_avg_size_data_10[label=="Average household size!!Total"&concept=="AVERAGE HOUSEHOLD SIZE BY AGE",4:ncol(dec_bgHH_avg_size_data_10)]
+paste0("Average family size for Harris County: ", mean(pop_totals_bg[,]))
+```
+
+Looking at P17, we ask whether we should think about how one retains the structure of the average. Looks like over 18 is the relevant average. It gives you something by race / eth, but tricky to play with. Think about how to project that onto the space within which the households are distributed. This could be relevant for next steps, too.
+Now we'll expand it into the number of households by both race and ethnicity
+```{r expand P17 into dec_bgHH_avg_size_10}
+    race_codes <- c("A","B","C","D","E","F","G")
+    dec_bgHHr_10 <- dec_bgHH_data_10 %>%
+      mutate(
+        race = substr(name,5,5),
+        label = str_remove_all(label,"Total!!")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      pivot_longer(4:ncol(dec_bgHH_data_10),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size) & race%in%race_codes) %>% #to get rid of aggregations by family
+      uncount(number_sams,.id = "hhr_size_id",.remove = TRUE) 
+    dec_bgHHr_10 <- as.data.table(dec_bgHHr_10) #dyplyr had stripped it of dt
+    paste0("Number of households in file: ", nrow(dec_bgHHr_10))
+    #break into race and ethnicity files
+    nrow(dec_bgHHr_10)==sum(pop_totals_bg[,])
+    #and same for ethnicity
+    dec_bgHHe_10 <- dec_bgHH_data_10 %>%
+      mutate(
+        ethnicity = substr(name,5,5),
+        label = str_remove_all(label,"Total!!")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      pivot_longer(4:ncol(dec_bgHH_data_10),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size) & ethnicity%in%c("H","I")) %>% 
+      uncount(number_sams,.id = "hhe_size_id",.remove = TRUE) 
+    dec_bgHHr_10 <- as.data.table(dec_bgHHr_10) #dyplyr had stripped it of dt
+    paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
+    #should clean up
+    rm(dec_bgHH_data_10)
+    rm(dec_bgHH_type_size_re_data_from_census_10)
+```
+
+
+Now let's get P18, household type by race and ethnicity, which has more detail in the type of household.
+```{r download hhtype hhsize race eth bg}
+dec_bgHH_type_re_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P18",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+```
+
+Then do our basic checks:
+```{r hh_type_re test problems}
+dec_bgHH_type_data_10 <- as.data.table(dec_bgHH_type_re_data_from_census_10)
+    percent_na <- dec_bgHH_type_data_10[,sum(is.na(.SD))] / 
+      (dec_bgHH_type_data_10[,sum(!is.na(.SD))]+dec_bgHH_type_data_10[,sum(is.na(.SD))])
+    paste("Percentage of NAs in file:",as.integer(100*percent_na))
+#make the numbers into numeric type - some operations won't work with either integer or character, although we could play with optimizing it
+    dec_bgHH_type_data_10[,4:ncol(dec_bgHH_type_data_10)] <- dec_bgHH_type_data_10[,lapply(.SD[,4:ncol(dec_bgHH_type_data_10)], as.numeric)]
+#multiplying the side labeled only "Total" by 2:
+test <- colSums(dec_bgHH_type_data_10[label=="Total",4:ncol(dec_bgHH_type_data_10)])*2 ==
+      colSums(dec_bgHH_type_data_10[label!="Total",4:ncol(dec_bgHH_type_data_10)])
+#see if any of the tests don't match; if false, need to go back and check on what happened
+length(test[test==F])==0
+pop_totals_bg <- dec_bgHH_type_data_10[label=="Total"&concept=="HOUSEHOLD TYPE BY HOUSEHOLD SIZE",4:ncol(dec_bgHH_type_data_10)]
+paste0("Number of Households total for Harris County by block_group: ", sum(pop_totals_bg[,]))
+```
+
+Then expand into the representation of individual households by both ethnicity and race.
+```{r expand P18 into dec_bgHH_type_10}
+    race_codes <- c("A","B","C","D","E","F","G")
+    dec_bgHHr_10 <- dec_bgHH_data_10 %>%
+      mutate(
+        race = substr(name,5,5),
+        label = str_remove_all(label,"Total!!")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      pivot_longer(4:ncol(dec_bgHH_data_10),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size) & race%in%race_codes) %>% #to get rid of aggregations by family
+      uncount(number_sams,.id = "hhr_size_id",.remove = TRUE) 
+    dec_bgHHr_10 <- as.data.table(dec_bgHHr_10) #dyplyr had stripped it of dt
+    paste0("Number of households in file: ", nrow(dec_bgHHr_10))
+    #break into race and ethnicity files
+    nrow(dec_bgHHr_10)==sum(pop_totals_bg[,])
+    #and same for ethnicity
+    dec_bgHHe_10 <- dec_bgHH_data_10 %>%
+      mutate(
+        ethnicity = substr(name,5,5),
+        label = str_remove_all(label,"Total!!")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      pivot_longer(4:ncol(dec_bgHH_data_10),names_to = "tract", values_to = "number_sams") %>% 
+      separate(label, c("family","hh_size"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(hh_size) & ethnicity%in%c("H","I")) %>% 
+      uncount(number_sams,.id = "hhe_size_id",.remove = TRUE) 
+    dec_bgHHr_10 <- as.data.table(dec_bgHHr_10) #dyplyr had stripped it of dt
+    paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
+    #should clean up
+    rm(dec_bgHH_data_10)
+    rm(dec_bgHH_type_size_re_data_from_census_10)
+```
+
+Then do P22, HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER, but which doesn't have race/eth
+(how does that relate to P17? look at totals)
+
 ```{r basic household data download}
 #block - sf1 - P15 and P16 (eth and race of hh) P18 (hhtype by race/eth) P22 (hhtype by age of hh) p28 (hhtype by hhsize by race/eth)
 #plan - looks like P17 and P18 have much more detail than P28, so combine P17 with P28, then P18 with P28xP17

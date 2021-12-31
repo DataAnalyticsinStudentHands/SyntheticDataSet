@@ -15,7 +15,10 @@ header-includes:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-## Preliminaries -- very broad
+## Preliminaries -- very broad - 
+
+
+#every so often this chunk causes R to abort!!! Not sure why - perhaps something about the "source"? 
 ```{r prelims}
 source('~/Documents/Projects/SyntheticDataSet/BaseScripts/Census_Data.R')
 library(tidyr)
