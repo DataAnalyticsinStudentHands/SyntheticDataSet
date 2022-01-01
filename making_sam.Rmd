@@ -93,7 +93,8 @@ pop_totals_tract <- dec_SAR_Harris_data_from_census_10[label=="Total"&concept=="
 paste0("Population total for Harris County by tract: ", sum(pop_totals_tract[,]))
 ```
 
-The same convenience set lets us know some other facts about the variation in size of the tracts in Harris County.
+The same convenience set lets us know some other facts about the variation in size of the tracts in Harris County. Shortly, we'll find better shortcuts for displaying summary statistics, but for now we just create a few quick measures.
+#REPORT USING summary() AND DO THE SAME FOR THE BLOCK SIZE.
 
 ```{r Harris tract stats}
 paste0("Average size for Harris County tracts: ", as.integer(mean(as.numeric(pop_totals_tract[,]))))
