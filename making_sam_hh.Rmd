@@ -220,25 +220,24 @@ Then expand into the representation of individual households by both ethnicity a
       pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
       mutate(
         race = substr(name,5,5),
-        label = str_remove_all(label,"Total!!")) %>%
+        label = str_remove_all(label,"Total!!"),
+        label = str_remove_all(label,"!!Other family")) %>%
       filter(label != "Total") %>% #keep only the ones that aren't aggregated
       separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
       filter(!is.na(family_details) & race%in%race_codes) %>% #to get rid of aggregations by family
       uncount(number_sams,.id = "hhr_type_id",.remove = TRUE) 
     dec_bgHHr_type_10 <- as.data.table(dec_bgHHr_type_10) #dyplyr had stripped it of dt
     paste0("Number of households in file: ", nrow(dec_bgHHr_type_10))
+    nrow(dec_bgHHr_10)==nrow(dec_bgHHr_type_10)
     
     #multiplying the side labeled only "Total" by 2:
     dec_bgHHr_type_10[,4:ncol(dec_bgHHr_type_10)] <- dec_bgHHr_type_10[,lapply(.SD[,4:ncol(dec_bgHHr_type_10)], as.numeric)]
-    test <- colSums(dec_bgHHr_type_10[label=="Total",4:ncol(dec_bgHHr_type_10)])*2 ==
-      colSums(dec_bgHHr_type_10[label!="Total",4:ncol(dec_bgHHr_type_10)])
-    #see if any of the tests don't match; if false, need to go back and check on what happened
-    length(test[test==F])==0
     #and same for ethnicity
     dec_bgHHe_type_10 <- dec_bgHH_type_data_10 %>%
       mutate(
         ethnicity = substr(name,5,5),
-        label = str_remove_all(label,"Total!!")) %>%
+        label = str_remove_all(label,"Total!!"),
+        label = str_remove_all(label,"!!Other family")) %>%
       filter(label != "Total") %>% #keep only the ones that aren't aggregated
       pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
       separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
@@ -246,6 +245,7 @@ Then expand into the representation of individual households by both ethnicity a
       uncount(number_sams,.id = "hhe_type_id",.remove = TRUE) 
     dec_bgHHe_type_10 <- as.data.table(dec_bgHHe_type_10) #dyplyr had stripped it of dt
     paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
+    nrow(dec_bgHHe_10)==nrow(dec_bgHHe_type_10)
     #should clean up
     rm(dec_bgHH_type_data_10)
     rm(dec_bgHH_type_re_data_from_census_10)
