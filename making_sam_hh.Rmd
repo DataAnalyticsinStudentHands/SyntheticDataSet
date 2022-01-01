@@ -123,14 +123,14 @@ dec_bgHH_avg_size_data_10 <- as.data.table(dec_bgHH_avg_size_re_data_from_census
     dec_bgHH_avg_size_data_10[,4:ncol(dec_bgHH_avg_size_data_10)] <- dec_bgHH_avg_size_data_10[,lapply(.SD[,4:ncol(dec_bgHH_avg_size_data_10)], as.numeric)]
 #multiplying the side labeled only "Total" by 2:
 pop_avgs_bg <- dec_bgHH_avg_size_data_10[label=="Average household size!!Total"&concept=="AVERAGE HOUSEHOLD SIZE BY AGE",4:ncol(dec_bgHH_avg_size_data_10)]
-paste0("Average family size for Harris County: ", round(mean(colMeans(pop_avgs_bg[,])),2)) # sum(pop_avgs_bg[,])/ncol(pop_avgs_bg) #to remember colMeans
+paste0("Average household size for Harris County: ", round(mean(colMeans(pop_avgs_bg[,])),2)) # sum(pop_avgs_bg[,])/ncol(pop_avgs_bg) #to remember colMeans
 #There is considerable variation at the block_group level
 paste0("Minimum average household size for Harris County block groups: ",min(pop_avgs_bg[,]))
 paste0("Maximum average household size for Harris County block groups: ",max(pop_avgs_bg[,])) 
 paste0("Standard deviation for average household size for Harris County block groups: ",round(sd(pop_avgs_bg[,]),2))
 ```
 
-We pull in P17 (Average Household Size) in order to ask how one retains the structure of the average without violating the other commutative structures. Our strategy will be to order each household in a subtype (block_group x race) as either above or below the average. For each subtype, we already know the distribution, and our first task will be to show that we can maintain the structure of the average in the new representation while still respecting the other distributions. Since they are distributed into a set number of places afterward, we don't need to approximate a normal distribution in advance. We'll do it first for the total average household size by race, which is a known amount and can be generated directly from the table in P17 and as a calculation on the data in P28. Then we'll generate the subtypes from the averages for households with members below 18 and those with only members above 18 years of age. In order to do that, we need to know the number of households in each category, which we'll be able to add from P19 (Household Size by Household Type by Presence of Own Children) and P20 (Households by Presence of People Under 18 Years by Household Type by Age of People Under 18 Years), although not by race. The challenge is whether a technique that depends on a deliberately constructed space can provide a meaningful distribution of individuals within that space, which respects the structures that were important in the representation of the problem.  Our purpose is to generalize beyond the current example by showing concretely the sense in which a structured space is a more effective way of representing the process of analysis through a guided abstraction; showing how multiple structures can be respected in the construction of a solution is an important step in that process.  
+We pull in the separate reporting table P17 (Average Household Size) in order to ask how one retains the structure of the average without violating the other commutative structures. Our strategy will be to order each household in a subtype (block_group x race) as either above or below the average. For each subtype, we already know the distribution, and our first task will be to show that we can maintain the structure of the average in the new representation while still respecting the other distributions. Since they are distributed into a set number of places afterward, we don't need to approximate a normal distribution in advance. We'll do it first for the total average household size by race, which is a known amount and can be generated directly from the table in P17 and as a calculation on the data in P28. Then we'll generate the subtypes from the averages for households with members below 18 and those with only members above 18 years of age. In order to do that, we need to know the number of households in each category, which we'll be able to add from P19 (Household Size by Household Type by Presence of Own Children) and P20 (Households by Presence of People Under 18 Years by Household Type by Age of People Under 18 Years), although not by race. The challenge is whether a technique that depends on a deliberately constructed space can provide a meaningful distribution of individuals within that space, which respects the structures that were important in the representation of the problem.  Our purpose is to generalize beyond the current example by showing concretely the sense in which a structured space is a more effective way of representing the process of analysis through a guided abstraction; showing how multiple structures can be respected in the construction of a solution is an important step in that process.  
 
 Now we'll reshape P17 (Average Household Size) to use more efficiently later the average number of households by both race and ethnicity, for households with and without people under 18 in them, for each block_group. 
 
@@ -141,12 +141,12 @@ Now we'll reshape P17 (Average Household Size) to use more efficiently later the
       mutate(race = substr(name,5,5))   
     dec_bgHH_avg_size_10 <- as.data.table(dec_bgHH_avg_size_10) #dyplyr had stripped it of dt
 
-    #should clean up
+    #should clean up all along in the other making_sam, too
     
     rm(dec_bgHH_avg_size_re_data_from_census_10)
 ```
 
-As a quick check, the averages directly reported as "Total" in P17 should match calculations on the actual description in P28. We will check those, first, as proof that we can make the simplest case work, and then construct the pieces that allow for a sub-typing to be represented in the distribution of the data. We'll test on total, "White Alone," and "White Alone, not Hispanic or Latino."
+As a quick check, the averages directly reported as "Total" in P17 should match calculations on the actual description in P28. We will check those, first, as proof that we can make the simplest case work, and then construct the pieces that allow for a sub-typing to be represented in the distribution of the data. We'll test on total, "Black or African American Alone," and "White Alone, not Hispanic or Latino." The two will not match perfectly, because P17 can have numbers greater than 7 for a household and may have some other differences in collection. P17 has averages for households with and without people under 18, by all the same categories, which is the only thing that is added beyond P28.
 
 ```{r compare P17 dec_bgHH_avg_size avg to P28 dec_bgHH avg}
   dec_bgHHr_10 <- as.data.table(dec_bgHHr_10)
@@ -171,29 +171,55 @@ As a quick check, the averages directly reported as "Total" in P17 should match 
   #rm(dec_bgHH_avg_size_data_10)
 ```
 
-We remark immediately on the maximum value for Black households being 10.5, when the highest reported value in P28 is 7. The block group in question (48_201_233703_2) turns out to only have two Black households listed in P28, both in the "7-or-more-person-household". There are 293 households total. We are assuming that it's not a reporting mistake, but just an unusual situation. Remember that the summary statistics are for all the averages across block groups and that only the average for that block group is reported in P17. For the total households in the block group that has the outliers (48_201_233703_2), the summary across all the households in P28 has a median a little higher than the mean, but nothing out of the ordinary and relatively close to the reported mean in P17. The fact that the actual values are whole numbers actually gives us a clue for how to think about the distribution we aim to do in the end.
+We remark immediately on the maximum value for Black households being 10.5, when the highest reported value in P28 is 7. The block group in question (48_201_233703_2) turns out to only have two Black households listed in P28, both in the "7-or-more-person-household"; the same block group is responsible for the max value in both. There are 293 households total in that block group and we did a deep dive into the individual household level data. We are assuming on that basis that it's not a reporting mistake, but just an unusual situation. Remember that the summary statistics are for all the averages across block groups and that only the average for that block group is reported in P17. For the total households in the block group that has the outliers (48_201_233703_2), the summary across all the households in P28 has a median a little higher than the mean, but nothing out of the ordinary and relatively close to the reported mean in P17. The fact that the actual values are whole numbers actually gives us a clue for how to think about the distribution we aim to do in the end.
 
 ```{r 48_201_233703_2 summary for households}
 summary(dec_bgHHr_10[geoid=="48_201_233703_2",(hh_size_n)])
-paste0("Reported average in P17: ",dec_bgHH_avg_size_10[name=="P017001"&geoid=="48_201_233702_3",avg_hh_size])
+paste0("Reported average in P17: ",dec_bgHH_avg_size_10[name=="P017001"&geoid=="48_201_233703_2",avg_hh_size])
 ```
 
-We will implement a matching process on the households in two steps. First, we create a number for every household that is either above or below the average for that race category, by geoid and race, using sample() to create a random distribution centered on the average. Then we will order the households in the category that is one higher in the embedding (in this case, all households, but could also be a larger geographic area) by that new number and assign the available sizes as a vector. This preserves the structure of the differing averages - even given that we do not know anything else about the distribution. We are testing it this time, since we have a ground truth for households by race. If it works, we will then use the same technique to create sub-types by households with and without persons under 18 by race.
+We will implement a matching process on the households in two steps. First, we create a number for every household that is either above or below the average for that race category, by geoid and race, using sample() to create a random distribution centered on the average. Since there is no other information on the dataset, we don't have to worry about matching individual households with attributes that would influence how many people are in the household. After assigning them a number, we will order the households across the subtypes in the category that is one higher in the embedding (in this case, all households, but could also be a larger geographic area) by that new number and assign the available sizes as a vector. This preserves the structure of the differing averages - even given that we do not know anything else about the distribution. We are testing it this time, since we have a ground truth for households by race. If it works, we will then use the same technique to create sub-types by households with and without persons under 18 by race.
 
 ```{r add match logic to household size test}
     #create number for each hh on both sides of the average by race
     dec_bgHHr_10[,("match_avg_r_num"):=avg_hh_size_bg_r+
           sample((-.N/2):.N/2,.N,replace=FALSE)/.N,by=.(geoid,race)]
-    #get the available household sizes, ordered as ascending, for each block group
-    dec_bgHHr_10[order(hh_size_n),("hh_sizes_available"):=as.vector(.SD[,hh_size_n]),by=.(geoid)]
-    #order all races together by the new number
-    dec_bgHHr_10[order(match_avg_r_num),("hh_size_generated"):=hh_sizes_available[.N],by=.(geoid)]
+    #order all races together by the new number and match with tract ordered by hh_size_n
+    dec_bgHHr_10[order(match_avg_r_num),("hh_size_generated"):=.SD[order(hh_size_n),"hh_size_n"],by=.(geoid)]
+
 ```
 
-Let's look at some statistics.
+Let's look at some statistics to see how the newly generated household size looks compared to the originals. First, let's confirm that we didn't accidentally assign the household size to the same households. We're looking for a relatively random distribution, just showing that the old hh_size_n is independent from the new hh_size_generated.
 
-plan:
-get avg.age by race onto dec_bgHHr_10 from P17
+```{r table confirming hh_sizes are indep}
+table(dec_bgHHr_10$hh_size_n,dec_bgHHr_10$hh_size_generated)
+table(dec_bgHHr_10[geoid=="48_201_233702_1",hh_size_n],dec_bgHHr_10[geoid=="48_201_233702_1",hh_size_generated])
+```
+
+Then let's look at the same summary statistics we had produced before, with the newly generated household sizes included. This should give us a sense for how it worked globally. We can do this for all the distributions, and there are statistical tests for representing the difference in the distributions, but right now we're just getting a general sense. 
+
+```{r summary for hh_size_generated}
+  dec_bgHHr_10[,("avg_hh_size_bg_g"):=round(mean(hh_size_generated),2),by=.(geoid)]
+  dec_bgHHr_10[,("avg_hh_size_bg_r_g"):=round(mean(hh_size_generated),2),by=.(geoid,race)]
+  
+  paste0("All - order is published average, calculated average from P28, and calculated average from newly generated household size")
+  summary(dec_bgHH_avg_size_10[name=="P017001",avg_hh_size])
+  summary(dec_bgHHr_10[,(avg_hh_size_bg)])
+  summary(dec_bgHHr_10[,(avg_hh_size_bg_g)])
+  paste0("Black")
+  summary(dec_bgHH_avg_size_10[name=="P017B001",avg_hh_size])
+  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r)])
+  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r_g)])
+```
+
+Let's also look at the variation within a single block group.
+
+```{r variation generated hh_size bg}
+summary(dec_bgHHr_10[geoid=="48_201_233702_3",(hh_size_n)])
+summary(dec_bgHHr_10[geoid=="48_201_233702_3",(hh_size_generated)])
+summary(dec_bgHHr_10[str_detect(geoid,"48_201_233"),(hh_size_generated)])
+```
+
 
 Run the same way.
 
