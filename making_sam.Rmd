@@ -349,6 +349,7 @@ dec_bgSAE_10[re_code=="I",("sar_match_id"):=
 dec_bgSAR_10[re_code=="A",("ethnicity"):=
                     dec_bgSAE_10[.SD, list(re_code), on = .(sar_match_id)]]
 nrow(dec_bgSAR_10[!is.na(ethnicity)&re_code=="A"])==nrow(dec_bgSAE_10[re_code=="I"])
+
 test <- table(dec_bgSAR_10[re_code=="A"&!is.na(ethnicity),geoid],
               dec_bgSAR_10[re_code=="A"&!is.na(ethnicity),sex],
               dec_bgSAR_10[re_code=="A"&!is.na(ethnicity),age_range]
@@ -358,6 +359,7 @@ test <- table(dec_bgSAR_10[re_code=="A"&!is.na(ethnicity),geoid],
   dec_bgSAE_10[re_code=="I",age_range]
 )
 length(test[test==FALSE])==0
+
 #then add the ones that are Hispanic
 dec_bgSAR_10[re_code=="A"&is.na(ethnicity),("sar_match1_id"):=
                     paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
