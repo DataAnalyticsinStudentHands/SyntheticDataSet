@@ -19,7 +19,8 @@ knitr::opts_chunk$set(echo = TRUE)
 https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html for options on the knit - results="hide"; echo=FALSE; include=FALSE, etc.
 
 ```{r prelims}
-source('~/Documents/Projects/SyntheticDataSet/BaseScripts/Census_Data.R')
+source('BaseScripts/Census_Data.R') #move out of BaseScripts?
+source('tests.R')
 library(tidyr)
 library(dplyr)
 library(stringr)
@@ -55,28 +56,19 @@ dec_bgHH_type_size_re_data_from_census_10 <-
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "P28",county_num = "201",
                          block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_data_10 <- as.data.table(dec_bgHH_type_size_re_data_from_census_10) 
 ```
 
 Then do our basic checks:
 ```{r hh_type_size_re test problems}
-dec_bgHH_data_10 <- as.data.table(dec_bgHH_type_size_re_data_from_census_10)
-    percent_na <- dec_bgHH_data_10[,sum(is.na(.SD))] / 
-      (dec_bgHH_data_10[,sum(!is.na(.SD))]+dec_bgHH_data_10[,sum(is.na(.SD))])
-    paste("Percentage of NAs in file:",as.integer(100*percent_na))
-#make the numbers into numeric type - some operations won't work with either integer or character, although we could play with optimizing it
-    dec_bgHH_data_10[,4:ncol(dec_bgHH_data_10)] <- dec_bgHH_data_10[,lapply(.SD[,4:ncol(dec_bgHH_data_10)], as.numeric)]
-#multiplying the side labeled only "Total" by 2:
-test <- colSums(dec_bgHH_data_10[label=="Total",4:ncol(dec_bgHH_data_10)])*2 ==
-      colSums(dec_bgHH_data_10[label!="Total",4:ncol(dec_bgHH_data_10)])
-#see if any of the tests don't match; if false, need to go back and check on what happened
-length(test[test==F])==0
-hh_totals_bg <- dec_bgHH_data_10[label=="Total"&concept=="HOUSEHOLD TYPE BY HOUSEHOLD SIZE",4:ncol(dec_bgHH_data_10)]
-paste0("Number of Households total for Harris County by block_group: ", sum(hh_totals_bg[,]))
+check_summary <- census_table_check(dec_bgHH_data_10, "HOUSEHOLD TYPE BY HOUSEHOLD SIZE","households") #should get a function that fails appropriately
+cat(check_summary[1])
 ```
 
 Now we need to convert the census representation into a representation of individual households.
 
-```{r expand P28 into dec_bgHH_10}
+```{r expand P28 into dec_bgHHr_10 and dec_bgHHe_10}
+    #break into race and ethnicity files
     race_codes <- c("A","B","C","D","E","F","G")
     dec_bgHHr_10 <- dec_bgHH_data_10 %>%
       pivot_longer(4:ncol(dec_bgHH_data_10),names_to = "geoid", values_to = "number_sams") %>% 
@@ -90,7 +82,7 @@ Now we need to convert the census representation into a representation of indivi
       uncount(number_sams,.id = "hhr_size_id",.remove = TRUE) 
     dec_bgHHr_10 <- as.data.table(dec_bgHHr_10) #dyplyr had stripped it of dt
     paste0("Number of households in file: ", nrow(dec_bgHHr_10))
-    #break into race and ethnicity files
+    paste0("Column names for dec_bgHHr_10: ",colnames(dec_bgHHr_10))
     nrow(dec_bgHHr_10)==sum(hh_totals_bg[,])
     #and same for ethnicity
     dec_bgHHe_10 <- dec_bgHH_data_10 %>%
@@ -105,42 +97,36 @@ Now we need to convert the census representation into a representation of indivi
       uncount(number_sams,.id = "hhe_size_id",.remove = TRUE) 
     dec_bgHHe_10 <- as.data.table(dec_bgHHe_10) #dyplyr had stripped it of dt
     paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
-    #should clean up
+    paste0("Column names for dec_bgHHe_10: ",colnames(dec_bgHHe_10))
+    #clean up
     rm(dec_bgHH_data_10)
     rm(dec_bgHH_type_size_re_data_from_census_10)
+    
 ```
 
 sub-section - Triangle Commutativity.
 
 Could talk about history of Symmetric Monoidal Categories, and how they are based in that original thought about triangles and enabling algebraic structures like commutativity. Could also do a diagram or two here.
 
-One of our basic tools for constructing Sam City is using a relation as the unit that we add to, with the individual level (in this case a household) serving as an endpoint for the relation, and something that only fully emerges as more and more of the relations are pulled together. In that vein, we turn to H16, tenure (rent or own) by household size by race and ethnicity. Since the relations between household size and race and ethnicity are the same for each individual, we can build the city from the fact that both share an edge of a triangle, which is commutative at the type level of the household in this case. 
+One of our basic tools for constructing Sam City is using a relation as the unit that we add to, with the individual level (in this case a household) serving as an endpoint (talk about terminal objects?-http://nlab-pages.s3.us-east-2.amazonaws.com/nlab/show/terminal+object) for the relation, and something that only fully emerges as more and more of the relations are pulled together. In that vein, we turn to H16, tenure (rent or own) by household size by race and ethnicity. Since the relations between household size and race and ethnicity are the same for each individual, we can build the city from the fact that both share an edge of a triangle, which is commutative at the type level of the household in this case. 
 
-Let's download H16 and look at it for some clues. If the relation between household size and race or ethnicity matches on both data tables, then we'll get the relationship from tenure to household type for free - without having introduced any uncertainty into the construction, at this point, although we'll have to ensure that there aren't illegitimate (or unaccounted for) steps in further building down the line.
+Let's download H16 and look at it for some clues to how to build the data representation with the right commutative structure. Very simply, if the relation between household size and race or ethnicity matches on both data tables, then we'll get the relationship from tenure to household type for free - without having introduced any uncertainty into the construction, at this point, although we'll have to ensure that there aren't illegitimate (or unaccounted for) steps in further building down the line. (do we need to include a diagram?)
 
 ```{r download tenure hhsize race eth bg}
 dec_bgHH_tenure_size_re_data_from_census_10 <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "H16",county_num = "201",
                          block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_tenure_data_10 <- as.data.table(dec_bgHH_tenure_size_re_data_from_census_10)
+#make the numbers into numeric type - some operations won't work with either integer or character, although we could play with optimizing it
+dec_bgHH_tenure_data_10[,4:ncol(dec_bgHH_tenure_data_10)] <- 
+  dec_bgHH_tenure_data_10[,lapply(.SD[,4:ncol(dec_bgHH_tenure_data_10)], as.numeric)]
 ```
 
 Then do our basic checks:
 ```{r household tenure size re test problems}
-dec_bgHH_tenure_data_10 <- as.data.table(dec_bgHH_tenure_size_re_data_from_census_10)
-    percent_na <- dec_bgHH_tenure_data_10[,sum(is.na(.SD))] / 
-      (dec_bgHH_tenure_data_10[,sum(!is.na(.SD))]+dec_bgHH_tenure_data_10[,sum(is.na(.SD))])
-    paste("Percentage of NAs in file:",as.integer(100*percent_na))
-#make the numbers into numeric type - some operations won't work with either integer or character, although we could play with optimizing it
-    dec_bgHH_tenure_data_10[,4:ncol(dec_bgHH_tenure_data_10)] <- dec_bgHH_tenure_data_10[,lapply(.SD[,4:ncol(dec_bgHH_tenure_data_10)], as.numeric)]
-#multiplying the side labeled only "Total" by 2:
-test <- colSums(dec_bgHH_tenure_data_10[label=="Total",4:ncol(dec_bgHH_tenure_data_10)])*2 ==
-      colSums(dec_bgHH_tenure_data_10[label!="Total",4:ncol(dec_bgHH_tenure_data_10)])
-#see if any of the tests don't match; if false, need to go back and check on what happened
-length(test[test==F])==0
-hh_totals_bg <- dec_bgHH_tenure_data_10[label=="Total"&concept=="TENURE BY HOUSEHOLD SIZE",4:ncol(dec_bgHH_tenure_data_10)]
-paste0("Number of Households total for Harris County by block_group: ", sum(hh_totals_bg[,]))
-nrow(dec_bgHHr_10)==sum(hh_totals_bg[,])
+check_summary <- census_table_check(dec_bgHH_tenure_data_10, "TENURE BY HOUSEHOLD SIZE","households") #should get a function that fails appropriately
+cat(check_summary[1])
 ```
 And expand in a way that is very similar to what we did with household type and size by race and ethnicity. 
 
@@ -181,6 +167,7 @@ And expand in a way that is very similar to what we did with household type and 
 
 Before doing the join, let's simply see if the relations between household size and race and ethnicity are the same for both. Assuming it passes that test, then we can add tenure in, and test it by just seeing if the equalities hold around the triangle. We don't need to know anything else about the connection between tenure and household size to be confident in the next steps.
 ```{r test tables for P28 and H16}
+#test_result <- symmetry_test(dec_bgHHr_10,dec_bgHHr_tenure_10,c("geoid"),c("geoid"))
 test <- table(dec_bgHHr_10[,geoid],
               dec_bgHHr_10[,hh_size_n],
               dec_bgHHr_10[,race]
@@ -249,6 +236,9 @@ test <- table(dec_bgHHe_10[,geoid],
 )
 length(test[test==F])==0
 #cleaning up
+rm(dec_bgHH_data_10)
+rm(dec_bgHH_type_size_re_data_from_census_10)
+#have to think through when and where to rm()
 dec_bgHHr_10[,c("name","label","concept","hhr_size_id","hh_tenure_match_id"):=NULL]
 paste0("column names for dec_bgHHr_10: ")
 colnames(dec_bgHHr_10)
@@ -256,10 +246,195 @@ dec_bgHHe_10[,c("name","label","concept","hhe_size_id","hhe_tenure_match_id"):=N
 paste0("column names for dec_bgHHe_10: ")
 colnames(dec_bgHHe_10)
 ```
+We'll be able to add a few others without too much worry, but are still looking to form commutative triangles with the foundational levels. P22, which has the household type by age of householder and H17, which has the same groupings for age with tenure and race/ethnicity. Joining these two to the existing tables gives us a chance to explore techniques for joining across gaps in the triangle (perhaps draw). We have tenure, hh_size, hh_type, and race/eth on dec_bgHH. H18 has tenure by hh_type by age of householder, but in only three large age groups. Need to draw it!
 
-Then adding ones that didn't originally have race/eth will also come easier, but let's see what we can do to add them together.
+Section title - dimensions [either talk about dependent types or about triangles and commutativity or both]
 
-H17 Tenure by age of householder by ten year groups, with race/eth, needs to have H18 hh_type by age added to it, or 
+We keep looking for relations that are more fundamental - not in the sense that they cause others, but that they represent the possibility of connection while still giving structure to the overall representation. Things like sex, race, ethnicity, and age are fundamental because they show up in lots of the data tables put out by the census, and they have ensured that they are complete and commutative between representations. We're trying to show that we can use those relations to create better representations than just the tables by themselves would allow, and thus to make a larger point about how the construction of data problems and answers move hand in hand. 
+In summary, if you try to build the representation piece by piece, while insisting on the structure of how certain you are of the particular step, you are both leaving behind the strength of the relationships in building a coherent representation and forgetting that the relations imply certain sorts of structures - have to work on that phrasing.
+
+For our point, what we're saying is that the relations as structures are represented by triangle commutativity. In practice, that just means that we build the data set by adding where we have some way of maintaining the structure needed to make it meaningful. The basic unit of interest is the relation, and then the way that the whole sets of relations are set out is what's of interest in our mapping. If we think of it as just adding attributes to the individual, including their relations, then the chance of it all building into one are limited - it's why there's more margin of error as you get smaller for the census.
+
+The only way to be sure that the Hispanic stuff adds up correctly is to have something about it built into the bgSAR.
+Should we do stuff where overlapping ages, etc., create new "work_columns" and get narrowed down? Is that the same thing that happens with things like Tenure with Household Size? 
+
+We have a building that goes on by understanding how the counts work, and that the relations are commutative at some level, even if we don't know which one yet.
+
+We had wanted to join P22, household type by age of householder, to household type but the relation between age and race/ethnicity could be lost. We find that H18 has tenure (whether one owns, rents, and sometimes whether one has a mortgage) by household type and by age of householder, and 
+
+
+Then do P22, HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER, but which doesn't have race/eth
+(how does that relate to P17? look at totals)
+
+H19 - TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
+
+[for the ones with an age_range, need to save it so you can do a reshuffle (like having things fall through the wire mesh of a sieve); format would be H18_beg_age H18_tenure_end_age; like the difference between tract and bg, but with the boundaries not matching in advance; think about solving rubic's cube, etc., as a group-theory problem and not a brute force problem, and how that's like the point about an algebra of relations; reshuffle is an operation that makes sense if there's a correct combination - a place of symmetry / commutativity / all the sides match; there would be other operations that make a different sense, too; being smarter about this means being able to reshuffle with an order on available slots instead of just reshuffling and hoping it falls in place - not just spinning the whole rubic's cube, but seeing that there are only a few moves and symmetries associated with those moves]
+
+Now we can download P22, 2010 decennial block group level data by household type by age, but without race and ethnicity.
+```{r download hhtype age bg}
+dec_bgHH_type_age_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P22",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_type_age_data_10 <- as.data.table(dec_bgHH_type_age_data_from_census_10)
+dec_bgHH_type_age_data_10[,4:ncol(dec_bgHH_type_age_data_10)] <- 
+  dec_bgHH_type_age_data_10[,lapply(.SD[,4:ncol(dec_bgHH_type_age_data_10)], as.numeric)]
+```
+Then do our basic checks:
+```{r household type age test problems}
+check_summary <- census_table_check(dec_bgHH_type_age_data_10, 
+      "HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER","households") 
+cat(check_summary[1])
+```
+```{r expand hhtype_age_hh type and age of householder}
+dec_bgHH_type_age_hh_10 <- dec_bgHH_type_age_data_10 %>%
+      pivot_longer(4:ncol(dec_bgHH_type_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+      mutate(
+        label = str_remove_all(label,"Total!!")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      separate(label, c("family","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(age_range = case_when(age_range=="Householder 85 years and over" ~ "Householder 85 to 99",
+                                   TRUE ~ age_range),
+             beg_age_P22 = as.numeric(substr(age_range,13,14)),
+             end_age_P22 = as.numeric(substr(age_range,19,20))) %>%
+      filter(!is.na(age_range)) %>% 
+      uncount(number_sams,.id = "hh_type_age_id",.remove = TRUE) 
+    dec_bgHH_type_age_hh_10 <- as.data.table(dec_bgHH_type_age_hh_10) #dyplyr had stripped it of dt
+    paste0("Number of households in file: ", nrow(dec_bgHH_type_age_hh_10))
+    test <- table(dec_bgHH_type_age_hh_10$end_age_P22)==table(dec_bgHH_type_age_hh_10$beg_age_P22)
+    length(test[test==FALSE])==0
+    nrow(dec_bgHH_type_age_hh_10)==nrow(dec_bgHHr_10)
+    #make sure that the "family" household type matches
+    test <- table(dec_bgHHr_10$geoid,dec_bgHHr_10$family)==
+      table(dec_bgHH_type_age_hh_10$geoid,dec_bgHH_type_age_hh_10$family)
+    length(test[test==FALSE])==0
+```
+
+Unfortunately, P22 doesn't really give us a lot of information. The household type is only broken into family or non-family and the age_groups are by decade. If we add it quickly to H18, which has tenure by household type by three large age_ranges, it gives us more specificity while also demonstrating another type of issue that emerges when constructing our overall representation with categories that aren't exactly the same.
+
+```{r download hhtype age bg}
+dec_bgHH_type_tenure_age_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "H18",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_type_tenure_age_data_10 <- as.data.table(dec_bgHH_type_tenure_age_data_from_census_10)
+dec_bgHH_type_tenure_age_data_10[,4:ncol(dec_bgHH_type_tenure_age_data_10)] <- 
+  dec_bgHH_type_tenure_age_data_10[,lapply(.SD[,4:ncol(dec_bgHH_type_tenure_age_data_10)], as.numeric)]
+```
+
+Then do our basic checks:
+
+```{r household type tenure age test problems}
+check_summary <- census_table_check(dec_bgHH_type_tenure_age_data_10, 
+      "TENURE BY HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER","households") 
+cat(check_summary[1])
+```
+
+And do the expansion
+
+```{r expand hhtype tenure age age of householder}
+dec_bgHH_type_tenure_age_10 <- dec_bgHH_type_tenure_age_data_10 %>%
+      pivot_longer(4:ncol(dec_bgHH_type_tenure_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+      mutate(label = str_remove_all(label,"Other family!!"),
+             label = str_replace_all(label, "er, no","er!!No"),
+             label = str_replace_all(label, "!!Husband-wife family","!!Husband-wife family!!Married"),
+        label = str_remove_all(label,"Total!!")) %>%
+      filter(label != "Total") %>% 
+      separate(label, c("tenure","family","sex_hh","hh_status","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+      mutate(age_range = case_when(age_range=="Householder 65 years and over" ~ "Householder 65 to 99",
+                                   TRUE ~ age_range),
+             beg_age_H18 = as.numeric(substr(age_range,13,14)),
+             end_age_H18 = as.numeric(substr(age_range,19,20))) %>%
+      filter(!is.na(age_range)) %>% 
+      uncount(number_sams,.id = "hh_type_tenure_age_id",.remove = TRUE) 
+    dec_bgHH_type_tenure_age_10 <- as.data.table(dec_bgHH_type_tenure_age_10) #dyplyr had stripped it of dt
+    paste0("Number of households in file: ", nrow(dec_bgHH_type_tenure_age_10))
+    test <- table(dec_bgHH_type_tenure_age_10$end_age_H18)==table(dec_bgHH_type_tenure_age_10$beg_age_H18)
+    length(test[test==FALSE])==0
+    nrow(dec_bgHH_type_tenure_age_10)==nrow(dec_bgHHr_10)
+    #make sure that the "family" household type matches
+    test <- table(dec_bgHHr_10$geoid,dec_bgHHr_10$family)==
+      table(dec_bgHH_type_tenure_age_10$geoid,dec_bgHH_type_tenure_age_10$family)
+    length(test[test==FALSE])==0
+```
+
+We quickly see that H18 needs some of the information from P18 to actually join correctly with P22, above. Let's just join them into one HHr_type file
+
+Now let's get P18, household type by race and ethnicity, which has more detail in the type of household.
+```{r download hhtype P18 race eth bg}
+dec_bgHH_type_re_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P18",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_type_data_10 <- as.data.table(dec_bgHH_type_re_data_from_census_10)
+```
+
+Then do our basic checks:
+```{r hh_type_re test problems}
+check_summary <- census_table_check(dec_bgHH_type_data_10, "HOUSEHOLD TYPE","households") #should get a function that fails appropriately
+cat(check_summary[1])
+```
+
+Then expand into the representation of individual households by both ethnicity and race.
+```{r expand P18 into dec_bgHH_type_10}
+#break into race and ethnicity files
+    race_codes <- c("A","B","C","D","E","F","G")
+    dec_bgHHr_type_10 <- dec_bgHH_type_data_10 %>%
+      pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+      mutate(
+        race = substr(name,5,5),
+        label = str_remove_all(label,"Total!!"),
+        label = str_remove_all(label,"!!Other family")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(family_details) & race%in%race_codes) %>% #to get rid of aggregations by family
+      uncount(number_sams,.id = "hhr_type_id",.remove = TRUE) 
+    dec_bgHHr_type_10 <- as.data.table(dec_bgHHr_type_10) #dyplyr had stripped it of dt
+    paste0("Number of households in file: ", nrow(dec_bgHHr_type_10))
+    nrow(dec_bgHHr_10)==nrow(dec_bgHHr_type_10)
+    
+    #multiplying the side labeled only "Total" by 2:
+    dec_bgHHr_type_10[,4:ncol(dec_bgHHr_type_10)] <- dec_bgHHr_type_10[,lapply(.SD[,4:ncol(dec_bgHHr_type_10)], as.numeric)]
+    #and same for ethnicity
+    dec_bgHHe_type_10 <- dec_bgHH_type_data_10 %>%
+      mutate(
+        ethnicity = substr(name,5,5),
+        label = str_remove_all(label,"Total!!"),
+        label = str_remove_all(label,"!!Other family")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+      separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(family_details) & ethnicity%in%c("H","I")) %>% 
+      uncount(number_sams,.id = "hhe_type_id",.remove = TRUE) 
+    dec_bgHHe_type_10 <- as.data.table(dec_bgHHe_type_10) #dyplyr had stripped it of dt
+    paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
+    nrow(dec_bgHHe_10)==nrow(dec_bgHHe_type_10)
+    #should clean up
+    rm(dec_bgHH_type_data_10)
+    rm(dec_bgHH_type_re_data_from_census_10)
+```
+
+#add p18 to h18, and then add to p22
+
+We now add P22, household type by age, to H18, which has tenure by three age groups for householder. 
+P18 (already pulled in, below, but can move it up...) has household type by race/eth.
+Downloading H18, tenure by age group, with race and ethnicity. Part of point is to show how to keep the age_range in place for later joins. These three will be commutative, but will have had some places where they should have been joined to particular households differently. Strategy is to keep markers of different layers instead of trying to rotate the dimensions of the hypercube. 
+
+
+
+P22 added to H18 by race/eth, with some way of giving the multiple buckets so they can be chosen between at moment of dispensation
+
+H17-H18 Tenure by age by race/eth; joined to Tenure by type and age (but wider age groups)
+ 
+
+H17 Tenure by age of householder by ten year groups, with race/eth, needs to have H18 hh_type by age added to it, although it has different age_groups.
+Then do P22, HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER, 5-10 year buckets that match H17, but which doesn't have race/eth so should add it from H17. 
+
+
+Need to look at the tract level age_ranges - tract level has more detail, for example, with the hh_type by relationship by age! PCT25 to join with P29
+This could be a good place to try for the way of doing a marker for some flexibility for the move that "closes" the triangle - maybe a first step is to make categories for where the existing categories overlap, and then during the dispensation one determines if it falls into that or not by having ordered them in the right way? 
+
+
 
 Section title - Conserving Mathematical Structures in Representations
 H12 is AVERAGE HOUSEHOLD SIZE OF OCCUPIED HOUSING UNITS BY TENURE and also has race/eth - there should be a triangle to do somewhere.
@@ -270,22 +445,12 @@ dec_bgHH_avg_size_re_data_from_census_10 <-
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "P17",county_num = "201",
                          block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_avg_size_data_10 <- as.data.table(dec_bgHH_avg_size_re_data_from_census_10)
 ```
 Then do our basic checks:
 ```{r hh_avg_size_re test problems}
-dec_bgHH_avg_size_data_10 <- as.data.table(dec_bgHH_avg_size_re_data_from_census_10)
-    percent_na <- dec_bgHH_avg_size_data_10[,sum(is.na(.SD))] / 
-      (dec_bgHH_avg_size_data_10[,sum(!is.na(.SD))]+dec_bgHH_avg_size_data_10[,sum(is.na(.SD))])
-    paste("Percentage of NAs in file:",as.integer(100*percent_na))
-#make the numbers into numeric type - some operations won't work with either integer or character, although we could play with optimizing it
-    dec_bgHH_avg_size_data_10[,4:ncol(dec_bgHH_avg_size_data_10)] <- dec_bgHH_avg_size_data_10[,lapply(.SD[,4:ncol(dec_bgHH_avg_size_data_10)], as.numeric)]
-#multiplying the side labeled only "Total" by 2:
-pop_avgs_bg <- dec_bgHH_avg_size_data_10[label=="Average household size!!Total"&concept=="AVERAGE HOUSEHOLD SIZE BY AGE",4:ncol(dec_bgHH_avg_size_data_10)]
-paste0("Average household size for Harris County: ", round(mean(colMeans(pop_avgs_bg[,])),2)) # sum(pop_avgs_bg[,])/ncol(pop_avgs_bg) #to remember colMeans
-#There is considerable variation at the block_group level
-paste0("Minimum average household size for Harris County block groups: ",min(pop_avgs_bg[,]))
-paste0("Maximum average household size for Harris County block groups: ",max(pop_avgs_bg[,])) 
-paste0("Standard deviation for average household size for Harris County block groups: ",round(sd(pop_avgs_bg[,]),2))
+check_summary <- census_table_check(dec_bgHH_avg_size_data_10, "AVERAGE HOUSEHOLD SIZE BY AGE","households") #should get a function that fails appropriately
+cat(check_summary[1])
 ```
 
 We pull in the separate reporting table P17 (Average Household Size) in order to ask how one retains the structure of the average without violating the other commutative structures. Our strategy will be to order each household in a subtype (block_group x race) as either above or below the average. For each subtype, we already know the distribution, and our first task will be to show that we can maintain the structure of the average in the new representation while still respecting the other distributions. Since they are distributed into a set number of places afterward, we don't need to approximate a normal distribution in advance. We'll do it first for the total average household size by race, which is a known amount and can be generated directly from the table in P17 and as a calculation on the data in P28. Then we'll generate the subtypes from the averages for households with members below 18 and those with only members above 18 years of age. In order to do that, we need to know the number of households in each category, which we'll be able to add from P19 (Household Size by Household Type by Presence of Own Children) and P20 (Households by Presence of People Under 18 Years by Household Type by Age of People Under 18 Years), although not by race. The challenge is whether a technique that depends on a deliberately constructed space can provide a meaningful distribution of individuals within that space, which respects the structures that were important in the representation of the problem.  Our purpose is to generalize beyond the current example by showing concretely the sense in which a structured space is a more effective way of representing the process of analysis through a guided abstraction; showing how multiple structures can be respected in the construction of a solution is an important step in that process.  
@@ -422,85 +587,7 @@ Let's recap why that was an interesting digression. Maybe a drawing of the commu
 Our plan is to add the information about the average household size for households with and without people under 18, using this technique to add a dependent structure within the conceptual space of the representation. If we can take advantage of the existing relational structure, however, we can ensure that the structure is respected and the final representation is more reflective of the underlying relation. Since our starting point for the households included household size and household type, as well as race and ethnicity information, let's see if any of that can be added to the averages before using them in the overall representation. 
 We find that P18, for example, gives you the number of householders living alone and the ones that are living with others. P22 gives you the age of the householder by type, which would help us know if there are under 18 year olds living alone (there are a few). Then P20 has type by whether the household has people under 18 connected to household type. P21 tells us how many have their own children in the household by household type. None of these has race and ethnicity, but each will allow us to get closer to specifying the complete construction of all the possible relations in a way that respects the underlying commutativity of relations, as originally conceived by the census bureau to be a complete and coherent representation of the population. 
 
-Section title - dimensions [either talk about dependent types or about triangles and commutativity or both]
 
-Now let's get P18, household type by race and ethnicity, which has more detail in the type of household.
-```{r download hhtype P18 race eth bg}
-dec_bgHH_type_re_data_from_census_10 <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                         groupname = "P18",county_num = "201",
-                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
-```
-
-Then do our basic checks:
-```{r hh_type_re test problems}
-dec_bgHH_type_data_10 <- as.data.table(dec_bgHH_type_re_data_from_census_10)
-    percent_na <- dec_bgHH_type_data_10[,sum(is.na(.SD))] / 
-      (dec_bgHH_type_data_10[,sum(!is.na(.SD))]+dec_bgHH_type_data_10[,sum(is.na(.SD))])
-    paste("Percentage of NAs in file:",as.integer(100*percent_na))
-#make the numbers into numeric type - some operations won't work with either integer or character, although we could play with optimizing it
-    dec_bgHH_type_data_10[,4:ncol(dec_bgHH_type_data_10)] <- dec_bgHH_type_data_10[,lapply(.SD[,4:ncol(dec_bgHH_type_data_10)], as.numeric)]
-pop_totals_bg <- dec_bgHH_type_data_10[label=="Total"&concept=="HOUSEHOLD TYPE",4:ncol(dec_bgHH_type_data_10)]
-paste0("Number of Households total for Harris County by block_group: ", sum(pop_totals_bg[,]))
-sum(pop_totals_bg[,])==nrow(dec_bgHHr_10)
-```
-
-Then expand into the representation of individual households by both ethnicity and race.
-```{r expand P18 into dec_bgHH_type_10}
-#break into race and ethnicity files
-    race_codes <- c("A","B","C","D","E","F","G")
-    dec_bgHHr_type_10 <- dec_bgHH_type_data_10 %>%
-      pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-      mutate(
-        race = substr(name,5,5),
-        label = str_remove_all(label,"Total!!"),
-        label = str_remove_all(label,"!!Other family")) %>%
-      filter(label != "Total") %>% #keep only the ones that aren't aggregated
-      separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(family_details) & race%in%race_codes) %>% #to get rid of aggregations by family
-      uncount(number_sams,.id = "hhr_type_id",.remove = TRUE) 
-    dec_bgHHr_type_10 <- as.data.table(dec_bgHHr_type_10) #dyplyr had stripped it of dt
-    paste0("Number of households in file: ", nrow(dec_bgHHr_type_10))
-    nrow(dec_bgHHr_10)==nrow(dec_bgHHr_type_10)
-    
-    #multiplying the side labeled only "Total" by 2:
-    dec_bgHHr_type_10[,4:ncol(dec_bgHHr_type_10)] <- dec_bgHHr_type_10[,lapply(.SD[,4:ncol(dec_bgHHr_type_10)], as.numeric)]
-    #and same for ethnicity
-    dec_bgHHe_type_10 <- dec_bgHH_type_data_10 %>%
-      mutate(
-        ethnicity = substr(name,5,5),
-        label = str_remove_all(label,"Total!!"),
-        label = str_remove_all(label,"!!Other family")) %>%
-      filter(label != "Total") %>% #keep only the ones that aren't aggregated
-      pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-      separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(family_details) & ethnicity%in%c("H","I")) %>% 
-      uncount(number_sams,.id = "hhe_type_id",.remove = TRUE) 
-    dec_bgHHe_type_10 <- as.data.table(dec_bgHHe_type_10) #dyplyr had stripped it of dt
-    paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
-    nrow(dec_bgHHe_10)==nrow(dec_bgHHe_type_10)
-    #should clean up
-    rm(dec_bgHH_type_data_10)
-    rm(dec_bgHH_type_re_data_from_census_10)
-```
-
-We keep looking for relations that are more fundamental - not in the sense that they cause others, but that they represent the possibility of connection while still giving structure to the overall representation. Things like sex, race, ethnicity, and age are fundamental because they show up in lots of the data tables put out by the census, and they have ensured that they are complete and commutative between representations. We're trying to show that we can use those relations to create better representations than just the tables by themselves would allow, and thus to make a larger point about how the construction of data problems and answers move hand in hand. 
-In summary, if you try to build the representation piece by piece, while insisting on the structure of how certain you are of the particular step, you are both leaving behind the strength of the relationships in building a coherent representation and forgetting that the relations imply certain sorts of structures - have to work on that phrasing.
-
-For our point, what we're saying is that the relations as structures are represented by triangle commutativity. In practice, that just means that we build the data set by adding where we have some way of maintaining the structure needed to make it meaningful. The basic unit of interest is the relation, and then the way that the whole sets of relations are set out is what's of interest in our mapping. If we think of it as just adding attributes to the individual, including their relations, then the chance of it all building into one are limited - it's why there's more margin of error as you get smaller for the census.
-
-The only way to be sure that the Hispanic stuff adds up correctly is to have something about it built into the bgSAR.
-Should we do stuff where overlapping ages, etc., create new "work_columns" and get narrowed down? Is that the same thing that happens with things like Tenure with Household Size? 
-
-We have a building that goes on by understanding how the counts work, and that the relations are commutative at some level, even if we don't know which one yet.
-
-We had wanted to join P22, household type by age of householder, to household type but the relation between age and race/ethnicity could be lost. We find that H18 has tenure (whether one owns, rents, and sometimes whether one has a mortgage) by household type and by age of householder, and 
-
-
-Then do P22, HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER, but which doesn't have race/eth
-(how does that relate to P17? look at totals)
-
-H19 - TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
 
 ```{r basic household data download}
 #block - sf1 - P15 and P16 (eth and race of hh) P18 (hhtype by race/eth) P22 (hhtype by age of hh) p28 (hhtype by hhsize by race/eth)
@@ -556,7 +643,7 @@ P21 should also be good; p29, p30...
 
 have to think about how family info is different from hh
 
-group quarters are needed b/c hh don't include them
+group quarters are needed b/c hh don't include them - PC03 seems to have a lot more detail, but I think it's tract level only - have to check.
 ```{r group quarters to add}
 dec_group_quarters_block_data_from_census_10 <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 

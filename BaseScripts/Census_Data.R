@@ -9,6 +9,8 @@ library(dplyr) #may not be using; need to check
 #'
 #' This function creates the data needed for the simulations via the US Census API acs/acs5.
 #' It either reads it from a file inside the censusdir or queries the Census API and creates the file.
+#' There are two helpers that are also made available:
+#' valid_file_path and valid_census_vars
 #'
 #' @param censusdir The base_url for the API
 #' @param vintage The census data year

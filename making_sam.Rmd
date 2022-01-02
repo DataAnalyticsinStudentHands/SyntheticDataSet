@@ -20,7 +20,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #every so often this chunk causes R to abort!!! Not sure why - perhaps something about the "source"? 
 ```{r prelims}
-source('~/Documents/Projects/SyntheticDataSet/BaseScripts/Census_Data.R')
+source('BaseScripts/Census_Data.R') #move out of BaseScripts?
+source('tests.R')
 library(tidyr)
 library(dplyr)
 library(stringr)
@@ -59,14 +60,13 @@ dec_sex_by_age_tract_data_from_census_10 <-
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "PCT12",county_num = "201",
                          block="tract",api_type="dec/sf1",path_suff="est.csv")
-
+dec_SAR_data_from_census_10 <- as.data.table(dec_sex_by_age_tract_data_from_census_10)
 ```
 
 A quick glance shows that this has reporting for every year of age and at fifteen different levels for race and ethnicity, which is considerably more specificity than most of the reporting. That specificity provides a very detailed embedding context or structured space on the conceptual level but is less specific geographically. It has every tract for the entire state, but some of the larger tracts are divided into 6 block_groups, which provides considerably more geographic context.
 
-Just to give a sense for how testing for coherent structure arises from and resonates with the broader process of building the data representation, we include some of the ways that we can test for consistency. In this version, we put a data.table wrapper around the census data and sum the number of NAs in the columns. In this case, we decided to represent it as a percentage, and not just an absolute count, because sometimes we want to use data that is reported for only some of the rows, even if NAs are reported in some of the other rows.
+Just to give a sense for how testing for coherent structure arises from and resonates with the broader process of building the data representation, we include some of the ways that we can test for consistency. The following are repeated for each download from the census, as we look for obvious problems with the file either as reported or as a result of an improper download (like asking for the wrong file). In this version, we have put a data.table wrapper around the census data and sum the number of NAs in the columns. In this case, we decided to represent it as a percentage, and not just an absolute count, because sometimes we want to use data that is reported for only some of the rows, even if NAs are reported in some of the other rows. In later downloads, these are gathered in a single function call in tests.R as census_table_check.
 ```{r test for na}
-    dec_SAR_data_from_census_10 <- as.data.table(dec_sex_by_age_tract_data_from_census_10)
     percent_na <- dec_SAR_data_from_census_10[,sum(is.na(.SD))] / 
       (dec_SAR_data_from_census_10[,sum(!is.na(.SD))]+dec_SAR_data_from_census_10[,sum(is.na(.SD))])
     paste("Percentage of NAs in file:",as.integer(100*percent_na))
@@ -113,22 +113,15 @@ dec_bgSAR_data_from_census_10 <-
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "P12",county_num = "201",
                          block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgSAR_data_10 <- as.data.table(dec_bgSAR_data_from_census_10)
+dec_bgSAR_data_10[,4:ncol(dec_bgSAR_data_10)] <- dec_bgSAR_data_10[,lapply(.SD[,4:ncol(dec_bgSAR_data_10)], as.numeric)]
 ```
 
 It would be nice to use this immediately as our base, but we quickly see it doesn't have as many rows breaking out race and ethnicity. It has nine total categories for race and ethnicity - losing most of the categories in ethnicity - and age is reported in odd aggregations that will make comparison difficult with other data reporting. Let's run a few quick tests on the download.
 
 ```{r demography test problems}
-#point is that you can't do the test on whether totals equal because you have to remove White Alone not Hispanic or Latino and Hispanic or Latino
-#needs to be numeric for the sum in the test
-dec_bgSAR_data_10 <- as.data.table(dec_bgSAR_data_from_census_10)
-    dec_bgSAR_data_10[,4:ncol(dec_bgSAR_data_10)] <- dec_bgSAR_data_10[,lapply(.SD[,4:ncol(dec_bgSAR_data_10)], as.numeric)]
-#multiplying the side labeled only "Total" by 2:
-test <- colSums(dec_bgSAR_data_10[label=="Total",4:ncol(dec_bgSAR_data_10)])*2 ==
-      colSums(dec_bgSAR_data_10[label!="Total",4:ncol(dec_bgSAR_data_10)])
-#see if any of the tests don't match; if false, need to go back and check on what happened
-length(test[test==F])==0
-pop_totals_bg <- dec_bgSAR_data_10[label=="Total"&concept=="SEX BY AGE",4:ncol(dec_bgSAR_data_10)]
-paste0("Population total for Harris County by block_group: ", sum(pop_totals_bg[,]))
+check_summary <- census_table_check(dec_bgHH_tenure_data_10, "SEX BY AGE","individuals") #should get a function that fails appropriately
+cat(check_summary[1])
 ```
 
 As a final note on what it means to say one representation is "equal" to another representation, clearly even pop_totals_bg and pop_totals_tract are not simply equal to each other, since they have a different number of rows. The total number they project can be equal (or not):
@@ -332,7 +325,6 @@ dec_race_allocation <- as.data.table(dec_race_allocation_data_from_census_10)
 paste0("average percent of allocated vs. total race demographics reported: ",
 as.integer(sum(dec_race_allocation[label=="Total!!Allocated",4:ncol(dec_race_allocation)]) *100 / 
   sum(dec_race_allocation[label=="Total",4:ncol(dec_race_allocation)])),"%")
-
 ```
 
 We are consciously putting these questions to the side, with the expectation that a careful analysis of how we are constructing the mathematical objects will point to an eventual better way to construct the measures associated with demographics. For now, we want to focus on the process of construction. To read the data.table script, below, you'd say that for the rows in dec_bgSAR_Harris_10 that match the White only group (re_code=="A"), assign a match_id with the components of tract, sex, age, and an appropriate random number. Then you do the same for dec_bgSAE_Harris_10. Then the folks left in each tract in the category of Hispanic or Latino should be more than the number of White Alone that are left (presumably some of the Hispanic population was listed as Black or some other category).
