@@ -420,28 +420,42 @@ Test whether type (family or non-family) is now reflected in the right way for t
 
 test <- table(dec_bgHHr_10[,geoid],
               dec_bgHHr_10[,family],
-              dec_bgHHr_10[,one_match],
+              dec_bgHHr_10[,family_details],
               dec_bgHHr_10[,race]
 )==table(
   dec_bgHHr_type_10[,geoid],
   dec_bgHHr_type_10[,family],
-  dec_bgHHr_type_10[,one_match],
+  dec_bgHHr_type_10[,family_details],
   dec_bgHHr_type_10[,race]
 )
 length(test[test==F])==0
 test <- table(dec_bgHHe_10[,geoid],
               dec_bgHHe_10[,family],
+              dec_bgHHe_10[,family_details],
               dec_bgHHe_10[,ethnicity]
 )==table(
   dec_bgHHe_type_10[,geoid],
   dec_bgHHe_type_10[,family],
+  dec_bgHHe_type_10[,family_details],
   dec_bgHHe_type_10[,ethnicity]
 )
 length(test[test==F])==0
-#cleaning up
+```
+Let's do a couple of other easy tests to look at the statistical structure, too.
+```{r testing statistical structure of construction for family_details}
+table(dec_bgHHr_10$family_details,dec_bgHHr_10$hh_size)
+#should think up some more, and try different ways of thinking about how we had nudged the hh_size piece, above
+```
+
+```{r cleaning up after dec bgHH family construction}
+#cleaning up - need to think through better
+
+rm(dec_bgHHr_type_10)
+rm(dec_bgHHe_type_10)
 rm(dec_bgHH_data_10)
 rm(dec_bgHH_type_size_re_data_from_census_10)
 #have to think through when and where to rm()
+#we are now at a place where the original label and concept information has been moved into their respective categories.
 dec_bgHHr_10[,c("name","label","concept","hhr_size_id","hh_tenure_match_id"):=NULL]
 paste0("column names for dec_bgHHr_10: ")
 colnames(dec_bgHHr_10)
@@ -450,14 +464,15 @@ paste0("column names for dec_bgHHe_10: ")
 colnames(dec_bgHHe_10)
 ```
 
+It would be foolish to try to encapsulate all of statistical practice with one sweeping gesture, but it does seem safe to say that the more aware you are of the presuppositions that lie behind any given practice, the more likely you are to avoid bias and prejudice - and other forms of sloppy statistical thinking. What the last two examples were meant to show is that there are ways in which the statistical structures in simple ideas like average can and should be understood within the context of the space that it is projected onto (or constructed as an object within). Without getting into the deeper philosophical questions around constructivism (in its myriad forms), one notes that it's possible to become actively engaged with at least some of the contours that have shaped that space, and to dive into the reasons that the space has the current shape it has. 
 
-
+What we've also tried to highlight is that there is a reason to think that attention to the relational components of the constructed representation will lead to better overall clarity, consistency, and computability. The first tool we started using was the commutative triangle, and we've already pointed to the fact that many mathematicians would recognize it as an informal symmetric monoidal category (SMC for short). When used appropriately, they provide some other important tools for our purposes, and we'll try to slowly introduce them into - and motivate them by - the construction of Sam City. 
 
 
 
 section title - endpoints, terminal objects, and paths
 
-One of our basic tools for constructing Sam City is using a relation as the unit that we add to, with the individual level (in this case a household) serving as an endpoint (talk about terminal objects?-http://nlab-pages.s3.us-east-2.amazonaws.com/nlab/show/terminal+object) for the relation, and something that only fully emerges as more and more of the relations are pulled together. In that vein, we turn to H16, tenure (rent or own) by household size by race and ethnicity. Since the relations between household size and race and ethnicity are the same for each individual, we can build the city from the fact that both share an edge of a triangle, which is commutative at the type level of the household in this case. 
+One of our basic tools for constructing Sam City is using a relation as the unit that we add to, with the individual level (in this case a household) serving as an endpoint for the relation, and something that only fully emerges in its robust fullness as more and more of the relations are pulled together and allowed to intersect in that otherwise empty space. In the terms of symmetric monoidal categories, that endpoint is a terminal object, and it allows us to understand the point around which commutative triangle structures are found (or constructed), and to understand the algebraic possibilities that arise along with those constructions. In that vein, we turn to H16, tenure (rent or own) by household size by race and ethnicity. Since the relations between household size and race and ethnicity are the same for each individual, we can build the city from the fact that both share an edge of a triangle, which is commutative at the type level of the household in this case. We are going to build a somewhat more complicated spatial structure, and at the end we'll talk briefly about why the symmetric monoidal categories provide greater clarity than imposing simplicial complexes (the geometric representation of repeated structures in space).
 
 Let's download H16 and look at it for some clues to how to build the data representation with the right commutative structure. Very simply, if the relation between household size and race or ethnicity matches on both data tables, then we'll get the relationship from tenure to household type for free - without having introduced any uncertainty into the construction, at this point, although we'll have to ensure that there aren't illegitimate (or unaccounted for) steps in further building down the line. (do we need to include a diagram?)
 
