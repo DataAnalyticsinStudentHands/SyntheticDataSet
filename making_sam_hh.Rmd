@@ -466,7 +466,7 @@ colnames(dec_bgHHe_10)
 
 It would be foolish to try to encapsulate all of statistical practice with one sweeping gesture, but it does seem safe to say that the more aware you are of the presuppositions that lie behind any given practice, the more likely you are to avoid bias and prejudice - and other forms of sloppy statistical thinking. What the last two examples were meant to show is that there are ways in which the statistical structures in simple ideas like average can and should be understood within the context of the space that it is projected onto (or constructed as an object within). Without getting into the deeper philosophical questions around constructivism (in its myriad forms), one notes that it's possible to become actively engaged with at least some of the contours that have shaped that space, and to dive into the reasons that the space has the current shape it has. 
 
-What we've also tried to highlight is that there is a reason to think that attention to the relational components of the constructed representation will lead to better overall clarity, consistency, and computability. The first tool we started using was the commutative triangle, and we've already pointed to the fact that many mathematicians would recognize it as an informal symmetric monoidal category (SMC for short). When used appropriately, they provide some other important tools for our purposes, and we'll try to slowly introduce them into - and motivate them by - the construction of Sam City. 
+What we've also tried to highlight is that there is a reason to think that attention to the relational components of the constructed representation will lead to better overall clarity, consistency, and computability. The first tool we started using was the commutative triangle, and we've already pointed to the fact that many mathematicians would recognize it as an informal symmetric monoidal category (SMC for short). When used appropriately, they provide some other important tools for our purposes, and we'll try to slowly introduce them into - and motivate them by - the construction of Sam City. [[BOY THIS IS A LONG SENTENCE]] We're trying to ground the choices in a different horizon of questions - spaces and relations as structures within which individuals are placed and emerge as such - as opposed to saying that the old approach to construction - determining what counts as an individual (or aggregate of individuals) and adding relations (or dimensions or factors) with sophisticated techniques for modifying the representation to account for uncertainty, etc - is simply wrong, we are saying that there are choices that descend from that first decision about whether you're looking at the relation or the individual.
 
 
 
@@ -530,6 +530,7 @@ And expand in a way that is very similar to what we did with household type and 
 ```
 
 Before doing the join, let's simply see if the relations between household size and race and ethnicity are the same for both. Assuming it passes that test, then we can add tenure in, and test it by just seeing if the equalities hold around the triangle. We don't need to know anything else about the connection between tenure and household size to be confident in the next steps.
+
 ```{r test tables for P28 and H16}
 #test_result <- symmetry_test(dec_bgHHr_10,dec_bgHHr_tenure_10,c("geoid"),c("geoid"))
 test <- table(dec_bgHHr_10[,geoid],
@@ -552,7 +553,7 @@ test <- table(dec_bgHHe_10[,geoid],
 length(test[test==F])==0
 ```
 
-Let's simply add the tenure information onto the household type and size information. The process is similar to what we did with the sex, age, and race/ethnicity files, where we were able to use age_range as part of the relation and add ethnicity back onto the individuals who had only race for the tract level. 
+Let's simply add the tenure information onto the household type and size information, but with an eye toward comparing it with a process that builds the construction from the commutative triangles. The process is similar to what we did with the sex, age, and race/ethnicity files, where we were able to use age_range as part of the relation and add ethnicity back onto the individuals who had only race for the tract level. 
 
 ```{r join hh_type and tenure using bgHH and bgHH_tenure}
 dec_bgHHr_10[,("hh_tenure_match_id"):=
@@ -561,7 +562,7 @@ dec_bgHHr_10[,("hh_tenure_match_id"):=
 dec_bgHHr_tenure_10[,("hh_tenure_match_id"):=
                     paste0(geoid,race,as.character(hh_size_n),as.character(100000+sample(1:.N))),
                   by=.(geoid,race,hh_size_n)]
-dec_bgHHr_10[,("tenure"):=
+dec_bgHHr_10[,("tenure_test1"):=
                     dec_bgHHr_tenure_10[.SD, list(tenure), on = .(hh_tenure_match_id)]]
 dec_bgHHe_10[,("hhe_tenure_match_id"):=
                     paste0(geoid,ethnicity,as.character(hh_size_n),as.character(100000+sample(1:.N))),
@@ -569,62 +570,64 @@ dec_bgHHe_10[,("hhe_tenure_match_id"):=
 dec_bgHHe_tenure_10[,("hhe_tenure_match_id"):=
                     paste0(geoid,ethnicity,as.character(hh_size_n),as.character(100000+sample(1:.N))),
                   by=.(geoid,ethnicity,hh_size_n)]
-dec_bgHHe_10[,("tenure"):=
+dec_bgHHe_10[,("tenure_test1"):=
                     dec_bgHHe_tenure_10[.SD, list(tenure), on = .(hhe_tenure_match_id)]]
 ```
 
 Test whether tenure is now reflected in the right way for the data.
 ```{r test tables expanded for P28 and H16}
-nrow(dec_bgHHr_10[is.na(tenure)])
+nrow(dec_bgHHr_10[is.na(tenure_test1)])
 test <- table(dec_bgHHr_10[,geoid],
               dec_bgHHr_10[,hh_size_n],
               dec_bgHHr_10[,race],
-              dec_bgHHr_10[,tenure]
+              dec_bgHHr_10[,tenure_test1]
 )==table(
   dec_bgHHr_tenure_10[,geoid],
   dec_bgHHr_tenure_10[,hh_size_n],
   dec_bgHHr_tenure_10[,race],
-  dec_bgHHr_tenure_10[,tenure]
+  dec_bgHHr_tenure_10[,tenure_test1]
 )
 length(test[test==F])==0
 nrow(dec_bgHHe_10[is.na(tenure)])
 test <- table(dec_bgHHe_10[,geoid],
               dec_bgHHe_10[,hh_size_n],
               dec_bgHHe_10[,ethnicity],
-              dec_bgHHe_10[,tenure]
+              dec_bgHHe_10[,tenure_test1]
 )==table(
   dec_bgHHe_tenure_10[,geoid],
   dec_bgHHe_tenure_10[,hh_size_n],
   dec_bgHHe_tenure_10[,ethnicity],
-  dec_bgHHe_tenure_10[,tenure]
+  dec_bgHHe_tenure_10[,tenure_test1]
 )
 length(test[test==F])==0
-#cleaning up
-rm(dec_bgHH_data_10)
-rm(dec_bgHH_type_size_re_data_from_census_10)
 #have to think through when and where to rm()
-dec_bgHHr_10[,c("name","label","concept","hhr_size_id","hh_tenure_match_id"):=NULL]
+dec_bgHHr_10[,c("hh_tenure_match_id"):=NULL]
 paste0("column names for dec_bgHHr_10: ")
 colnames(dec_bgHHr_10)
-dec_bgHHe_10[,c("name","label","concept","hhe_size_id","hhe_tenure_match_id"):=NULL]
+dec_bgHHe_10[,c("hhe_tenure_match_id"):=NULL]
 paste0("column names for dec_bgHHe_10: ")
 colnames(dec_bgHHe_10)
 ```
+
+Let's do a few statistics on how that looks for other relations.
+```{r displaying statistics as a baseline for tenure and hh join}
+#need to think through with Ioannis
+```
+
+PLAN: next way to do it is to build the others together so we start having a shape that is at least close for the join into bgHH - that it gets us into thinking about age, and that eventually lets us pull together a way of nudging using the average, above, but by the under 18 or not age on hh.
+
+We could approach the next steps in the building process in a couple of ways. One would be to look at the other census tables (or other sources of information or intuition) to try to create a statistical model and then use the sample on the individual cells with a statistical probability assigned. We are, in fact, using the sample function, but with a sense of their being an explicit construction of the possible answers that still determine the deployment. In the R implementation, it's just to say its sample with "replace=False". (Can talk a bit about how the information at the block group level allows this to be a specification without knowing everything involved in making the block groups be determinative of outcomes.) 
+
+GO THROUGH AND DRAW
 We'll be able to add a few others without too much worry, but are still looking to form commutative triangles with the foundational levels. P22, which has the household type by age of householder and H17, which has the same groupings for age with tenure and race/ethnicity. Joining these two to the existing tables gives us a chance to explore techniques for joining across gaps in the triangle (perhaps draw). We have tenure, hh_size, hh_type, and race/eth on dec_bgHH. H18 has tenure by hh_type by age of householder, but in only three large age groups. Need to draw it!
+
 
 Section title - dimensions [either talk about dependent types or about triangles and commutativity or both]
 
-We keep looking for relations that are more fundamental - not in the sense that they cause others, but that they represent the possibility of connection while still giving structure to the overall representation. Things like sex, race, ethnicity, and age are fundamental because they show up in lots of the data tables put out by the census, and they have ensured that they are complete and commutative between representations. We're trying to show that we can use those relations to create better representations than just the tables by themselves would allow, and thus to make a larger point about how the construction of data problems and answers move hand in hand. 
+We keep looking for relations that are more fundamental - not in the sense that they cause others, but that they represent the possibilities inherent in the structure of the overall representation. Things like sex, race, ethnicity, and age are fundamental because they show up in lots of the data tables put out by the census, and they have ensured that they are complete and commutative between representations at multiple levels. We're trying to show that we can use those relations to create better representations than just the tables by themselves would allow, and thus to make a larger point about how the construction of data problems and answers move hand in hand. 
 In summary, if you try to build the representation piece by piece, while insisting on the structure of how certain you are of the particular step, you are both leaving behind the strength of the relationships in building a coherent representation and forgetting that the relations imply certain sorts of structures - have to work on that phrasing.
 
 For our point, what we're saying is that the relations as structures are represented by triangle commutativity. In practice, that just means that we build the data set by adding where we have some way of maintaining the structure needed to make it meaningful. The basic unit of interest is the relation, and then the way that the whole sets of relations are set out is what's of interest in our mapping. If we think of it as just adding attributes to the individual, including their relations, then the chance of it all building into one are limited - it's why there's more margin of error as you get smaller for the census.
-
-The only way to be sure that the Hispanic stuff adds up correctly is to have something about it built into the bgSAR.
-Should we do stuff where overlapping ages, etc., create new "work_columns" and get narrowed down? Is that the same thing that happens with things like Tenure with Household Size? 
-
-We have a building that goes on by understanding how the counts work, and that the relations are commutative at some level, even if we don't know which one yet.
-
-We had wanted to join P22, household type by age of householder, to household type but the relation between age and race/ethnicity could be lost. We find that H18 has tenure (whether one owns, rents, and sometimes whether one has a mortgage) by household type and by age of householder, and 
 
 
 Then do P22, HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER, but which doesn't have race/eth
