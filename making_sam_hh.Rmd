@@ -358,30 +358,32 @@ nrow(dec_bgHHr_10[hh_size_n==1])==nrow(dec_bgHHr_type_10[family_details=="Househ
 ```
 We could run through it once with only the 361,888 householders who live alone listed from each side, and then match the others on a random sample. Or we could generate a new number, following some reasoning, that we then use for the sort. We'll do a bit of both. Following the approach we used on the average size, above, let's assign numbers based on family_detail, while also creating a little ifelse ("ifelse(hh_size_n==1,"1_person",">1")") in the name for the matching.
 ```{r assign numbers to family_detail matcher_id}
-dec_bgHHr_type_10[,("family_detail_matcher"):=.(fcase(
-  family_details=="Householder living alone", sample(1:2,.N,replace = TRUE),
-  family_details=="Householder not living alone", sample(2:1000,.N,replace = TRUE),
-  family_details=="Male householder, no wife present", sample(100:800,.N,replace = TRUE),
-  family_details=="Female householder, no husband present", sample(200:1000,.N,replace = TRUE),
-  family_details=="Husband-wife family", sample(300:1200,.N,replace = TRUE)
-))]
-dec_bgHHe_type_10[,("family_detail_matcher"):=.(fcase(
-  family_details=="Householder living alone", sample(1:2,.N,replace = TRUE),
-  family_details=="Householder not living alone", sample(2:1000,.N,replace = TRUE),
-  family_details=="Male householder, no wife present", sample(100:800,.N,replace = TRUE),
-  family_details=="Female householder, no husband present", sample(200:1000,.N,replace = TRUE),
-  family_details=="Husband-wife family", sample(300:1200,.N,replace = TRUE)
-))]
-nrow(dec_bgHHe_type_10[is.na(family_detail_matcher)])
-nrow(dec_bgHHr_type_10[is.na(family_detail_matcher)])
 dec_bgHHr_10[,("one_match"):=fcase(hh_size_n==1,"1_person",default = "2or>_persons")]
 dec_bgHHe_10[,("one_match"):=fcase(hh_size_n==1,"1_person",default = "2or>_persons")]
 dec_bgHHr_type_10[,("one_match"):=fcase(family_details=="Householder living alone","1_person",default = "2or>_persons")]
 dec_bgHHe_type_10[,("one_match"):=fcase(family_details=="Householder living alone","1_person",default = "2or>_persons")]
-table(dec_bgHHr_10$one_match)
-table(dec_bgHHr_type_10$one_match)
-table(dec_bgHHe_10$one_match)
-table(dec_bgHHe_type_10$one_match)
+#table(dec_bgHHr_10$one_match)
+#table(dec_bgHHr_type_10$one_match)
+#table(dec_bgHHe_10$one_match)
+#table(dec_bgHHe_type_10$one_match)
+#can't seem to use .N inside of an equation inside sample to make the size responsive
+dec_bgHHr_type_10[,("family_detail_matcher"):=.(fcase(
+  family_details=="Householder living alone", sample(1:.N,.N,replace = FALSE),
+  family_details=="Householder not living alone", sample(10:.N,.N,replace = TRUE),
+  family_details=="Male householder, no wife present", sample(12:.N,.N,replace = TRUE),
+  family_details=="Female householder, no husband present", sample(13:.N,.N,replace = TRUE),
+  family_details=="Husband-wife family", sample(14:.N,.N,replace = TRUE)
+)),by=.(geoid,family,one_match,race)]
+dec_bgHHe_type_10[,("family_detail_matcher"):=.(fcase(
+  family_details=="Householder living alone", sample(1:.N,.N,replace = FALSE),
+  family_details=="Householder not living alone", sample(10:.N,.N,replace = TRUE),
+  family_details=="Male householder, no wife present", sample(12:.N,.N,replace = TRUE),
+  family_details=="Female householder, no husband present", sample(13:.N,.N,replace = TRUE),
+  family_details=="Husband-wife family", sample(14:.N,.N,replace = TRUE)
+)),by=.(geoid,family,one_match,ethnicity)]
+nrow(dec_bgHHe_type_10[is.na(family_detail_matcher)])
+nrow(dec_bgHHr_type_10[is.na(family_detail_matcher)])
+
 ```
 
 ```{r join hh_type using bgHH and bgHH with type family or non}
@@ -390,7 +392,7 @@ dec_bgHHr_10[order(hh_size_n),
                     paste0(geoid,family,one_match,
                            race,as.character(100000+seq.int(1:.N))),
                   by=.(geoid,family,one_match,race)]
-dec_bgHHr_type_10[sort(family_detail_matcher),
+dec_bgHHr_type_10[order(family_detail_matcher), #breaks the .N! order(family_detail_matcher)
                   ("hh_family_match_id"):=
                     paste0(geoid,family,one_match,race,as.character(100000+seq.int(1:.N))),
                   by=.(geoid,family,one_match,race)]
@@ -400,11 +402,14 @@ dec_bgHHe_10[order(hh_size_n),("hhe_family_match_id"):=
                     paste0(geoid,family,one_match,
                            ethnicity,as.character(100000+seq.int(1:.N))),
                   by=.(geoid,family,one_match,ethnicity)]
-dec_bgHHe_type_10[sort(family_detail_matcher),("hhe_family_match_id"):=
+dec_bgHHe_type_10[,#order(family_detail_matcher),
+                  ("hhe_family_match_id"):=
                     paste0(geoid,family,one_match,ethnicity,as.character(100000+seq.int(1:.N))),
                   by=.(geoid,family,one_match,ethnicity)]
 dec_bgHHe_10[,("family_details"):=
                     dec_bgHHe_type_10[.SD, list(family_details), on = .(hhe_family_match_id)]]
+nrow(dec_bgHHr_10[is.na(family_details)])
+nrow(dec_bgHHe_10[is.na(family_details)])
 ```
 
 THE SYMMETRY TEST SHOULD STILL WORK!! BUT ALSO WANT TO SEE ABOUT THE DISTRIBUTION OF THE OTHERS!!!
@@ -412,8 +417,7 @@ That we will then go back and shift this by race / eth on family types, revisiti
 
 Test whether type (family or non-family) is now reflected in the right way for the data.
 ```{r test tables expanded for P28 and H16}
-nrow(dec_bgHHr_10[is.na(family_details)])
-nrow(dec_bgHHe_10[is.na(family_details)])
+
 test <- table(dec_bgHHr_10[,geoid],
               dec_bgHHr_10[,family],
               dec_bgHHr_10[,one_match],
@@ -490,7 +494,7 @@ And expand in a way that is very similar to what we did with household type and 
     dec_bgHHr_tenure_10 <- as.data.table(dec_bgHHr_tenure_10) #dyplyr had stripped it of dt
     paste0("Number of households in file: ", nrow(dec_bgHHr_tenure_10))
     #break into race and ethnicity files
-    nrow(dec_bgHHr_tenure_10)==sum(hh_totals_bg[,])
+    #nrow(dec_bgHHr_tenure_10)==sum(hh_totals_bg[,])
     #and same for ethnicity
     dec_bgHHe_tenure_10 <- dec_bgHH_tenure_data_10 %>%
       pivot_longer(4:ncol(dec_bgHH_tenure_data_10),names_to = "geoid", values_to = "number_sams") %>% 
