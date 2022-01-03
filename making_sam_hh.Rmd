@@ -65,7 +65,7 @@ check_summary <- census_table_check(dec_bgHH_data_10, "HOUSEHOLD TYPE BY HOUSEHO
 cat(check_summary[1])
 ```
 
-Now we need to convert the census representation into a representation of individual households.
+Now we need to convert the census representation into a representation of individual households (move from a wide to a long table format).
 
 ```{r expand P28 into dec_bgHHr_10 and dec_bgHHe_10}
     #break into race and ethnicity files
@@ -82,8 +82,9 @@ Now we need to convert the census representation into a representation of indivi
       uncount(number_sams,.id = "hhr_size_id",.remove = TRUE) 
     dec_bgHHr_10 <- as.data.table(dec_bgHHr_10) #dyplyr had stripped it of dt
     paste0("Number of households in file: ", nrow(dec_bgHHr_10))
-    paste0("Column names for dec_bgHHr_10: ",colnames(dec_bgHHr_10))
-    nrow(dec_bgHHr_10)==sum(hh_totals_bg[,])
+    print("Column names for dec_bgHHr_10, block group households by race:") 
+    colnames(dec_bgHHr_10)
+    
     #and same for ethnicity
     dec_bgHHe_10 <- dec_bgHH_data_10 %>%
       pivot_longer(4:ncol(dec_bgHH_data_10),names_to = "geoid", values_to = "number_sams") %>% 
@@ -97,16 +98,360 @@ Now we need to convert the census representation into a representation of indivi
       uncount(number_sams,.id = "hhe_size_id",.remove = TRUE) 
     dec_bgHHe_10 <- as.data.table(dec_bgHHe_10) #dyplyr had stripped it of dt
     paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
-    paste0("Column names for dec_bgHHe_10: ",colnames(dec_bgHHe_10))
+    print("Column names for dec_bgHHe_10, block group households by ethnicity:") 
+    colnames(dec_bgHHe_10)
     #clean up
     rm(dec_bgHH_data_10)
     rm(dec_bgHH_type_size_re_data_from_census_10)
     
 ```
 
+Section title - Conserving Mathematical Structures in Representations
+H12 is AVERAGE HOUSEHOLD SIZE OF OCCUPIED HOUSING UNITS BY TENURE and also has race/eth - there should be a triangle to do somewhere.
+Now let's get P17, average household size by age (with people under 18 in household or not) and race and ethnicity by block group. It adds the question of what happens with other sorts of representations besides summation or subset, with average being easy to understand and important to the underlying idea of maintaining structure. The additional information is a hint about how households with people under 18 differ from those without, by race and ethnicity. Since there is also a total, which we can generate separately from the dec_bgHHr_10 file we can check our process as well as give further shape to the representation for the two age groups.  
+
+```{r download avg hhsize race eth bg}
+dec_bgHH_avg_size_re_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P17",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_avg_size_data_10 <- as.data.table(dec_bgHH_avg_size_re_data_from_census_10)
+```
+Then do our basic checks:
+```{r hh_avg_size_re test problems}
+dec_bgHH_avg_size_data_10[label=="Average household size!!Total",("label"):="Total"]
+#because they're averages, the sums are often off by a decimal place so 75% are off
+check_summary <- census_table_check(dec_bgHH_avg_size_data_10,"AVERAGE HOUSEHOLD SIZE BY AGE","households",1) #should get a function that fails appropriately
+cat(check_summary[1])
+```
+
+We pull in the separate reporting table P17 (Average Household Size) in order to ask how one retains the structure of the average without violating the other commutative structures. Our strategy will be to order each household in a subtype (block_group x race) as either above or below the average. For each subtype, we already know the distribution, and our first task will be to show that we can maintain the structure of the average in the new representation while still respecting the other distributions. Since they are distributed into a set number of places afterward, we don't need to approximate a normal distribution in advance. We'll do it first for the total average household size by race, which is a known amount and can be generated directly from the table in P17 and as a calculation on the data in P28. Then we'll generate the subtypes from the averages for households with members below 18 and those with only members above 18 years of age. In order to do that, we need to know the number of households in each category, which we'll be able to add from P19 (Household Size by Household Type by Presence of Own Children) and P20 (Households by Presence of People Under 18 Years by Household Type by Age of People Under 18 Years), although not by race. The challenge is whether a technique that depends on a deliberately constructed space can provide a meaningful distribution of individuals within that space, which respects the structures that were important in the representation of the problem.  Our purpose is to generalize beyond the current example by showing concretely the sense in which a structured space is a more effective way of representing the process of analysis through a guided abstraction; showing how multiple structures can be respected in the construction of a solution is an important step in that process.  
+
+Now we'll reshape P17 (Average Household Size) to use more efficiently later the average number of households by both race and ethnicity, for households with and without people under 18 in them, for each block_group. 
+
+```{r expand P17 into dec_bgHH_avg_size_data_10}
+    dec_bgHH_avg_size_10 <- dec_bgHH_avg_size_data_10 %>%
+      pivot_longer(4:ncol(dec_bgHH_avg_size_data_10),names_to = "geoid", 
+                   values_to = "avg_hh_size") %>% 
+      mutate(race = substr(name,5,5))   
+    dec_bgHH_avg_size_10 <- as.data.table(dec_bgHH_avg_size_10) #dyplyr had stripped it of dt
+
+    rm(dec_bgHH_avg_size_re_data_from_census_10)
+```
+
+As a quick check, the averages directly reported as "Total" in P17 should match calculations on the actual description in P28. We will check those, first, as proof that we can make the simplest case work, and then construct the pieces that allow for a sub-typing to be represented in the distribution of the data. We'll test on total, "Black or African American Alone," and "White Alone, not Hispanic or Latino." The two will not match perfectly, because P17 can have numbers greater than 7 for a household and may have some other differences in collection. P17 has averages for households with and without people under 18, by all the same categories, which is the only thing that is added beyond P28.
+
+```{r compare P17 dec_bgHH_avg_size avg to P28 dec_bgHH avg}
+  dec_bgHHr_10 <- as.data.table(dec_bgHHr_10)
+  #dec_bgHHr_10[,("hh_size_n"):=as.numeric(substr(hh_size,1,1))]
+  dec_bgHHr_10[,("avg_hh_size_bg"):=round(mean(hh_size_n),2),by=.(geoid)]
+  
+  dec_bgHHr_10[,("avg_hh_size_bg_r"):=round(mean(hh_size_n),2),by=.(geoid,race)]
+  
+  #dec_bgHHe_10[,("hh_size_n"):=as.numeric(substr(hh_size,1,1))]
+  dec_bgHHe_10[,("avg_hh_size_bg_e"):=round(mean(hh_size_n),2),by=.(geoid,ethnicity)]
+  
+  paste0("All")
+  summary(dec_bgHH_avg_size_10[name=="P017001",avg_hh_size])
+  summary(dec_bgHHr_10[,(avg_hh_size_bg)])
+  paste0("Black")
+  summary(dec_bgHH_avg_size_10[name=="P017B001",avg_hh_size])
+  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r)])
+  paste0("Hispanic")
+  summary(dec_bgHH_avg_size_10[name=="P017H001",avg_hh_size])
+  summary(dec_bgHHe_10[ethnicity=="H",(avg_hh_size_bg_e)])
+  
+  rm(dec_bgHH_avg_size_data_10)
+```
+
+We remark immediately on the maximum value for Black households being 10.5, when the highest reported value in P28 is 7. The block group in question (48_201_233703_2) turns out to only have two Black households listed in P28, both in the "7-or-more-person-household"; the same block group is responsible for the max value in both. There are 293 households total in that block group and we did a deep dive into the individual household level data. We are assuming on that basis that it's not a reporting mistake, but just an unusual situation. Remember that the summary statistics are for all the averages across block groups and that only the average for that block group is reported in P17. For the total households in the block group that has the outliers (48_201_233703_2), the summary across all the households in P28 has a median a little higher than the mean, but nothing out of the ordinary and relatively close to the reported mean in P17. The fact that the actual values are whole numbers actually gives us a clue for how to think about the distribution we aim to do in the end.
+
+```{r 48_201_233703_2 summary for households}
+summary(dec_bgHHr_10[geoid=="48_201_233703_2",(hh_size_n)])
+paste0("Reported average in P17: ",dec_bgHH_avg_size_10[name=="P017001"&geoid=="48_201_233703_2",avg_hh_size])
+```
+
+We will implement a matching process on the households in two steps. First, we create a number for every household that is either above or below the average for that race category, by geoid and race, using sample() to create a random distribution centered on the average. Since there is no other information on the dataset, we don't have to worry about matching individual households with attributes that would influence how many people are in the household. After assigning them a number, we will order the households across the subtypes in the category that is one higher in the embedding (in this case, all households, but could also be a larger geographic area) by that new number and assign the available sizes as a vector. This preserves the structure of the differing averages - even given that we do not know anything else about the distribution. We are testing it this time, since we have a ground truth for households by race. If it works, we will then use the same technique to create sub-types by households with and without persons under 18 by race. The last by=.(geoid) keeps the statistical structure constant at the geoid (block group) level, but a by=.(geoid,race) would keep each race having the same outcomes within each. 
+
+```{r add match logic to household size test}
+    #create number for each hh on both sides of the average by race
+    dec_bgHHr_10[,("match_avg_r_num"):=avg_hh_size_bg_r+
+          sample((-.N/2):.N/2,.N,replace=FALSE)/.N,by=.(geoid,race)]
+    #order all races together by the new number and match with tract ordered by hh_size_n; 
+    dec_bgHHr_10[order(match_avg_r_num),("hh_size_generated"):=.SD[order(hh_size_n),"hh_size_n"],by=.(geoid)]
+    
+    #let's also create something that shows how much diff it can make; 
+    #any distribution could be imposed, although it will always be constrained 
+    #by the choice of level where the available categories are kept constant
+    dec_bgHHr_10[race!="D",("match_example_r_num"):=avg_hh_size_bg_r+
+          sample((-.N/2):.N/2,.N,replace=FALSE)/.N,by=.(geoid,race)]
+    #and then with Asians, we'll push it toward the high end
+    dec_bgHHr_10[race!="D",("match_example_r_num"):=avg_hh_size_bg_r+
+          sample(.N:.N*2,.N,replace=FALSE)/.N,by=.(geoid,race)]
+    #order all races together by the new number and match with tract ordered by hh_size_n; 
+    dec_bgHHr_10[order(match_example_r_num),("hh_size_example"):=.SD[order(hh_size_n),"hh_size_n"],by=.(geoid)]
+
+```
+
+Let's look at some statistics to see how the newly generated household size looks compared to the originals. First, let's confirm that we didn't accidentally assign the household size to the same households. We're looking for a relatively random distribution, just showing that the old hh_size_n is independent from the new hh_size_generated. [not sure this is helpful]
+
+```{r table confirming hh_sizes are indep}
+table(dec_bgHHr_10$hh_size_n,dec_bgHHr_10$hh_size_generated)
+table(dec_bgHHr_10[geoid=="48_201_233702_1",hh_size_n],dec_bgHHr_10[geoid=="48_201_233702_1",hh_size_generated])
+```
+
+Then let's look at the same summary statistics we had produced before, with the newly generated household sizes included. This should give us a sense for how it worked globally. We can do this for all the distributions, and there are statistical tests for representing the difference in the distributions, but right now we're just getting a general sense. 
+
+```{r summary for hh_size_generated}
+  dec_bgHHr_10[,("avg_hh_size_bg_g"):=round(mean(hh_size_generated),2),by=.(geoid)]
+  dec_bgHHr_10[,("avg_hh_size_bg_r_g"):=round(mean(hh_size_generated),2),by=.(geoid,race)]
+  dec_bgHHr_10[,("avg_hh_size_bg_ex"):=round(mean(hh_size_example),2),by=.(geoid)]
+  dec_bgHHr_10[,("avg_hh_size_bg_r_ex"):=round(mean(hh_size_example),2),by=.(geoid,race)]
+  
+  paste0("All")
+  #order is published average, 
+  #calculated average from P28, 
+  #calculated average from newly generated household size
+  #example for Asian population pushed toward higher household size
+  
+  summary(dec_bgHH_avg_size_10[name=="P017001",avg_hh_size])
+  summary(dec_bgHHr_10[,(avg_hh_size_bg)])
+  summary(dec_bgHHr_10[,(avg_hh_size_bg_g)])
+  summary(dec_bgHHr_10[,(avg_hh_size_bg_ex)])
+  paste0("White")
+  summary(dec_bgHH_avg_size_10[name=="P017A001",avg_hh_size])
+  summary(dec_bgHHr_10[race=="A",(avg_hh_size_bg_r)])
+  summary(dec_bgHHr_10[race=="A",(avg_hh_size_bg_r_g)])
+  summary(dec_bgHHr_10[race=="A",(avg_hh_size_bg_r_ex)])
+  paste0("Black or African American")
+  summary(dec_bgHH_avg_size_10[name=="P017B001",avg_hh_size])
+  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r)])
+  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r_g)])
+  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r_ex)])
+  paste0("Asian")
+  summary(dec_bgHH_avg_size_10[name=="P017D001",avg_hh_size])
+  summary(dec_bgHHr_10[race=="D",(avg_hh_size_bg_r)])
+  summary(dec_bgHHr_10[race=="D",(avg_hh_size_bg_r_g)])
+  summary(dec_bgHHr_10[race=="D",(avg_hh_size_bg_r_ex)])
+  
+```
+
+Let's also look at the variation within a single block group for the household size, and not for the averages across all the block groups. Notice that everything but the means are whole numbers, since it's picking out actual values for households at those indexed spots.
+
+```{r variation generated hh_size bg}
+summary(dec_bgHHr_10[geoid=="48_201_233702_3",(hh_size_n)])
+summary(dec_bgHHr_10[geoid=="48_201_233702_3",(hh_size_generated)])
+paste("And for all of Harris County: ")
+summary(dec_bgHHr_10[str_detect(geoid,"48_201"),(hh_size_generated)])
+```
+
+```{r cleanup after avg example on dec_bgHHr_10}
+  dec_bgHHr_10[,c("avg_hh_size_bg","avg_hh_size_bg_r","match_avg_r_num",
+                  "match_example_r_num","hh_size_generated","hh_size_example",
+                  "avg_hh_size_bg_g","avg_hh_size_bg_r_g","avg_hh_size_bg_ex",
+                  "avg_hh_size_bg_r_ex"):=NULL] 
+```
+
+[have to think about what other statistical tests to show; when do we want to show how to add ethnicity?]
+
+Let's recap why that was an interesting digression. Maybe a drawing of the commutative relationships and then what it means to retain certain mathematical structures while still transforming other parts of the relation. Can average household size, for example, also help to add in the Hispanic population? Can we use that trick backwards to then construct more subtypes?
+
+
+Our plan is to add the information about the average household size for households with and without people under 18, using this technique to add a dependent structure within the conceptual space of the representation. If we can take advantage of the existing relational structure, however, we can ensure that the structure is respected and the final representation is more reflective of the underlying relation. Since our starting point for the households included household size and household type, as well as race and ethnicity information, let's see if any of that can be added to the averages before using them in the overall representation. 
+We find that P18, for example, gives you the number of householders living alone and the ones that are living with others. P22 gives you the age of the householder by type, which would help us know if there are under 18 year olds living alone (there are a few). Then P20 has type by whether the household has people under 18 connected to household type. P21 tells us how many have their own children in the household by household type. None of these has race and ethnicity, but each will allow us to get closer to specifying the complete construction of all the possible relations in a way that respects the underlying commutativity of relations, as originally conceived by the census bureau to be a complete and coherent representation of the population. 
+
+
 sub-section - Triangle Commutativity.
 
-Could talk about history of Symmetric Monoidal Categories, and how they are based in that original thought about triangles and enabling algebraic structures like commutativity. Could also do a diagram or two here.
+Could talk about history of Symmetric Monoidal Categories, and how they are based in that original thought about triangles and enabling algebraic structures like commutativity. Could also do a diagram or two here. 
+
+In many ways, this example is very simple. What happens is that we have P28, which already has type and size along with race and ethnicity. Then P18 has household type by race and ethnicity, but has more details on type - some of which should be reflected in the size. The strategy for disposition of the individuals into the appropriate categories takes advantage of how subsetting works in R's data.table package, but the final representation will work better by virtue of a second step that allocates the categories by available spaces, and not by the abstract likelihood of being in a space at all. This is meant to point at our way of thinking about structuring spaces - both in terms of a neighborhood effecting life outcomes and as a space that precedes and condition a product of a function. This should show how the overall approach breaks with the idea of set theory and moves to dependent types, algebraic structures on spaces, and strengths-based analysis of dynamic and emergent properties. The arithmetic is simple, and many of the choices can be motivated within set theory, but we hope to show a few places where that would not hold. 
+
+Now let's get P18, household type by race and ethnicity, which has more detail in the type of household, so that we can look carefully at how to construct a representation of that household that respects the original relational structure.
+
+```{r download hhtype P18 race eth bg}
+dec_bgHH_type_re_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P18",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_type_data_10 <- as.data.table(dec_bgHH_type_re_data_from_census_10)
+```
+
+Then do our basic checks:
+```{r hh_type_re test problems}
+#pain in the butt how they reported on their subtotals!!
+check_summary <- census_table_check(dec_bgHH_type_data_10[substr(name,5,5)!="H" & 
+                  substr(name,5,5)!="I" & 
+                    label!="Total!!Family households!!Other family"], 
+                  "HOUSEHOLD TYPE","households") 
+cat(check_summary[1])
+```
+
+Then expand into the representation of individual households by both ethnicity and race. 
+
+```{r expand P18 into dec_bgHH_type_10}
+#break into race and ethnicity files
+    race_codes <- c("A","B","C","D","E","F","G")
+    dec_bgHHr_type_10 <- dec_bgHH_type_data_10 %>%
+      pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+      mutate(
+        race = substr(name,5,5),
+        label = str_remove_all(label,"Total!!"),
+        label = str_remove_all(label,"!!Other family")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(family_details) & race%in%race_codes) %>% #to get rid of aggregations by family
+      uncount(number_sams,.id = "hhr_type_id",.remove = TRUE) 
+    dec_bgHHr_type_10 <- as.data.table(dec_bgHHr_type_10) #dyplyr had stripped it of dt
+    paste0("Number of households in file: ", nrow(dec_bgHHr_type_10))
+    nrow(dec_bgHHr_10)==nrow(dec_bgHHr_type_10)
+    #dec_bgHHr_type_10[,4:ncol(dec_bgHHr_type_10)] <- dec_bgHHr_type_10[,lapply(.SD[,4:ncol(dec_bgHHr_type_10)], as.numeric)]
+    
+    #and same for ethnicity
+    dec_bgHHe_type_10 <- dec_bgHH_type_data_10 %>%
+      mutate(
+        ethnicity = substr(name,5,5),
+        label = str_remove_all(label,"Total!!"),
+        label = str_remove_all(label,"!!Other family")) %>%
+      filter(label != "Total") %>% #keep only the ones that aren't aggregated
+      pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+      separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
+      filter(!is.na(family_details) & ethnicity%in%c("H","I")) %>% 
+      uncount(number_sams,.id = "hhe_type_id",.remove = TRUE) 
+    dec_bgHHe_type_10 <- as.data.table(dec_bgHHe_type_10) #dyplyr had stripped it of dt
+    paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
+    nrow(dec_bgHHe_10)==nrow(dec_bgHHe_type_10)
+    #should clean up
+    rm(dec_bgHH_type_data_10)
+    rm(dec_bgHH_type_re_data_from_census_10)
+```
+
+```{r test tables for P28 and P18}
+#test_result <- symmetry_test(dec_bgHHr_10,dec_bgHHr_tenure_10,c("geoid"),c("geoid"))
+test <- table(dec_bgHHr_10[,geoid],
+              dec_bgHHr_10[,family],
+              dec_bgHHr_10[,race]
+)==table(
+  dec_bgHHr_type_10[,geoid],
+  dec_bgHHr_type_10[,family],
+  dec_bgHHr_type_10[,race]
+)
+length(test[test==F])==0
+test <- table(dec_bgHHe_10[,geoid],
+              dec_bgHHe_10[,family],
+              dec_bgHHe_10[,ethnicity]
+)==table(
+  dec_bgHHe_type_10[,geoid],
+  dec_bgHHe_type_10[,family],
+  dec_bgHHe_type_10[,ethnicity]
+)
+length(test[test==F])==0
+```
+
+Here, we want to join one extra bit of information from the type data, which is whether folks live alone, or with others in a family (such as a married couple or single parent) or with others in a non-family relationship.
+It's significant information, but very much correlates with the size relation and so shouldn't be added without making the appropriate adjustments.
+
+```{r table on family and family details}
+table(dec_bgHHr_type_10$family_details,dec_bgHHr_type_10$family)
+table(dec_bgHHr_10$hh_size)
+nrow(dec_bgHHr_10[hh_size_n==1])==nrow(dec_bgHHr_type_10[family_details=="Householder living alone"])
+```
+We could run through it once with only the 361,888 householders who live alone listed from each side, and then match the others on a random sample. Or we could generate a new number, following some reasoning, that we then use for the sort. We'll do a bit of both. Following the approach we used on the average size, above, let's assign numbers based on family_detail, while also creating a little ifelse ("ifelse(hh_size_n==1,"1_person",">1")") in the name for the matching.
+```{r assign numbers to family_detail matcher_id}
+dec_bgHHr_type_10[,("family_detail_matcher"):=.(fcase(
+  family_details=="Householder living alone", sample(1:2,.N,replace = TRUE),
+  family_details=="Householder not living alone", sample(2:1000,.N,replace = TRUE),
+  family_details=="Male householder, no wife present", sample(100:800,.N,replace = TRUE),
+  family_details=="Female householder, no husband present", sample(200:1000,.N,replace = TRUE),
+  family_details=="Husband-wife family", sample(300:1200,.N,replace = TRUE)
+))]
+dec_bgHHe_type_10[,("family_detail_matcher"):=.(fcase(
+  family_details=="Householder living alone", sample(1:2,.N,replace = TRUE),
+  family_details=="Householder not living alone", sample(2:1000,.N,replace = TRUE),
+  family_details=="Male householder, no wife present", sample(100:800,.N,replace = TRUE),
+  family_details=="Female householder, no husband present", sample(200:1000,.N,replace = TRUE),
+  family_details=="Husband-wife family", sample(300:1200,.N,replace = TRUE)
+))]
+nrow(dec_bgHHe_type_10[is.na(family_detail_matcher)])
+nrow(dec_bgHHr_type_10[is.na(family_detail_matcher)])
+dec_bgHHr_10[,("one_match"):=fcase(hh_size_n==1,"1_person",default = "2or>_persons")]
+dec_bgHHe_10[,("one_match"):=fcase(hh_size_n==1,"1_person",default = "2or>_persons")]
+dec_bgHHr_type_10[,("one_match"):=fcase(family_details=="Householder living alone","1_person",default = "2or>_persons")]
+dec_bgHHe_type_10[,("one_match"):=fcase(family_details=="Householder living alone","1_person",default = "2or>_persons")]
+table(dec_bgHHr_10$one_match)
+table(dec_bgHHr_type_10$one_match)
+table(dec_bgHHe_10$one_match)
+table(dec_bgHHe_type_10$one_match)
+```
+
+```{r join hh_type using bgHH and bgHH with type family or non}
+dec_bgHHr_10[order(hh_size_n),
+             ("hh_family_match_id"):=
+                    paste0(geoid,family,one_match,
+                           race,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,one_match,race)]
+dec_bgHHr_type_10[sort(family_detail_matcher),
+                  ("hh_family_match_id"):=
+                    paste0(geoid,family,one_match,race,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,one_match,race)]
+dec_bgHHr_10[,("family_details"):=
+                    dec_bgHHr_type_10[.SD, list(family_details), on = .(hh_family_match_id)]]
+dec_bgHHe_10[order(hh_size_n),("hhe_family_match_id"):=
+                    paste0(geoid,family,one_match,
+                           ethnicity,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,one_match,ethnicity)]
+dec_bgHHe_type_10[sort(family_detail_matcher),("hhe_family_match_id"):=
+                    paste0(geoid,family,one_match,ethnicity,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,one_match,ethnicity)]
+dec_bgHHe_10[,("family_details"):=
+                    dec_bgHHe_type_10[.SD, list(family_details), on = .(hhe_family_match_id)]]
+```
+
+THE SYMMETRY TEST SHOULD STILL WORK!! BUT ALSO WANT TO SEE ABOUT THE DISTRIBUTION OF THE OTHERS!!!
+That we will then go back and shift this by race / eth on family types, revisiting what we did before...
+
+Test whether type (family or non-family) is now reflected in the right way for the data.
+```{r test tables expanded for P28 and H16}
+nrow(dec_bgHHr_10[is.na(family_details)])
+nrow(dec_bgHHe_10[is.na(family_details)])
+test <- table(dec_bgHHr_10[,geoid],
+              dec_bgHHr_10[,family],
+              dec_bgHHr_10[,one_match],
+              dec_bgHHr_10[,race]
+)==table(
+  dec_bgHHr_type_10[,geoid],
+  dec_bgHHr_type_10[,family],
+  dec_bgHHr_type_10[,one_match],
+  dec_bgHHr_type_10[,race]
+)
+length(test[test==F])==0
+test <- table(dec_bgHHe_10[,geoid],
+              dec_bgHHe_10[,family],
+              dec_bgHHe_10[,ethnicity]
+)==table(
+  dec_bgHHe_type_10[,geoid],
+  dec_bgHHe_type_10[,family],
+  dec_bgHHe_type_10[,ethnicity]
+)
+length(test[test==F])==0
+#cleaning up
+rm(dec_bgHH_data_10)
+rm(dec_bgHH_type_size_re_data_from_census_10)
+#have to think through when and where to rm()
+dec_bgHHr_10[,c("name","label","concept","hhr_size_id","hh_tenure_match_id"):=NULL]
+paste0("column names for dec_bgHHr_10: ")
+colnames(dec_bgHHr_10)
+dec_bgHHe_10[,c("name","label","concept","hhe_size_id","hhe_tenure_match_id"):=NULL]
+paste0("column names for dec_bgHHe_10: ")
+colnames(dec_bgHHe_10)
+```
+
+
+
+
+
+
+section title - endpoints, terminal objects, and paths
 
 One of our basic tools for constructing Sam City is using a relation as the unit that we add to, with the individual level (in this case a household) serving as an endpoint (talk about terminal objects?-http://nlab-pages.s3.us-east-2.amazonaws.com/nlab/show/terminal+object) for the relation, and something that only fully emerges as more and more of the relations are pulled together. In that vein, we turn to H16, tenure (rent or own) by household size by race and ethnicity. Since the relations between household size and race and ethnicity are the same for each individual, we can build the city from the fact that both share an edge of a triangle, which is commutative at the type level of the household in this case. 
 
@@ -358,61 +703,9 @@ dec_bgHH_type_tenure_age_10 <- dec_bgHH_type_tenure_age_data_10 %>%
     length(test[test==FALSE])==0
 ```
 
-We quickly see that H18 needs some of the information from P18 to actually join correctly with P22, above. Let's just join them into one HHr_type file
+We quickly see that H18 needs some of the information from P18 to actually join correctly with P22, above. Let's just join them into one HHr_type file. We already know quite a bit about ethnicity and race at the individual and household levels, so will need to be careful about how this information gets joined - otherwise the commutative structures could be lost. 
+MOVING P18 UP
 
-Now let's get P18, household type by race and ethnicity, which has more detail in the type of household.
-```{r download hhtype P18 race eth bg}
-dec_bgHH_type_re_data_from_census_10 <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                         groupname = "P18",county_num = "201",
-                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
-dec_bgHH_type_data_10 <- as.data.table(dec_bgHH_type_re_data_from_census_10)
-```
-
-Then do our basic checks:
-```{r hh_type_re test problems}
-check_summary <- census_table_check(dec_bgHH_type_data_10, "HOUSEHOLD TYPE","households") #should get a function that fails appropriately
-cat(check_summary[1])
-```
-
-Then expand into the representation of individual households by both ethnicity and race.
-```{r expand P18 into dec_bgHH_type_10}
-#break into race and ethnicity files
-    race_codes <- c("A","B","C","D","E","F","G")
-    dec_bgHHr_type_10 <- dec_bgHH_type_data_10 %>%
-      pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-      mutate(
-        race = substr(name,5,5),
-        label = str_remove_all(label,"Total!!"),
-        label = str_remove_all(label,"!!Other family")) %>%
-      filter(label != "Total") %>% #keep only the ones that aren't aggregated
-      separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(family_details) & race%in%race_codes) %>% #to get rid of aggregations by family
-      uncount(number_sams,.id = "hhr_type_id",.remove = TRUE) 
-    dec_bgHHr_type_10 <- as.data.table(dec_bgHHr_type_10) #dyplyr had stripped it of dt
-    paste0("Number of households in file: ", nrow(dec_bgHHr_type_10))
-    nrow(dec_bgHHr_10)==nrow(dec_bgHHr_type_10)
-    
-    #multiplying the side labeled only "Total" by 2:
-    dec_bgHHr_type_10[,4:ncol(dec_bgHHr_type_10)] <- dec_bgHHr_type_10[,lapply(.SD[,4:ncol(dec_bgHHr_type_10)], as.numeric)]
-    #and same for ethnicity
-    dec_bgHHe_type_10 <- dec_bgHH_type_data_10 %>%
-      mutate(
-        ethnicity = substr(name,5,5),
-        label = str_remove_all(label,"Total!!"),
-        label = str_remove_all(label,"!!Other family")) %>%
-      filter(label != "Total") %>% #keep only the ones that aren't aggregated
-      pivot_longer(4:ncol(dec_bgHH_type_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-      separate(label, c("family","family_details"), sep = "!!", remove = F, convert = FALSE) %>%
-      filter(!is.na(family_details) & ethnicity%in%c("H","I")) %>% 
-      uncount(number_sams,.id = "hhe_type_id",.remove = TRUE) 
-    dec_bgHHe_type_10 <- as.data.table(dec_bgHHe_type_10) #dyplyr had stripped it of dt
-    paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_10))
-    nrow(dec_bgHHe_10)==nrow(dec_bgHHe_type_10)
-    #should clean up
-    rm(dec_bgHH_type_data_10)
-    rm(dec_bgHH_type_re_data_from_census_10)
-```
 
 #add p18 to h18, and then add to p22
 
@@ -435,157 +728,6 @@ Need to look at the tract level age_ranges - tract level has more detail, for ex
 This could be a good place to try for the way of doing a marker for some flexibility for the move that "closes" the triangle - maybe a first step is to make categories for where the existing categories overlap, and then during the dispensation one determines if it falls into that or not by having ordered them in the right way? 
 
 
-
-Section title - Conserving Mathematical Structures in Representations
-H12 is AVERAGE HOUSEHOLD SIZE OF OCCUPIED HOUSING UNITS BY TENURE and also has race/eth - there should be a triangle to do somewhere.
-Now let's get P17, average household size by age (with people under 18 in household or not) and race and ethnicity by block group. It adds the question of what happens with other sorts of representations besides summation or subset, with average being easy to understand and important to the underlying idea of maintaining structure. The additional information is a hint about how households with people under 18 differ from those without, by race and ethnicity. Since there is also a total, which we can generate separately from the dec_bgHHr_10 file we can check our process as well as give further shape to the representation for the two age groups.  
-
-```{r download avg hhsize race eth bg}
-dec_bgHH_avg_size_re_data_from_census_10 <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                         groupname = "P17",county_num = "201",
-                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
-dec_bgHH_avg_size_data_10 <- as.data.table(dec_bgHH_avg_size_re_data_from_census_10)
-```
-Then do our basic checks:
-```{r hh_avg_size_re test problems}
-check_summary <- census_table_check(dec_bgHH_avg_size_data_10, "AVERAGE HOUSEHOLD SIZE BY AGE","households") #should get a function that fails appropriately
-cat(check_summary[1])
-```
-
-We pull in the separate reporting table P17 (Average Household Size) in order to ask how one retains the structure of the average without violating the other commutative structures. Our strategy will be to order each household in a subtype (block_group x race) as either above or below the average. For each subtype, we already know the distribution, and our first task will be to show that we can maintain the structure of the average in the new representation while still respecting the other distributions. Since they are distributed into a set number of places afterward, we don't need to approximate a normal distribution in advance. We'll do it first for the total average household size by race, which is a known amount and can be generated directly from the table in P17 and as a calculation on the data in P28. Then we'll generate the subtypes from the averages for households with members below 18 and those with only members above 18 years of age. In order to do that, we need to know the number of households in each category, which we'll be able to add from P19 (Household Size by Household Type by Presence of Own Children) and P20 (Households by Presence of People Under 18 Years by Household Type by Age of People Under 18 Years), although not by race. The challenge is whether a technique that depends on a deliberately constructed space can provide a meaningful distribution of individuals within that space, which respects the structures that were important in the representation of the problem.  Our purpose is to generalize beyond the current example by showing concretely the sense in which a structured space is a more effective way of representing the process of analysis through a guided abstraction; showing how multiple structures can be respected in the construction of a solution is an important step in that process.  
-
-Now we'll reshape P17 (Average Household Size) to use more efficiently later the average number of households by both race and ethnicity, for households with and without people under 18 in them, for each block_group. 
-
-```{r expand P17 into dec_bgHH_avg_size_data_10}
-    dec_bgHH_avg_size_10 <- dec_bgHH_avg_size_data_10 %>%
-      pivot_longer(4:ncol(dec_bgHH_avg_size_data_10),names_to = "geoid", 
-                   values_to = "avg_hh_size") %>% 
-      mutate(race = substr(name,5,5))   
-    dec_bgHH_avg_size_10 <- as.data.table(dec_bgHH_avg_size_10) #dyplyr had stripped it of dt
-
-    #should clean up all along in the other making_sam, too
-    
-    rm(dec_bgHH_avg_size_re_data_from_census_10)
-```
-
-As a quick check, the averages directly reported as "Total" in P17 should match calculations on the actual description in P28. We will check those, first, as proof that we can make the simplest case work, and then construct the pieces that allow for a sub-typing to be represented in the distribution of the data. We'll test on total, "Black or African American Alone," and "White Alone, not Hispanic or Latino." The two will not match perfectly, because P17 can have numbers greater than 7 for a household and may have some other differences in collection. P17 has averages for households with and without people under 18, by all the same categories, which is the only thing that is added beyond P28.
-
-```{r compare P17 dec_bgHH_avg_size avg to P28 dec_bgHH avg}
-  dec_bgHHr_10 <- as.data.table(dec_bgHHr_10)
-  #dec_bgHHr_10[,("hh_size_n"):=as.numeric(substr(hh_size,1,1))]
-  dec_bgHHr_10[,("avg_hh_size_bg"):=round(mean(hh_size_n),2),by=.(geoid)]
-  
-  dec_bgHHr_10[,("avg_hh_size_bg_r"):=round(mean(hh_size_n),2),by=.(geoid,race)]
-  
-  #dec_bgHHe_10[,("hh_size_n"):=as.numeric(substr(hh_size,1,1))]
-  dec_bgHHe_10[,("avg_hh_size_bg_e"):=round(mean(hh_size_n),2),by=.(geoid,ethnicity)]
-  
-  paste0("All")
-  summary(dec_bgHH_avg_size_10[name=="P017001",avg_hh_size])
-  summary(dec_bgHHr_10[,(avg_hh_size_bg)])
-  paste0("Black")
-  summary(dec_bgHH_avg_size_10[name=="P017B001",avg_hh_size])
-  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r)])
-  paste0("Hispanic")
-  summary(dec_bgHH_avg_size_10[name=="P017H001",avg_hh_size])
-  summary(dec_bgHHe_10[ethnicity=="H",(avg_hh_size_bg_e)])
-  
-  #rm(dec_bgHH_avg_size_data_10)
-```
-
-We remark immediately on the maximum value for Black households being 10.5, when the highest reported value in P28 is 7. The block group in question (48_201_233703_2) turns out to only have two Black households listed in P28, both in the "7-or-more-person-household"; the same block group is responsible for the max value in both. There are 293 households total in that block group and we did a deep dive into the individual household level data. We are assuming on that basis that it's not a reporting mistake, but just an unusual situation. Remember that the summary statistics are for all the averages across block groups and that only the average for that block group is reported in P17. For the total households in the block group that has the outliers (48_201_233703_2), the summary across all the households in P28 has a median a little higher than the mean, but nothing out of the ordinary and relatively close to the reported mean in P17. The fact that the actual values are whole numbers actually gives us a clue for how to think about the distribution we aim to do in the end.
-
-```{r 48_201_233703_2 summary for households}
-summary(dec_bgHHr_10[geoid=="48_201_233703_2",(hh_size_n)])
-paste0("Reported average in P17: ",dec_bgHH_avg_size_10[name=="P017001"&geoid=="48_201_233703_2",avg_hh_size])
-```
-
-We will implement a matching process on the households in two steps. First, we create a number for every household that is either above or below the average for that race category, by geoid and race, using sample() to create a random distribution centered on the average. Since there is no other information on the dataset, we don't have to worry about matching individual households with attributes that would influence how many people are in the household. After assigning them a number, we will order the households across the subtypes in the category that is one higher in the embedding (in this case, all households, but could also be a larger geographic area) by that new number and assign the available sizes as a vector. This preserves the structure of the differing averages - even given that we do not know anything else about the distribution. We are testing it this time, since we have a ground truth for households by race. If it works, we will then use the same technique to create sub-types by households with and without persons under 18 by race. The last by=.(geoid) keeps the statistical structure constant at the geoid (block group) level, but a by=.(geoid,race) would keep each race having the same outcomes within each. 
-
-```{r add match logic to household size test}
-    #create number for each hh on both sides of the average by race
-    dec_bgHHr_10[,("match_avg_r_num"):=avg_hh_size_bg_r+
-          sample((-.N/2):.N/2,.N,replace=FALSE)/.N,by=.(geoid,race)]
-    #order all races together by the new number and match with tract ordered by hh_size_n; 
-    dec_bgHHr_10[order(match_avg_r_num),("hh_size_generated"):=.SD[order(hh_size_n),"hh_size_n"],by=.(geoid)]
-    
-    #let's also create something that shows how much diff it can make; 
-    #any distribution could be imposed, although it will always be constrained 
-    #by the choice of level where the available categories are kept constant
-    dec_bgHHr_10[race!="D",("match_example_r_num"):=avg_hh_size_bg_r+
-          sample((-.N/2):.N/2,.N,replace=FALSE)/.N,by=.(geoid,race)]
-    #and then with Asians, we'll push it toward the high end
-    dec_bgHHr_10[race!="D",("match_example_r_num"):=avg_hh_size_bg_r+
-          sample(.N:.N*2,.N,replace=FALSE)/.N,by=.(geoid,race)]
-    #order all races together by the new number and match with tract ordered by hh_size_n; 
-    dec_bgHHr_10[order(match_example_r_num),("hh_size_example"):=.SD[order(hh_size_n),"hh_size_n"],by=.(geoid)]
-
-```
-
-Let's look at some statistics to see how the newly generated household size looks compared to the originals. First, let's confirm that we didn't accidentally assign the household size to the same households. We're looking for a relatively random distribution, just showing that the old hh_size_n is independent from the new hh_size_generated. [not sure this is helpful]
-
-```{r table confirming hh_sizes are indep}
-table(dec_bgHHr_10$hh_size_n,dec_bgHHr_10$hh_size_generated)
-table(dec_bgHHr_10[geoid=="48_201_233702_1",hh_size_n],dec_bgHHr_10[geoid=="48_201_233702_1",hh_size_generated])
-```
-
-Then let's look at the same summary statistics we had produced before, with the newly generated household sizes included. This should give us a sense for how it worked globally. We can do this for all the distributions, and there are statistical tests for representing the difference in the distributions, but right now we're just getting a general sense. 
-
-```{r summary for hh_size_generated}
-  dec_bgHHr_10[,("avg_hh_size_bg_g"):=round(mean(hh_size_generated),2),by=.(geoid)]
-  dec_bgHHr_10[,("avg_hh_size_bg_r_g"):=round(mean(hh_size_generated),2),by=.(geoid,race)]
-  dec_bgHHr_10[,("avg_hh_size_bg_ex"):=round(mean(hh_size_example),2),by=.(geoid)]
-  dec_bgHHr_10[,("avg_hh_size_bg_r_ex"):=round(mean(hh_size_example),2),by=.(geoid,race)]
-  
-  paste0("All")
-  #order is published average, 
-  #calculated average from P28, 
-  #calculated average from newly generated household size
-  #example for Asian population pushed toward higher household size
-  
-  summary(dec_bgHH_avg_size_10[name=="P017001",avg_hh_size])
-  summary(dec_bgHHr_10[,(avg_hh_size_bg)])
-  summary(dec_bgHHr_10[,(avg_hh_size_bg_g)])
-  summary(dec_bgHHr_10[,(avg_hh_size_bg_ex)])
-  paste0("White")
-  summary(dec_bgHH_avg_size_10[name=="P017A001",avg_hh_size])
-  summary(dec_bgHHr_10[race=="A",(avg_hh_size_bg_r)])
-  summary(dec_bgHHr_10[race=="A",(avg_hh_size_bg_r_g)])
-  summary(dec_bgHHr_10[race=="A",(avg_hh_size_bg_r_ex)])
-  paste0("Black or African American")
-  summary(dec_bgHH_avg_size_10[name=="P017B001",avg_hh_size])
-  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r)])
-  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r_g)])
-  summary(dec_bgHHr_10[race=="B",(avg_hh_size_bg_r_ex)])
-  paste0("Asian")
-  summary(dec_bgHH_avg_size_10[name=="P017D001",avg_hh_size])
-  summary(dec_bgHHr_10[race=="D",(avg_hh_size_bg_r)])
-  summary(dec_bgHHr_10[race=="D",(avg_hh_size_bg_r_g)])
-  summary(dec_bgHHr_10[race=="D",(avg_hh_size_bg_r_ex)])
-  
-```
-
-Let's also look at the variation within a single block group for the household size, and not for the averages across all the block groups. Notice that everything but the means are whole numbers, since it's picking out actual values for households at those indexed spots.
-
-```{r variation generated hh_size bg}
-summary(dec_bgHHr_10[geoid=="48_201_233702_3",(hh_size_n)])
-summary(dec_bgHHr_10[geoid=="48_201_233702_3",(hh_size_generated)])
-paste("And for all of Harris County: ")
-summary(dec_bgHHr_10[str_detect(geoid,"48_201"),(hh_size_generated)])
-```
-
-```{r cleanup after avg example on dec_bgHHr_10}
-  dec_bgHHr_10[,c(hh_sizes_available,hh_size_generated,hh_size_example):=NULL] #get full list next time through
-```
-
-[have to think about what other statistical tests to show; when do we want to show how to add ethnicity?]
-
-Let's recap why that was an interesting digression. Maybe a drawing of the commutative relationships and then what it means to retain certain mathematical structures while still transforming other parts of the relation. Can average household size, for example, also help to add in the Hispanic population? Can we use that trick backwards to then construct more subtypes?
-
-
-Our plan is to add the information about the average household size for households with and without people under 18, using this technique to add a dependent structure within the conceptual space of the representation. If we can take advantage of the existing relational structure, however, we can ensure that the structure is respected and the final representation is more reflective of the underlying relation. Since our starting point for the households included household size and household type, as well as race and ethnicity information, let's see if any of that can be added to the averages before using them in the overall representation. 
-We find that P18, for example, gives you the number of householders living alone and the ones that are living with others. P22 gives you the age of the householder by type, which would help us know if there are under 18 year olds living alone (there are a few). Then P20 has type by whether the household has people under 18 connected to household type. P21 tells us how many have their own children in the household by household type. None of these has race and ethnicity, but each will allow us to get closer to specifying the complete construction of all the possible relations in a way that respects the underlying commutativity of relations, as originally conceived by the census bureau to be a complete and coherent representation of the population. 
 
 
 
