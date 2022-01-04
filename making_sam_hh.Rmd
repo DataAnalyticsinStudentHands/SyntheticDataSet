@@ -474,7 +474,11 @@ section title - endpoints, terminal objects, and paths
 
 One of our basic tools for constructing Sam City is using a relation as the unit that we add to, with the individual level (in this case a household) serving as an endpoint for the relation, and something that only fully emerges in its robust fullness as more and more of the relations are pulled together and allowed to intersect in that otherwise empty space. In the terms of symmetric monoidal categories, that endpoint is a terminal object, and it allows us to understand the point around which commutative triangle structures are found (or constructed), and to understand the algebraic possibilities that arise along with those constructions. In that vein, we turn to H16, tenure (rent or own) by household size by race and ethnicity. Since the relations between household size and race and ethnicity are the same for each individual, we can build the city from the fact that both share an edge of a triangle, which is commutative at the type level of the household in this case. We are going to build a somewhat more complicated spatial structure, and at the end we'll talk briefly about why the symmetric monoidal categories provide greater clarity than imposing simplicial complexes (the geometric representation of repeated structures in space).
 
-Let's download H16 and look at it for some clues to how to build the data representation with the right commutative structure. Very simply, if the relation between household size and race or ethnicity matches on both data tables, then we'll get the relationship from tenure to household type for free - without having introduced any uncertainty into the construction, at this point, although we'll have to ensure that there aren't illegitimate (or unaccounted for) steps in further building down the line. (do we need to include a diagram?)
+Let's download H16 and look at it for some clues to how to build the data representation with the right commutative structure. Very simply, if the relation between household size and race or ethnicity matches on both data tables, then we'll get the relationship from tenure to household type for free - without having introduced any uncertainty into the construction, at this point, although we'll have to ensure that there aren't illegitimate (or unaccounted for) steps in further building down the line. (do we need to include a diagram?) At some point, mention that we have H14, Tenure by race of householder, which is just a subset of this. But it does let you have the H11 - total population in occupied housing units by tenure by race/eth. And has average housing size by tenure H12, which we can triangulate, too., with H17 Tenure by age of householder, with age, in the ten year blocks. H18 hh_type by tenure by age is helpful, and it also has the same under 18 over 18 that we had with hh_type. The HCT3 and HCT4 seem to overlap with the same under type, too - could be parallel in the same way that race / eth are. P16 is population in households by age and race, but only at the under 18 and 18 and over level.
+
+It gets us to P29, too - relation in HH, by race/eth - P31, pop under 18 has whether the under 18 is a HH or spouse, too. 32 and 33 are also subsets
+
+Families start at P35 and have a lot going on.
 
 ```{r download tenure hhsize race eth bg}
 dec_bgHH_tenure_size_re_data_from_census_10 <- 
@@ -742,7 +746,7 @@ P22 added to H18 by race/eth, with some way of giving the multiple buckets so th
 H17-H18 Tenure by age by race/eth; joined to Tenure by type and age (but wider age groups)
  
 
-H17 Tenure by age of householder by ten year groups, with race/eth, needs to have H18 hh_type by age added to it, although it has different age_groups.
+H17 Tenure by age of householder by ten year groups, with race/eth, needs to have H18 hh_type by tenure by age added to it, although it has different age_groups.
 Then do P22, HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER, 5-10 year buckets that match H17, but which doesn't have race/eth so should add it from H17. 
 
 
@@ -750,7 +754,7 @@ Need to look at the tract level age_ranges - tract level has more detail, for ex
 This could be a good place to try for the way of doing a marker for some flexibility for the move that "closes" the triangle - maybe a first step is to make categories for where the existing categories overlap, and then during the dispensation one determines if it falls into that or not by having ordered them in the right way? 
 
 
-
+P15 - ethnicity of householder by race lets you see how power set works when typing...
 
 
 ```{r basic household data download}

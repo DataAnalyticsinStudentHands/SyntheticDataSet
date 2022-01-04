@@ -139,7 +139,7 @@ Let's take the tract-level data, as the most specific for year and race category
 First, we need to identify the rows which, if added together, give us a complete and non-repeating set of the population. There is one way to do that with the overall total row, with the two gender total rows, and with all of the individual age rows without the totals. Unfortunately, the census reports have a somewhat idiosyncratic way of reporting the data, and the way to identify these rows is not always simple. This case is relatively easy, and a good example to start with. The "label" column has three components, separated by double exclamation points. (They made changes in the way the separations work in 2019, so these small scripts will have to be modified for later years. The decennial and ACS also have small differences that have to be accounted for, as we will see.)
 We can use a little trick because of how the R library dyplyr performs the translation and expansion of the representation, so that we're looking at rows of people with geographic and demographic properties and not rows of categories against columns of geography. We will get a warning that NAs were introduced by coercion, but it happens that those will be the rows that we want to exclude in any case.
 
-```{r expand SARE}
+```{r expand SARE for the tracts in PC12}
     dec_SARE_Harris_10 <- dec_SAR_Harris_data_from_census_10 %>%
       pivot_longer(4:ncol(dec_SAR_Harris_data_from_census_10),names_to = "tract", values_to = "number_sams",
                    names_transform = list(tract=as.character)) %>%
@@ -166,7 +166,7 @@ Here, we're doing race first, because in the next iteration, the race categoriza
     paste0("Total population in this representation is: ",nrow(dec_SAR_Harris_10))
 ```
 
-And then one complete population for ethnicity:
+And then one complete population for ethnicity: 
 
 ```{r expand SAE}
     #one for Hispanic and then not Hispanic or Latino for each race; H and I do not match race codes in ACS
@@ -364,7 +364,9 @@ dec_bgSAR_10[re_code=="A"&is.na(ethnicity),("ethnicity"):=
 paste0("number of Hispanic or Latino who are not White alone: ",nrow(dec_bgSAE_10)-nrow(dec_bgSAR_10[!is.na(ethnicity)]))
 ```
 
-We can add in the tract data at this point, matching on ethnicity, with race taking care of itself, but there's a potential of having some of the folks who don't have ethnicity assigned at the block_group being misassigned within the tract to the wrong block_group. That is, we can create a commutative representation, but it might break with other commutative relations that depend on how race is combined with ethnicity at the block_group level. 
+We can add in the tract data at this point, matching on ethnicity, with race taking care of itself, but there's a potential of having some of the folks who don't have ethnicity assigned at the block_group being misassigned within the tract to the wrong block_group. That is, we can create a commutative representation, but it might break with other commutative relations that depend on how race is combined with ethnicity at the block_group level. [[longer conversation about what it means to understand this as a problem with finding the right unit for analysis - either the individual or the relations; that we can look to the 'empty' representation that only has the bear counts of SARE at the block group, and then have it carry some information about that geography that trumps our expectations but still has to mesh with the counts that come from other subsetting moves - in fact, and maybe from the beginning, this is where you're not really subsetting, but sub-typing]]
+
+TODO - add P14, single years of age for population under 20, but without race/eth??? shows how it's more like typing than subsetting????
 
 Some of this may be recap from the ACS_probs Rmd - have to think about the structure of the overall argument and whether to try to recap here.
 At this point, we have several options, all of which we can characterize in terms of the types of structures preserved by the different approaches. If we think of every way of talking about the representation as an object, and our task as being about how we understand the various constructions of representations, then we are being guided by the demand for an overall coherence in our representation and not by the connection between our representation and a set of objects at a particular point. There are philosophical reasons to justify that choice - after all, the connection between our representation and the set of objects would, in every particular case, also have to be a representation, so being guided by the coherence of the ensemble of representations gives you a more encompassing overall approach. That turn toward the coherence of the representation need not be a turn toward relativism, however, even though it deliberately celebrates the proliferation of modes of representation. Ordinary high school mathematics can be a guide here; as you transform an algebra problem, following rules for reshaping each side of the equation, you're dealing with the coherence of the representations and looking for a particular form - or mathematical object - that helps resolve the equations into something more useful. On the other side, one is tempted by the idea that each transformation should be tied to a determination or judgment about the connection of the world to the proposition or sets of propositions being made. 
@@ -399,6 +401,7 @@ We start with P28 because it captures the relation between race eth hhtype and h
 We'll do this in the next making_sam_hh.Rmd, for more effective computation, and save the block_group data, for use later.
 
 ```{r save SAR Harris csv}
+#need to check if exists and replace, if needed
     file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="bgSAR_Harris",path_suff="wrk.csv")
     write_csv(dec_bgSAR_10,file_path)
 ```
