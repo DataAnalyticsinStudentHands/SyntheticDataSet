@@ -120,18 +120,15 @@ dec_bgSAR_data_10[,4:ncol(dec_bgSAR_data_10)] <- dec_bgSAR_data_10[,lapply(.SD[,
 It would be nice to use this immediately as our base, but we quickly see it doesn't have as many rows breaking out race and ethnicity. It has nine total categories for race and ethnicity - losing most of the categories in ethnicity - and age is reported in odd aggregations that will make comparison difficult with other data reporting. Let's run a few quick tests on the download.
 
 ```{r demography test problems}
-check_summary <- census_table_check(dec_bgHH_tenure_data_10, "SEX BY AGE","individuals") #should get a function that fails appropriately
+check_summary <- census_table_check(dec_bgSAR_data_10, "SEX BY AGE","individuals") #should get a function that fails appropriately
 cat(check_summary[1])
 ```
 
 As a final note on what it means to say one representation is "equal" to another representation, clearly even pop_totals_bg and pop_totals_tract are not simply equal to each other, since they have a different number of rows. The total number they project can be equal (or not):
 
-```{r sums equal pop}
-sum(pop_totals_tract[,])==sum(pop_totals_bg[,])
-```
 But having the sums equal to each other leaves open how we think about the structure of the representation that allows us to calculate the sums. That structure, in this case, is literally a "space," because it's the difference between block_groups and tracts. The fact that both were created by large committees of government officials, and that they were deliberately created to embed into each other, allows us both to confidently do the aggregations across the structures, and to think more fully about other possibilities for representing the inner connections and the potential calculations that are enabled by those structures. These sorts of calculations are often difficult or impossible in less well-structured spaces, for example, where cities and counties don't share geographic boundaries but have large shared areas, as with the City of Houston and Harris County. However, we want to take this slowly, for the purpose of eventually understanding what is at stake in decisions that rely on structures having been sustained in order for the larger interpretation to make sense, even when that interpretation is the almost immediate act of aggregation. One of our philosophical inspirations comes from the way that type theory differs from set theory. Both of them provide ways to encode other mathematics into a single way of talking and making proofs. In the encoding of mathematics based on set theory there are objects (called sets) which have a membership relation to other objects. In type theory, going back to Martin-Löf, types are the way that elements can be described. For a common example of where it makes a difference, if you encounter a group of points in a set you cannot make sense of them just by knowing that they all exist within the set. The space that the points are found within lets you describe them as close together or far apart, and Martin-Löf's type theory allows a collection of typing declarations to construct or encode any mathematical object. The constructive process does not imply ontological relativism, but does rely on the idea that there are many ways of talking about things and that being conscious in those choices and attentive to the reasons guiding those choices grounds the practice of mathematics as a search for structure. Type theory gives us one way of thinking about the embedding, which is popular precisely because it also points to a unifying understanding of how to encode any proposition about the world in the straightforward and consistent language of types. It may be that the somewhat broader idea of category theory gives us sufficient tools, especially in the idea that we are looking for the ways that descriptions can be transformed into or mapped onto equivalent descriptions as the way of specifying the meaning of an object. It is the idea that the ways of talking about something are structured through the process of describing and that the attention to that structure is the core of the scientific process. Of course, it's not the only way to talk about things, and we'll try to point to the motivating questions as opposed to the dogmatic elements of any of the tools that have inspired this inquiry. How we encode a claim about mathematical relation, however, is the guiding reason that Sam City was developed, as we pushed to understand what it would mean to create a reusable database of demographic, social, and economic information about residents and neighborhoods in our area. How do we make that intelligible to others? How do we compute the results? How do we represent the effects? Those are practical and driving questions for ourselves, our students, and our non-profit partners.
 
-Section title - Embedding calculations in structured spaces. (that any and all "space" is "structured" will come out later)
+#Embedding calculations in structured spaces. (that any and all "space" is "structured" will come out later)
 
 For the next step, we need to transform the counts we have for demography so that each person is represented as having properties, including geography and demography. From a purely technical side, this is just transposing the columns and the rows. Some notes about how this works more abstractly, especially about how that already gives you a different sense for the embedding - and thus for what we worry about in terms of the ecological/Simpson's paradox, or maybe add that later...
 
@@ -177,7 +174,7 @@ And then one complete population for ethnicity:
       uncount(number_sams,.id = "sams_ethnicity_id") #will create different id later
     paste0("Total population in this representation is: ",nrow(dec_SAE_Harris_10))
     #which is conveniently the same as the totals above
-    nrow(dec_SAE_Harris_10)==sum(pop_totals_bg[,])
+    nrow(dec_SAE_Harris_10)
 ```
 For both, we get a total of 4092459, which is about 15,000 short of the published population, and is equal to the total row from the direct downloaded file. Interestingly, because the total wasn't right the first time we processed this example, we were able to look for bugs in the code - in this case, not having noticed that there was an age called "Under 1 year" that needed to be made into a 0 to fit the pattern of the other ages (it's now fixed, above).
 
@@ -281,7 +278,7 @@ dec_bgSARE_10 <- dec_bgSAR_data_10 %>%
       uncount(number_sams,.id = "sams_race_id")
     paste0("Total population in this representation is: ",nrow(dec_bgSAR_10))
     #which is also the same as the totals above
-    nrow(dec_bgSAR_10)==sum(pop_totals_bg[,])
+    nrow(dec_bgSAR_10)
 ```
 
 Let's put in ethnicity codes for bgSAE and join, so that they get the match as far as possible, even if we don't know all the demographic specifics that had been available at the tract level. Notice that the population totals do not match; the ethnicity description is not complete for the population. We will have to account for that structuring choice in how the tables are reported in order to construct our own complete representation for the simulation.
@@ -293,7 +290,7 @@ Let's put in ethnicity codes for bgSAE and join, so that they get the match as f
       uncount(number_sams,.id = "sams_race_id")
     paste0("Total population in this representation is: ",nrow(dec_bgSAE_10))
     #which is not the same as the totals above, because they didn't provide categorization for all individuals.
-    paste0("nrow = pop_totals: ",nrow(dec_bgSAE_10)==sum(pop_totals_bg[,]))
+    paste0("nrow = pop_totals: ",nrow(dec_bgSAE_10))
     #see if age_ranges line up
     test <- sort(unique(dec_bgSAE_10$age_range))==sort(unique(dec_bgSAR_10$age_range))
     length(test[test==FALSE])==0
@@ -398,9 +395,9 @@ We look to the household data to see if there's a way to help with understanding
 As we mentioned in passing, before, the function of subsetting is conceived differently for dependent type theory than for set theory. Does type theory let us think all the way to adjointness or is that the category theory? What I'm trying to take advantage of is triangle relations that are articulated at different levels and so aren't immediately commutative - but must happen within an overall space where an effective commutativity did exist (their representation, on their protected server, of the entire population). Could draw that in a diagram, but the point is that the commutativity is the first "algebraic" structure to maintain, as opposed to the representability of each produced representation in terms of its statistical relations to the whole (with its troubled attempt to guide its development by tracking the growing levels of uncertainty) - again, have to think about how much of this is already in ACS_probs.
 
 We start with P28 because it captures the relation between race eth hhtype and hhsize. The others have more specificity to add to each.
-We'll do this in the next making_sam_hh.Rmd, for more effective computation, and save the block_group data, for use later.
+We'll do this in the next in making_sam_avgs.Rmd (where we go through an illustrative example) and making_sam_hh.Rmd, for more effective computation, and save the block_group data, for use later.
 
-```{r save SAR Harris csv}
+```{r save bgSAR Harris csv}
 #need to check if exists and replace, if needed
     file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="bgSAR_Harris",path_suff="wrk.csv")
     write_csv(dec_bgSAR_10,file_path)

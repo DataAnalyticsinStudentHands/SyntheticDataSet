@@ -1,0 +1,181 @@
+---
+title: "Making Sam Households"
+author: "Dan Price"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+geometry: margin=1in
+fontsize: 11pt
+documentclass: article
+header-includes: 
+  - \usepackage{tikz}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Preliminaries -- very broad
+https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html for options on the knit - results="hide"; echo=FALSE; include=FALSE, etc.
+
+```{r prelims}
+source('BaseScripts/Census_Data.R') #move out of BaseScripts?
+source('tests.R')
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(data.table)
+#maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
+maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+#maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
+housingdir = paste0(maindir,"HCAD/")
+houstondatadir = paste0(maindir,"HoustonCityData/") 
+censusdir = paste0(maindir,"Census/") 
+vintage = "2019"
+housingStockFromRDS = TRUE 
+#numberOfCores = 1
+state = 48 #48 Texas; 22 Louisiana
+county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
+tract = "*"
+Sam_seed = 135
+#you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
+censuskey <- readLines(paste0(censusdir, "2017", "/key"))
+```
+
+
+For new file, and need a bit of a preamble
+
+
+Need the read version of this
+
+```{r save households for Harris csv}
+#need to check if exists and replace, if needed
+    file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="bgHH_10",path_suff="wrk.csv")
+    write_csv(dec_bgHHr_10,file_path)
+```
+
+[things like HCT2/3 can be added to the ones in P, later, by children, before adding back to avg. hh_size, and then to relations??]
+
+It gets us to P29, too - relation in HH, by race/eth - P31, pop under 18 has whether the under 18 is a HH or spouse, too. 32 and 33 are also subsets
+
+P35 - population in families by under 18 and over 18, by race and ethnicity
+P38 - family type by presence and age of own children, by race and ethnicity
+P39 - family type by presence and age of related children, by race and ethnicity
+(do P38 + P39 get total population in families, in some sense - it's really about householder in a family situation)
+P40 - age for own children
+P41 - grandparents with under 18yrs grandchildren living with
+P42/43 - group quarters (with lots below, but not sure which tables and at what geoid)
+
+PCT13 (tract) SARE for households ~25 age groups...
+
+
+
+
+
+
+
+
+[may want to do some stuff on families, first, in order to break them out correctly]
+H11 - total population in households
+```{r download total population in households bg}
+dec_bgHH_total_pop_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "H11",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+dec_bgHH_total_pop_data_10 <- as.data.table(dec_bgHH_total_pop_data_from_census_10)
+dec_bgHH_total_pop_data_10[,4:ncol(dec_bgHH_total_pop_data_10)] <- 
+  dec_bgHH_total_pop_data_10[,lapply(.SD[,4:ncol(dec_bgHH_total_pop_data_10)], as.numeric)]
+```
+
+Then do our basic checks: [[label is done wrong, so can't do with script]]
+
+```{r household pop total race / ethnicity age test problems}
+check_summary <- census_table_check(dec_bgHH_total_pop_data_10, 
+      "TOTAL POPULATION IN OCCUPIED HOUSING UNITS BY TENURE","households") 
+cat(check_summary[1])
+```
+
+Note that "tenure" includes mortgage info.
+
+```{r expand total population race/ethnicity tenure for households}
+race_codes <- c("A","B","C","D","E","F","G")
+dec_bgHHr_total_pop_10 <- dec_bgHH_total_pop_data_10 %>%
+      pivot_longer(4:ncol(dec_bgHH_total_pop_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+      mutate(
+        race = substr(name,5,5),
+        label = str_remove_all(label,"Total population in occupied housing units!!"),
+        #and clean up around an inconsistent labeling
+        label = str_remove_all(label,"Population in occupied housing units!!")) %>%
+      filter(label != "Total" & label !="Population in occupied housing units") %>% 
+      mutate(tenure = label) %>%
+      filter(race%in%c(race_codes)) %>%
+      uncount(number_sams,.id = "hhr_total_pop_id",.remove = TRUE) 
+    dec_bgHHr_total_pop_10 <- as.data.table(dec_bgHHr_total_pop_10) #dyplyr had stripped it of dt
+    paste0("Number of households in file: ", nrow(dec_bgHHr_total_pop_10))
+    #break into race and ethnicity files
+    dec_bgHHe_total_pop_10 <- dec_bgHH_total_pop_data_10 %>%
+      pivot_longer(4:ncol(dec_bgHH_total_pop_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+      mutate(
+        ethnicity = substr(name,5,5),
+        label = str_remove_all(label,"Total population in occupied housing units!!"),
+        #and clean up around an inconsistent labeling
+        label = str_remove_all(label,"Population in occupied housing units!!")) %>%
+      filter(label != "Total" & label !="Population in occupied housing units") %>% 
+      mutate(tenure = label) %>%
+      filter(ethnicity%in%c("H","I")) %>%
+      uncount(number_sams,.id = "hhe_total_pop_id",.remove = TRUE) 
+    dec_bgHHe_total_pop_10 <- as.data.table(dec_bgHHe_total_pop_10) #dyplyr had stripped it of dt
+    paste0("Number of individuals in file: ", nrow(dec_bgHHe_total_pop_10))
+    #should clean up
+```
+
+
+```{r hh_relation download block}
+
+dec_hh_relation_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "P29",county_num = "201",
+                                                                block="block_group",api_type="dec/sf1",path_suff="est.csv")
+```
+
+
+
+The redistricting data collected in 2010 reports population estimates in yet a different format. It has one table that has races and ethnicity data for everyone over 18 and one that has it for everyone, with no ages attached. The race data gives more details on the composition of "Two or More Races" but nothing else new. The ethnicity file gives block level data for Hispanic or Latino who don't identify as White. Gives slightly more contour, but not much, and risks big differences on age and ethnicity or race per block group. (Although some contour is better than none!)
+
+```{r pl data downloaded}
+    dec_eth_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                      groupname = "P2",county_num = "201",
+                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
+    dec_race_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "P1",county_num = "201",
+                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
+    dec_eth_over18_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                      groupname = "P4",county_num = "201",
+                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
+    dec_race_over18_block_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                groupname = "P3",county_num = "201",
+                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
+ 
+    
+```
+
+
+
+
+https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf
+
+
+group quarters are needed b/c hh don't include them - PC03 seems to have a lot more detail, but I think it's tract level only - have to check.
+```{r group quarters to add}
+dec_group_quarters_block_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P5",county_num = "201",
+                         block="block_group",api_type="dec/pl",path_suff="est.csv")
+```
+
+
+
+discussion of power sets vs. categories? 
+
+redoing HCAD first to help with generation of 2011 - a space to move into...
+
+
