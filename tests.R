@@ -18,14 +18,15 @@ library(data.table)
 #' Prints to log - should it also return?
 #' @return ??
 
-census_table_check <- function(dt, total_concept, term_concept, mult=2){
+census_table_check <- function(dt, total_concept, term_concept, total_label="Total", mult=2){
   percent_na <- dt[,sum(is.na(.SD))] / 
     (dt[,sum(!is.na(.SD))]+dt[,sum(is.na(.SD))])
   #multiplying the side labeled only "Total" by mult:
-  test1 <- colSums(dt[label=="Total",4:ncol(dt)])*mult ==
-    colSums(dt[label!="Total",4:ncol(dt)])
+  test1 <- colSums(dt[label==total_label,4:ncol(dt)])*mult ==
+    colSums(dt[label!=total_label,4:ncol(dt)])
   #see if any of the tests don't match; if false, need to go back and check on what happened
-  totals <- dt[label=="Total"&concept==total_concept,4:ncol(dt)]
+  totals <- dt[label==total_label&concept==total_concept,4:ncol(dt)]
+  if(nrow(totals)==0){totals <- dt[label==total_label,4:ncol(dt)]}
   check_file <- paste0("The file has ",as.integer(100*percent_na),"% of NAs")
   check_totals <- paste0("The internal totals sum incorrectly in ",as.integer(length(test1[test1==F])/length(test1)*100), "% of cases")
   total_num <- paste0("There are ",sum(totals[,])," ",term_concept)

@@ -1323,10 +1323,13 @@ length(test[test==FALSE])/length(test)
 ```
 
 
+HOW FAR APART ARE THEY ON RACE AND ETH AT THE GEOID13??? IF THEY PASS SYMMETRY TEST AT THAT POINT, THEN ALL WE NEED TO DO IS LET ETHNICITY BE DETERMINED FROM THE TRACT LEVEL AND THEN ADD RACE BACK IN FROM THE BLOCK LEVEL - ALTHOUGH IT MIGHT BE INTERESTING TO SEE HOW THEY COMPOSE - FOR EXAMPLE, SHOULD WE SELECT ONLY THE SUBSET THAT ARE NON-WHITE HISPANIC TO DO THE MIX ON? 
+
 
 ```{r save households for Harris csv}
 #need to check if exists and replace, if needed
     file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="bgHH_10",path_suff="wrk.csv")
+    if(file.exists(file_path)){file.remove(file_path)}
     write_csv(dec_bgHHr_10,file_path)
 ```
 
