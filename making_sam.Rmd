@@ -584,7 +584,9 @@ rm(subtotal_dec_bg_group_quarters_10)
 rm(subtotal_dec_bggq_10)
 ```
 
-
+and PCT20 is tract level group quarters, but with race/ethnicity - join in same way??
+and PCT21 is tract level group quarters, with sex by age.
+and PCT22 is tract level group quarters, only over 18, sex by race/ethnicity
 
 
 The redistricting data collected in 2010 reports population estimates in yet a different format. It has one table that has races and ethnicity data for everyone over 18 and one that has it for everyone, with no ages attached. The race data gives more details on the composition of "Two or More Races" but nothing else new. The ethnicity file gives block level data for Hispanic or Latino who don't identify as White. Gives slightly more contour, but not much, and risks big differences on age and ethnicity or race per block group. (Although some contour is better than none!)

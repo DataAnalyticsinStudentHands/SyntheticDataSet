@@ -213,18 +213,77 @@ paste0("The count for families with ethnicity given is off by: ",nrow(dec_bgHHe_
 ```
 
 ```{r test for difference between P38 and P39 own and related}
-test <- table(dec_bgHHe_fam_type_related_kids_10$geoid,
-              dec_bgHHe_fam_type_related_kids_10$family_type,
-              dec_bgHHe_fam_type_related_kids_10$family_details)==
-  table(dec_bgHHe_fam_type_own_kids_10$geoid,
-          dec_bgHHe_fam_type_own_kids_10$family_type,
-              dec_bgHHe_fam_type_own_kids_10$family_details)
+test <- table(dec_bgHHr_fam_type_related_kids_10$geoid,
+              dec_bgHHr_fam_type_related_kids_10$race,
+              dec_bgHHr_fam_type_related_kids_10$family_type,
+              dec_bgHHr_fam_type_related_kids_10$family_details)==
+  table(dec_bgHHr_fam_type_own_kids_10$geoid,
+        dec_bgHHr_fam_type_own_kids_10$race,
+        dec_bgHHr_fam_type_own_kids_10$family_type,
+        dec_bgHHr_fam_type_own_kids_10$family_details)
 length(test[test==FALSE])==0
 ```
 
-The number of related kids vs. number of own kids are different - could be hard to sort out...
+The number of related kids vs. number of own kids are different - could be hard to sort out...; I think it's paradigmatically a remarried husband with wife's kids, since they count husbands as heads of households. But the single heads of households are actually more likely to have related kids that aren't there own kids than the married households. 
+
+The definitions from social explorer data dictionary are: "Own Children: A child under 18 years who is a son or daughter by birth, a stepchild, or an adopted child of the householder is included in the own children category." https://www.socialexplorer.com/data/C2010/metadata/?ds=SF1&table=P0380 (retrieved 1/13/22) and
+"Related Children: Any child under 18 years old who is related to the householder by birth, marriage, or adoption is included in the related children category. Children, by definition, exclude persons under 18 years who maintain households or are spouses or unmarried partners of householders." 
 
 
+```{r download non-relatives by household tract}
+dec_trHHre_non_relatives_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "PCT19",county_num = "201",
+                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+dec_trHHre_non_relatives_data_10 <- as.data.table(dec_trHHre_non_relatives_data_from_census_10)
+dec_trHHre_non_relatives_data_10[,4:ncol(dec_trHHre_non_relatives_data_10)] <- 
+  dec_trHHre_non_relatives_data_10[,lapply(.SD[,4:ncol(dec_trHHre_non_relatives_data_10)], as.numeric)]
+```
+
+Then do our basic checks (number is too small - prob. with census_table_check?): 
+```{r non_relatives by household type test problems}
+check_summary <- census_table_check(dec_trHHre_non_relatives_data_10[!str_detect(concept,"HISPANIC")], 
+      "NONRELATIVES BY HOUSEHOLD TYPE","households in state") 
+cat(check_summary[1])
+```
+
+
+```{r expand non_relatives by household type}
+race_codes <- c("A","B","C","D","E","F","G")
+dec_trHHr_non_relatives_10 <- dec_trHHre_non_relatives_data_10 %>%
+  pivot_longer(4:ncol(dec_trHHre_non_relatives_data_10),names_to = "tract", values_to = "number_sams") %>% 
+  filter(substr(tract,3,5)=="201") %>% #only Harris County
+  mutate(
+    race = substr(name,7,7),
+    label = str_remove_all(label,"Total!!")) %>%
+  filter(label != "Total") %>% #keep only the ones that aren't aggregated
+  separate(label, c("family","non_relative"), sep = "!!", remove = F, convert = FALSE) %>%
+  filter(!is.na(non_relative) & race%in%race_codes) %>% 
+  uncount(number_sams,.id = "hhr_non_related_id",.remove = TRUE) 
+dec_trHHr_non_relatives_10 <- as.data.table(dec_trHHr_non_relatives_10) #dyplyr had stripped it of dt
+paste0("Number of families in file: ", nrow(dec_trHHr_non_relatives_10))
+
+#and same for ethnicity
+dec_trHHe_non_relatives_10 <- dec_trHHre_non_relatives_data_10 %>%
+  pivot_longer(4:ncol(dec_trHHre_non_relatives_data_10),names_to = "tract", values_to = "number_sams") %>% 
+  filter(substr(tract,3,5)=="201") %>% #only Harris County
+  mutate(
+    ethnicity = substr(name,7,7),
+    label = str_remove_all(label,"Total!!")) %>%
+  filter(label != "Total") %>% #keep only the ones that aren't aggregated
+  separate(label, c("family","non_relative"), sep = "!!", remove = F, convert = FALSE) %>%
+  filter(!is.na(non_relative) & ethnicity%in%c("H","I")) %>% 
+  uncount(number_sams,.id = "hhe_nonrelated_id",.remove = TRUE) 
+dec_trHHe_non_relatives_10 <- as.data.table(dec_trHHe_non_relatives_10) #dyplyr had stripped it of dt
+paste0("Number of families in file: ", nrow(dec_trHHe_non_relatives_10))
+
+#should clean up
+```
+
+
+
+
+#with these, are we fixing dec_bgHH or should this have been earlier in the construction? composition laws hold, one hopes...
 P40 only adds a little information on ages within the race ethnicity data on 38/39, which seems like the key. 
 ```{r download fam type age own kids bg}
 dec_bgHH_fam_type_kid_age_data_from_census_10 <- 
@@ -240,53 +299,26 @@ Then do our basic checks:
 
 ```{r household pop total race / ethnicity age test problems}
 check_summary <- census_table_check(dec_bgHH_fam_type_kid_age_data_10, 
-      "FAMILY TYPE AND AGE FOR OWN CHILDREN UNDER 18 YEARS","individuals","Total",3) 
+      "FAMILY TYPE AND AGE FOR OWN CHILDREN UNDER 18 YEARS","individuals (children in families)","Total",3) 
 cat(check_summary[1])
 ```
 The totals sum incorrectly because the internal categories don't sum to a whole multiple of the other tables. They seem to be correct by manual checking.
 
 And do the expansion
 
-```{r expand type age own kids block NEED TO CHANGE}
-race_codes <- c("A","B","C","D","E","F","G")
-dec_bgHHr_tenure_age_10 <- dec_bgHH_re_tenure_age_data_10 %>%
-  pivot_longer(4:ncol(dec_bgHH_re_tenure_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+```{r expand type age kids in families}
+dec_bgHH_fam_type_kid_age_10 <- dec_bgHH_fam_type_kid_age_data_10 %>%
+  pivot_longer(4:ncol(dec_bgHH_fam_type_kid_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
   mutate(
-    race = substr(name,5,5),
-    label = str_remove_all(label,"Total!!")) %>%
+    label = str_remove_all(label,"Total!!"),
+    label = str_remove_all(label,"In other families!!")) %>%
   filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("tenure","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-  #using the beg/end_age_P22, since they match.
-  mutate(age_range = case_when(age_range=="Householder 85 years and over" ~ "Householder 85 to 99",
-                               TRUE ~ age_range),
-         beg_age_P22 = as.numeric(substr(age_range,13,14)),
-         end_age_P22 = as.numeric(substr(age_range,19,20))) %>%
-  filter(!is.na(age_range) & race%in%race_codes) %>% #to get rid of aggregations by family
-  uncount(number_sams,.id = "hhr_tenure_age_id",.remove = TRUE) 
-dec_bgHHr_tenure_age_10 <- as.data.table(dec_bgHHr_tenure_age_10) #dyplyr had stripped it of dt
-paste0("Number of households in file: ", nrow(dec_bgHHr_tenure_age_10))
-
-#and same for ethnicity
-dec_bgHHe_tenure_age_10 <- dec_bgHH_re_tenure_age_data_10 %>%
-  pivot_longer(4:ncol(dec_bgHH_re_tenure_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-  mutate(
-    ethnicity = substr(name,5,5),
-    label = str_remove_all(label,"Total!!")) %>%
-  filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("tenure","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-  mutate(age_range = case_when(age_range=="Householder 85 years and over" ~ "Householder 85 to 99",
-                               TRUE ~ age_range),
-         beg_age_P22 = as.numeric(substr(age_range,13,14)),
-         end_age_P22 = as.numeric(substr(age_range,19,20))) %>%
-  filter(!is.na(age_range) & ethnicity%in%c("H","I")) %>% 
-  uncount(number_sams,.id = "hhe_tenure_age_id",.remove = TRUE) 
-dec_bgHHe_tenure_age_10 <- as.data.table(dec_bgHHe_tenure_age_10) #dyplyr had stripped it of dt
-paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_tenure_age_10))
-nrow(dec_bgHHe_10)==nrow(dec_bgHHe_tenure_age_10)
-paste0("Colnames for dec_bgHHr_tenure_age_10: ")
-colnames(dec_bgHHr_tenure_age_10)
-paste0("Colnames for dec_bgHHr_10: ")
-colnames(dec_bgHHr_10)
+  separate(label, c("in_family_type","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+  filter(!is.na(age_range)) %>% 
+  uncount(number_sams,.id = "hh_kids_in_family_age_id",.remove = TRUE) 
+dec_bgHH_fam_type_kid_age_10 <- as.data.table(dec_bgHH_fam_type_kid_age_10) #dyplyr had stripped it of dt
+paste0("Number of kids in families: ", nrow(dec_bgHH_fam_type_kid_age_10))
+#compare with number in any of the SARE dec_bgHH_10 with addition of grandkids at that age 
 #should clean up
 ```
 
@@ -314,45 +346,17 @@ cat(check_summary[1])
 And do the expansion
 
 ```{r expand grandkids with grandparents block NEED TO CHANGE}
-race_codes <- c("A","B","C","D","E","F","G")
-dec_bgHHr_tenure_age_10 <- dec_bgHH_re_tenure_age_data_10 %>%
-  pivot_longer(4:ncol(dec_bgHH_re_tenure_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+dec_bgHH_grandkids_age_10 <- dec_bgHH_grandkids_age_data_10 %>%
+  pivot_longer(4:ncol(dec_bgHH_grandkids_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
   mutate(
-    race = substr(name,5,5),
     label = str_remove_all(label,"Total!!")) %>%
-  filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("tenure","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-  #using the beg/end_age_P22, since they match.
-  mutate(age_range = case_when(age_range=="Householder 85 years and over" ~ "Householder 85 to 99",
-                               TRUE ~ age_range),
-         beg_age_P22 = as.numeric(substr(age_range,13,14)),
-         end_age_P22 = as.numeric(substr(age_range,19,20))) %>%
-  filter(!is.na(age_range) & race%in%race_codes) %>% #to get rid of aggregations by family
-  uncount(number_sams,.id = "hhr_tenure_age_id",.remove = TRUE) 
-dec_bgHHr_tenure_age_10 <- as.data.table(dec_bgHHr_tenure_age_10) #dyplyr had stripped it of dt
-paste0("Number of households in file: ", nrow(dec_bgHHr_tenure_age_10))
-
-#and same for ethnicity
-dec_bgHHe_tenure_age_10 <- dec_bgHH_re_tenure_age_data_10 %>%
-  pivot_longer(4:ncol(dec_bgHH_re_tenure_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-  mutate(
-    ethnicity = substr(name,5,5),
-    label = str_remove_all(label,"Total!!")) %>%
-  filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("tenure","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-  mutate(age_range = case_when(age_range=="Householder 85 years and over" ~ "Householder 85 to 99",
-                               TRUE ~ age_range),
-         beg_age_P22 = as.numeric(substr(age_range,13,14)),
-         end_age_P22 = as.numeric(substr(age_range,19,20))) %>%
-  filter(!is.na(age_range) & ethnicity%in%c("H","I")) %>% 
-  uncount(number_sams,.id = "hhe_tenure_age_id",.remove = TRUE) 
-dec_bgHHe_tenure_age_10 <- as.data.table(dec_bgHHe_tenure_age_10) #dyplyr had stripped it of dt
-paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_tenure_age_10))
-nrow(dec_bgHHe_10)==nrow(dec_bgHHe_tenure_age_10)
-paste0("Colnames for dec_bgHHr_tenure_age_10: ")
-colnames(dec_bgHHr_tenure_age_10)
-paste0("Colnames for dec_bgHHr_10: ")
-colnames(dec_bgHHr_10)
+  filter(label != "Total") %>% 
+  separate(label, c("age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+  filter(!is.na(age_range)) %>% 
+  uncount(number_sams,.id = "hh_grandkids_in_family_age_id",.remove = TRUE) 
+dec_bgHH_grandkids_age_10 <- as.data.table(dec_bgHH_grandkids_age_10) #dyplyr had stripped it of dt
+paste0("Number of grandkids in families: ", nrow(dec_bgHH_grandkids_age_10))
+#compare with number in any of the SARE dec_bgHH_10
 #should clean up
 ```
 
@@ -360,7 +364,7 @@ colnames(dec_bgHHr_10)
 
 Combine population in families by under/over 18 and race/ethnicity with total population in households.
 
-[may want to do some stuff on families, first, in order to break them out correctly]
+
 H36 - population in families by under/over 18 and race/ethnicity
 ```{r download pop in families age race/eth bg}
 dec_bgHH_pop_families_age_race_data_from_census_10 <- 
@@ -382,52 +386,41 @@ cat(check_summary[1])
 
 And do the expansion
 
-```{r expand family population by age block NEED TO CHANGE}
+```{r expand household pop total race / ethnicity age}
 race_codes <- c("A","B","C","D","E","F","G")
-dec_bgHHr_tenure_age_10 <- dec_bgHH_re_tenure_age_data_10 %>%
-  pivot_longer(4:ncol(dec_bgHH_re_tenure_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+dec_bgHHr_pop_families_age_race_10 <- dec_bgHH_pop_families_age_race_data_10 %>%
+  pivot_longer(4:ncol(dec_bgHH_pop_families_age_race_data_10),names_to = "geoid", values_to = "number_sams") %>% 
   mutate(
     race = substr(name,5,5),
     label = str_remove_all(label,"Total!!")) %>%
   filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("tenure","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-  #using the beg/end_age_P22, since they match.
-  mutate(age_range = case_when(age_range=="Householder 85 years and over" ~ "Householder 85 to 99",
-                               TRUE ~ age_range),
-         beg_age_P22 = as.numeric(substr(age_range,13,14)),
-         end_age_P22 = as.numeric(substr(age_range,19,20))) %>%
-  filter(!is.na(age_range) & race%in%race_codes) %>% #to get rid of aggregations by family
-  uncount(number_sams,.id = "hhr_tenure_age_id",.remove = TRUE) 
-dec_bgHHr_tenure_age_10 <- as.data.table(dec_bgHHr_tenure_age_10) #dyplyr had stripped it of dt
-paste0("Number of households in file: ", nrow(dec_bgHHr_tenure_age_10))
+  #just rename!
+  separate(label, c("under_over_18"), sep = "!!", remove = F, convert = FALSE) %>%
+  filter(!is.na(under_over_18) & race%in%race_codes) %>% #to get rid of aggregations by family
+  uncount(number_sams,.id = "hhr_pop_underover_id",.remove = TRUE) 
+dec_bgHHr_pop_families_age_race_10 <- as.data.table(dec_bgHHr_pop_families_age_race_10) #dyplyr had stripped it of dt
+paste0("Number of households in file: ", nrow(dec_bgHHr_pop_families_age_race_10))
 
 #and same for ethnicity
-dec_bgHHe_tenure_age_10 <- dec_bgHH_re_tenure_age_data_10 %>%
-  pivot_longer(4:ncol(dec_bgHH_re_tenure_age_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+dec_bgHHe_pop_families_age_race_10 <- dec_bgHH_pop_families_age_race_data_10 %>%
+  pivot_longer(4:ncol(dec_bgHH_pop_families_age_race_data_10),names_to = "geoid", values_to = "number_sams") %>% 
   mutate(
     ethnicity = substr(name,5,5),
     label = str_remove_all(label,"Total!!")) %>%
   filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("tenure","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-  mutate(age_range = case_when(age_range=="Householder 85 years and over" ~ "Householder 85 to 99",
-                               TRUE ~ age_range),
-         beg_age_P22 = as.numeric(substr(age_range,13,14)),
-         end_age_P22 = as.numeric(substr(age_range,19,20))) %>%
-  filter(!is.na(age_range) & ethnicity%in%c("H","I")) %>% 
-  uncount(number_sams,.id = "hhe_tenure_age_id",.remove = TRUE) 
-dec_bgHHe_tenure_age_10 <- as.data.table(dec_bgHHe_tenure_age_10) #dyplyr had stripped it of dt
-paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_tenure_age_10))
-nrow(dec_bgHHe_10)==nrow(dec_bgHHe_tenure_age_10)
+  separate(label, c("under_over_18"), sep = "!!", remove = F, convert = FALSE) %>%
+  filter(!is.na(under_over_18) & ethnicity%in%c("H","I")) %>% 
+  uncount(number_sams,.id = "hhe_pop_underover_id",.remove = TRUE) 
+dec_bgHHe_pop_families_age_race_10 <- as.data.table(dec_bgHHe_pop_families_age_race_10) #dyplyr had stripped it of dt
+paste0("Number of households with ethnicity attributes in file: ", nrow(dec_bgHHe_pop_families_age_race_10))
 paste0("Colnames for dec_bgHHr_tenure_age_10: ")
-colnames(dec_bgHHr_tenure_age_10)
-paste0("Colnames for dec_bgHHr_10: ")
-colnames(dec_bgHHr_10)
+colnames(dec_bgHHe_pop_families_age_race_10)
 #should clean up
 ```
 
 
+Have to check how this compares with work in making_sam.Rmd, and whether to do some of it there...
 
-[may want to do some stuff on families, first, in order to break them out correctly]
 H11 - total population in households by tenure
 ```{r download total population in households bg}
 dec_bgHH_total_pop_data_from_census_10 <- 
