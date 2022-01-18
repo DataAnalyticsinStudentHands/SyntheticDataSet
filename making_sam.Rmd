@@ -24,8 +24,8 @@ library(tidyverse)
 library(data.table)
 library(gtsummary)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
-maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
-#maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
+#maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+maindir = "~/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
@@ -124,7 +124,8 @@ bgSAR_data_from_census_10 <-
                          groupname = "P12",county_num = "201",
                          block="block_group",api_type="dec/sf1",path_suff="est.csv")
 bgSAR_data_10 <- as.data.table(bgSAR_data_from_census_10)
-bgSAR_data_10[,4:ncol(bgSAR_data_10)] <- bgSAR_data_10[,lapply(.SD[,4:ncol(bgSAR_data_10)], as.numeric)]
+bgSAR_data_10[,4:ncol(bgSAR_data_10)] <- 
+  bgSAR_data_10[,lapply(.SD[,4:ncol(bgSAR_data_10)], as.numeric)]
 ```
 
 It would be nice to use this immediately as our base, but we quickly see it doesn't have as many rows breaking out race and ethnicity. It has nine total categories for race and ethnicity - losing most of the categories in ethnicity - and age is reported in odd aggregations that will make comparison difficult with other data reporting. Let's run a few quick tests on the download.
@@ -394,7 +395,7 @@ nrow(race_allocated[percent<=1]),
 
 There is one block group that is an outlier at 72%, with the next highest at 26%, and only 86 with higher than 10%. It would be interesting to know how those block_groups correlate with other factors about the neighborhood demographics. 
 
-```{r join allocated to other demographics eval = FALSE}
+```{r join allocated to other demographics, eval = FALSE}
 bgSAR_10[,("percent_allocated_race"):=race_allocated[.SD,list(percent),on=.(geoid)]]
 bgSAR_10[, ("sum") := .N, by = geoid]
 bgSAR_10[, ("proportion") := .N, by = c("race","geoid")]
