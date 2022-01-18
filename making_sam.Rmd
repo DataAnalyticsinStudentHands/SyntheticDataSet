@@ -592,6 +592,180 @@ length(test[test==FALSE])==0
 #ADD HOUSEHOLDS AND GROUP QUARTERS!!
 [[longer conversation about what it means to understand this as a problem with finding the right unit for analysis - either the individual or the relations; can this use that distinction between building from the inside (set theory) and from the outside (type theory)?; that we can look to the 'empty' representation that only has the bear counts of SARE at the block group, and then have it carry some information about that geography that trumps our expectations but still has to mesh with the counts that come from other subsetting moves - in fact, and maybe from the beginning, this is where you're not really subsetting, but sub-typing; types are propositions... in any set of claims, not just abstract logical principles]]
 
+SARE tract level for households does not have all the ethnicities that SARE for individuals had - just more breakdowns (23 groups) in age and H,I in ethnicity at the tract level; since we've already done the match on bgSAE, though, we can be sure that we can get the right matches. We'll want to add it to as much information as we can get from the Group Quarters, first, so that the extra information on that side isn't obscured.
+
+```{r download household family SARE tract}
+trHH_SARE_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "PCT13",county_num = "201",
+                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+trHH_SARE_data_10 <- as.data.table(trHH_SARE_data_from_census_10)
+trHH_SARE_data_10[,4:ncol(trHH_SARE_data_10)] <- 
+  trHH_SARE_data_10[,lapply(.SD[,4:ncol(trHH_SARE_data_10)], as.numeric)]
+```
+
+Then do our basic checks: 
+```{r household own kids race / ethnicity age test problems}
+check_summary <- census_table_check(trHH_SARE_data_10[!str_detect(concept,"HISPANIC")], 
+      "SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS","individuals in state") 
+cat(check_summary[1])
+```
+
+```{r expand family SARE tract}
+race_codes <- c("A","B","C","D","E","F","G")
+trHHr_10 <- trHH_SARE_data_10 %>%
+  pivot_longer(4:ncol(trHH_SARE_data_10),names_to = "tract", values_to = "number_sams") %>% 
+  filter(substr(tract,3,5)=="201") %>% #only Harris County
+  mutate(
+    race = substr(name,7,7),
+    label = str_remove_all(label,"Total!!")) %>%
+  filter(label != "Total") %>% #keep only the ones that aren't aggregated
+  separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+  #using the beg/end_age_P22, since they match.
+  mutate(age_range = str_replace_all(age_range,"and","to"),
+         age_range = str_replace_all(age_range,"85","85 to 110"),
+         age_range = str_replace_all(age_range,"85","85 to 110"),
+         age_range = str_replace_all(age_range,"Under 5","0  to 05"),
+         age_range = str_replace_all(age_range,"5 to 9","05 to 09"),
+         age_range = str_replace_all(age_range,"20 years","20 to 20"),
+         age_range = str_replace_all(age_range,"21 years","21 to 21"),
+         beg_age_PCT13 = as.numeric(substr(age_range,1,2)),
+         end_age_PCT13 = as.numeric(substr(age_range,7,9))) %>%
+  filter(!is.na(age_range) & race%in%race_codes) %>% #to get rid of aggregations by family
+  uncount(number_sams,.id = "hhr_tr_SARE_id",.remove = TRUE) 
+trHHr_10 <- as.data.table(trHHr_10) #dyplyr had stripped it of dt
+paste0("Number of individuals in file: ", nrow(trHHr_10))
+
+#and same for ethnicity
+trHHe_10 <- trHH_SARE_data_10 %>%
+  pivot_longer(4:ncol(trHH_SARE_data_10),names_to = "tract", values_to = "number_sams") %>% 
+  filter(substr(tract,3,5)=="201") %>% #only Harris County
+  mutate(
+    ethnicity = substr(name,7,7),
+    label = str_remove_all(label,"Total!!")) %>%
+  filter(label != "Total") %>% #keep only the ones that aren't aggregated
+  separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+  #using the beg/end_age_P22, since they match.
+  mutate(age_range = str_replace_all(age_range,"and","to"),
+         age_range = str_replace_all(age_range,"85","85 to 110"),
+         age_range = str_replace_all(age_range,"85","85 to 110"),
+         age_range = str_replace_all(age_range,"Under 5","0  to 05"),
+         age_range = str_replace_all(age_range,"5 to 9","05 to 09"),
+         age_range = str_replace_all(age_range,"20 years","20 to 20"),
+         age_range = str_replace_all(age_range,"21 years","21 to 21"),
+         beg_age_PCT13 = as.numeric(substr(age_range,1,2)),
+         end_age_PCT13 = as.numeric(substr(age_range,7,9))) %>%
+  filter(!is.na(age_range) & ethnicity%in%c("H","I")) %>% #to get rid of aggregations by family
+  uncount(number_sams,.id = "hhe_tr_SARE_id",.remove = TRUE) 
+trHHe_10 <- as.data.table(trHHe_10) #dyplyr had stripped it of dt
+paste0("Number of individuals in file: ", nrow(trHHe_10))
+
+#should clean up
+```
+
+
+
+Group quarters are treated differently in some of the tables and included in others. They're characteristics are reported very differently, especially under the ACS rules for small populations, but they are an interesting, too little understood, and often vulnerable population.
+https://www.socialexplorer.com/data/C2010RC/metadata/?ds=SF1&table=P0430; they changed how they were categorized between 2000 and 2010
+group quarters are needed b/c hh don't include them - PC03 seems to have a lot more detail, but I think it's tract level only - have to check.
+
+```{r group quarters to add block}
+group_quarters_block_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "P43",county_num = "201",
+                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+bg_group_quarters_data_10 <- as.data.table(group_quarters_block_data_from_census_10)
+bg_group_quarters_data_10[,4:ncol(bg_group_quarters_data_10)] <- 
+  bg_group_quarters_data_10[,lapply(.SD[,4:ncol(bg_group_quarters_data_10)], as.numeric)]
+```
+
+And the basic check on integrity of file.
+```{r group quarters test downloaded file}
+check_summary <- census_table_check(bg_group_quarters_data_10, 
+      "GROUP QUARTERS POPULATION BY SEX BY AGE BY GROUP QUARTERS TYPE","individuals","Total",2) 
+cat(check_summary[1])
+
+```
+
+The fact that 18% sum incorrectly is very odd. Let's see if there's an obvious place where it's not working. 
+Let's look at a different way of calculating the totals against each other. Here, we test the rows for the subtotals by sex and age against the total of the whole, and everything lines up.
+
+```{r double check on group quarters subtotals}
+test <- colSums(bg_group_quarters_data_10[label=="Total",
+                                          4:ncol(bg_group_quarters_data_10)])*3 ==
+    colSums(bg_group_quarters_data_10[!str_detect(label,"population"),
+                                      4:ncol(bg_group_quarters_data_10)])
+length(test[test==FALSE])==0
+```
+
+```{r triple check on group quarters totals}
+test <- colSums(bg_group_quarters_data_10[label=="Total",
+                                          4:ncol(bg_group_quarters_data_10)])*2 ==
+    colSums(bg_group_quarters_data_10[str_detect(label,"population"),
+                                      4:ncol(bg_group_quarters_data_10)])
+length(test[test==FALSE])
+```
+
+It seems to have been an oddity in how the rows were tallied so that the subtotals across all second level groups were three times the total, but for the lowest level, only twice. The ones we will use are the lowest level, and check out; we don't use the second level totals. Let's go ahead and expand.
+
+```{r expand group quarters block}
+bg_group_quarters_10 <- bg_group_quarters_data_10 %>%
+  pivot_longer(4:ncol(bg_group_quarters_data_10),names_to = "geoid", values_to = "number_sams") %>% 
+  mutate(
+    label = str_remove_all(label,"Total!!")) %>%
+  filter(label != "Total") %>% #keep only the ones that aren't aggregated
+  separate(label, c("sex","age_range","institutionalized","gq_type"), sep = "!!", remove = F, convert = FALSE) %>%
+  mutate(beg_age_gq = case_when(age_range=="Under 18 years" ~ as.numeric(0),
+                                age_range=="18 to 64 years" ~ as.numeric(18),
+                                age_range=="65 years and over" ~ as.numeric(65))) %>%
+  filter(!is.na(gq_type)) %>% #to get rid of aggregations by institutional type
+  uncount(number_sams,.id = "bggq_id",.remove = TRUE) 
+bggq_10 <- as.data.table(bg_group_quarters_10) #dyplyr had stripped it of dt
+paste0("Number of households in file: ", nrow(bggq_10))
+#check that the number of households plus number of group quarters = total population
+nrow(bg_group_quarters_10)+nrow(trHHr_10)==nrow(bgSAR_10)
+```
+
+PCT20 is tract level group quarters, but with race/ethnicity
+
+```{r group quarters to add tract race ethnicity}
+group_quarters_tract_re_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "PCT20",county_num = "201",
+                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+tr_re_group_quarters_data_10 <- as.data.table(group_quarters_tract_re_data_from_census_10)
+tr_re_group_quarters_data_10[,4:ncol(tr_re_group_quarters_data_10)] <- 
+  tr_re_group_quarters_data_10[,lapply(.SD[,4:ncol(tr_re_group_quarters_data_10)], as.numeric)]
+```
+and  - join in same way??
+and PCT21 is tract level group quarters, with sex by age.
+
+```{r group quarters to add tract race ethnicity}
+group_quarters_tract_sex_age_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "PCT21",county_num = "201",
+                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+tr_sex_age_group_quarters_data_10 <- as.data.table(group_quarters_tract_sex_age_data_from_census_10)
+tr_sex_age_group_quarters_data_10[,4:ncol(tr_sex_age_group_quarters_data_10)] <- 
+  tr_sex_age_group_quarters_data_10[,lapply(.SD[,4:ncol(tr_sex_age_group_quarters_data_10)], as.numeric)]
+```
+and  - join in same way??
+and PCT22 is tract level group quarters, only over 18, sex by race/ethnicity
+
+```{r group quarters to add tract race ethnicity}
+group_quarters_tract_sex_age_data_from_census_10 <- 
+  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                         groupname = "PCT21",county_num = "201",
+                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+tr_sex_age_group_quarters_data_10 <- as.data.table(group_quarters_tract_sex_age_data_from_census_10)
+tr_sex_age_group_quarters_data_10[,4:ncol(tr_sex_age_group_quarters_data_10)] <- 
+  tr_sex_age_group_quarters_data_10[,lapply(.SD[,4:ncol(tr_sex_age_group_quarters_data_10)], as.numeric)]
+```
+and  - join in same way??
+
+ONCE YOU HAVE ALL THE GROUP QUARTERS, SINCE IT HAS A COMPONENT BY BLOCK, SOMEHOW JOIN IT FIRST - THEN THE HOUSEHOLDS...
+MAYBE - PUT TOGETHER TRACT LEVEL THEN GET TOTAL POP BY BLOCK???
+
 ##Some of this may be recap from the ACS_probs Rmd - have to think about the structure of the overall argument and whether to try to recap here.
 At this point, we have several options, all of which we can characterize in terms of the types of structures preserved by the different approaches. If we think of every way of talking about the representation as an object, and our task as being about how we understand the various constructions of representations, then we are being guided by the demand for an overall coherence in our representation and not by the connection between our representation and a set of objects at a particular point. There are philosophical reasons to justify that choice - after all, the connection between our representation and the set of objects would, in every particular case, also have to be a representation, so being guided by the coherence of the ensemble of representations gives you a more encompassing overall approach. That turn toward the coherence of the representation need not be a turn toward relativism, however, even though it deliberately celebrates the proliferation of modes of representation. Ordinary high school mathematics can be a guide here; as you transform an algebra problem, following rules for reshaping each side of the equation, you're dealing with the coherence of the representations and looking for a particular form - or mathematical object - that helps resolve the equations into something more useful. On the other side, one is tempted by the idea that each transformation should be tied to a determination or judgment about the connection of the world to the proposition or sets of propositions being made. 
 In the latter case, for example, one would approach the reconstruction of census data with an eye toward maintaining throughout all the representations the statistical likelihood that any particular representation would be correctly reflected by the ground truth at that step. You would, in our particular conundrum, choose either race, ethnicity, age, sex, or geography (or some known combination of them) to set as a base and then add the other attributes step-wise while tracking the statistical uncertainty introduced. This could be relatively detailed, and derived from the same dataset:
@@ -626,9 +800,10 @@ We'll do this in the next in making_sam_avgs.Rmd (where we go through an illustr
 
 ```{r save bgSAR Harris csv}
 #need to check if exists and replace, if needed
-    file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="bgSAR_Harris",path_suff="wrk.csv")
-    if(file.exists(file_path)){file.remove(file_path)}
-    write_csv(bgSAR_10,file_path)
+file_path <- valid_file_path(censusdir,vintage="2010",state,api_type="dec/sf1",block="block_group",groupname="bgSAR_Harris",path_suff="wrk.csv")
+if(file.exists(file_path))
+  {file.remove(file_path)}
+write_csv(bgSAR_10,file_path)
 ```
 
 
@@ -638,182 +813,7 @@ Figure out how to insert, above:
 
 If we add households to group quarters, we get the totals. 
 
-Group quarters are treated differently in some of the tables and included in others. They're characteristics are reported very differently, especially under the ACS rules for small populations, but they are an interesting, too little understood, and often vulnerable population.
-https://www.socialexplorer.com/data/C2010RC/metadata/?ds=SF1&table=P0430; they changed how they were categorized between 2000 and 2010
-group quarters are needed b/c hh don't include them - PC03 seems to have a lot more detail, but I think it's tract level only - have to check.
-```{r group quarters to add}
-group_quarters_block_data_from_census_10 <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                         groupname = "P43",county_num = "201",
-                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
-bg_group_quarters_data_10 <- as.data.table(group_quarters_block_data_from_census_10)
-bg_group_quarters_data_10[,4:ncol(bg_group_quarters_data_10)] <- 
-  bg_group_quarters_data_10[,lapply(.SD[,4:ncol(bg_group_quarters_data_10)], as.numeric)]
-```
 
-And the basic check on integrity of file.
-```{r group quarters test downloaded file}
-check_summary <- census_table_check(bg_group_quarters_data_10, 
-      "GROUP QUARTERS POPULATION BY SEX BY AGE BY GROUP QUARTERS TYPE","individuals","Total",3) 
-cat(check_summary[1])
-
-```
-
-That 18% sum incorrectly is very odd. Let's see if there's an obvious place where it's not working.
-We can use the expand script, but keep the totals to compare. The subtotals may be the problem, but if eliminating it makes the difference, we're fine.
-
-
-SARE tract level for households does not have all the ethnicities that SARE for individuals had - just more breakdowns (23 groups) in age and H,I in ethnicity at the tract level
-
-```{r download family SARE tract}
-trHH_SARE_data_from_census_10 <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
-                         groupname = "PCT13",county_num = "201",
-                         block="tract",api_type="dec/sf1",path_suff="est.csv")
-trHH_SARE_data_10 <- as.data.table(trHH_SARE_data_from_census_10)
-trHH_SARE_data_10[,4:ncol(trHH_SARE_data_10)] <- 
-  trHH_SARE_data_10[,lapply(.SD[,4:ncol(trHH_SARE_data_10)], as.numeric)]
-```
-
-Then do our basic checks: 
-```{r household own kids race / ethnicity age test problems}
-check_summary <- census_table_check(trHH_SARE_data_10[!str_detect(concept,"HISPANIC")], 
-      "SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS","individuals in state") 
-cat(check_summary[1])
-```
-
-```{r expand family SARE tract NEED TO CHANGE}
-race_codes <- c("A","B","C","D","E","F","G")
-trHHr_10 <- trHH_SARE_data_10 %>%
-  pivot_longer(4:ncol(trHH_SARE_data_10),names_to = "tract", values_to = "number_sams") %>% 
-  filter(substr(tract,3,5)=="201") %>% #only Harris County
-  mutate(
-    race = substr(name,7,7),
-    label = str_remove_all(label,"Total!!")) %>%
-  filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-  #using the beg/end_age_P22, since they match.
-  mutate(age_range = str_replace_all(age_range,"and","to"),
-         age_range = str_replace_all(age_range,"85","85 to 105"),
-         age_range = str_replace_all(age_range,"85","85 to 105"),
-         age_range = str_replace_all(age_range,"Under 5","0  to 05"),
-         age_range = str_replace_all(age_range,"5 to 9","05 to 09"),
-         age_range = str_replace_all(age_range,"20 years","20 to 20"),
-         age_range = str_replace_all(age_range,"21 years","21 to 21"),
-         beg_age_PCT13 = as.numeric(substr(age_range,1,2)),
-         end_age_PCT13 = as.numeric(substr(age_range,7,9))) %>%
-  filter(!is.na(age_range) & race%in%race_codes) %>% #to get rid of aggregations by family
-  uncount(number_sams,.id = "hhr_tr_SARE_id",.remove = TRUE) 
-trHHr_10 <- as.data.table(trHHr_10) #dyplyr had stripped it of dt
-paste0("Number of individuals in file: ", nrow(trHHr_10))
-
-#and same for ethnicity
-trHHe_10 <- trHH_SARE_data_10 %>%
-  pivot_longer(4:ncol(trHH_SARE_data_10),names_to = "tract", values_to = "number_sams") %>% 
-  filter(substr(tract,3,5)=="201") %>% #only Harris County
-  mutate(
-    ethnicity = substr(name,7,7),
-    label = str_remove_all(label,"Total!!")) %>%
-  filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-  #using the beg/end_age_P22, since they match.
-  mutate(age_range = str_replace_all(age_range,"and","to"),
-         age_range = str_replace_all(age_range,"85","85 to 105"),
-         age_range = str_replace_all(age_range,"85","85 to 105"),
-         age_range = str_replace_all(age_range,"Under 5","0  to 05"),
-         age_range = str_replace_all(age_range,"5 to 9","05 to 09"),
-         age_range = str_replace_all(age_range,"20 years","20 to 20"),
-         age_range = str_replace_all(age_range,"21 years","21 to 21"),
-         beg_age_PCT13 = as.numeric(substr(age_range,1,2)),
-         end_age_PCT13 = as.numeric(substr(age_range,7,9))) %>%
-  filter(!is.na(age_range) & ethnicity%in%c("H","I")) %>% #to get rid of aggregations by family
-  uncount(number_sams,.id = "hhe_tr_SARE_id",.remove = TRUE) 
-trHHe_10 <- as.data.table(trHHe_10) #dyplyr had stripped it of dt
-paste0("Number of individuals in file: ", nrow(trHHe_10))
-
-#should clean up
-```
-
-PCT12 and 13 have an errata file, but nothing but NAs in each of them for Harris County. Could do some more digging to be sure, but given that it all adds up on the totals, we're assuming it doesn't change the parameters of the problems we're dealing with. 
-
-We can get block group level data from hh_tenure - which is still very broad - might put an temp_tenure to think about:
-
-
-
-```{r expand group quarters block}
-bg_group_quarters_10 <- bg_group_quarters_data_10 %>%
-  pivot_longer(4:ncol(bg_group_quarters_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-  mutate(
-    label = str_remove_all(label,"Total!!")) %>%
-  filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("sex","age_range","institutionalized","gq_type"), sep = "!!", remove = F, convert = FALSE) %>%
-  mutate(beg_age_gq = case_when(age_range=="Under 18 years" ~ as.numeric(0),
-                                age_range=="18 to 64 years" ~ as.numeric(18),
-                                age_range=="65 years and over" ~ as.numeric(65))) %>%
-  filter(!is.na(gq_type)) %>% #to get rid of aggregations by institutional type
-  uncount(number_sams,.id = "bggq_id",.remove = TRUE) 
-bggq_10 <- as.data.table(bg_group_quarters_10) #dyplyr had stripped it of dt
-paste0("Number of households in file: ", nrow(bggq_10))
-
-#test against totals
-total_bg_group_quarters_10 <- bg_group_quarters_data_10 %>%
-  pivot_longer(4:ncol(bg_group_quarters_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-  mutate(
-    label = str_remove_all(label,"Total!!")) %>%
-  filter(label == "Total") %>% #keep only the ones that aren't aggregated
-  uncount(number_sams,.id = "bggq_id",.remove = TRUE) 
-total_bggq_10 <- as.data.table(total_bg_group_quarters_10) #dyplyr had stripped it of dt
-paste0("Number of households in file: ", nrow(total_bggq_10))
-#totals match:
-nrow(total_bggq_10)==nrow(bggq_10)
-#count totals of each tract, in case there's something very weird
-test <- table(total_bggq_10$geoid)==table(bggq_10$geoid)
-length(test[test==FALSE])
-
-#test against subtotals for male and female
-subtotal_bg_group_quarters_10 <- bg_group_quarters_data_10 %>%
-  pivot_longer(4:ncol(bg_group_quarters_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-  mutate(
-    label = str_remove_all(label,"Total!!")) %>%
-  filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("sex","age_range","institutionalized","gq_type"), sep = "!!", remove = F, convert = FALSE) %>%
-  filter(is.na(age_range)) %>% #only subtotal aggregations by type
-  uncount(number_sams,.id = "bggq_id",.remove = TRUE) 
-subtotal_bggq_10 <- as.data.table(subtotal_bg_group_quarters_10) #dyplyr had stripped it of dt
-paste0("Number of households in file: ", nrow(subtotal_bggq_10))
-#test totals again - not sure why the 18% showed up
-nrow(subtotal_bggq_10)==nrow(bggq_10)
-#count totals of each tract, in case there's something very weird
-test <- table(subtotal_bggq_10$geoid)==table(bggq_10$geoid)
-length(test[test==FALSE])
-
-#let's try for age_subtotals
-age_subtotal_bg_group_quarters_10 <- bg_group_quarters_data_10 %>%
-  pivot_longer(4:ncol(bg_group_quarters_data_10),names_to = "geoid", values_to = "number_sams") %>% 
-  mutate(
-    label = str_remove_all(label,"Total!!")) %>%
-  filter(label != "Total") %>% #keep only the ones that aren't aggregated
-  separate(label, c("sex","age_range","institutionalized","gq_type"), sep = "!!", remove = F, convert = FALSE) %>%
-  filter(is.na(institutionalized)) %>% #only subtotal aggregations by type
-  uncount(number_sams,.id = "bggq_id",.remove = TRUE) 
-age_subtotal_bggq_10 <- as.data.table(age_subtotal_bg_group_quarters_10) #dyplyr had stripped it of dt
-paste0("Number of households in file: ", nrow(age_subtotal_bggq_10))
-#test totals again - not sure why the 18% showed up - nothing obvious in tests.R
-#multiply by 2 to account for inclusion of male and female totals
-nrow(age_subtotal_bggq_10)==nrow(bggq_10)*2
-#count totals of each tract, in case there's something very weird
-test <- table(age_subtotal_bggq_10$geoid)==table(bggq_10$geoid)*2
-length(test[test==FALSE])
-#should clean up
-rm(age_subtotal_bg_group_quarters_10)
-rm(age_subtotal_bggq_10)
-rm(subtotal_bg_group_quarters_10)
-rm(subtotal_bggq_10)
-```
-
-and PCT20 is tract level group quarters, but with race/ethnicity - join in same way??
-and PCT21 is tract level group quarters, with sex by age.
-and PCT22 is tract level group quarters, only over 18, sex by race/ethnicity
 
 
 The redistricting data collected in 2010 reports population estimates in yet a different format. It has one table that has races and ethnicity data for everyone over 18 and one that has it for everyone, with no ages attached. The race data gives more details on the composition of "Two or More Races" but nothing else new. The ethnicity file gives block level data for Hispanic or Latino who don't identify as White. Gives slightly more contour, but not much, and risks big differences on age and ethnicity or race per block group. (Although some contour is better than none!)
