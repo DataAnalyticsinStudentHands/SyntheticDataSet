@@ -400,6 +400,9 @@ bgSAR_10[,("percent_allocated_race"):=race_allocated[.SD,list(percent),on=.(geoi
 bgSAR_10[, ("sum") := .N, by = geoid]
 bgSAR_10[, ("proportion") := .N, by = c("race","geoid")]
 bgSAR_10[, ("proportion") := proportion/sum]
+```
+
+```{r draw plots of percent_allocate and proportion_race, eval = FALSE}
 #setDT(bgSAR_10)[, sum := NULL]
 ggplot(bgSAR_10, aes(proportion,percent_allocated_race,color=re_code,group=re_code)) + #[re_code%in%c("A","B")]
   geom_smooth() +
@@ -489,7 +492,7 @@ The temptation is to add the tract and group level data together. We have a bit 
 We have each race x age total and each race x age, non-Hispanic at tract - so know Hispanic by disjunction at tract, but not what individuals to attach them to at the block group. This is a recurring issue for later, of course. 
 
 We have each race x age total and White x age x ethnicity at the block group - so know non-White x ethnicity by disjunction. 
-Could create a small data.table with the white x age x ethnicity and then the Hispanics and non-Hispanics counted out at the block level; then join that back to the tract level to pick up the race x age x ethnicity distribution at that level; then back to the bg.
+Could create a small data.table with the white x age x ethnicity and then the Hispanics and non-Hispanics counted out at the block level; then join that back to the tract level to pick up the race x age x ethnicity distribution at that level; then back to the bg. Are there any other places to test for lost relationality? Should we run a quick test on the subsection of race and re_code to demonstrate no loss before setting to "temp"?
 
 ```{r join rest of bgSAR by emptying some cells and structuring possible responses}
 #take bgSAR and create a eth_match column
