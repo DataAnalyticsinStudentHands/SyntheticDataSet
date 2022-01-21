@@ -48,6 +48,8 @@ https://q.uiver.app/?q=WzAsMTAsWzEsMCwiUENUMTJcXFxcdHJTQVJFIl0sWzAsMiwidHJTQVJcX
 Probably the second, and "some loss assigned" means that there's a potential for non-commutativity going forward at the block level for race and ethnicity - but it's minimized by the tract level maintaining its commutativity. Nothing is lost, in terms of possible future joins, at levels / places where full commutativity is kept and the specifications within do not change other relations.
 Could start a file that marks that loss, with some numbers!
 
+In a broad sense, we're asking - at a practical level - what's it mean to use .map on the construction of epidemiology's domain and co-domain as explicitly about how we talk about vs. how relations build on each other. Not the convergence toward a single perspective, but toward a shared commitment to speaking about what matters in the relations.
+
 For restructuring of argument part - that the construction "from the outside" of the type theory lets you resolve the arguments without positing the consistency of the inside as given - you don't have to believe the axiom of reducibility or that there is a zero-degree homotopy (should we try to show that things like that are equal?)
 
 Plan: find smallest units of "space" (geographic and/or conceptual) from 2010 census and build a cohesive representation of Harris County (called Sam City) by piecing together the various representations output by the census. 
