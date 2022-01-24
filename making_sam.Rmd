@@ -783,7 +783,7 @@ What we have now is a table with the correct number of total rows, with all sex,
 
 Let's begin by calculating how many non-White individuals should be listed as Hispanic householders, and how many as Hispanic or Latino in group quarters.
 Should draw the below as a diagram:
-START HERE SLOWLY - IS THE INITIAL NEEDED??? MAY GET RID OF ALL _COUNT
+START HERE SLOWLY - IS THE INITIAL NEEDED??? MAY GET RID OF ALL _COUNT and not use initial at all!!
 
 ```{r move num_eth over to tract level household}
 #then do num_eth_A on r, and then join for the num_eth totals from e [should equal the Hs]; then subtract for num_H_remain
@@ -1057,37 +1057,133 @@ nrow(tr_r_gq_over17_10)+nrow(tr_sa_gq_10[age_range=="Under 18 years"])+nrow(trHH
 #clean up
 ```
 
+#ugh - coming up about 125 off, so trying a redo...
+Before we go too far, let's see if the _initial file has the matches to the group quarters in a way that makes the individual determinations more effective.
+Looks like _initial didn't really work - need to just do an anti-join??
+
+```{r test for completeness and symmetry with households and full population}
+nrow(trHHr_10_initial[is.na(name)])==0
+test <- table(
+  tr_r_gq_over17_10[,tract],
+  tr_r_gq_over17_10[,sex],
+  tr_r_gq_over17_10[,institutionalized],
+  tr_r_gq_over17_10[,gq_type],
+  tr_r_gq_over17_10[,gq_specs]
+)==table(
+  bggq_10[age_range!="Under 18 years",tract],
+  bggq_10[age_range!="Under 18 years",sex],
+  bggq_10[age_range!="Under 18 years",institutionalized],
+  bggq_10[age_range!="Under 18 years",gq_type],
+  bggq_10[age_range!="Under 18 years",gq_specs]
+)
+length(test[test==FALSE])==0
+```
+
+
+OR: COULD JUST DO THE TRIANGLES AGAIN, AND THINK ABOUT WHAT IT MEANS TO ALLOW THE RACE, ETC., TO CHANGE WITH MORE INFORMATION AS IT GOES AROUND???
+
+Let's create an indexed count by cell, given what we know, and then do a reduction to the smallest counts, then uncount
+
+Or maybe: the total by cell from the right should be divided by total by cell from the left? - that loses information about the relative differences
+If you order them by the left adjoint, 
+
+```{r testing lists}
+tr_sa_gq_10[, #have to see if it's following an internal order - explicitly doing it doesn't seem to change it... 
+            ("gq_spec_list_count_sa"):=
+              paste0(.N,"!_!",tract,"!_!",sex,"!_!",age_range,"!_!",institutionalized,"!_!",gq_type,"!_!",gq_specs),
+            by=c("tract","sex","age_range","institutionalized","gq_type","gq_specs")]
+tr_sa_gq_10[333,strsplit(gq_spec_list_count_sa,"!_!")][4]=="Under 18 years"
+tr_sa_gq_10[333,strsplit(gq_spec_list_count_sa,"!_!")][1]=="8"
+max(as.numeric(tr_sa_gq_10[,strsplit(gq_spec_list_count_sa,"!_!")][1]))
+tr_sa_gq_10[444:446,strsplit(gq_spec_list_count_sa,"!_!")][1:4]
+```
+
+```{r add gq_spec_count_sa to over 17 gq from tr_sa_gq}
+tr_sa_gq_10[, #have to see if it's following an internal order - explicitly doing it doesn't seem to change it... 
+            ("gq_spec_count_sa"):=.N,
+            by=c("tract","sex","age_range","institutionalized","gq_type","gq_specs")]
+tr_r_gq_over17_10[,("bg_sa_gq_17_match_id"):=
+                    paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,gq_type)]
+tr_sa_gq_10[age_range!="Under 18 years",("bg_sa_gq_17_match_id"):=
+                    paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,gq_type)]
+tr_r_gq_over17_10[,("gq_spec_count_sa"):=
+                    tr_sa_gq_10[.SD, list(gq_spec_count_sa), on = .(bg_sa_gq_17_match_id)]]
+#tests
+nrow(tr_r_gq_over17_10[is.na(gq_spec_count_sa)])==0
+test <- summary(tr_sa_gq_10[age_range!="Under 18 years",gq_spec_count_sa])==
+  summary(tr_r_gq_over17_10[,gq_spec_count_sa])
+length(test[test==FALSE])==0
+```
+
+If you have sa spec count, and you assign every row before .N to the value from the sa, and after to "no_match", 
+
+
+```{r add gq_spec_count_r and gq_spec_count_e to over 17 gq from tr_r_gq and tr_e_gq}
+tr_r_gq_10[order(tract,race,institutionalized,gq_type,gq_specs), #test to see what's needed
+            ("gq_spec_count_r"):=.N,
+            by=c("tract","race","institutionalized","gq_type","gq_specs")]
+tr_r_gq_over17_10[,("bg_r_gq_17_match_id"):=
+                    paste0(tract,race,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,race,gq_type)]
+tr_r_gq_10[age_range!="Under 18 years",("bg_r_gq_17_match_id"):=
+                    paste0(tract,race,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,race,gq_type)]
+tr_r_gq_over17_10[,("gq_spec_count_r"):=
+                    tr_r_gq_10[.SD, list(gq_spec_count_r), on = .(bg_r_gq_17_match_id)]]
+#tests
+nrow(tr_r_gq_over17_10[is.na(gq_spec_count_r)])==0
+test <- summary(tr_r_gq_10[age_range!="Under 18 years",gq_spec_count_r])==
+  summary(tr_r_gq_over17_10[,gq_spec_count_r])
+length(test[test==FALSE])==0
+```
+
+Once it has both spec totals, how do we multiply possible combinations and assign?
+
+If we take the one that already has sex and race and order it that way, and int.seq up to ...
+
+
+
+REDOING!!!
 Joining PCT21 (tr_sa_gq_10) with P43 (bggq_10), since PCT21 just adds group quarter specifics. This follows the rules for triangle commutativity.
 
-```{r add gq_spec_count to bggq from tr_sa_gq}
-#tr_sa_gq_10[,("gq_spec_count"):=.N,by=c("tract","sex","age_range","institutionalized","gq_type","gq_specs")]
+```{r add gq_spec_count_sa to bggq from tr_sa_gq}
+tr_sa_gq_10[,("gq_spec_count_sa"):=.N,by=c("tract","sex","age_range","institutionalized","gq_type","gq_specs")]
 bggq_10[,("bg_sa_gq_match_id"):=
                     paste0(tract,sex,age_range,gq_type,as.character(100000+sample(1:.N))),
                   by=.(tract,sex,age_range,gq_type)]
 tr_sa_gq_10[,("bg_sa_gq_match_id"):=
                     paste0(tract,sex,age_range,gq_type,as.character(100000+sample(1:.N))),
                   by=.(tract,sex,age_range,gq_type)]
-bggq_10[,("gq_specs"):=
-                    tr_sa_gq_10[.SD, list(gq_specs), on = .(bg_sa_gq_match_id)]]
+bggq_10[,("gq_spec_count_sa"):=
+                    tr_sa_gq_10[.SD, list(gq_spec_count_sa), on = .(bg_sa_gq_match_id)]]
 #tests
-nrow(bggq_10[is.na(gq_specs)])==0
-test <- table(
-  tr_sa_gq_10$tract,
-  tr_sa_gq_10$sex,
-  tr_sa_gq_10$age_range,
-  tr_sa_gq_10$institutionalized,
-  tr_sa_gq_10$gq_type,
-  tr_sa_gq_10$gq_specs
-)==table(
-  bggq_10$tract,
-  bggq_10$sex,
-  bggq_10$age_range,
-  bggq_10$institutionalized,
-  bggq_10$gq_type,
-  bggq_10$gq_specs
-)
+nrow(bggq_10[is.na(gq_spec_count_sa)])==0
+test <- summary(bggq_10[,gq_spec_count_sa])==
+  summary(tr_sa_gq_10[,gq_spec_count_sa])
 length(test[test==FALSE])==0
 ```
+
+#also do a spec count from tr_r to bggq; then the specifics can be used to ground the triangles
+
+```{r add gq_spec_count_r to bggq from tr_r_gq}
+tr_r_gq_10[,("gq_spec_count_r"):=.N,by=c("tract","race","institutionalized","gq_type","gq_specs")]
+bggq_10[,("bg_r_gq_match_id"):=
+                    paste0(tract,race,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,race,gq_type)]
+tr_r_gq_10[,("bg_r_gq_match_id"):=
+                    paste0(tract,sex,age_range,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,age_range,gq_type)]
+bggq_10[,("gq_spec_count_r"):=
+                    tr_r_gq_10[.SD, list(gq_spec_count_r), on = .(bg_r_gq_match_id)]]
+#tests
+nrow(bggq_10[is.na(gq_spec_count_r)])==0
+test <- summary(bggq_10[,gq_spec_count_r])==
+  summary(tr_sa_gq_10[,gq_spec_count_r])
+length(test[test==FALSE])==0
+```
+#then will just have 
 
 Joining PCT20 and PCT22, since they have the same race, ethnicity, and group quarters type. PCT22 is for age over 17 only, but the under 18 group is relatively small (1,927, which is less than 5%). After doing the joins on race, we'll be able to replicate a version by ethnicity, which will help determine the main table's missing ethnicity values.
 
@@ -1101,26 +1197,50 @@ test <- unique(tr_r_gq_10[order(gq_type),gq_type])==
   unique(tr_r_gq_over17_10[order(gq_type),gq_type])
 length(test[test==FALSE])==0
 ```
+Have to add group quarter specifics to the over 17. 
+
+```{r add gq_spec_count to bggq from tr_sa_gq}
+tr_r_gq_over17_10[,("bg_sa_gq_17_match_id"):=
+                    paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,gq_type)]
+bggq_10[age_range!="Under 18 years",("bg_sa_gq_17_match_id"):=
+                    paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,gq_type)]
+tr_r_gq_over17_10[,("gq_specs"):=
+                    bggq_10[.SD, list(gq_specs), on = .(bg_sa_gq_17_match_id)]]
+#tests
+nrow(tr_r_gq_over17_10[is.na(gq_specs)])==0
+test <- table(
+  tr_r_gq_over17_10[,tract],
+  tr_r_gq_over17_10[,sex],
+  tr_r_gq_over17_10[,institutionalized],
+  tr_r_gq_over17_10[,gq_type],
+  tr_r_gq_over17_10[,gq_specs]
+)==table(
+  bggq_10[age_range!="Under 18 years",tract],
+  bggq_10[age_range!="Under 18 years",sex],
+  bggq_10[age_range!="Under 18 years",institutionalized],
+  bggq_10[age_range!="Under 18 years",gq_type],
+  bggq_10[age_range!="Under 18 years",gq_specs]
+)
+length(test[test==FALSE])==0
+```
+START HERE!! - Problem is that this gets by race, and we had moved it earlier without race!!
 
 Now that the matching variables are typed out correctly for the match - may just get rid of _count
-```{r add gq_s_a_type_count to tr_r_gq_10 from tr_r_gq_over17_10}
-tr_r_gq_over17_10[,("gq_s_a_type_count"):=.N,by=c("tract","re_code","institutionalized","gq_type")]
+```{r add sex and age_range (by opp to Under 18) to tr_r_gq_10 from tr_r_gq_over17_10}
+#tr_r_gq_over17_10[,("gq_s_a_type_count"):=.N,by=c("tract","re_code","institutionalized","gq_type")]
 tr_r_gq_over17_10[,("tr_r_t_gq_match_id"):=
-                    paste0(tract,re_code,gq_type,as.character(100000+sample(1:.N))),
-                  by=.(tract,re_code,gq_type)]
+                    paste0(tract,re_code,gq_specs,as.character(100000+sample(1:.N))),
+                  by=.(tract,re_code,gq_specs)]
 tr_r_gq_10[,("tr_r_t_gq_match_id"):=
-                    paste0(tract,re_code,gq_type,as.character(100000+sample(1:.N))),
-                  by=.(tract,re_code,gq_type)]
-tr_r_gq_10[,c("sex","gq_s_a_type_count"):=
-                    tr_r_gq_over17_10[.SD, c(list(sex),list(gq_s_a_type_count)), on = .(tr_r_t_gq_match_id)]]
-tr_r_gq_10[is.na(gq_s_a_type_count),("age_range"):=.("Under 18 years")]
+                    paste0(tract,re_code,gq_specs,as.character(100000+sample(1:.N))),
+                  by=.(tract,re_code,gq_specs)]
+tr_r_gq_10[,c("sex"):=
+                    tr_r_gq_over17_10[.SD, c(list(sex)), on = .(tr_r_t_gq_match_id)]]
+tr_r_gq_10[is.na(sex),("age_range"):=.("Under 18 years")]
 #tests
-nrow(tr_r_gq_10[!is.na(gq_s_a_type_count)])==nrow(tr_r_gq_over17_10)
 nrow(tr_r_gq_10[!is.na(sex)])==nrow(tr_r_gq_over17_10)
-test <- summary(tr_r_gq_over17_10[,gq_s_a_type_count])==
-  summary(tr_r_gq_10[!is.na(gq_s_a_type_count),gq_s_a_type_count])
-length(test[test==FALSE])==0
-nrow(tr_r_gq_10[is.na(gq_s_a_type_count)])==nrow(tr_r_gq_10[!is.na(age_range)])
 ```
 Determine sex and age range by matching on the tract level by group quarters type (tr_r_gq from bggq) and specifics (from bggq, put there from the sex and age range tables). There is some chance that the not under 18 age groups will not match by race, but no more detailed determinations are available for these subgroups. There will be some refinement as more specific ages are generated, below. 
 [[not using the counts, yet]] 
