@@ -1185,7 +1185,7 @@ tr_r_gq_over17_10[,c("tr_e_gq","tr_e_gq_count"):=
 table(tr_r_gq_over17_10$tr_e_gq)
 ```
 
-Now let's see what we can do to add the two versions of the race and ethnicity files together, and to see how it might point to a better final construction. The first part is to use the broad age range by sex and group quarter specifications
+Now let's see what we can do to add the two versions of the race and ethnicity files together, and to see how it might point to a better final construction. The first part is to use the broad age range by sex and group quarter specifications. Then we'll do two things to the other rows that could have matched, with the plan to integrate the information from multiple tables based on that representation. 
 
 ```{r test some tables for possible join}
 tr_r_gq_over17_10[,("tr_sa_count"):=.N,by=c("tract","re_code","sex","gq_type")]
@@ -1217,16 +1217,15 @@ length(test[test==FALSE])==0
 #then add something to the blanks so we know what they might have been
 #could put something in here as part of the testing, to show amount of difference from join??
 test <- table(tr_r_gq_10$tr_e_sa_gq) 
-tr_r_gq_10[,c("sex_tr17_r","tr_e_sa_gq","tr_e_sa_gq_count"):=
-             .SD[1,c(list(sex_tr17_r),list(tr_e_sa_gq),list(as.integer(tr_e_sa_gq_count)))],
+tr_r_gq_10[,c("sex_tr17_r","tr_e_sa_gq","tr_e_sa_gq_count","tr_re_count"):=
+             .SD[1,c(list(sex_tr17_r),list(tr_e_sa_gq),list(as.integer(tr_e_sa_gq_count)),.N)],
            by = .(tract,re_code,gq_type)]
 table(tr_r_gq_10$tr_e_sa_gq)-test
 
 ```
 
-Let's look at these and see what the strategy is for reduction - should have some way that some of the combinations are eliminated,
-for instance - maybe just a [if not both with temp, then not listed as possible for next??]
-The idea is that the counts give you the probability, but let's think about what it means to do them "with memory" - T-D Bradley's density. By that metaphor, what we're doing at this stage is zeroing in on the core. We'll confirm the ones that are determined twice in the same way, and then save enough information on each row to know it's probability, with "memory." The age_range designation let's you see where a first pass match would happen, too.
+Need a general discussion of why we're still treating this as a descriptive problem with zeroing in on what can be known and not propagating growing p-values as marks of uncertainty - i.e., that the problem we have is how can we move between different ways of talking, given that we know that there is a commutative level where the individuals have a way in which they are all described consistently and coherently. We are not asking about whether the sample we have has the same structure as the whole - at least not yet - but whether the structures for talking about the population can maintain their commutativity (whether, more broadly and as we will exploit later, they are isomorphic, and thus can be said to translate back and forth between the various "ways of representing"). This should both let us build the representation and teach us something about the broader framings within which such things are arbitrated, as we assess potential policy, understand residual bias or other systemic weaknesses in approach to the design, and look for ways to represent what is dynamic and changing in a population, as opposed to merely consistently describing that which is. [rules and patterns?]
+The idea is that the counts give you the probability, but let's think about what it means to do them "with memory" - T-D Bradley's density. By that metaphor, what we're doing at this stage is zeroing in on the core. We'll confirm the ones that are determined twice in the same way, and then save enough information on each row to know it's probability, with "memory." The age_range designation let's you see where a first pass match would happen, too. 
 
 ```{r reducing by eliminating non-matches on race and ethnicity in race file}
 #not sure what to do with sex and age?? do ethnicity first
