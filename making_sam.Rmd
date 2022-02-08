@@ -1140,16 +1140,6 @@ tr_r_gq_10[is.na(ethnicity),("tr_eh_remain_type_count"):=
                                on = .(tr_r_gq_match2_id)]]
 
 ##tests - not sure...
-#test <- table(
-#  tr_r_gq_10[!is.na(tr_e_gq),tract],
-#  tr_r_gq_10[!is.na(tr_e_gq),gq_type],
-#  tr_r_gq_10[!is.na(tr_e_gq),gq_specs]
-#)==table(
-#  tr_e_gq_10[,tract],
-#  tr_e_gq_10[,gq_type],
-#  tr_e_gq_10[,gq_specs]
-#)
-#length(test[test==FALSE])==0
 #then add something to the blanks so we know what they might have been??? Is that a density?
 tr_r_gq_10[is.na(ethnicity)&order(tr_eh_remain_count),
            ("tr_eh_remain_count"):=
@@ -1230,18 +1220,7 @@ tr_r_gq_over17_10[is.na(tr_e_gq),("tr_eh_remain_type_count"):=
                                       on = .(tr_r_gq_match2_id)]]
 nrow(tr_r_gq_over17_10[!is.na(tr_eh_remain_type_count)])
 ##tests
-#test <- table(
-#  tr_r_gq_over17_10[!is.na(tr_e_gq),tract],
-#  tr_r_gq_over17_10[!is.na(tr_e_gq),sex],
-#  tr_r_gq_over17_10[!is.na(tr_e_gq),gq_type]
-#)==table(
-#  tr_e_gq_over17_10[,tract],
-#  tr_e_gq_over17_10[,sex],
-#  tr_e_gq_over17_10[,gq_type]
-#)
-#length(test[test==FALSE])==0
-#then add something to the blanks so we know what they might have been??? Is that a density?
-#table(tr_r_gq_over17_10$tr_e_gq)
+#need to figure out
 tr_r_gq_over17_10[order(tr_eh_remain_type_count),#so no leading NAs
                   ("tr_eh_remain_type_count"):=
              .SD[1,list(as.integer(tr_eh_remain_type_count))],
@@ -1268,7 +1247,6 @@ nrow(tr_r_gq_over17_10[!is.na(ethnicity)])+
 
 Now let's see what we can do to add the two versions of the race and ethnicity files together, and to see how it might point to a better final construction. What we've done is whittled away at the combinations that are known, with more specific categorizations that are within the constructions we were able to use for reduction automatically distributing within those cells without any information lost. So, for example, the information about sex can be distributed within those cells where there are no non-determined individual rows - when re_code=="A" (White), for example, but other categories within the tracts are also fully determined. 
 
-Do the match_ids have NA just in them in a way that allows them to match sometimes? 
 
 ```{r match over 17 and full on all known categories}
 tr_r_gq_10[,("tr_r17_gq_match_id"):=
@@ -1301,16 +1279,171 @@ nrow(tr_r_gq_10[is.na(sex)]), " still need a final determination in the overall 
 Each of that almost 20k has the counts attached to them; can we use the other tables to shrink the size of the unknowns?
 Should try to draw it!!!
 
+Our next step is to see if using the data on sex, age range and group quarters types and specifics, by tract, we can further eliminate some of the categories we might assign, in preparation for then using it with the full population and household tables to finally assign all the possibilities. We take advantage of the fact that sex has only been assigned where we are sure.
 
-This feels very much like the ones where we're not sure of how the sex and gq_specs distribute is really the point
-
-```{r finish matching over17 and full gq types and specs}
-test <- table(tr_r_gq_10[!is.na(sex),tract])==
-  table(tr_r_gq_over17_10[,tract])
-
-#if it has sex, then it's over_17 for age...
+```{r age_range used to narrow down group quarter tables}
+tr_r_gq_10[,("tr_sts_gq_match_id"):=
+                    paste0(tract,sex,gq_type,gq_specs,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,gq_type,gq_specs)]
+bggq_10[age_range!="Under 18 years",("tr_sts_gq_match_id"):=
+                    paste0(tract,sex,gq_type,tr_gq_specs,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,gq_type,tr_gq_specs)]
+bggq_10[age_range!="Under 18 years",c("sts_re_code","sts_ethnicity"):=
+                    tr_r_gq_10[.SD,c(list(re_code),list(ethnicity)), 
+                     on = .(tr_sts_gq_match_id)]]
+tr_r_gq_10[,("matched_sts"):=
+                    bggq_10[.SD,list(tract), 
+                     on = .(tr_sts_gq_match_id)]]
+#how many matches
+nrow(tr_r_gq_10[!is.na(matched_sts)])
+nrow(tr_r_gq_10[!is.na(matched_sts)])==nrow(bggq_10[!is.na(sts_re_code)])
+nrow(tr_r_gq_10[!is.na(matched_sts)])==nrow(bggq_10[!is.na(sts_ethnicity)]) #FALSE b/c a few are NAs?
+nrow(tr_r_gq_10[!is.na(sex)])
 ```
 
+```{r preliminary sts_re_code and age range assignments}
+tr_r_gq_10[is.na(matched_sts),("tr_sts_remain_count"):=.N,
+           by=.(tract,sex,gq_type,gq_specs)]
+#taking sex out of the match, although it's still in the counts.
+tr_r_gq_10[is.na(matched_sts),("tr_sts_gq_match_id"):=
+                    paste0(tract,gq_type,gq_specs,as.character(100000+sample(1:.N))),
+                  by=.(tract,gq_type,gq_specs)]
+bggq_10[is.na(sts_re_code),("tr_sts_gq_match_id"):=
+                    paste0(tract,gq_type,tr_gq_specs,as.character(100000+sample(1:.N))),
+                  by=.(tract,gq_type,tr_gq_specs)]
+bggq_10[is.na(sts_re_code),c("sts_re_code","sts_ethnicity","tr_sts_remain_count"):=
+                    tr_r_gq_10[.SD,c(list(re_code),list(ethnicity),list(tr_sts_remain_count)), 
+                     on = .(tr_sts_gq_match_id)]]
+tr_r_gq_10[is.na(matched_sts),("matched_sts"):=
+                    bggq_10[.SD,list(tract), 
+                     on = .(tr_sts_gq_match_id)]]
+#how many matches
+nrow(tr_r_gq_10[!is.na(matched_sts)])
+nrow(tr_r_gq_10[!is.na(matched_sts)])==nrow(bggq_10[!is.na(sts_re_code)])
+nrow(bggq_10[is.na(sts_re_code)])==0
+nrow(tr_r_gq_10[!is.na(matched_sts)])==nrow(bggq_10[!is.na(sts_ethnicity)]) #FALSE b/c a few are NAs?
+```
+
+We should also talk, at some point, about the temptation to fidget with the numbers. When do we bring in outside knowledge to give detail to the picture? If there are a handful of 17 year olds - and perhaps one or two exceptional students at 16 - in on-campus housing, that's not inconceivable, but we don't want them to have ages between 1 and 18 distributed to them on a normal distribution of some sort. Even inside the 18 to 64 years group, we know from experience that on-campus housing is overwhelmingly young adults, with many dorms having significantly more in their first and second years of school, as the older students move off-campus. Equally, the handful of 18 year olds who are in correctional facilities intended for juveniles should not be assigned randomly simply any age between 18 and 64, and the youngest ones should still be at least in their teens. Let's look at a few of those distributions, and then think about whether our process of elimination helps capture those differences - or what else we should bring to bear on the process later. If elimination works, then the idea is that the number of 17 year olds who live in a block group that has the college dorms in it will simply be picked up in the last merge with the block group by the 23 age groups available at that level (single year is at the tract level; in this example, "15 to 17 years" would be the relevant distinction at the block group level). Of course, if that block group also includes a nearby subdivision, we simply cannot know if the 15 to 17 year old is on campus or living with their parents without more information. There are things in the family and household files that may help, but we have to be carefult. Here are some obvious places where the age groups are potentially going to cause problems.
+
+```{r difficult cases on age in group quarters}
+paste0("Group homes intended for adults")
+table(bggq_10[tr_gq_specs=="Group homes intended for adults (801)",age_range])
+paste0("Residential treatment centers for adults")
+table(bggq_10[tr_gq_specs=="Residential treatment centers for adults (802)",age_range])
+paste0("Correctional facilities intended for juveniles")
+table(bggq_10[tr_gq_specs=="Correctional facilities intended for juveniles (203)",age_range])
+paste0("College/University student housing")
+table(bggq_10[tr_gq_specs=="College/University student housing",age_range])
+paste0("Residential treatment centers for adults")
+table(bggq_10[tr_gq_specs=="Residential treatment centers for adults (802)",age_range])
+paste0("Local jails and other municipal confinement facilities")
+table(bggq_10[tr_gq_specs=="Local jails and other municipal confinement facilities (104)",age_range])
+```
+
+We had hoped that some of the age range options wouldn't match, so that we could assign the "Under 18 years" to some of the rows by elimination, but that hadn't happened. What we could do is use the ones where we're sure that race and ethnicity match (i.e., bggq_10[is.na(tr_sts_remain_count)] and trHHr_10[re_code=="A"]) and get as many on that as possible out of the overall.
+
+Let's try a naive merge with the bgSAR_10 for re_code=="A" and age over 17, since it's what we know most about in both.
+```{r check for match on group quarters to bgSAR directly}
+nrow(tr_r_gq_10[re_code=="A"])
+nrow(tr_r_gq_10[re_code=="A"])==nrow(bgSAR_10[re_code=="A"])-nrow(bgSAR_10[re_code=="A"&household=="In household"])
+#match on ethnicity, but not on sex and ethnicity - although close! - should think about how to get these to match first...
+#maybe add beg_age and end_age to problem cases?? or do them all by some sort of larger process of elimination, 
+#and add quarters to households before merging with bgSAR? 
+paste0("Here, ethnicity works by each tract for re_code=='A', but not sex, even by itself without tract")
+test <- table(tr_r_gq_10[re_code=="A"&!is.na(sex),tract],
+              tr_r_gq_10[re_code=="A"&!is.na(sex),ethnicity] #same as tr_r_gq_over17
+              )==
+  table(bgSAR_10[re_code=="A"&household!="In household"&first_age>17,tract],
+        bgSAR_10[re_code=="A"&household!="In household"&first_age>17,ethnicity])
+length(test[test==FALSE])==0
+table(bgSAR_10[re_code=="A"&household!="In household"&first_age>17,sex])
+#which is the ground
+table(tr_r_gq_10[re_code=="A",sex])
+#NOW TEST ON BGGQ_10 - SEE IF THAT FITS, AND THEN THINK ABOUT GOING BACK AND FORTH WITH KIDS AND OTHER ETHNICITIES...
+```
+
+The exercise of matching on the tables is useful because we found several places where we'd been careless - which gives us the opportunity to emphasize how much of the construction is dependent on details that are hard to automate. The necessity of creating a concrete representation, like the exercise of determining that a formula is decidable (or effectively computable), is a good heuristic, but does not provide its own answer. What we know here is that the Census Bureau constructed its tables from a single grounded representation of the population, and the published tables are all transformations of that underlying overall representation. We can do a few things to clean up the matches where the categories given above point to age ranges that would be significantly misleading if interpreted as equally belonging to the whole range. The small number of 17 year olds living on college campuses should not be confused with the 8 year olds living with their faculty parents next door, but there's no algorithmic determination we can use internally to exclude all possible edge cases.
+
+For the particular case of group quarters, the question is whether there are two types of group quarters in a block group that would potentially have confusion between them based on age or other characteristics. 
+
+
+Consequently, we will just do some broad assignments of distributions of age, and then order the matching algorithm so that the rows are most likely to follow something like that order. The actual distributions will rule the final assignments, and their structure is what we want to maintain throughout so that we can reproduce the same tables, as needed. 
+For the guest quarter specifics (gq_specs), we create a count that incorporates some broad understanding of the categories. We were able to find other published tables of group quarter populations, at higher geographic levels but with 15-19 years as the breakoff, and confirm that the under 18 year olds in college dorms, for example, were not under 15. http://proximityone.com/group_quarters.htm. Our explicit presupposition is that differences at the block group level in housing opportunities for group quarters will constrain the distributions to the right population. We created a beginning age for the group quarters when we first made the tables, and will tweak it here for the ordering, with no very sophisticated process for normalizing distributions or intervening at the individual level.
+
+```{r assigning order to gq_specs}
+
+bggq_10[tr_gq_specs=="Correctional facilities intended for juveniles (203)"&
+          age_range=="18 to 64 years",
+        ("beg_age_gq"):=17] #does not set value of final age to 17, but orders this row for matching before the rest of the 18 to 64 year olds.
+bggq_10[tr_gq_specs=="Group homes for juveniles (non-correctional) (201)"&
+          age_range=="18 to 64 years",
+        ("beg_age_gq"):=17]
+bggq_10[tr_gq_specs=="Residential treatment centers for juveniles (non-correctional) (202)"&
+          age_range=="18 to 64 years",
+        ("beg_age_gq"):=17]
+bggq_10[tr_gq_specs=="Local jails and other municipal confinement facilities (104)"&
+          age_range=="Under 18 years",
+        ("beg_age_gq"):=17]
+bggq_10[tr_gq_specs=="Local jails and other municipal confinement facilities (104)"&
+          age_range=="65 years and over",
+        ("beg_age_gq"):=64]
+bggq_10[tr_gq_specs=="Group homes intended for adults (801)"&
+          age_range=="Under 18 years",
+        ("beg_age_gq"):=17]
+bggq_10[tr_gq_specs=="Workers' group living quarters and Job Corps centers (901)"&
+          age_range=="Under 18 years",
+        ("beg_age_gq"):=17]
+bggq_10[tr_gq_specs=="Workers' group living quarters and Job Corps centers (901)"&
+          age_range=="65 years and over",
+        ("beg_age_gq"):=64]
+bggq_10[tr_gq_specs=="Residential treatment centers for adults (802)"&
+          age_range=="65 years and over",
+        ("beg_age_gq"):=64]
+bggq_10[tr_gq_specs=="College/University student housing"&
+          age_range=="Under 18 years",
+        ("beg_age_gq"):=17]
+bggq_10[tr_gq_specs=="Federal detention centers (101)"&
+          age_range=="65 years and over",
+        ("beg_age_gq"):=64]
+bggq_10[tr_gq_specs=="State prisons (103)"&
+          age_range=="Under 18 years",
+        ("beg_age_gq"):=17]
+bggq_10[tr_gq_specs=="State prisons (103)"&
+          age_range=="65 years and over",
+        ("beg_age_gq"):=64]
+bggq_10[tr_gq_specs=="Correctional residential facilities (105)"&
+          age_range=="65 years and over",
+        ("beg_age_gq"):=64]
+```
+
+Let's compare the two ways of doing the matching and see what difference it makes for a couple of very specific places.
+
+We know the area around campus well, and there are some group quarters for students mixed in with residential neighborhoods with a broad range of children. First, let's see if in that block group, the elimination through assignment of people listed as "In households" provides enough distinction. We find that everyone in that census block who is in group quarters is in student housing, and that no one under 15 is listed as such; however, we also find a number of older people. The totals for the populations match, and can be represented as commuting in terms of the relations between age, sex, race, and ethnicity. 
+
+```{r looking at group quarters after households removed for age range}
+nrow(bggq_10[geoid=="48_201_312000_2"&sa_re_code=="A"])
+nrow(bggq_10[tract=="48201312000"&sa_re_code=="A"])
+nrow(tr_r_gq_10[tract=="48201312000"&re_code=="A"])
+nrow(bgSAR_10[geoid=="48_201_312000_2"&household=="In group quarters"])
+nrow(bggq_10[tract=="48201312000"&sa_re_code=="A"])
+nrow(bgSAR_10[tract=="48201312000"&household=="In group quarters"])
+table(bggq_10[geoid=="48_201_312000_2",tr_gq_specs])
+table(bgSAR_10[geoid=="48_201_312000_2"&household=="In group quarters",age_range])
+```
+
+For this group, it doesn't seem like any further specification by age range helps - it's all done by virtue of the specific characteristics of the block group. Let's also look at one with something that feels like an odd distribution around the ages - that is, where we have a group home intended for adults, at the block group level, the totals don't work, so we'll look at it at the tract level, with a reminder for ourselves that we'll need to account for the block groups better later.
+
+```{r looking at group quarters after households removed for age range}
+table(bggq_10[geoid=="48_201_531700_1",tr_gq_specs])
+table(bgSAR_10[geoid=="48_201_531700_1"&household!="In household",age_range])
+#and by tract
+table(bggq_10[tract=="48201531700",tr_gq_specs])
+table(bgSAR_10[tract=="48201531700"&household!="In household",age_range])
+#and by type - something is slightly off...
+table(bggq_10[tract=="48201531700",gq_type])
+table(bgSAR_10[tract=="48201531700"&household!="In household",age_range])
+```
 
 The first part is to use the broad age range by sex and group quarter specifications. Then we'll do two things to the other rows that could have matched, with the plan to integrate the information from multiple tables based on that representation. 
 
@@ -1391,14 +1524,12 @@ test <- table(
   tr_r_gq_over17_10[,tract],
   tr_r_gq_over17_10[,sex],
   tr_r_gq_over17_10[,institutionalized],
-  tr_r_gq_over17_10[,gq_type],
-  tr_r_gq_over17_10[,gq_specs]
+  tr_r_gq_over17_10[,gq_type]
 )==table(
   bggq_10[age_range!="Under 18 years",tract],
   bggq_10[age_range!="Under 18 years",sex],
   bggq_10[age_range!="Under 18 years",institutionalized],
-  bggq_10[age_range!="Under 18 years",gq_type],
-  bggq_10[age_range!="Under 18 years",gq_specs]
+  bggq_10[age_range!="Under 18 years",gq_type]
 )
 length(test[test==FALSE])==0
 ```
