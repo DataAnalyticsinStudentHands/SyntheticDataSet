@@ -1476,13 +1476,38 @@ For this group, it doesn't seem like any further specification by age range help
 
 ```{r looking at group quarters after households removed for age range}
 table(bggq_10[geoid=="48_201_531700_1"&sts_re_code=="A",tr_gq_specs])
+table(bggq_10[geoid=="48_201_531700_1"&sts_re_code=="A",age_range])
 table(bgSAR_10[geoid=="48_201_531700_1"&household=="In group quarters"&re_code=="A",age_range])
 #and by tract
 table(bggq_10[tract=="48201531700"&sts_re_code=="A",tr_gq_specs])
+table(bggq_10[tract=="48201531700"&sts_re_code=="A",age_range])
+table(tr_sa_gq_10[tract=="48201531700",gq_specs])
+table(tr_sa_gq_10[tract=="48201531700",age_range])
 table(bgSAR_10[tract=="48201531700"&household=="In group quarters"&re_code=="A",age_range])
-#and by type - something is slightly off...
+#and by type 
 table(bggq_10[tract=="48201531700"&sts_re_code=="A",gq_type])
+table(bggq_10[tract=="48201531700"&sts_re_code=="A",age_range])
+table(tr_sa_gq_10[tract=="48201531700",gq_type])
+table(tr_sa_gq_10[tract=="48201531700",age_range])
 table(bgSAR_10[tract=="48201531700"&household=="In group quarters"&re_code=="A",age_range])
+#and a different tract
+table(bggq_10[tract=="48201312300"&sts_re_code=="A",tr_gq_specs])
+table(bggq_10[tract=="48201312300"&sts_re_code=="A",age_range])
+table(tr_sa_gq_10[tract=="48201312300",gq_specs])
+table(tr_sa_gq_10[tract=="48201312300",age_range])
+table(bgSAR_10[tract=="48201312300"&household=="In group quarters"&re_code=="A",age_range])
+#and another
+table(bggq_10[tract=="48201252500"&sts_re_code=="A",tr_gq_specs])
+table(bggq_10[tract=="48201252500"&sts_re_code=="A",age_range])
+table(tr_sa_gq_10[tract=="48201252500",gq_specs])
+table(tr_sa_gq_10[tract=="48201252500",age_range])
+table(bgSAR_10[tract=="48201252500"&household=="In group quarters"&re_code=="A",age_range])
+#and another
+table(bggq_10[tract=="48201320200"&sts_re_code=="A",tr_gq_specs])
+table(bggq_10[tract=="48201320200"&sts_re_code=="A",age_range])
+table(tr_sa_gq_10[tract=="48201320200",gq_specs])
+table(tr_sa_gq_10[tract=="48201320200",age_range])
+table(bgSAR_10[tract=="48201320200"&household=="In group quarters"&re_code=="A",age_range])
 ```
 
 This tells us that there is some mismatch between the block group and the tract level, but that otherwise things match up as we had hoped. What we can do is create a secondary table where we join at the tract level, and then redo the block group merge. We could also just do this on the tract level, and then do the block group merge only at the very end. 
