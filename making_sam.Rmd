@@ -812,7 +812,7 @@ We're hoping that some of the structure from additional tables will help us dete
 Group quarters are treated differently in some of the tables and often not included in others. They're characteristics are reported very differently, especially under the ACS rules for small populations, but they are an interesting, too little understood, and often vulnerable population. Let's download the tables from the publicly accessible parts of the 2010 census and see what we can do.
 
 https://www.socialexplorer.com/data/C2010RC/metadata/?ds=SF1&table=P0430; they changed how they were categorized between 2000 and 2010
-group quarters are needed b/c hh don't include them - PC03 seems to have a lot more detail, but I think it's tract level only - have to check.
+group quarters are needed b/c hh don't include them - PC03 offers more detail, on population in correctional facilities by age and sex, but it comes out as all NAs.
 
 ```{r group quarters to add block}
 group_quarters_block_data_from_census_10 <- 
@@ -843,6 +843,7 @@ test <- colSums(bg_group_quarters_data_10[label=="Total",
                                       4:ncol(bg_group_quarters_data_10)])
 length(test[test==FALSE])==0
 ```
+The first test looked at the subgroup sums, and this one will sum at the lowest granularity provided in the tables, ensuring that all people counted as part of the aggregate are also given one and only one label at that level.
 
 ```{r triple check on group quarters totals}
 test <- colSums(bg_group_quarters_data_10[label=="Total",
@@ -852,7 +853,7 @@ test <- colSums(bg_group_quarters_data_10[label=="Total",
 length(test[test==FALSE])
 ```
 
-It seems to have been an oddity in how the rows were tallied so that the subtotals across all second level groups were three times the total, but for the lowest level, only twice. The ones we will use are the lowest level, and check out; we don't use the second level totals. Let's go ahead and expand, before making decisions about the tract level data.
+It seems to have been an oddity in how the rows were tallied so that the subtotals across all second level groups were three times the total, but for the lowest level, only twice. Let's go ahead and expand, before making decisions about the tract level data.
 
 ```{r expand group quarters block}
 bg_group_quarters_10 <- bg_group_quarters_data_10 %>%
@@ -908,7 +909,7 @@ check_summary <- census_table_check(tr_re_group_quarters_type_data_10,
 cat(check_summary[1])
 
 ```
-We should check, just like we did on the block group for group quarters, why the totals don't sum, but it's probably similar and we have the right main numbers after expanding. Here, we do a very ad hoc process on just the overall totals.
+We should check, just like we did on the block group for group quarters, why the totals don't sum. Here, we do a very ad hoc process on just the overall totals, and not on each race and ethnicity.
 
 ```{r double check on tr_re_group quarters subtotals}
 test <- colSums(tr_re_group_quarters_type_data_10[label=="Total"&length(name)==9,
@@ -916,9 +917,15 @@ test <- colSums(tr_re_group_quarters_type_data_10[label=="Total"&length(name)==9
     colSums(tr_re_group_quarters_type_data_10[!str_detect(label,"population")&length(name)==9,
                                       4:ncol(tr_re_group_quarters_type_data_10)])
 length(test[test==FALSE])==0
+test <- colSums(tr_re_group_quarters_type_data_10[label=="Total"&length(name)==9,
+                                          4:ncol(tr_re_group_quarters_type_data_10)])*2 ==
+    colSums(tr_re_group_quarters_type_data_10[str_detect(label,"population")&length(name)==9,
+                                      4:ncol(tr_re_group_quarters_type_data_10)])
+length(test[test==FALSE])==0
 ```
 
-For right now, let's expand this group.
+For right now, let's expand this group into both a race and ethnicity table.
+
 ```{r expand tract group quarters population by type race and ethnicity}
 tr_re_group_quarters_10 <- tr_re_group_quarters_type_data_10 %>%
   pivot_longer(4:ncol(tr_re_group_quarters_type_data_10),names_to = "tract", values_to = "number_sams") %>% 
@@ -958,7 +965,7 @@ rm(tr_re_group_quarters_10)
 rm(tr_re_group_quarters_type_data_10)
 ```
 
-PCT21 is tract level group quarters, with sex by age.
+PCT21 is tract level group quarters, with sex by age. It would be nice for our construction to have the relations by sex, age, and race, ethnicity in the same table, but the Census Bureau decided to mask that information. The protection of privacy for the individuals should be balanced with the need to understand potential patterns across categories, but there are a number of places that such analysis could happen. There are, additionally, many ways in which the population characteristics are available, including many data tables not controlled by the Census Bureau that have very detailed information. The problem of privacy is quickly transforming, and there is no clear long-term solution that addresses all goals. 
 
 ```{r group quarters to add tract sex age}
 group_quarters_tract_sex_age_data_from_census_10 <- 
@@ -979,8 +986,8 @@ check_summary <- census_table_check(tr_sex_age_group_quarters_data_10,
 cat(check_summary[1])
 
 ```
-We should check, just like we did on the block group for group quarters, why the totals don't sum, but it's probably similar.
 
+Here, we check again on the lower level sums, in case something doesn't match at a deeper level.
 
 ```{r double check on tr_sa_group quarters subtotals}
 test <- colSums(tr_sex_age_group_quarters_data_10[label=="Total",
@@ -991,6 +998,7 @@ length(test[test==FALSE])==0
 ```
 
 For right now, let's expand this group.
+
 ```{r expand tract group quarters population by type sex and age}
 tr_sex_age_group_quarters_10 <- tr_sex_age_group_quarters_data_10 %>%
   pivot_longer(4:ncol(tr_sex_age_group_quarters_data_10),names_to = "tract", values_to = "number_sams") %>% 
@@ -1049,6 +1057,7 @@ cat(check_summary[1])
 ```
 
 Expand the tract level race, ethnicity, sex, and age data for over 17 group quarters.
+
 ```{r expand tract group quarters population by type sex, age, race and ethnicity}
 tr_re_over17_type_group_quarters_10 <- tr_re_sex_type_group_quarters_data_10 %>%
   pivot_longer(4:ncol(tr_re_sex_type_group_quarters_data_10),names_to = "tract", values_to = "number_sams") %>% 
@@ -1113,12 +1122,11 @@ test <- table(
 length(test[test==FALSE])==0
 ```
 
-But now we need to do some better matching, and see if that could also help us determine which group quarter specifics belong in each block group. We know how many we're supposed to have by race and how many by ethnicity of "H" and "I" in households and group quarters, but not in the same place, and we know some age_range information on group quarters, but not at as granular of a level as for the households. What we want to do is a matching that reduces down through a matching algorithm, but on several overlapping categories. First, we'll add counts by several important subsets to the bgSAR_10 table. Then, as we add the others, we can be sure we haven't excluded any. 
-
-Try to do it for adding to ethnicity (tr_e_gq_10) to race (tr_r_gq_10), then see if adding the counts helps us determine how to build the larger table.
+But now we need to do some better matching, and see if that could also help us determine which group quarter specifics belong in each block group. We know how many we're supposed to have by race and how many by ethnicity of "H" and "I" in households and group quarters, but not in the same place, and we know some age_range information on group quarters, but not at as granular of a level as for the households.  
+We know more about the White population, because White, not Hispanic or Latino is given, so we match that group first, before moving to the rest.
 
 ```{r attempt matching with span for group quarters on race and ethnicity}
-#tr_r_gq_10[,("tr_r_count"):=.N,by=c("tract","re_code","gq_type","gq_specs")]
+tr_r_gq_10[,("tr_r_count"):=.N,by=c("tract","re_code","gq_type","gq_specs")]
 
 tr_r_gq_10[re_code=="A",("tr_r_gq_match_id"):=
                     paste0(tract,gq_type,gq_specs,as.character(100000+sample(1:.N))),
@@ -1126,26 +1134,36 @@ tr_r_gq_10[re_code=="A",("tr_r_gq_match_id"):=
 tr_e_gq_10[re_code=="I",("tr_r_gq_match_id"):=
                     paste0(tract,gq_type,gq_specs,as.character(100000+sample(1:.N))),
                   by=.(tract,gq_type,gq_specs)]
-tr_r_gq_10[re_code=="A",("tr_e_gq"):=
+tr_r_gq_10[re_code=="A",("ethnicity"):=
                     tr_e_gq_10[.SD, list(re_code), on = .(tr_r_gq_match_id)]]
 tr_e_gq_10[re_code=="I",c("matched"):=
                     tr_r_gq_10[.SD, list(re_code), on = .(tr_r_gq_match_id)]]
 #now do ones who are re_code=="A" for race and "H" for ethnicity.
-tr_r_gq_10[re_code=="A"&is.na(tr_e_gq),("tr_r_gq_match1_id"):=
+tr_r_gq_10[re_code=="A"&is.na(ethnicity),("tr_r_gq_match1_id"):=
                     paste0(tract,gq_type,gq_specs,as.character(100000+sample(1:.N))),
                   by=.(tract,gq_type,gq_specs)]
 tr_e_gq_10[re_code=="H",("tr_r_gq_match1_id"):=
                     paste0(tract,gq_type,gq_specs,as.character(100000+sample(1:.N))),
                   by=.(tract,gq_type,gq_specs)]
-tr_r_gq_10[re_code=="A"&is.na(tr_e_gq),("tr_e_gq"):=
+tr_r_gq_10[re_code=="A"&is.na(ethnicity),("ethnicity"):=
                     tr_e_gq_10[.SD, list(re_code), on = .(tr_r_gq_match1_id)]]
 tr_e_gq_10[re_code=="H",c("matched"):=
                     tr_r_gq_10[.SD, list(re_code), on = .(tr_r_gq_match1_id)]]
+nrow(tr_r_gq_10[re_code=="A"])==nrow(tr_e_gq_10[!is.na(matched)])
+nrow(bgSAR_10[re_code=="A"&household=="In group quarters"])==nrow(tr_e_gq_10[!is.na(matched)])
+test <- table(
+  tr_r_gq_10[re_code=="A",tract],
+  tr_r_gq_10[re_code=="A",re_code],
+  tr_r_gq_10[re_code=="A",ethnicity]
+)==table(
+  bgSAR_10[re_code=="A"&household=="In group quarters",tract],
+  bgSAR_10[re_code=="A"&household=="In group quarters",re_code],
+  bgSAR_10[re_code=="A"&household=="In group quarters",ethnicity]
+)
+length(test[test==FALSE])==0
 #those count as ethnicity known
-tr_r_gq_10[re_code=="A",("ethnicity"):=list(tr_e_gq)]
-table(tr_r_gq_10$tr_e_gq,tr_r_gq_10$ethnicity)
 #now do re_code!="A"; the remaining hispanic are tr_eh_remain_count as an integer for everyone in that subgroup
-tr_r_gq_10[is.na(tr_e_gq),("tr_r_gq_match2_id"):=
+tr_r_gq_10[is.na(ethnicity),("tr_r_gq_match2_id"):=
                     paste0(tract,gq_type,gq_specs,as.character(100000+sample(1:.N))),
                   by=.(tract,gq_type,gq_specs)]
 tr_e_gq_10[is.na(matched),("tr_r_gq_match2_id"):=
@@ -1156,15 +1174,13 @@ tr_e_gq_10[is.na(matched),("tr_eh_remain_count"):=.N,
 tr_r_gq_10[is.na(tr_e_gq),("tr_eh_remain_count"):=
                     tr_e_gq_10[.SD, list(as.integer(tr_eh_remain_count)), 
                                on = .(tr_r_gq_match2_id)]]
-#and for matching with over 17
+#and for matching with over 17, we want to ensure we know how many remain in each tract with ethnicity of H.
 tr_e_gq_10[is.na(matched),("tr_eh_remain_type_count"):=.N,
            by=.(tract,gq_type)]
 tr_r_gq_10[is.na(ethnicity),("tr_eh_remain_type_count"):=
                     tr_e_gq_10[.SD, list(as.integer(tr_eh_remain_type_count)), 
                                on = .(tr_r_gq_match2_id)]]
-
-##tests - not sure...
-#then add something to the blanks so we know what they might have been??? Is that a density?
+#this assigns to every row in a category that is not fully determined, the remaining number of H.
 tr_r_gq_10[is.na(ethnicity)&order(tr_eh_remain_count),
            ("tr_eh_remain_count"):=
              .SD[1,list(as.integer(tr_eh_remain_count))],
@@ -1173,12 +1189,19 @@ tr_r_gq_10[is.na(ethnicity)&order(tr_eh_remain_type_count),
            ("tr_eh_remain_type_count"):=
              .SD[1,list(as.integer(tr_eh_remain_type_count))],
            by = .(tract,gq_type)]
-paste0("There remain ",nrow(tr_e_gq_10[re_code=="H"])-(nrow(tr_r_gq_10[re_code=="A"])-nrow(tr_e_gq_10[re_code=="I"]))," non-White Hispanic or Latino individuals that have not been assigned")  
+tr_r_gq_10[is.na(ethnicity),
+           ("tr_r_eh_spec_prob"):=list(tr_r_count/tr_eh_remain_count),
+           by = .(tract,gq_type,gq_specs)]
+tr_r_gq_10[is.na(ethnicity),
+           ("tr_r_eh_type_prob"):=list(tr_r_count/tr_eh_remain_type_count),
+           by = .(tract,gq_type)]
+#prob only need the ones by spec!
+paste0("There remain ",nrow(tr_e_gq_10[re_code=="H"])-(nrow(tr_r_gq_10[re_code=="A"])-nrow(tr_e_gq_10[re_code=="I"]))," non-White Hispanic or Latino individuals that have not been assigned a matching race")  
 nrow(tr_e_gq_10[is.na(matched)])==nrow(tr_e_gq_10[re_code=="H"])-
   (nrow(tr_r_gq_10[re_code=="A"])-nrow(tr_e_gq_10[re_code=="I"]))
 ```
 
-Once we have expanded each matching category to have the count for that category of possible Hispanic or Latino, which is less than double the ones who matched, we know by adjunction that the ones without any matching categories across guest quarter specifics for that tract must not be Hispanic or Latino. 
+Once we have expanded each matching category of guest quarter type and specifics to have the count for that category of possible Hispanic or Latino, we know by adjunction that the ones without any matching categories across guest quarter specifics for that tract must not be Hispanic or Latino. 
 
 ```{r add not Hispanic or Latino to the non-matched categories by }
 paste0("There were ",nrow(tr_e_gq_10[is.na(matched)])," who were not matched in the ethnicity tables (i.e., non-White Hispanic or Latino)")
@@ -1198,7 +1221,8 @@ nrow(tr_r_gq_10[!is.na(ethnicity)])+
   nrow(tr_r_gq_10[!is.na(tr_eh_remain_type_count)])==
   nrow(tr_r_gq_10)
 ```
-We can't fully match with the ethnicity tables because "H" is only listed for the Whites who identify as Hispanic or Latino, and the others are spread out by race in a way that we don't yet know. We were able to identify quite a few that could not match, however, and to assign them their ethnicity as not Hispanic or Latino definitively.
+
+We can't fully match with the ethnicity tables because "H" is only listed for the Whites who identify as Hispanic or Latino, and the others are spread out by race in a way that we don't yet know. We were able to identify quite a few that could not match, however, and to assign them their ethnicity as not Hispanic or Latino definitively in the last step.
 We have an interesting table which has the group quarters by the same variables, but only for people over 17 (over 95% are) and without the final specifics column. Let's try our same trick with joining the ethnicity and race tables.
 
 ```{r attempt matching with sex race and ethnicity over 17 for group quarters}
@@ -1209,28 +1233,39 @@ tr_r_gq_over17_10[re_code=="A",("tr_r_gq_match_id"):=
 tr_e_gq_over17_10[re_code=="I",("tr_r_gq_match_id"):=
                     paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
                   by=.(tract,sex,gq_type)]
-tr_r_gq_over17_10[re_code=="A",("tr_e_gq"):=
+tr_r_gq_over17_10[re_code=="A",("ethnicity"):=
                     tr_e_gq_over17_10[.SD, 
                                       list(re_code), 
                                       on = .(tr_r_gq_match_id)]]
 tr_e_gq_over17_10[re_code=="I",c("matched"):=
                     tr_r_gq_over17_10[.SD, list(re_code), on = .(tr_r_gq_match_id)]]
 #now do ones who are re_code=="A" for race and "H" for ethnicity.
-tr_r_gq_over17_10[re_code=="A"&is.na(tr_e_gq),("tr_r_gq_match1_id"):=
-                    paste0(tract,gq_type,as.character(100000+sample(1:.N))),
-                  by=.(tract,gq_type)]
+tr_r_gq_over17_10[re_code=="A"&is.na(ethnicity),("tr_r_gq_match1_id"):=
+                    paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,gq_type)]
 tr_e_gq_over17_10[re_code=="H",("tr_r_gq_match1_id"):=
-                    paste0(tract,gq_type,as.character(100000+sample(1:.N))),
-                  by=.(tract,gq_type)]
-tr_r_gq_over17_10[re_code=="A"&is.na(tr_e_gq),("tr_e_gq"):=
+                    paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,gq_type)]
+tr_r_gq_over17_10[re_code=="A"&is.na(ethnicity),("ethnicity"):=
                     tr_e_gq_over17_10[.SD, list(re_code), on = .(tr_r_gq_match1_id)]]
 tr_e_gq_over17_10[re_code=="H",c("matched"):=
                     tr_r_gq_over17_10[.SD, list(re_code), on = .(tr_r_gq_match1_id)]]
 #those count as ethnicity known
-tr_r_gq_over17_10[re_code=="A",("ethnicity"):=list(tr_e_gq)]
 table(tr_r_gq_over17_10$re_code,tr_r_gq_over17_10$ethnicity)
+test <- table(
+  tr_r_gq_over17_10[re_code=="A",tract],
+  tr_r_gq_over17_10[re_code=="A",sex],
+  tr_r_gq_over17_10[re_code=="A",re_code],
+  tr_r_gq_over17_10[re_code=="A",ethnicity]
+)==table(
+  bgSAR_10[re_code=="A"&household=="In group quarters"&first_age>17,tract],
+  bgSAR_10[re_code=="A"&household=="In group quarters"&first_age>17,sex],
+  bgSAR_10[re_code=="A"&household=="In group quarters"&first_age>17,re_code],
+  bgSAR_10[re_code=="A"&household=="In group quarters"&first_age>17,ethnicity]
+)
+length(test[test==FALSE])==0
 #now do rest with only what we can know - i.e., count of hispanic remaining by gq_type
-tr_r_gq_over17_10[is.na(tr_e_gq),("tr_r_gq_match2_id"):=
+tr_r_gq_over17_10[is.na(ethnicity),("tr_r_gq_match2_id"):=
                     paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
                   by=.(tract,sex,gq_type)]
 tr_e_gq_over17_10[is.na(matched),("tr_r_gq_match2_id"):=
@@ -1238,13 +1273,14 @@ tr_e_gq_over17_10[is.na(matched),("tr_r_gq_match2_id"):=
                   by=.(tract,sex,gq_type)]
 tr_e_gq_over17_10[is.na(matched),("tr_eh_remain_type_count"):=.N,
            by=.(tract,sex,gq_type)]
-tr_r_gq_over17_10[is.na(tr_e_gq),("tr_eh_remain_type_count"):=
+tr_r_gq_over17_10[is.na(ethnicity),("tr_eh_remain_type_count"):=
                     tr_e_gq_over17_10[.SD, 
                                       list(as.integer(tr_eh_remain_type_count)), 
                                       on = .(tr_r_gq_match2_id)]]
-nrow(tr_r_gq_over17_10[!is.na(tr_eh_remain_type_count)])
-##tests
-#need to figure out
+paste0("There are ",
+nrow(tr_r_gq_over17_10[!is.na(tr_eh_remain_type_count)]),
+" who were assigned a category and could possibly still be Hispanic or Latino.")
+
 tr_r_gq_over17_10[order(tr_eh_remain_type_count),#so no leading NAs
                   ("tr_eh_remain_type_count"):=
              .SD[1,list(as.integer(tr_eh_remain_type_count))],
@@ -1267,16 +1303,19 @@ nrow(tr_r_gq_over17_10[ethnicity=="def"])==0
 nrow(tr_r_gq_over17_10[!is.na(ethnicity)])+
   nrow(tr_r_gq_over17_10[!is.na(tr_eh_remain_type_count)])==
   nrow(tr_r_gq_over17_10)
+
 ```
 
-Now let's see what we can do to add the two versions of the race and ethnicity files together, and to see how it might point to a better final construction. What we've done is whittled away at the combinations that are known, with more specific categorizations that are within the constructions we were able to use for reduction automatically distributing within those cells without any information lost. So, for example, the information about sex can be distributed within those cells where there are no non-determined individual rows - when re_code=="A" (White), for example, but other categories within the tracts are also fully determined. 
+Now let's see what we can do to add the two versions of the race and ethnicity files together, and to see how it might point to a better final construction. What we've done is whittled away at the combinations that are known, with more specific categorizations that are within the constructions we were able to use for reduction automatically distributing within those cells without any information lost. So, for example, the information about sex can be distributed within those cells where there are no non-determined individual rows -- when re_code=="A" (White), for example, but other categories within the tracts are also fully determined. 
 
 
 ```{r match over 17 and full on all known categories}
-tr_r_gq_10[,("tr_r17_gq_match_id"):=
+tr_r_gq_10[,
+           ("tr_r17_gq_match_id"):=
                     paste0(tract,re_code,ethnicity,gq_type,as.character(100000+sample(1:.N))),
                   by=.(tract,re_code,ethnicity,gq_type)]
-tr_r_gq_over17_10[,("tr_r17_gq_match_id"):=
+tr_r_gq_over17_10[,
+                  ("tr_r17_gq_match_id"):=
                     paste0(tract,re_code,ethnicity,gq_type,as.character(100000+sample(1:.N))),
                   by=.(tract,re_code,ethnicity,gq_type)]
 tr_r_gq_10[,("sex"):=
@@ -1286,19 +1325,69 @@ tr_r_gq_over17_10[,("matched17"):=
                     tr_r_gq_10[.SD,list(tract), 
                      on = .(tr_r17_gq_match_id)]]
 #number successfully matched
-nrow(tr_r_gq_10[!is.na(sex)])
-#number that didn't have ethnicity
-nrow(tr_r_gq_10[is.na(ethnicity)])
-#number that do not have ethnicity matched and did not get sex (or over 18) assigned
-nrow(tr_r_gq_10[is.na(sex)&is.na(ethnicity)])
+paste0("There are ",nrow(tr_r_gq_over17_10)," rows over 17 and with sex given, ",
+nrow(tr_r_gq_10[!is.na(sex)]), " in the total table now have sex assigned by matching with the over 17 table, which leaves ",
+nrow(tr_r_gq_10[is.na(sex)]), " who do not have sex assigned in the all age table of ",
+nrow(tr_r_gq_10))
+paste0("From the ethnicity matching, above, we still have ",
+nrow(tr_r_gq_10[is.na(ethnicity)]), " who don't have ethnicity assigned and ",
+ nrow(tr_r_gq_10[is.na(sex)&is.na(ethnicity)]),
+      " that do not have ethnicity matched and did not get sex (or over 18) assigned")
 #number that had ethnicity and race, but didn't match - those should get a count
 nrow(tr_r_gq_10[!is.na(sex)&!is.na(ethnicity)])
 #number in over 17 that had ethnicity but didn't match
 paste0("Of the ",nrow(tr_r_gq_over17_10[!is.na(ethnicity)]) ,
        " in the over 17 table with ethnicity assigned, all but ",
 nrow(tr_r_gq_over17_10[!is.na(matched17)&is.na(ethnicity)]), " matched. However, ",
-nrow(tr_r_gq_10[is.na(sex)]), " still need a final determination in the overall group quarters table")
+nrow(tr_r_gq_10[is.na(sex)]), " still need a final determination for sex in the overall group quarters race table, in order to match with the givens in bggq")
 ```
+
+```{r join over17 gq but those without ethnicity and ordered}
+#FROM MONDAY MORNING;NEED TO TEST!!
+tr_r_gq_10[is.na(sex)&order(tr_r_eh_spec_prob),
+           ("tr_r17_gq_match_id"):=
+                    paste0(tract,re_code,gq_type,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,re_code,gq_type)]
+tr_r_gq_over17_10[is.na(matched17)&order(tr_eh_remain_type_count),
+                  ("tr_r17_gq_match_id"):=
+                    paste0(tract,re_code,gq_type,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,re_code,gq_type)]
+tr_r_gq_10[is.na(sex),("sex"):=
+                    tr_r_gq_over17_10[.SD,list(sex), 
+                     on = .(tr_r17_gq_match_id)]]
+tr_r_gq_over17_10[is.na(matched17),("matched17"):=
+                    tr_r_gq_10[.SD,list(tract), 
+                     on = .(tr_r17_gq_match_id)]]
+#number successfully matched
+paste0("There are ",nrow(tr_r_gq_over17_10)," rows over 17 and with sex given, ",
+nrow(tr_r_gq_10[!is.na(sex)]), " in the total table now have sex assigned by matching with the over 17 table, which leaves ",
+nrow(tr_r_gq_10[is.na(sex)]), " who do not have sex assigned in the all age table of ",
+nrow(tr_r_gq_10))
+paste0("From the ethnicity matching, above, we still have ",
+nrow(tr_r_gq_10[is.na(ethnicity)]), " who don't have ethnicity assigned and ",
+ nrow(tr_r_gq_10[is.na(sex)&is.na(ethnicity)]),
+      " that do not have ethnicity matched and did not get sex (or over 18) assigned")
+#number that had ethnicity and race, but didn't match - those should get a count
+nrow(tr_r_gq_10[!is.na(sex)&!is.na(ethnicity)])
+#number in over 17 that had ethnicity but didn't match
+paste0("Of the ",nrow(tr_r_gq_over17_10[!is.na(ethnicity)]) ,
+       " in the over 17 table with ethnicity assigned, all but ",
+nrow(tr_r_gq_over17_10[!is.na(matched17)&is.na(ethnicity)]), " matched. However, ",
+nrow(tr_r_gq_10[is.na(sex)]), " still need a final determination for sex in the overall group quarters race table, in order to match with the givens in bggq")
+#SHOULD DO A TABLE TEST TO SEE THAT ALL OVER17 SEX NOW MATCH TO ONE OVER ON TR_R
+#THEN GO TO BGSAR FOR THE ETHNICITY, ETC BY BLOCK_GROUP? 
+```
+
+What can we do with the counts?? maybe if pull over the tract level race/eth for the rest from bgSAR - then can match by the ones who would fit within the givens...?
+
+Or just order by probability of ethnicity from each - put the count by race back in, and count_r/count_h_remain on one side and then just order(first_age,prob_eth) and joing with bggq at the tract level on 
+
+MOVE TO BGGQ for these 24149
+Then the rest, by race - with ethnicity not given? or do a count from bggq with 
+
+
+
+We could have the last 271 match just on race...
 
 Each of that almost 20k has the counts attached to them; can we use the other tables to shrink the size of the unknowns?
 Should try to draw it!!!
@@ -1306,6 +1395,8 @@ IS IT JUST THAT THE SMALLER THE DENOMINATOR (I.E., THE COUNT), THE FURTHER TO TH
 Not a description of the likelihood (or probability) that one individual has a particular characteristic, but the description of how the relations are distributed within the whole (also described as a fraction). 
 
 Our next step is to see if using the data on sex, age range and group quarters types and specifics, by tract, we can further eliminate some of the categories we might assign, in preparation for then using it with the full population and household tables to finally assign all the possibilities. We take advantage of the fact that sex has only been assigned where we are sure.
+
+BEFORE DOING THIS: WE HAVE THE COUNTS BY ETHNICITY, AND THE SEX BY GQ_TYPE BY RACE FOR OVER 18; remember we may want the blocks decided here for race/ethnicity to override bgSAR's ethnicity...
 
 ```{r age_range used to narrow down group quarter tables}
 tr_r_gq_10[,("tr_sts_gq_match_id"):=
@@ -1323,10 +1414,10 @@ tr_r_gq_10[,("matched_sts"):=
 #how many matches
 nrow(tr_r_gq_10[!is.na(matched_sts)])
 nrow(tr_r_gq_10[!is.na(matched_sts)])==nrow(bggq_10[!is.na(sts_re_code)])
-nrow(tr_r_gq_10[!is.na(matched_sts)])==nrow(bggq_10[!is.na(sts_ethnicity)]) #FALSE b/c a few are NAs because of age<18
+nrow(tr_r_gq_10[!is.na(matched_sts)])==nrow(bggq_10[!is.na(sts_ethnicity)]) #FALSE b/c a few are NAs
 nrow(tr_r_gq_10[!is.na(sex)])
 ```
-
+MAYBE SKIP THIS STEP??? OR ONLY USE PARTS OF REST OF FILE, IN ANY CASE!!!
 ```{r preliminary sts_re_code and age range assignments}
 tr_r_gq_10[is.na(matched_sts),("tr_sts_remain_count"):=.N,
            by=.(tract,sex,gq_type,gq_specs)]
@@ -1381,16 +1472,6 @@ test <- table(tr_r_gq_10[re_code=="A"&!is.na(sex),tract],
         bgSAR_10[re_code=="A"&household!="In household"&first_age>17,sex],
         bgSAR_10[re_code=="A"&household!="In household"&first_age>17,ethnicity])
 length(test[test==FALSE])==0
-test <- table(bggq_10[sts_re_code=="A"&age_range!="Under 18 years",tract],
-              bggq_10[sts_re_code=="A"&age_range!="Under 18 years",sex],
-              bggq_10[sts_re_code=="A"&age_range!="Under 18 years",sts_re_code],
-              bggq_10[sts_re_code=="A"&age_range!="Under 18 years",sts_ethnicity] 
-              )==
-  table(bgSAR_10[re_code=="A"&household!="In household"&first_age>17,tract],
-        bgSAR_10[re_code=="A"&household!="In household"&first_age>17,sex],
-        bgSAR_10[re_code=="A"&household!="In household"&first_age>17,re_code],
-        bgSAR_10[re_code=="A"&household!="In household"&first_age>17,ethnicity])
-length(test[test==FALSE])==0 #FALSE b/c ??????
 ```
 
 Group quarters are not concentrated, with most block groups having only one kind of residence, even as specified at the detailed level, which means that further specification by age isn't necessary. As part of being as complete as possible, we add a bit of a step to give preference to some things known outside the data tables themselves, as a matter of interpretation. Although the actual distribution still decides the structure of the final distribution, it is possible for some push toward one or the other subtype to be given with this technique.
@@ -1402,6 +1483,7 @@ bggq_10[,("num_gq_specs_bg"):=length(unique(tr_gq_specs)),by=.(geoid)]
 summary(bggq_10[,num_gq_specs_bg])
 bggq_10[,("num_gq_type_bg"):=length(unique(gq_type)),by=.(geoid)]
 summary(bggq_10[,num_gq_type_bg])
+#can look at the ones with the most num_gq_specs_tr and then see how well they matched
 ```
 
 The exercise of matching on the tables is useful because we found several places where we'd been careless - which gives us the opportunity to emphasize how much of the construction is dependent on details that are hard to automate. The necessity of creating a concrete representation, like the exercise of determining that a formula is decidable (or effectively computable), is a good heuristic, but does not provide its own answer. What we know here is that the Census Bureau constructed its tables from a single grounded representation of the population, and the published tables are all transformations of that underlying overall representation. We can do a few things to clean up the matches where the categories given above point to age ranges that would be significantly misleading if interpreted as equally belonging to the whole range. The small number of 17 year olds living on college campuses should not be confused with the 8 year olds living with their faculty parents next door, but there's no algorithmic determination we can use internally to exclude all possible edge cases.
