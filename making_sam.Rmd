@@ -1189,6 +1189,7 @@ tr_r_gq_10[is.na(ethnicity)&order(tr_eh_remain_type_count),
            ("tr_eh_remain_type_count"):=
              .SD[1,list(as.integer(tr_eh_remain_type_count))],
            by = .(tract,gq_type)]
+#look at the following carefully!!! should they be race/eth or eth/race? and what happens div/0???
 tr_r_gq_10[is.na(ethnicity),
            ("tr_r_eh_spec_prob"):=list(tr_r_count/tr_eh_remain_count),
            by = .(tract,gq_type,gq_specs)]
@@ -1341,6 +1342,8 @@ paste0("Of the ",nrow(tr_r_gq_over17_10[!is.na(ethnicity)]) ,
 nrow(tr_r_gq_over17_10[!is.na(matched17)&is.na(ethnicity)]), " matched. However, ",
 nrow(tr_r_gq_10[is.na(sex)]), " still need a final determination for sex in the overall group quarters race table, in order to match with the givens in bggq")
 ```
+
+The idea with tr_r_eh_spec_prob is that if a row by race is showing up in the gq_spec, but not in the same gq_spec by ethnicity, then we know something about how they are distributed. We expect a lot to be determined by the final cast by tract to bgSAR, with the blocks over-riding from here. Have to make sure that the calculation accounts for zeros, and should it be race over eth, or eth over race???
 
 ```{r join over17 gq but those without ethnicity and ordered}
 #FROM MONDAY MORNING;NEED TO TEST!!
