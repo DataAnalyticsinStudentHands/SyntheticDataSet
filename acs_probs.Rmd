@@ -247,6 +247,10 @@ We also hope to have some concrete answers to problems in small area estimation.
 
 Perhaps example of Hispanic ethnicity/race and how they have to add up? 
 
+Perhaps talk about some of the weird contradictions in differential privacy when running into public advertising databases:
+https://slate.com/technology/2022/03/privacy-census-fake-people.html
+
+
 ```{r trying assignment by probability}
 #could also embed these in the next steps...
 ```
