@@ -41,9 +41,9 @@ source('BaseScripts/Census_Data.R') #move out of BaseScripts?
 source('tests.R')
 ```
 
+Probably use the second one, but need to think about - and maybe only in context, below:
 Include and comment on diagram: https://q.uiver.app/?q=WzAsOSxbMSwwLCJmdWxsXFw7cG9wdWxhdGlvblxcXFxhc1xcO3BlclxcXFxDZW5zdXNcXDtCdXJlYXUiXSxbNSwyLCJ0cmFjdFxcO3hcXDthZ2VcXF8xMTBcXDt4XFxcXHJhY2VcXF83XFxcXGV0aG5pY2l0eVxcXzhcXFxcUENUMTIiXSxbMTAsMCwiYmxvY2tcXDt4XFw7YWdlXFxfMjNcXDt4XFxcXHJhY2VcXF83XFxcXGV0aG5pY2l0eVxcXzJcXFxcUDEyIl0sWzEsNiwiYWdlXFw7eFxcO3NleFxcO3hcXFxccmFjZVxcXzdcXDt4XFw7ZXRobmljaXR5XFxfOFxcO3hcXFxcdHJhY3RcXDt4XFw7YmxvY2siXSxbMTAsNSwidHJhY3RcXDt4XFw7YmxvY2tcXDt4XFxcXHJhY2VcXF83XFxcXGV0aG5pY2l0eVxcXzgiXSxbMSw1XSxbNCwzLCJyYWNlXFw7YW5kXFxcXGV0aG5pY2l0eVxcXFxmdWxseVxcXFxjb21tdXRlXFxcXGJ5XFw7ZGlzanVuY3Rpb24iXSxbOSwxLCJyYWNlXFw7YW5kXFxcXGV0aG5pY2l0eVxcXFxkb24ndCBcXDtjb21tdXRlXFxcXGZvciBcXDtub25cXF93aGl0ZVxcXFxIaXNwYW5pY1xcO29yXFw7TGF0aW5vIl0sWzAsNSwiYXNzaWduXFw7YmxvY2tcXDtsZXZlbFxcXFxldGg2XFw7YnlcXDtzYW1wbGVcXFxcdHJhY3RcXDthbmRcXFxccmVzdFxcO29mXFw7YmxvY2tcXFxcZnVsbHlcXFxcY29tbXV0ZXMiXSxbMCwxLCJyZXBvcnRzXFxcXChzdWJzZXRzKSIsMSx7ImNvbG91ciI6WzEyMCw2MCw2MF19LFsxMjAsNjAsNjAsMV1dLFswLDIsInJlcG9ydHNcXFxcKHN1YnNldHMpIiwxLHsiY29sb3VyIjpbMTIwLDYwLDYwXX0sWzEyMCw2MCw2MCwxXV0sWzEsNCwiam9pbnNcXFxcKHNvbWUgXFw7bG9zc1xcXFxibG9ja1xcO3RvXFw7dHJhY3QpIiwxLHsiY29sb3VyIjpbMjQwLDYwLDYwXX0sWzI0MCw2MCw2MCwxXV0sWzIsNCwiam9pbnNcXFxcKHNvbWUgXFw7bG9zc1xcO2V0aDYpIiwxLHsiY29sb3VyIjpbMjQwLDYwLDYwXX0sWzI0MCw2MCw2MCwxXV0sWzQsMywiY3JlYXRlc1xcXFxpbml0aWFsIiwxLHsiY29sb3VyIjpbMTIwLDYwLDYwXX0sWzEyMCw2MCw2MCwxXV0sWzAsMywidW5rbm93blxcXFxmdW5jdG9yXFxcXHN1YnNldHMiLDEseyJjb2xvdXIiOlswLDYwLDYwXX0sWzAsNjAsNjAsMV1dLFs2LDEsImNvbW1lbnQiLDEseyJjb2xvdXIiOlszMDAsNjAsNjBdfSxbMzAwLDYwLDYwLDFdXSxbNywyLCJjb21tZW50IiwxLHsiY29sb3VyIjpbMzAwLDYwLDYwXX0sWzMwMCw2MCw2MCwxXV0sWzgsMywiY29tbWVudCIsMSx7ImNvbG91ciI6WzMwMCw2MCw2MF19LFszMDAsNjAsNjAsMV1dXQ==
-or:
-https://q.uiver.app/?q=WzAsMTAsWzEsMCwiUENUMTJcXFxcdHJTQVJFIl0sWzAsMiwidHJTQVJcXFxccmFjZVxcXzdcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8xMTAiXSxbMiwyLCJ0clNBRVxcXFxldGhuaWNpdHlcXF84XFw7eFxcXFxzZXhcXDt4XFw7YWdlXFxfMTEwIl0sWzEsMSwidG90YWxzXFxcXHNhbWVcXDtieVxcXFx0cmFjdFxcO2FuZFxcXFxjb21wbGV0ZVxcO2J5XFxcXGJvdGhcXDtyYWNlXFw7YW5kXFxcXGV0aG5pY2l0eSJdLFsxLDIsIlxcYnVsbGV0Il0sWzEsNywiUDEyXFxcXGJnU0FSRSJdLFswLDUsImJnU0FSXFxcXHJhY2VcXF83XFw7eFxcXFxzZXhcXDt4XFw7YWdlXFxfMjMiXSxbMiw1LCJiZ1NBRVxcXFxldGhuaWNpdHlcXF8yXFw7eFxcXFxzZXhcXDt4XFw7YWdlXFxfMjMiXSxbMiw0XSxbMiwzLCJcXGJ1bGxldCJdLFswLDEsInN1YnNldHMiLDEseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbMCwyLCJzdWJzZXRzIiwxLHsiY29sb3VyIjpbMTIwLDYwLDYwXX0sWzEyMCw2MCw2MCwxXV0sWzEsMl0sWzIsMSwiY29tbXV0ZXMiXSxbMyw0LCJ0YWJsZXMgPSIsMSx7ImNvbG91ciI6WzMwMCw2MCw2MF19LFszMDAsNjAsNjAsMV1dLFs1LDYsInN1YnNldHMiLDAseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbNSw3LCJzdXNldHMiLDIseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbNiw3XSxbNyw2LCJkb2VzXFw7bm90XFxcXGNvbW11dGUiLDAseyJjb2xvdXIiOlswLDYwLDYwXX0sWzAsNjAsNjAsMV1dLFsyLDcsImpvaW5cXDtieVxcXFxzZXhcXDt4XFw7YWdlXFxfMjNcXDt4XFxcXHJhY2UiLDEseyJjb2xvdXIiOlsyNzAsNjAsNjBdfSxbMjcwLDYwLDYwLDFdXSxbOCw2LCJjb21tdXRlc1xcXFxzb21lXFw7bG9zc1xcXFxhc3NpZ25lZCIsMV0sWzEsOV1d
+or: [Tract and block group merge](https://q.uiver.app/?q=WzAsMTAsWzEsMCwiUENUMTJcXFxcdHJTQVJFIl0sWzAsMiwidHJTQVJcXFxccmFjZVxcXzdcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8xMTAiXSxbMiwyLCJ0clNBRVxcXFxldGhuaWNpdHlcXF84XFw7eFxcXFxzZXhcXDt4XFw7YWdlXFxfMTEwIl0sWzEsMSwidG90YWxzXFxcXHNhbWVcXDtieVxcXFx0cmFjdFxcO2FuZFxcXFxjb21wbGV0ZVxcO2J5XFxcXGJvdGhcXDtyYWNlXFw7YW5kXFxcXGV0aG5pY2l0eSJdLFsxLDIsIlxcYnVsbGV0Il0sWzEsNywiUDEyXFxcXGJnU0FSRSJdLFswLDUsImJnU0FSXFxcXHJhY2VcXF83XFw7eFxcXFxzZXhcXDt4XFw7YWdlXFxfMjMiXSxbMiw1LCJiZ1NBRVxcXFxldGhuaWNpdHlcXF8yXFw7eFxcXFxzZXhcXDt4XFw7YWdlXFxfMjMiXSxbMiw0XSxbMiwzLCJcXGJ1bGxldCJdLFswLDEsInN1YnNldHMiLDEseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbMCwyLCJzdWJzZXRzIiwxLHsiY29sb3VyIjpbMTIwLDYwLDYwXX0sWzEyMCw2MCw2MCwxXV0sWzEsMl0sWzIsMSwiY29tbXV0ZXMiXSxbMyw0LCJ0YWJsZXMgPSIsMSx7ImNvbG91ciI6WzMwMCw2MCw2MF19LFszMDAsNjAsNjAsMV1dLFs1LDYsInN1YnNldHMiLDAseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbNSw3LCJzdXNldHMiLDIseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbNiw3XSxbNyw2LCJkb2VzXFw7bm90XFxcXGNvbW11dGUiLDAseyJjb2xvdXIiOlswLDYwLDYwXX0sWzAsNjAsNjAsMV1dLFsyLDcsImpvaW5cXDtieVxcXFxzZXhcXDt4XFw7YWdlXFxfMjNcXDt4XFxcXHJhY2UiLDEseyJjb2xvdXIiOlsyNzAsNjAsNjBdfSxbMjcwLDYwLDYwLDFdXSxbOCw2LCJjb21tdXRlc1xcXFxzb21lXFw7bG9zc1xcXFxhc3NpZ25lZCIsMV0sWzEsOV1d)
 
 Probably the second, and "some loss assigned" means that there's a potential for non-commutativity going forward at the block level for race and ethnicity - but it's minimized by the tract level maintaining its commutativity. Nothing is lost, in terms of possible future joins, at levels / places where full commutativity is kept and the specifications within do not change other relations.
 Could start a file that marks that loss, with some numbers!
@@ -56,10 +56,8 @@ Plan: find smallest units of "space" (geographic and/or conceptual) from 2010 ce
 By "space" we mean something that helps situate a characterization within a structure. A context is an example of that sort of space, as your neighborhood provides context for your dwelling, but part of the point of our exercise with Sam City is to show other ways to think about the structuring of "space" and the ways in which an attention to space allows one to better engage in structuring data representations that are fully responsive to their originating questions. Such a project has basic implications for how we think about neighborhood effects on individuals, most immediately in terms of the granularity we build into the representations and our sense for whether that matters for the interpretation.
 As we saw in the previous section on problems with the American Community Survey, there are practical reasons we need to move back to the 2010 decennial census, especially it's detailed geographic reports. There are two main technical documents for the tables created for smallest area (block group) demographic data. 
 The two have similar tables, but different levels of detail provided. They provide some information on how to download the files, although we're using the R library censusapi in our script, CensusData.R, to make calls.
-If you want to look at the details, go to the List of Tables (Matrices) to see what sorts of reports are produced. The first is populations summarized (with a few exceptions) at the block level:
-https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf
-and the second is for the tract level summaries:
-http://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf2.pdf
+If you want to look at the details, go to the List of Tables (Matrices) to see what sorts of reports are produced. The first is populations summarized (with a few exceptions) at the block level: [block level summary](https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf)
+and the second is for the tract level summaries: [tract level summary](http://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf2.pdf)
 The table names that begin with PCT never go below the tract level, but occassionally have more detail in some of the concepts. 
 Let's begin with PCT12, which is tract level data but has every age by year, gender, ethnicity and race. It has 101 possible age groups, with 1-99 years and then one for "100 to 104 years" and one for "105 to 109 years". It then has categories for all the built in race and ethnicity categories, with each person counted in the total, and every person categorized by race (there are tables for how many people had to have a race assigned by the census bureau, since they refused to provide one, but they tell us how many people have an assigned race and describe their protocols); Hispanic is a problematic category for counting, as well as for historical reasons, and is dealt with differently in the decennial and ACS reporting. Let's download table PCT12, do some quick checks, and then look at it.  
 
@@ -157,11 +155,11 @@ But we need to think carefully about the several ways we talk about "appropriate
 
 We should also note that this touches on all sorts of political questions, with different ways in which public input is accepted into the decision-making process. For example, the Census Bureau took steps to make these boundaries coherent and complete (both the geographic boundaries and the delimitation of the conceptual categories), but that is justified by the need for a coherent and mathematically consistent representation. The necessary calculations on demographics (which are at the base of so much else in public health, after all) are often difficult or impossible in less well-structured spaces, for example, where cities and counties don't share all geographic boundaries but have large shared areas, as with the City of Houston and Harris County. Finding ways to report numbers, even the basics of population, have real world funding consequences, which become tied into the presuppositions of the models at multiple levels. However, those bigger questions remain at the horizon. For the moment, we want to take our building process slowly, for the purpose of eventually understanding what is at stake in these first and seemingly trivial decisions that in turn rely on other structures - after all, we have to be confident that there are overarching mathematical structure that are sustained across the representations in order for the larger interpretation to make sense, even when that interpretation is the almost immediate and seemingly trivial act of aggregation. 
 
-One of our philosophical inspirations comes from the way that type theory differs from set theory. Both of them provide ways to encode other mathematics into a single way of talking and making proofs, with many outward similarities but important differences in how the process of proving mathematical propositions is expressed. In the encoding of mathematics based on set theory there are objects (called sets) which have a membership relation to other objects. In type theory, Per Martin-Löf's intuitionist version is especially clear in its motivation (cf. https://archive-pml.github.io/martin-lof/pdfs/Bibliopolis-Book-retypeset-1984.pdf), types are the way that elements can be described without positing the existence of a set or of objects that have the property of belonging to that set. For a common example of where it makes a difference, if you encounter a group of points in a set, you cannot make sense of them in a full and meaningful way just by knowing that they all have the attribute of being a point; the Banach-Tarski paradox, for a motivating example, showed that using the rules of set theory and a few suppositions about infinity and the axioms of mathematics, a sphere of any size can be divided and then recreated into a sphere of any other size. In our terms, set theory preserved the structure of membership in the set of points that are found on the surface of a sphere, but sacrificed the relation of those points to the size of the sphere, since the structure that sustained size wasn't part of the set, although an infinite number of points, by definition, was included. In type theory, on the other hand, the objects that are manipulated, including the numbers, must be accounted for - the space that the points are found within lets you describe them as close together or far apart, as countably infinite or as generated by the relation to a fixed center, and (more broadly) Martin-Löf's type theory allows a collection of typing declarations to construct or encode any mathematical object in ways that account for the structure one wants to preserve. 
+One of our philosophical inspirations comes from the way that type theory differs from set theory. Both of them provide ways to encode other mathematics into a single way of talking and making proofs, with many outward similarities but important differences in how the process of proving mathematical propositions is expressed. In the encoding of mathematics based on set theory there are objects (called sets) which have a membership relation to other objects. In type theory, [Per Martin-Löf's intuitionist version](https://archive-pml.github.io/martin-lof/pdfs/Bibliopolis-Book-retypeset-1984.pdf) is especially clear in its motivation , types are the way that elements can be described without positing the existence of a set or of objects that have the property of belonging to that set. For a common example of where it makes a difference, if you encounter a group of points in a set, you cannot make sense of them in a full and meaningful way just by knowing that they all have the attribute of being a point; the Banach-Tarski paradox, for a motivating example, showed that using the rules of set theory and a few suppositions about infinity and the axioms of mathematics, a sphere of any size can be divided and then recreated into a sphere of any other size. In our terms, set theory preserved the structure of membership in the set of points that are found on the surface of a sphere, but sacrificed the relation of those points to the size of the sphere, since the structure that sustained size wasn't part of the set, although an infinite number of points, by definition, was included. In type theory, on the other hand, the objects that are manipulated, including the numbers, must be accounted for - the space that the points are found within lets you describe them as close together or far apart, as countably infinite or as generated by the relation to a fixed center, and (more broadly) Martin-Löf's type theory allows a collection of typing declarations to construct or encode any mathematical object in ways that account for the structure one wants to preserve. 
 
-The constructive process does not imply ontological relativism, but does rely on the idea that there are many ways of talking about things and that being conscious in those choices between ways of talking, and attentive to the motivations guiding those choices, can ground the practice of mathematics as a search for structure. In the history of the theory of mathematics, constructivism is usually opposed to one or another sort of Platonism, but for our purposes, we're striving to motivate references to mathematical theory or its philosophical background only through encountering and responding to issues with the concrete understanding of creating Sam City. It is hoped that this can be done in a way that could be useful for our students, or for any of the fields, like population health, that rely on a representation of demographic attributes for a population. Here, we are underlining the fact that certain methods become available to us because of the conscious decisions of the U.S. Census Bureau to create a database that will be useful for calculations - the fact that every person is assigned at least one race, and that the reporting includes all people in its categorizations, means that you can use the law of the excluded middle and say that if someone isn't one of the other 6 races, they must be the one that's left. That is constructed by the Bureau to be useful for the purposes of the aggregation. The addition of ethnicity in the 1980 census, after a much contested attempt to add "Mexican" as a racial category in 1930, was a politically motivated attempt to account for ways in which racism against people of Latino origin was impossible to track without having some way of counting how many people fit into the category - which is to say, it's a politically meaningful choice whether to include it or not; there is no simply "non-political" side to the act of category construction or the choice to either maintain or modify the categories around race and ethnicity. (cf. Rodriguez, Clara E. Changing Race: Latinos, the Census, and the History of Ethnicity in the United States. New York University Press, 2000. E184.S75 R64 in library). 
+The constructive process does not imply ontological relativism, but does rely on the idea that there are many ways of talking about things and that being conscious in those choices between ways of talking, and attentive to the motivations guiding those choices, can ground the practice of mathematics as a search for structure. In the history of the theory of mathematics, constructivism is usually opposed to one or another sort of Platonism, but for our purposes, we're striving to motivate references to mathematical theory or its philosophical background only through encountering and responding to issues with the concrete understanding of creating Sam City. It is hoped that this can be done in a way that could be useful for our students, or for any of the fields, like population health, that rely on a representation of demographic attributes for a population. Here, we are underlining the fact that certain methods become available to us because of the conscious decisions of the U.S. Census Bureau to create a database that will be useful for calculations - the fact that every person is assigned at least one race, and that the reporting includes all people in its categorizations, means that you can use the law of the excluded middle and say that if someone isn't one of the other 6 races, they must be the one that's left. That is constructed by the Bureau to be useful for the purposes of the aggregation. The addition of ethnicity in the 1980 census, after a much contested attempt to add "Mexican" as a racial category in 1930, was a politically motivated attempt to account for ways in which racism against people of Latino origin was impossible to track without having some way of counting how many people fit into the category - which is to say, it's a politically meaningful choice whether to include it or not; there is no simply "non-political" side to the act of category construction or the choice to either maintain or modify the categories around race and ethnicity. (cf. [Changing Race](Rodriguez, Clara E. Changing Race: Latinos, the Census, and the History of Ethnicity in the United States. New York University Press, 2000.) E184.S75 R64 in library). 
 
-We said earlier that part of the initial impulse behind the construction of Sam City was to make a more "friendly" version of Houston for pedagogical purposes, and it's worth being explicit that there are deeply racist components to Houston's past that should not be erased in the name of that friendliness. Our hope, by contrast, was that a more honest accounting could be made possible by understanding how the construction of the basic demographic categories in the population of the simulated city could reflect the complexity at hand. Accordingly, just as the addition of ethnicity as a category was troubled by a triangulation of political issues around segregation throughout the U.S., Houston's White political leadership attempted to achieve court-ordered segregation in the schools by integrating Latino and Black schools with each other, while leaving the White schools untouched. This sleight of hand was achieved by counting the Latino students as White, but ignoring the long-standing inequities in the schools in Latino neighborhoods. There were considerable political and legal actions against Houston at the time [https://www.nytimes.com/1970/03/01/archives/houston-moves-to-desegregate-schools-amid-clamor-of-protest-angry.html] [https://www.nytimes.com/1970/09/06/archives/houston-huelga-schools-open-in-a-mexicanamerican-protest.html], but the schools remain deeply segregated throughout the United States, and especially the South [https://www.civilrightsproject.ucla.edu/research/k-12-education/integration-and-diversity/brown-at-60-great-progress-a-long-retreat-and-an-uncertain-future/Brown-at-60-051814.pdf], as well as in Houston's larger metro area. These histories all have continuing ramifications on current social, educational, and health outcomes [https://www.houstontx.gov/health/chs/documents/Health-Disparities-Data-Report-I-2019-Root-Causes.pdf]
+We said earlier that part of the initial impulse behind the construction of Sam City was to make a more "friendly" version of Houston for pedagogical purposes, and it's worth being explicit that there are deeply racist components to Houston's past that should not be erased in the name of that friendliness. Our hope, by contrast, was that a more honest accounting could be made possible by understanding how the construction of the basic demographic categories in the population of the simulated city could reflect the complexity at hand. Accordingly, just as the addition of ethnicity as a category was troubled by a triangulation of political issues around segregation throughout the U.S., Houston's White political leadership attempted to achieve court-ordered segregation in the schools by integrating Latino and Black schools with each other, while leaving the White schools untouched. This sleight of hand was achieved by counting the Latino students as White, but ignoring the long-standing inequities in the schools in Latino neighborhoods. There were considerable political and legal actions against Houston at the time [NYTimes, March 1970](https://www.nytimes.com/1970/03/01/archives/houston-moves-to-desegregate-schools-amid-clamor-of-protest-angry.html) and [NYTimes, September, 1970](https://www.nytimes.com/1970/09/06/archives/houston-huelga-schools-open-in-a-mexicanamerican-protest.html), but the schools remain deeply segregated throughout the United States, and especially the South, as documented by [UCLA's Civil Rights Project](https://www.civilrightsproject.ucla.edu/research/k-12-education/integration-and-diversity/brown-at-60-great-progress-a-long-retreat-and-an-uncertain-future/Brown-at-60-051814.pdf), as well as in Houston's larger metro area. These histories all have continuing ramifications on current social, educational, and health outcomes, as explained by the [City of Houston's Health Department](https://www.houstontx.gov/health/chs/documents/Health-Disparities-Data-Report-I-2019-Root-Causes.pdf).
 
 To say that "race" is embedded in a biological determination and "ethnicity" in a cultural context, clearly, is to miss how the structuring questions are motivated and thus to obscure at least some potential pathways toward a more acceptable general approach to embedding relations between individuals and social structures than as sedimentation of layers of causes and effects. At a social level, we need a way to refer to the history of determinations that have affected individual people's life courses, as others create barriers based on those ways of talking about who does or does not belong in a group. To do so, however, risks reifying those determinations, or creating a situation where one way of talking -- for example, the idiosyncratic development of the idea of race and ethnicity in the U.S. -- is taken as the reference from which all other approaches deviate.
 
@@ -171,7 +169,7 @@ We would prefer to resist that temptation to speak about complexity, and seek to
 
 Type theory gives us one well-articulated alternative way of thinking about the embedding, which is popular precisely because it still allows a unifying understanding of how to encode any proposition about the world in the straightforward and consistent language of types. Its modern articulation is made possible by the recognition (starting with Tarski) that truth is a property of a language that is "higher" than the language in which we describe the objects. This was meant to address foundational problems with set theory, but also has to do with how one tries to separate syntax (form) from semantics (content). Tarski says that claims made in a given language about given objects are embedded in an encompassing model that provides rules for what is true or false. Intuitionistic type theory points out that there is a process of construction that undergirds both, and thus makes it possible to understand embedding as a choice about what structures matter in the model - so that, in our example, we can ask explicitly how the relations of race to ethnicity are embodied as countable in the census, and also use that artificial construct to infer other aspects of the structure that aren't immediately given in the tables. In that sense, we are trying to understand the types as constructed categories, and then to understand what the limits of that construction show - both positively, in terms of how operations performed on the data within those bounds can create new understanding of internal relations, and negatively, in terms of understanding what can't be said in that language.
 
-Very briefly, it's worth remembering that type theory began as an answer to Russell's paradox, although two steps removed, as Alonzo Church first developed untyped lambda calculus and then typed lambda calculus. The underlying task, stemming from Georg Cantor's foundational formulations of set theory, and also found in the continuum hypothesis, is that when you create sets, you need to be able to understand their internal structure in order to perform operations on the set. Set theory had been designed with the idea of capturing predication - one seeks to understand what it means to say that something has a predicate by saying that it belongs to the set of objects with that predicate. If one can generalize this process, then the use of numbers to ensure structure inside the sets (simply put, that I can assign a number as a predicate that "represents" each object and then, with suitable caveats, shows how the set of objects can be well-ordered) can itself be trusted. Cantor saw that you needed to be able to say that the power set of a set - that is the multiplication of all the combinations of categories - had to be larger than the elements of the set. It had to be possible to create more subsets than elements in the set. This may seem trivially true, but runs into difficult problems where the problem of representing infinite subsetting meets the problem of ordering (i.e., with Dedekind) and one has two competing ways to order what is infinite suggesting that the ways to subset the infinite do not converge to a single rule that would encapsulate the meaning of the infinite. Or more importantly, the idea is that if you are trying to understand how a type is constructed, you are asking how it is calculated, and if you calculate without attention to the construction, you fall into logical traps that prevent effective computability. (Martin-Löf, before the invention of Haskell in 1990: https://www.cs.tufts.edu/~nr/cs257/archive/per-martin-lof/constructive-math.pdf) . Martin-Löf, Constructive mathematics and computer programming, in: Logic, Methodology and Philosophy of Science, vol. VI, 1980, pp. 153–175. 
+Very briefly, it's worth remembering that type theory began as an answer to Russell's paradox, although two steps removed, as Alonzo Church first developed untyped lambda calculus and then typed lambda calculus. The underlying task, stemming from Georg Cantor's foundational formulations of set theory, and also found in the continuum hypothesis, is that when you create sets, you need to be able to understand their internal structure in order to perform operations on the set. Set theory had been designed with the idea of capturing predication - one seeks to understand what it means to say that something has a predicate by saying that it belongs to the set of objects with that predicate. If one can generalize this process, then the use of numbers to ensure structure inside the sets (simply put, that I can assign a number as a predicate that "represents" each object and then, with suitable caveats, shows how the set of objects can be well-ordered) can itself be trusted. Cantor saw that you needed to be able to say that the power set of a set - that is the multiplication of all the combinations of categories - had to be larger than the elements of the set. It had to be possible to create more subsets than elements in the set. This may seem trivially true, but runs into difficult problems where the problem of representing infinite subsetting meets the problem of ordering (i.e., with Dedekind) and one has two competing ways to order what is infinite suggesting that the ways to subset the infinite do not converge to a single rule that would encapsulate the meaning of the infinite. Or more importantly, the idea is that if you are trying to understand how a type is constructed, you are asking how it is calculated, and if you calculate without attention to the construction, you fall into logical traps that prevent effective computability. (Martin-Löf, before the invention of Haskell in 1990: [Constructive Math](https://www.cs.tufts.edu/~nr/cs257/archive/per-martin-lof/constructive-math.pdf)). [Martin-Löf, Constructive mathematics and computer programming, in: Logic, Methodology and Philosophy of Science, vol. VI, 1980, pp. 153–175.] 
 [[need to think about: W.A. Howard, The formulae-as-types notion of construction, in H.B. Curry: Essays on Combinatory Logic, Lambda-calculus and Formalism, 1980, pp. 479–490; there's an overview "Propositions as Types," at https://www.youtube.com/watch?v=IOiZatlZtGU by Philip Wadler that strikes me as very clear. He frames it in terms of the capacity to reduce logical propositions to a computable form and how the lambda calculus duplicates the formalism - he rather bizarrely asserts that it shows that math is discovered, and not invented, even though it's all about constructive math - including a digression on lambda as the universal programming language. It maybe be worth talking about Haskell as Curry's first name; that functional programming was looking for a way of being on a first-name basis with a dominant figure in the field, perhaps in a parallel with Sam, with some sense of the strengths and weaknesses...
 Need also to think about how explicit Martin Löf is about the problem of hierarchies and how they get resolved: "156 - continuing from 155 - concisely: "'if a set is understood in Zermelo’s way as a member of the cumulative hierarchy, then a set cannot be the same kind of thing as a data type.'"; that we aren't dealing with membership, and the truth about membership, but about labeling, and the consistency of labeling - and doing it constructively]]
 
@@ -183,7 +181,7 @@ Our point, with this extended digression into assigning race and ethnicity, is t
 
 There's also the question of formalism as inappropriately relying on the infinite and the law of the excluded middle as purely formal.
 
-It may be that the algebraic approach toward embedding in category theory gives us yet more powerful tools, especially in the idea that we are looking for the ways that descriptions can be transformed into or mapped onto equivalent descriptions embedded in different models as the way of specifying the meaning of an object: in other words, the proposition is not true or false depending on the embedding within a metalanguage, but rather the algebraic possibilities that govern the totality of possible ways of talking about the same thing will tell you what a mapping that conveys a true proposition would mean. That is, in Lawvere's articulation of the idea of a mapping from hyperdoctrines, as in "Diagonal Arguments and Cartesian Closed Categories," from 1969, (Lawvere, F. William. “Diagonal Arguments and Cartesian Closed Categories.” Category Theory, Homology Theory and Their Applications II, Springer Berlin Heidelberg, 2006, pp. 134–45, https://doi.org/10.1007/BFb0080769.), the algebraic possibilities that govern the composition of the steps that create a representation tell one where the limits of a way of talking about things lies. Russell's paradox and Gödel's incompleteness theorem both become instances of an attempted transformation of talking about sets, where the attempt to describe the set of all sets becomes self-referential and paradoxical, into the problem of how to transform sets through mappings where the presupposed notion of truth is a mapping of points to points. 
+It may be that the algebraic approach toward embedding in category theory gives us yet more powerful tools, especially in the idea that we are looking for the ways that descriptions can be transformed into or mapped onto equivalent descriptions embedded in different models as the way of specifying the meaning of an object: in other words, the proposition is not true or false depending on the embedding within a metalanguage, but rather the algebraic possibilities that govern the totality of possible ways of talking about the same thing will tell you what a mapping that conveys a true proposition would mean. That is, in Lawvere's articulation of the idea of a mapping from hyperdoctrines, as in ["Diagonal Arguments and Cartesian Closed Categories,"](https://doi.org/10.1007/BFb0080769) from 1969, (Lawvere, F. William. “Diagonal Arguments and Cartesian Closed Categories.” Category Theory, Homology Theory and Their Applications II, Springer Berlin Heidelberg, 2006, pp. 134–45.), the algebraic possibilities that govern the composition of the steps that create a representation tell one where the limits of a way of talking about things lies. Russell's paradox and Gödel's incompleteness theorem both become instances of an attempted transformation of talking about sets, where the attempt to describe the set of all sets becomes self-referential and paradoxical, into the problem of how to transform sets through mappings where the presupposed notion of truth is a mapping of points to points. 
 
 The limitation of that approach can be seen by turning to algebraic topology and to ideas of mapping that don't reduce to point sets - or to binary representational functions. Here we hope to capture something of the humanities criticism of traditional set theory, as with all the descendants of Heidegger who decried the technological approach to language as mere predication, and say that there is also a mathematical approach that seeks to situate set theory within a broader understanding of the possibilities of speaking about. Broadly, it is the idea that the ways of talking about something are structured through the process of describing and that the attention to that structure is the core of the scientific process. Of course, it's not the only way to talk about things, and we'll try to point to the motivating questions as opposed to the dogmatic elements of any of the tools that have inspired this inquiry. How we can practically encode a claim about mathematical relation, however, is the guiding reason that Sam City was developed, as we pushed to understand what it would mean to create a reusable database of demographic, social, and economic information about residents and neighborhoods in our area that somehow also captured dynamic change and the sense of individuals that they somehow exceeded the objectifying categories assigned to them by the system. How do we make that sense of organic development and internal self intelligible to others? How do we compute the results of aggregation over large groups of individuals, each pursuing their own paths? How do we represent the effects and interactions? Those are practical and driving questions for ourselves, our students, and our community partners.
 
@@ -202,7 +200,7 @@ First, we need to identify the rows which, if added together, give us a complete
 
 We can use a little trick because of how the R library dyplyr performs the translation and expansion of the representation, so that we're looking at rows of people with geographic and demographic properties and not rows of categories against columns of geography. We will get a warning that NAs were introduced by coercion, but it happens that those will be the rows that we want to exclude in any case. We'll show the warnings, here, but suppress them later.
 
-```{r expand SARE for the tracts in PC12}
+```{r expand SARE for the tracts in PC12, warning = FALSE}
 trSARE_10 <- trSAR_data_from_census_10 %>%
   pivot_longer(4:ncol(trSAR_data_from_census_10),names_to = "tract", values_to = "number_sams",
                names_transform = list(tract=as.character)) %>%
@@ -215,7 +213,7 @@ trSARE_10 <- trSAR_data_from_census_10 %>%
          age = as.integer(substr(age,1,3))
          ) %>%
   filter(number_sams > 0, !is.na(age))
-paste0("There are ",length(unique(trSARE_10$age)), " unique categories for age (each year up to 100 and then two groups higher).")
+paste0("There are ",length(unique(trSARE_10$age)), " unique categories for age (each year up to 100 and then two over 100 groups).")
 paste0("There are ",length(unique(trSARE_10$re_code)), " unique categories for race and ethnicity.")
 paste0("Along with two categories for sex, we have ",length(unique(trSARE_10$age))*length(unique(trSARE_10$re_code))*2," different categories people can fall into.")
 rm(trSAR_data_from_census_10)
@@ -225,12 +223,11 @@ Once we have the file for the entire population, we'll want to make one complete
 
 The fact that both the ethnicity tables and the race tables are about the same individuals, as presented in complete form through aggregations of individuals who have shared predicates, tells us that the "ways of talking about" those individuals are grounded in that sense of the individual. Some census tables don't share that same sense of individuality - some talk about households, for example, or about the housing stock - and yet there are still ways of delimiting the "sameness" of the tables - for instance, if they each talk about and characterize in some sense individual census tracts, which can be mapped back to individuals or other sorts of objects that can be counted, and can be considered the ground of saying that we're still talking about the same thing. This fact opens the door to talking about the relations that are mapped, with the individuals as endpoints of the mapping; to speak concretely about the relations first, and allowing the individuals to emerge into systems of possible relations, is the task we set ourselves with the construction of Sam City.
 
-This table, we admit, caught us by surprise. All the other tables by race and ethnicity had only two ethnicities reported - one for "Hispanic or Latino," and another for "White Alone, not Hispanic or Latino." This led us to considerable difficulties in sorting out who might be, for example, answering "Some Other Race" and "Hispanic or Latino," or "Black or African American" and "Hispanic or Latino." These are admittedly smaller segments of the overall population, but important sectors to capture in the representation, if we are going to claim to understand details about the ways that race and ethnicity effect outcomes within the context of neighborhood dynamics.
+This table, we admit, caught us by surprise. All the other tables by race and ethnicity had only two ethnicities reported - one for "Hispanic or Latino," and another for "White Alone, not Hispanic or Latino." This led us to considerable difficulties in sorting out who might be, for example, answering "Some Other Race" and "Hispanic or Latino," or "Black or African American" and "Hispanic or Latino." These are admittedly smaller segments of the overall population, but important sectors to capture in the representation, if we are going to claim to understand details about the ways that race and ethnicity effect outcomes within the context of neighborhood dynamics. Before getting to that very difficult question, we remember that at this point we're trying to understand how to maximize the information contained in overlapping ways of talking: how do we understand the addition of the idea of ethnicity on top of the idea of race? First, just be understanding in what sense it still refers to the same individuals and in what sense it constitutes new information.
 
-Here, we're doing the expansion of race first, because in all the other tables, the race categorization is more "complete" than the representation by ethnicity. Which is to say that some people in the population are not represented in terms of their ethnicity, while everyone has their race reported. The sense in which the representation by race and by ethnicity are equal at the tract level, but not at the block_group level, gives us a chance to think about what it means for the representations to be embedded in conceptual spaces on rigorous mathematical terms, and to begin to see the ways that our representations are limited by those conceptual spaces as well as pointing to techniques that help us expand those representations. The equality of the representations come from the way in which they are structured by their endpoints as represented in a certain total number of individuals; it forces us not to think about the equality of two numbers in arithmetic, but the structure of embedding claims in the same underlying space. Taking another clue from recent turns in mathematics, we can say that it is, in certain conditions, equivalent to speak of the same individuals in different ways, to the extent that they both serve to describe the same individuals. The difference in describing those individuals by ethnicity instead of race emerges in the ways that the context of that designation matters, and not as a function of individuals essentially being in one set or another.
+Here, we're doing the expansion of race first, because in all the other tables, the race categorization is more "complete" than the representation by ethnicity. Which is to say that some people in the population are not represented in terms of their ethnicity, while everyone has their race reported. The sense in which the representation by race and by ethnicity are equal at the tract level, but not at the block_group level, gives us a chance to think about what it means for the representations to be embedded in conceptual spaces on rigorous mathematical terms, and to begin to see the ways that our representations are limited by those conceptual spaces as well as pointing to techniques that help us expand those representations. The equality of the representations come from the way in which they are structured by their endpoints as represented in a certain total number of individuals; it forces us not to think about the equality of two numbers in arithmetic, but the structure of embedding claims in the same underlying space. Taking another clue from recent turns in mathematics, we can say that it is, in certain conditions, equivalent to speak of the same individuals in different ways, to the extent that they both serve to describe the same individuals. The difference in describing those individuals by ethnicity instead of race emerges in the ways that the context of that designation matters, and not as a function of individuals essentially being in one set or another. The Census Bureau provides a helpful explanation, including the race iteration as [table ids explained](https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html)
 
-```{r expand tract Harris SAR}
-    #setup race codes https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
+```{r expand tract SAR}
     race_codes <- c("A","B","C","D","E","F","G")
     trSAR_10 <- trSARE_10 %>%
       filter(re_code %in% race_codes) %>%
@@ -264,16 +261,16 @@ This table reports on 8 categories of ethnicity. The necessity to aggregate when
 dt <- as.data.table(list(unique(trSAE_10$re_code),unique(trSAE_10$concept)))
 setnames(dt, c("V1","V2"),c("re_code","concept"))
 dt[order(re_code)]
-table(trSAE_10$concept)
 rm(dt)
 ```
 
-This is, perhaps, still not as straightforward as one would like, because it gives us one part of a disjunctive syllogism and there are still potentially multiple categories on the other side of the disjunction (Hispanic with three races, for example). There is a table reported as part of the redistricting data (dec/pl in the API) that has separate categories for these combinations and for a large number of combinations for multi-racial individuals, but it does not give age at the same time. The ACS has tables for specific ethnicities and for multiple places of origin for ancestry, but they are not given in the decennial tables. For the moment, we want to stick with the initial tables, and talk about how to construct our approach. In Harris County, 33% of the population were categorized as "Hispanic or Latino" in 2010, and 44% in 2020. Some individual census tracts are over 95% of one race or ethnicity [[should do the calculation; it would be interesting to know]]. If we look at only race, we could get a very misleading sense of what the dynamics of a neighborhood were at the cultural level. So we wanted to somehow take the race tables, which had the virtue of a complete representation of all individuals, and add them to the ethnicity tables, which for the majority of tables are reported as only "White Alone, not Hispanic or Latino" and "Hispanic or Latino." 
+This is, perhaps, still not as straightforward as one would like, because it gives us one part of a disjunctive syllogism and there are still potentially multiple categories on the other side of the disjunction (Hispanic with three races, for example). There is a table reported as part of the redistricting data (dec/pl in the API) that has separate categories for these combinations and for a large number of combinations for multi-racial individuals, but it does not give age at the same time and doesn't help with the difficult "SOME OTHER RACE ALONE." The ACS has tables for specific ethnicities and for multiple places of origin for ancestry, but they are not given in the decennial tables, and we can't match them exhaustively because of how the ACS is reported (and constructed). For the moment, we want to stick with the initial tables, and talk about how to construct our overall approach. In Harris County, 33% of the population were categorized as "Hispanic or Latino" in 2010, and 44% in 2020. Some individual census tracts are over 95% of one race or ethnicity [[should do the calculation; it would be interesting to know]]. If we look at only race, we could get a very misleading sense of what the dynamics of a neighborhood were at the cultural level. So we wanted to somehow take the race tables, which had the virtue of a complete representation of all individuals, and add them to the ethnicity tables, which for the majority of tables are reported as only "White Alone, not Hispanic or Latino" and "Hispanic or Latino." 
 
 Talk a little bit about how it doesn't work to just give every White person a 40% chance of also being Hispanic or Latino....
 At some point, will also want to talk about using data.table vs. dyplyr / tidyr and what, in general one is looking for in rows, columns, and vectors, etc.
 
 What we do, instead, is to order each of the sets by their shared characteristics and assign an id, with numbers assigned sequentially for rows that match on all characteristics. We create the id by ordering the collections of properties in the same way for each set, and then assigning an id. The final sampled number in the id uses all the possible numbers between 1 and the number in that cell (the base r sample function defaults to "without replace"), so that all individuals are given a unique id but in a way that takes advantage of the many ways that the two sets can be ordered internally to find equivalent representations, which in turn allow for assigning properties that were not originally assigned in the given representations. The attentive reader will note that there is no information lost here at the tract level, but that the ways in which race and ethnicity are joined at the block level could be lost.
+
 We're doing a join, and some times the join could be done with one of the built-in merge functions in R or one of the R libraries. Here, because we want to emphasize the questions about the ordering and relations in terms of those orders, we make explicit the process of assigning numbers to each individual within a subset and then matching on those numbers to add variables across tables. As we move through the process, we'll find more precise control over the numbering within those final subtypes will matter.
 
 ```{r join trSAE and trSAR}
@@ -306,7 +303,7 @@ test <- table(trSAR_10[,tract],
   trSAE_10[,re_code]
 )
 length(test[test==F])==0
-#and test that 
+#and test that the race codes still match for the non-Hispanic or Latino population
 test <- table(trSAR_10[ethnicity!="H",race])==
   table(trSAE_10[race!="HISPANIC OR LATINO",race])
 length(test[test==F])==0
@@ -322,7 +319,22 @@ trSAR_10[age==110,("age"):=sample(c(110:113),size = .N,replace = TRUE,prob = c(.
 table(trSAR_10[age>100,age])
 ```
 
-We know that it's fully commutative with the SAE file at the tract level, and that any specification to the block group would maintain that tract level commutativity, simply because the blocks are fully contained within the tract.
+We know that it's fully commutative with the SAE file at the tract level, and that any specification to the block group would maintain that tract level commutativity, simply because the blocks are fully contained within the tract. We will find it helpful to draw some commutative triangles, as the tasks will get more and more complicated. In this, we just represent the fact that dividing the tables into one for ethnicity and one for race is still exhaustive on sex and age_range. We'll add more later. [Commutative Triangle: Tract level sex age race and ethnicity.](https://q.uiver.app/?q=WzAsNyxbMSwwLCJQQ1QxMlxcXFx0clNBUkUiXSxbMCwyLCJ0clNBUlxcXFxyYWNlXFxfN1xcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzExMCJdLFsyLDIsInRyU0FFXFxcXGV0aG5pY2l0eVxcXzhcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8xMTAiXSxbMSwxLCJ0b3RhbHNcXFxcc2FtZVxcO2J5XFxcXHRyYWN0XFw7YW5kXFxcXGNvbXBsZXRlXFw7YnlcXFxcYm90aFxcO3JhY2VcXDthbmRcXFxcZXRobmljaXR5Il0sWzEsMiwiXFxidWxsZXQiXSxbMiw0XSxbMCw0LCJ0clNBUlxcXFxyYWNlXFxfN1xcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzExMFxcXFxldGhuaWNpdHlcXF84Il0sWzAsMSwiZGl2aWRlcyIsMSx7ImNvbG91ciI6WzEyMCw2MCw2MF19LFsxMjAsNjAsNjAsMV1dLFswLDIsImRpdmlkZXMiLDEseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbMSwyXSxbMiwxLCJjb21tdXRlcyJdLFszLDQsInRhYmxlcyA9IiwxLHsiY29sb3VyIjpbMzAwLDYwLDYwXX0sWzMwMCw2MCw2MCwxXV0sWzIsNiwiYWRkXFw7YnlcXFxcbWF0Y2hpbmciLDEseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbMSw2XV0=)
+Latex:
+[\begin{tikzcd}
+	& PCT12\\trSARE \\
+	& {totals\\same\;by\\tract\;and\\complete\;by\\both\;race\;and\\ethnicity} \\
+	{trSAR\\race\_7\;x\\sex\;x\;age\_110} & \bullet & {trSAE\\ethnicity\_8\;x\\sex\;x\;age\_110} \\
+	\\
+	{trSAR\\race\_7\;x\\sex\;x\;age\_110\\ethnicity\_8} && {}
+	\arrow["divides"{description}, color={rgb,255:red,92;green,214;blue,92}, from=1-2, to=3-1]
+	\arrow["divides"{description}, color={rgb,255:red,92;green,214;blue,92}, from=1-2, to=3-3]
+	\arrow[from=3-1, to=3-3]
+	\arrow["commutes", from=3-3, to=3-1]
+	\arrow["{tables =}"{description}, color={rgb,255:red,214;green,92;blue,214}, from=2-2, to=3-2]
+	\arrow["{add\;by\\matching}"{description}, color={rgb,255:red,92;green,214;blue,92}, from=3-3, to=5-1]
+	\arrow[from=3-1, to=5-1]
+\end{tikzcd}\]
 
 Let's set this representation of the population aside for a moment and look at the block group level. We'll follow a very similar pattern, although there are small differences that make it impossible to run it simply through the same script. 
 
@@ -351,7 +363,7 @@ bgSARE_10 <- bgSAR_data_10 %>%
 rm(bgSAR_data_10)
 ```
 
-Now we filter by race and ethnicity codes.
+Now we filter and construct distinct tables by race and ethnicity codes.
 
 ```{r SAR expand to bg}
 race_codes <- c("A","B","C","D","E","F","G")
@@ -389,6 +401,21 @@ rm(dt)
 ```
 
 This means that the only information we know at the block group level is the number of people who are "Hispanic or Latino" and the number who are "White Alone, Not Hispanic or Latino." By the disjunctive syllogism, we can know the number of "Not White Alone "Hispanic or Latino," which will include all the subtypes available at the tract level in table PCT12.  Because we do know their sex and age_group, we can add them to the block_group by race representation on White Alone (which, in the race representation, includes many, but not all, of the Hispanic or Latino population). Since no other information is known about the individuals, we are constructing a representation that will not lose the structures of any of the originating embeddings, as reported. As we add more contexts to construct a more complicated description of the population, that task will become more difficult (and more interesting). This example is one of the simpler versions, and is not controversial. 
+
+We note, also, that the two tables are not commutative in the way that the tract level was, because the total populations are not the same, but that the subsets for the White population are knowable. We can draw it, echoing are drawing above, [block group race and ethnicity](https://q.uiver.app/?q=WzAsNixbMSwwLCJQMTJcXFxcYmdTQVJFIl0sWzAsMiwiYmdTQVJcXFxccmFjZVxcXzdcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8yMyJdLFsyLDIsImJnU0FFXFxcXGV0aG5pY2l0eVxcXzJcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8yMyJdLFsxLDEsInRvdGFsc1xcXFxkaWZmZXJlbnRcXDtieVxcXFx0cmFjdFxcO2FuZFxcXFxvbmx5XFw7b3ZlcmxhcFxcXFxvblxcO3JhY2VcXDthbmRcXFxcZXRobmljaXR5Il0sWzEsMiwiXFxidWxsZXQiXSxbMiw0XSxbMCwxLCJkaXZpZGVzIiwxLHsiY29sb3VyIjpbMTIwLDYwLDYwXX0sWzEyMCw2MCw2MCwxXV0sWzAsMiwiZGl2aWRlcyIsMSx7ImNvbG91ciI6WzEyMCw2MCw2MF19LFsxMjAsNjAsNjAsMV1dLFsxLDJdLFsyLDEsImRvZXNcXDtub3RcXFxcY29tbXV0ZSIsMCx7ImNvbG91ciI6WzQsOTcsNjBdfSxbNCw5Nyw2MCwxXV0sWzMsNCwidGFibGVzIFxcbmVxIiwxLHsiY29sb3VyIjpbNCw5Nyw2MF19LFs0LDk3LDYwLDFdXV0=) 
+Latex: 
+[\begin{tikzcd}
+	& P12\\bgSARE \\
+	& {totals\\different\;by\\tract\;and\\only\;overlap\\on\;race\;and\\ethnicity} \\
+	{bgSAR\\race\_7\;x\\sex\;x\;age\_23} & \bullet & {bgSAE\\ethnicity\_2\;x\\sex\;x\;age\_23} \\
+	\\
+	&& {}
+	\arrow["divides"{description}, color={rgb,255:red,92;green,214;blue,92}, from=1-2, to=3-1]
+	\arrow["divides"{description}, color={rgb,255:red,92;green,214;blue,92}, from=1-2, to=3-3]
+	\arrow[from=3-1, to=3-3]
+	\arrow["{does\;not\\commute}", color={rgb,255:red,252;green,67;blue,54}, from=3-3, to=3-1]
+	\arrow["{tables \neq}"{description}, color={rgb,255:red,252;green,67;blue,54}, from=2-2, to=3-2]
+\end{tikzcd}\]
 
 #here or later??
 We note, by the way, that one could encode the descriptions in terms of sets, as well. Only as the construction gets yet more complicated will the distinction between types and sets really matter. [want to get, eventually, at what it means to work through syntax vs. semantics, with a brief nod to Tarski (https://en.wikipedia.org/wiki/Semantic_theory_of_truth) and Lawvere (who took classes with Tarski for a year in Berkeley and is responding to that same question of semantic vs. syntactic in 1963) - the subtlety is that the initial idea of structural embedding I'm trying to pull out is what Tarski would have assigned to the formal idea of semantics, and that Lawvere (following Grothendieck) would have given a better mathematical grounding (although we still have to talk about what gets past the "formal" idea of semantics in Tarski's sense); this could also be the place to talk about Martin Löf, and why ZF set theory (with or without C for the axiom of choice, he is clear!), doesn't work because of membership and stratification. That the strata can be cashed out - i.e., the axiom of reducibility - doesn't need to be brought in if you're doing constructive (or intuitive) type theory] That Lawvere doesn't mention anything about "membership" in his definition of the category of set, for example in the co-authored introductory textbook, is no doubt a remnant of his time thinking about Tarski's project, and about what it means to understand mathematical structure in terms of the semantics of possible transformations in "ways of talking" as opposed to building the definition internally from axioms [Awodey or McClarty or Marquis (from a Geometrical Point of View)]
@@ -459,7 +486,24 @@ We are consciously putting these questions to the side, with the expectation tha
 
 For now, we want to focus on the prosaic process of construction. To read the data.table script, below, you'd say that for the rows in bgSAR_10 that match the White only group (re_code=="A"), assign a match_id with the components of tract, sex, age, and an appropriate random number chosen between 1 and the total number of individuals in that subgroup (the default is replace=FALSE, which is to say that all those numbers are assigned). Then you do the same for bgSAE_10. Then the folks left in each tract in the category of Hispanic or Latino should be more than the number of White Alone that are left (presumably that portion of the Hispanic population was listed as some other racial category).
 
-With these caveats in mind, let's look at how to best move the detailed tract data onto the block_group, with some discussion of other approaches and inherent dangers to the representations. We begin with the joins on ethnicity and race that are available at the block_group level:
+With these caveats in mind, let's look at how to best move the detailed tract data onto the block_group, with some discussion of other approaches and inherent dangers to the representations. We begin with the joins on ethnicity and race that are available at the block_group level. An overall view of the first two steps, as we join what is known, can be drawn: [Add White Ethnicity to Race Tables by Block Group](https://q.uiver.app/?q=WzAsOSxbMSwwLCJiZ1NBUlxcXFxyYWNlXFxfN1xcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzIzIl0sWzMsMCwiYmdTQUVcXFxcZXRobmljaXR5XFxfMlxcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzIzIl0sWzMsMl0sWzEsMiwiV2hpdGVcXDtBbG9uZSxcXFxcbm90XFw7SGlzcGFuaWNcXFxcb3JcXDtMYXRpbm8iXSxbMSw0LCJXaGl0ZVxcO0Fsb25lLFxcXFxIaXNwYW5pY1xcXFxvclxcO0xhdGlubyJdLFszLDUsImJnU0FFXFxcXGV0aG5pY2l0eVxcXzJcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8yM1xcXFx4XFw7cmFjZVxcXzEiXSxbMSw1LCJiZ1NBUlxcXFxyYWNlXFxfN1xcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzIzXFxcXHhcXDtldGhuaWNpdHlcXF8xLjUiXSxbMCw1LCJOb3RcXDtXaGl0ZSxcXFxcSGlzcGFuaWNcXDtvclxcXFxMYXRpbm9cXFxcbm90XFw7a25vd24iLFswLDYwLDYwLDFdXSxbMSw2LCJjb3VudFxcO0hpc3BhbmljXFxcXG9yXFw7TGF0aW5vXFxcXHJlbWFpbmluZ1xcXFx4XFw7YmxvY2tcXDtncm91cFxcXFx4XFw7c2V4XFw7eFxcO2FnZSJdLFsxLDMsIkV0aG5pY2l0eT09IElcXFxcbWF0Y2hcXFxcc2V4XFw7eFxcO2FnZSIsMV0sWzAsMywicmFjZT09QSIsMV0sWzMsNCwiQnlcXDtkaXNqdW5jdGlvblxcXFxyZW1haW5pbmdcXFxcYXJlOiIsMV0sWzEsNV0sWzQsNSwibWF0Y2hcXFxcc2V4XFw7eFxcO2FnZSIsMV0sWzQsNl0sWzYsOF1d)
+Latex: 
+[\begin{tikzcd}
+	& {bgSAR\\race\_7\;x\\sex\;x\;age\_23} && {bgSAE\\ethnicity\_2\;x\\sex\;x\;age\_23} \\
+	\\
+	& {White\;Alone,\\not\;Hispanic\\or\;Latino} && {} \\
+	\\
+	& {White\;Alone,\\Hispanic\\or\;Latino} \\
+	\textcolor{rgb,255:red,214;green,92;blue,92}{Not\;White,\\Hispanic\;or\\Latino\\not\;known} & {bgSAR\\race\_7\;x\\sex\;x\;age\_23\\x\;ethnicity\_1.5} && {bgSAE\\ethnicity\_2\;x\\sex\;x\;age\_23\\x\;race\_1} \\
+	& {count\;Hispanic\\or\;Latino\\remaining\\x\;block\;group\\x\;sex\;x\;age}
+	\arrow["{Ethnicity== I\\match\\sex\;x\;age}"{description}, from=1-4, to=3-2]
+	\arrow["{race==A}"{description}, from=1-2, to=3-2]
+	\arrow["{By\;disjunction\\remaining\\are:}"{description}, from=3-2, to=5-2]
+	\arrow[from=1-4, to=6-4]
+	\arrow["{match\\sex\;x\;age}"{description}, from=5-2, to=6-4]
+	\arrow[from=5-2, to=6-2]
+	\arrow[from=6-2, to=7-2]
+\end{tikzcd}\]
 
 ```{r join bgSAE and bgSAR}
 bgSAR_10[re_code=="A",("sar_match_id"):=
@@ -485,10 +529,14 @@ test <- table(bgSAR_10[re_code=="A"&!is.na(ethnicity),geoid],
 )
 length(test[test==FALSE])==0
 #should mean that all the individuals who identify as both White and Hispanic or Latino are accounted for
-#We can put the Hispanic label on them, and then make sure that we put the marker back on SAE, so that age and sex for the others stays same
+
+```
+
+Having assigned the part of the population that we know to be White Alone, Not Hispanic or Latino at the block group level, we can now give the White Alone, Hispanic or Latino an "H" for ethnicity and mark off the Hispanics in the ethnicity block group tables by those sex and age_ranges. Since the groups are complements of each other (adjoint), and there are only a few things ascribed to each table, the subsetting can be done without loss of information.
+
+```{r assign rest of White alone ethnicity and do counts for Hispanic or Latino remaining in block}
 bgSAR_10[is.na(ethnicity)&re_code=="A",("ethnicity"):="H"]
-nrow(bgSAR_10[re_code=="A"&ethnicity=="H"])
-nrow(bgSAE_10[re_code=="H"&is.na(r_code)])==nrow(bgSAE_10[re_code=="H"])
+#put a marker back on SAE, so that age and sex for the others stays same
 bgSAR_10[re_code=="A"&ethnicity=="H",("sar2_match_id"):=
                     paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
                   by=.(geoid,sex,age_range)]
@@ -497,17 +545,35 @@ bgSAE_10[re_code=="H",("sar2_match_id"):=
                   by=.(geoid,sex,age_range)]
 bgSAE_10[re_code=="H",("r_code"):=
                     bgSAR_10[.SD, list(re_code), on = .(sar2_match_id)]]
-#So bgSAE10 now knows where the individuals who are Hispanic or Latino and White are.
-
+#SAE_Harris (tract) for just H and I has the same total size as bgSAE for blocks.
+nrow(trSAE_10[re_code%in%c("H","I")])==nrow(bgSAE_10)
+#check that White Alone has right number totals on both sides
+nrow(bgSAE_10[re_code=="H"&!is.na(r_code)])+nrow(bgSAE_10[re_code=="I"])==
+  nrow(bgSAR_10[re_code=="A"])
 #Now let's do some tests first to ensure we've got what we think we have
 nrow(bgSAR_10[ethnicity!="I"&re_code=="A"])==nrow(trSAR_10[ethnicity!="I"&re_code=="A"])
 nrow(bgSAR_10[is.na(ethnicity)&re_code=="A"])==0
 
+#move number of total Hispanic or Latino onto all rows in block by sex and age_range
+bgSAE_10[re_code=="H"&is.na(r_code),("H_block"):=.N,by=.(geoid,sex,age_range)]
+bgSAE_10[re_code=="H"&is.na(r_code),("H_tract"):=.N,by=.(tract,sex,age_range)]
+bgSAR_10[re_code!="A",("sar3_match_id"):=
+                    paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
+                  by=.(geoid,sex,age_range)]
+bgSAE_10[re_code=="H"&is.na(r_code),("sar3_match_id"):=
+                    paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
+                  by=.(geoid,sex,age_range)]
+bgSAR_10[re_code!="A",c("H_block","H_tract"):=
+                    bgSAE_10[.SD, list(H_block), on = .(sar3_match_id)]]
+#put the number remaining Hispanic or Latino by block group, sex, and age_range on every row in SAR without ethnicity
+#bgSAR_10[,("bg_H_remain"):=.SD[1,list(as.integer(H_block))],
+#         by=.(geoid,sex,age_range)]
+#some summaries and tests
 paste0("number of Hispanic or Latino who are not White alone: ",
        nrow(bgSAE_10)-nrow(bgSAR_10[!is.na(ethnicity)]))
-#check to make sure totals line up with tracts
-#SAE_Harris (tract) for just H and I has the same total size as bgSAE for blocks.
-nrow(trSAE_10[re_code%in%c("H","I")])==nrow(bgSAE_10)
+#which should equal the same in the tract table
+nrow(trSAR_10[ethnicity=="H"])-nrow(trSAR_10[re_code=="A"&ethnicity=="H"])==
+  nrow(bgSAE_10)-nrow(bgSAR_10[!is.na(ethnicity)])
 #the ones who are neither H nor I are all the non-White categories minus the Hispanics
 H_A <- nrow(bgSAR_10[ethnicity=="H"&re_code=="A"])
 paste0("The number of people listed as White by race and Hispanic or Latino by ",
@@ -516,7 +582,8 @@ paste0("The number of people listed as White by race and Hispanic or Latino by "
 H_A==nrow(trSAR_10[re_code=="A"])-nrow(trSAR_10[ethnicity=="I"])
 #which means the complete White population has ethnicity assigned
 paste0("This leaves ",nrow(bgSAE_10[re_code=="H"]) - H_A," non-White, Hispanic or Latino,",
-       " out of ",nrow(bgSAR_10[re_code!="A"])," non-White individuals.")
+       " out of ",nrow(bgSAR_10[re_code!="A"])," non-White individuals. Of that remaining Hispanic or Latino population, ", nrow(trSAR_10[re_code=="F"&ethnicity=="H"]), 
+       " consider themselves Some Other Race Alone")
 ```
 
 We can add in the tract data at this point, matching on ethnicity, with race assigned within the subgroups where we don't know ethnicity by random sample, but there's a potential that some of the folks (1,774,203) who don't have ethnicity assigned at the block group will be misassigned within the tract to the wrong block group. That is, we can create a commutative representation, but it might break with other commutative relations at other levels that depend on how race is combined with ethnicity at the block group level. 
@@ -528,83 +595,124 @@ We have each race x age total and each race x age, non-Hispanic at tract - so kn
 We have each race x age total and White x age x ethnicity at the block group - so know non-White x ethnicity by disjunction. 
 Could create a small data.table with the white x age x ethnicity and then the Hispanics and non-Hispanics counted out at the block level; then join that back to the tract level to pick up the race x age x ethnicity distribution at that level; then back to the bg. Are there any other places to test for lost relationality? Should we run a quick test on the subsection of race and re_code to demonstrate no loss before setting to "temp"? 
 
+Point is that we get the overall distribution by tract solid; the HI non_HI then gives structure at block level; the particular race/eth combinations still come from tract level, but given that HI is known at block level, it should be roughly equivalent (if not equal):
+
+https://q.uiver.app/?q=WzAsMTIsWzEsMCwiYmdTQVJcXFxccmFjZVxcXzdcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8yMyJdLFszLDAsImJnU0FFXFxcXGV0aG5pY2l0eVxcXzJcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8yMyJdLFszLDJdLFsxLDIsIldoaXRlXFw7QWxvbmUsXFxcXG5vdFxcO0hpc3BhbmljXFxcXG9yXFw7TGF0aW5vIl0sWzEsNCwiV2hpdGVcXDtBbG9uZSxcXFxcSGlzcGFuaWNcXFxcb3JcXDtMYXRpbm8iXSxbMyw1LCJiZ1NBRVxcXFxldGhuaWNpdHlcXF8yXFw7eFxcXFxzZXhcXDt4XFw7YWdlXFxfMjNcXFxceFxcO3JhY2VcXF8xIl0sWzEsNSwiYmdTQVJcXFxccmFjZVxcXzdcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8yM1xcXFx4XFw7ZXRobmljaXR5XFxfMS41Il0sWzAsNSwiTm90XFw7V2hpdGUsXFxcXEhpc3BhbmljXFw7b3JcXFxcTGF0aW5vXFxcXG5vdFxcO2tub3duIixbMCw2MCw2MCwxXV0sWzEsNiwiY291bnRcXDtIaXNwYW5pY1xcXFxvclxcO0xhdGlub1xcXFxyZW1haW5pbmdcXFxceFxcO2Jsb2NrXFw7Z3JvdXBcXFxceFxcO3NleFxcO3hcXDthZ2UiXSxbMiw2LCJjb3VudFxcO2lzXFxcXHJlc3VsdFxcO29mXFxcXHN0cnVjdHVyZVxcXFxvblxcO2Fkam9pbnRcXFxcc2lkZSIsWzAsNjAsNjAsMV1dLFszLDYsImJsb2NrXFw7c3RydWN0dXJlXFxcXHdpdGhpblxcXFx0cmFjdHNcXFxcY3JlYXRlc1xcXFxkaXN0cmlidXRpb24iXSxbMSw3LCJ0cmFjdFxcO2xldmVsXFxcXGdpdmVzXFxcXGluZGl2aWR1YWxcXFxcdmFsdWVzXFxcXGRpc3RyaWJ1dGVkXFxcXHdpdGhcXDtzdHJ1Y3R1cmUiXSxbMSwzLCJFdGhuaWNpdHk9PSBJXFxcXG1hdGNoXFxcXHNleFxcO3hcXDthZ2UiLDFdLFswLDMsInJhY2U9PUEiLDFdLFszLDQsIkJ5XFw7ZGlzanVuY3Rpb25cXFxccmVtYWluaW5nXFxcXGFyZToiLDFdLFsxLDVdLFs0LDUsIm1hdGNoXFxcXHNleFxcO3hcXDthZ2UiLDFdLFs0LDZdLFs2LDhdLFs4LDExLCJkZXRlcm1pbmUiLDFdXQ==
+
+
 Move block by race over to trSAR? WE WANT ETHNICITY TO BE ALLOWED TO VARY, BUT NOT RACE, BY BLOCK 
 DRAW!!!!
 The idea is that you want the values to have been determined by the structure provided from both sides, with the values assigned from the one that constrains toward the individual values. [[it's a weird question about what the precise language should be]] Perhaps it's more like the idea that you have channels, like sieves, that come from different structures, but attach to the row as it passes through the alluvial. 
 
-What we mean by structure is embodied in how the names can circulate in relation to the named - not the Kantian (as diagnosed by Sellars) moment of simple and single contact with the noumenal, but a channel within which the names circulate according to a structure. That is, we are not trying to find a place where the name is correct, but where the names have a logic of application and the structure that makes that application make sense is captured. This allows for the movement between different ways of naming to make sense. Here, we do it one at a time, so that the determination from the ethnicity as given in the table for tracts has the relation to race moved over from the block group tables. When we match block and ethnicity from the block group level for the group quarters, below, we are combining the two structured ways of naming by capturing how one moves between them. As we find more difficult situations, that sense of movement will allow us to speak to the sense of a dynamic dialogue between different ways of naming that demonstrates more capacity for eliciting and understanding structures. We are not trying to become relativists by refusing the idea of naming as the place where a truth is instantiated, but showing that ways of naming allow us to see structures that encompass multiple strategies for structuring how the names are attached, and to see the comparison in algebraic or topological terms (as ways of combining structures) and not as a single action of determination in an individual's act of naming what is as the result of an act of naming from a determined perspective on the whole. 
+What we mean by structure is embodied in how the names can circulate in relation to the named - not the Kantian (as diagnosed by Sellars) moment of simple and single contact with the noumenal, but a channel within which the names circulate according to a structure. That is, we are not trying to find a place where the name is correct, but where the names have a logic of application and the structure that makes that application make sense is captured. This allows for the movement between different ways of naming to make sense. Here, we do it one at a time, so that the determination from the ethnicity as given in the table for tracts has the relation to race moved over from the block group tables. When we match block and ethnicity from the block group level for the group quarters, below, we are combining the two structured ways of naming by capturing how one moves between them. As we find more difficult situations, that sense of movement will allow us to speak to the sense of a dynamic dialogue between different ways of naming that demonstrates more capacity for eliciting and understanding structures. We are not trying to become relativists by refusing the idea of naming as the place where a truth is instantiated, but showing that ways of naming allow us to see structures that encompass multiple strategies for structuring how the names are attached, and to see the comparison in algebraic or topological terms (as ways of combining structures) and not as a single action of determination in an individual's act of naming what is as the result of an act of naming from a determined perspective on the whole. The structure for ethnicity by race is highly determinative for "Some Other Race" (almost 99% in Harris County), but not exhaustive, and just less than two-thirds for "Two or More Races," with a large cohort for "Black or African American" and "Hispanic or Latino" (21,234 people, which is just less than 3% of all "Black or African American").  
 
-```{r move block by race over to trSAR to save structure when moving back later}
-#first, get age_range onto trSAR in a way that matches
+```{r add age_range onto trSAR so that it matches}
 bgSAR_10[order(tract,first_age),("age_match_id"):=
-                    paste0(tract,as.character(100000+seq.int(1:.N))),
-                  by=.(tract)]
+                    paste0(tract,sex,re_code,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,sex,re_code)]
 trSAR_10[order(tract,age),("age_match_id"):=
-                    paste0(tract,as.character(100000+seq.int(1:.N))),
-                  by=.(tract)]
+                    paste0(tract,sex,re_code,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,sex,re_code)]
 trSAR_10[,("age_range"):=
                     bgSAR_10[.SD, list(age_range), on = .(age_match_id)]]
 test <- table(bgSAR_10[,tract],
-              bgSAR_10[,sex],
-              bgSAR_10[,age_range]
-              )==
-        table(trSAR_10[,tract],
-              trSAR_10[,sex],
-              trSAR_10[,age_range]
-              )
-length(test[test==FALSE])==0
-#then move over bg on race, sex, and age_range - White, then rest
-bgSAR_10[re_code=="A",("race_match_id"):=
-                    paste0(tract,sex,age_range,re_code,as.character(100000+seq.int(1:.N))),
-                  by=.(tract,sex,age_range,re_code)]
-trSAR_10[re_code=="A",("race_match_id"):=
-                    paste0(tract,sex,age_range,re_code,as.character(100000+seq.int(1:.N))),
-                  by=.(tract,sex,age_range,re_code)]
-trSAR_10[re_code=="A",("geoid"):=
-                    bgSAR_10[.SD, list(geoid), on = .(race_match_id)]]
-test <- table(bgSAR_10[re_code=="A",tract],
-              bgSAR_10[re_code=="A",geoid],
-              bgSAR_10[re_code=="A",sex],
-              bgSAR_10[re_code=="A",re_code],
-              bgSAR_10[re_code=="A",age_range]
-              )==
-        table(trSAR_10[re_code=="A",tract],
-              trSAR_10[re_code=="A",geoid],
-              trSAR_10[re_code=="A",sex],
-              trSAR_10[re_code=="A",re_code],
-              trSAR_10[re_code=="A",age_range]
-              )
-length(test[test==FALSE])==0
-#rest
-bgSAR_10[re_code!="A",("race_match2_id"):=
-                    paste0(tract,sex,age_range,re_code,as.character(100000+seq.int(1:.N))),
-                  by=.(tract,sex,age_range,re_code)]
-trSAR_10[re_code!="A",("race_match2_id"):=
-                    paste0(tract,sex,age_range,re_code,as.character(100000+seq.int(1:.N))),
-                  by=.(tract,sex,age_range,re_code)]
-trSAR_10[re_code!="A",("geoid"):=
-                    bgSAR_10[.SD, list(geoid), on = .(race_match2_id)]]
-test <- table(bgSAR_10[,tract],
-              bgSAR_10[,geoid],
               bgSAR_10[,sex],
               bgSAR_10[,re_code],
               bgSAR_10[,age_range]
               )==
         table(trSAR_10[,tract],
-              trSAR_10[,geoid],
               trSAR_10[,sex],
               trSAR_10[,re_code],
               trSAR_10[,age_range]
               )
 length(test[test==FALSE])==0
-
 ```
 
-Then we can empty the bgSAR_10 re_code and race, in order to allow the ethnicity to be attached.
-HAVE TO RETHINK!!!! DO THE DRAWINGS!!!
+There is some possibility, in the age matching, that someone from one of the block groups has an ethnicity that will be misaligned with the ages by race, since we weren't matching on ethnicity (it isn't known for the non-White block groups, after all). That would be a narrow window for the difference, however, and we will be able to show that no known information is lost.
+
+Now we join the tract table to the block groups, by age_range with count by race with Hispanic or Latino Remaining. 
+
+If we order by H_tract remaining in tract by re_code and sample from "notHvI" on the block_group, they should match
+
+```{r join bgSAR with trSAR for ethnicity by block group}
+#move H_re_code to bg - then order by re_code in each block and seq.int in that block up to H_block
+trSAR_10[ethnicity=="H",("H_re_code"):=.N,by=.(tract,sex,age_range,re_code)]
+#then merge
+trSAR_10[ethnicity=="H",("ethSAR_match_id"):=
+           paste0(tract,sex,age_range,re_code,as.character(100000+sample(1:.N))),
+           by=.(tract,sex,age_range,re_code)]
+bgSAR_10[re_code!="A",("ethSAR_match_id"):=
+           paste0(tract,sex,age_range,re_code,as.character(100000+sample(1:.N))),
+           by=.(tract,sex,age_range,re_code)]
+bgSAR_10[re_code!="A",("H_re_code"):=
+                    trSAR_10[.SD, list(H_re_code), on = .(ethSAR_match_id)]]
+bgSAR_10[re_code!="A",("H_re_code_full"):=.SD[1,list(as.integer(H_re_code))],
+         by=.(tract,sex,age_range,re_code)]
+#H_re_code+H_block just to give a sense for how they contribute to order of whole
+bgSAR_10[re_code!="A",("H_marker"):=H_block+H_re_code_full] 
+bgSAR_10[order(-H_marker), #&substr(geoid,15,15)=="7" - and only by H_re_code_full????
+         ("ethSAR_match1_id"):=
+           if_else(.N<H_block,
+              paste0(tract,sex,age_range,re_code,as.character(100000+seq.int(1:.N))),
+              "no_match"),
+         by=.(tract,sex,age_range,re_code)]
+trSAR_10[ethnicity=="H",
+         ("ethSAR_match1_id"):=
+           paste0(tract,sex,age_range,re_code,as.character(100000+sample(1:.N))),
+           by=.(tract,sex,age_range,re_code)]
+bgSAR_10[,("ethnicity"):=
+                    trSAR_10[.SD, list(ethnicity), on = .(ethSAR_match1_id)]]
+#then do rest of ethnicity
+bgSAR_10[is.na(ethnicity)]
+trSAR_10[re_code!="A"&ethnicity!="H"] #check numbers
+
+
+
+
+
+
+#that will move people too aggressively into the same blocks, but should be tempered by the available distribution
+#starting from smallest on both should also move it up a bit
+
+
+#want to sample up to H_block
+#bgSAR_10[,("id"):=paste0(tract,sex,age_range,re_code)]
+
+
+#trSAR sampled from ethnicity=="H" x age x sex
+#if you have the ratio of H_re_code to H_tract on tr and use that as sample odds??
+trSAR_10[ethnicity=="H",("H_tract"):=.N,by=.(tract,sex,age_range)]
+
+trSAR_10[order(-H_re_code),seq.int(1:.N)]
+bgSAR_10[]#less than number in block, and then subtract again max(as.integer(substr(bgSAR_10[,geoid]))) - do each block sampling
+```
+
+THEN FINISH THE TRIANGLE BACK TO bgSAR with ethnicity from trSAR with sex, age_range and HvI non-HvI at tract level.
+
+Somewhere above, about Type theory and computability - the only operations allowed to do the matching are things that you can place on a single row and then can match with a different table uniquely by that row. That is a complement or adjoint of the sense of complementarity itself.... You can give a whole group a name, and then count each individual, and you can do things that allow you to count multiple times as you subset, but each individual has to be somehow given a value, so that the row can be assessed.
+
+```{r join by HvI and non HvI}
+bgSAR_10[,("HvI"):=if_else(is.na(ethnicity),"notHvI","HvI")] #some notHvI will end up being H
+trSAR_10[,("HvI"):=if_else(ethnicity%in%c("H","I"),"HvI","notHvI")]
+```
+
+Then do tests
+
+
+
+
+
+
+
+
+Then we can empty the bgSAR_10 re_code and race, in order to allow the ethnicity to be attached, but only insofar as it varies between the block group and the tract, which only differs for the non-White population. 
+
+START HERE -- GETTING FALSE!!!
+WE KNOW HOW MANY HISPANICS IN EACH BLOCK - ORDER EACH BY GEOID 
+
 
 ```{r join rest of bgSAR by emptying some cells and structuring possible distributions}
-#take bgSAR and create a eth_match column
+#take bgSAR and create a way to triangulate on the ethnicity
 bgSAR_10[is.na(ethnicity),c("race","re_code"):="temp"]
 #put the rest of the re_code=="H" from bgSAE onto bgSAR
 bgSAR_10[is.na(ethnicity),("sar3_match_id"):=
@@ -616,24 +724,6 @@ bgSAE_10[re_code=="H"&is.na(r_code),("sar3_match_id"):=
 bgSAR_10[is.na(ethnicity),("ethnicity"):=
                     bgSAE_10[.SD, list(re_code), on = .(sar3_match_id)]]
 nrow(bgSAR_10[is.na(ethnicity)])==nrow(trSAR_10[!ethnicity%in%c("H","I")])
-table(bgSAR_10[re_code=="A",ethnicity])
-table(trSAR_10[re_code=="A",ethnicity])
-table(bgSAR_10[re_code!="A",ethnicity])
-table(trSAR_10[re_code!="A",ethnicity])
-nrow(bgSAR_10[!is.na(ethnicity)])==nrow(bgSAE_10)
-#then match on trSAR on ethnicity
-
-
-nrow(trSAR_10[re_code!="A"&ethnicity=="H"])==nrow(bgSAR_10[re_code!="A"&ethnicity=="H"])
-#now matching on ethnicity for all trSAR not re_code=="A" but still ethnicity=="H"
-bgSAR_10[re_code!="A"&ethnicity=="H",("eth2_match_id"):=
-                    paste0(tract,sex,re_code,age_range,as.character(100000+sample(1:.N))),
-                  by=.(tract,sex,re_code,age_range)]
-trSAR_10[re_code!="A"&ethnicity=="H",("eth2_match_id"):=
-                    paste0(tract,sex,re_code,age_range,as.character(100000+sample(1:.N))),
-                  by=.(tract,sex,re_code,age_range)]
-bgSAR_10[re_code!="A"&ethnicity=="H",c("race","ethnicity"):=
-                    trSAR_10[.SD, c(list(race),list(ethnicity)), on = .(eth2_match_id)]]
 test <- table(bgSAR_10[ethnicity%in%c("H","I"),tract],
               bgSAR_10[ethnicity%in%c("H","I"),sex],
               bgSAR_10[ethnicity%in%c("H","I"),age_range],
@@ -645,6 +735,28 @@ test <- table(bgSAR_10[ethnicity%in%c("H","I"),tract],
               trSAR_10[ethnicity%in%c("H","I"),ethnicity]
               )
 length(test[test==FALSE])==0
+
+#then from trSAR_10 matched on everything and ethnicity by sex and age
+
+
+table(bgSAR_10[re_code=="A",ethnicity])
+table(trSAR_10[re_code=="A",ethnicity])
+table(bgSAR_10[re_code!="A",ethnicity])
+table(trSAR_10[re_code!="A",ethnicity])
+nrow(bgSAR_10[!is.na(ethnicity)])==nrow(bgSAE_10)
+#then match on trSAR on all at the block level
+#test that they are the same size
+nrow(trSAR_10[re_code!="A"&ethnicity=="H"])==nrow(bgSAR_10[re_code!="A"&ethnicity=="H"])
+#now matching on ethnicity for all trSAR not re_code=="A" but still ethnicity=="H"
+bgSAR_10[re_code!="A"&ethnicity=="H",("eth2_match_id"):=
+                    paste0(tract,sex,re_code,age_range,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,re_code,age_range)]
+trSAR_10[re_code!="A"&ethnicity=="H",("eth2_match_id"):=
+                    paste0(tract,sex,re_code,age_range,as.character(100000+sample(1:.N))),
+                  by=.(tract,sex,re_code,age_range)]
+bgSAR_10[re_code!="A"&ethnicity=="H",c("race","ethnicity"):=
+                    trSAR_10[.SD, c(list(race),list(ethnicity)), on = .(eth2_match_id)]]
+
 #and then the rest
 bgSAR_10[is.na(ethnicity),("eth3_match_id"):=
                     paste0(tract,sex,re_code,age_range,as.character(100000+sample(1:.N))),
@@ -682,6 +794,45 @@ test <- table(bgSAR_10[ethnicity%in%c("H","I"),geoid],
   bgSAE_10[,re_code],
   bgSAE_10[,age_range]
 )
+length(test[test==FALSE])==0
+#see how many of the block group designations on trSAR no longer match with bgSAR
+test <- table(bgSAR_10[,tract],
+              bgSAR_10[,geoid],
+              bgSAR_10[,sex],
+              bgSAR_10[,re_code],
+              bgSAR_10[,age_range]
+              )==
+        table(trSAR_10[,tract],
+              trSAR_10[,geoid],
+              trSAR_10[,sex],
+              trSAR_10[,re_code],
+              trSAR_10[,age_range]
+              )
+length(test[test==FALSE])
+```
+
+```{r add block group geoid to trSAR}
+#then move over bg on race, sex, and age_range
+bgSAR_10[,("geoid_match_id"):=
+                    paste0(tract,sex,age_range,re_code,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,sex,age_range,re_code)]
+trSAR_10[,("geoid_match_id"):=
+                    paste0(tract,sex,age_range,re_code,as.character(100000+seq.int(1:.N))),
+                  by=.(tract,sex,age_range,re_code)]
+trSAR_10[,("geoid"):=
+                    bgSAR_10[.SD, list(geoid), on = .(geoid_match_id)]]
+test <- table(bgSAR_10[,tract],
+              bgSAR_10[,geoid],
+              bgSAR_10[,sex],
+              bgSAR_10[,re_code],
+              bgSAR_10[,age_range]
+              )==
+        table(trSAR_10[,tract],
+              trSAR_10[,geoid],
+              trSAR_10[,sex],
+              trSAR_10[,re_code],
+              trSAR_10[,age_range]
+              )
 length(test[test==FALSE])==0
 ```
 
