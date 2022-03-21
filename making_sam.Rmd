@@ -957,7 +957,7 @@ For the household data, we don't have anything that tells us which block they're
 
 Should be able to do all of them at once, after doing group quarters - the .N on the cell size from bgSAR is key; do them here, as something to test against on the full idea, too.
 
-```{r add White population in households to block group population}
+```{r add White population in households to block group population table}
 trHHr_10[,("household"):=list("In household")] #more convenient for below
 bgSAR_10[re_code=="A",("bg_saW_hh_match_id"):=
                     paste0(tract,ethnicity,sex,first_age,as.character(100000+sample(1:.N))),
@@ -1243,7 +1243,7 @@ cat(check_summary[1])
 
 Expand the tract level race, ethnicity, sex, and age data for over 17 group quarters.
 
-```{r expand tract group quarters population by type sex, age, race and ethnicity}
+```{r expand tract group quarters population by type sex, age, race and ethnicity, warning=FALSE}
 tr_re_over17_type_group_quarters_10 <- tr_re_sex_type_group_quarters_data_10 %>%
   pivot_longer(4:ncol(tr_re_sex_type_group_quarters_data_10),names_to = "tract", values_to = "number_sams") %>% 
   mutate(
@@ -1272,13 +1272,11 @@ tr_e_gq_over17_10 <- tr_re_over17_gq_10[re_code%in%c("H","I")]
 paste0("Number of individuals in group quarters table: ", nrow(tr_r_gq_over17_10))
 #check that the number of households plus number of group quarters = total population
 nrow(tr_r_gq_over17_10)+nrow(tr_sa_gq_10[age_range=="Under 18 years"])+nrow(trHHr_10)==nrow(bgSAR_10)
-#clean up
 ```
 
 Joining PCT21 (tr_sa_gq_10) with P43 (bggq_10), since PCT21 just adds group quarter specifics. This follows the rules for triangle commutativity, but has a potential of mismatching at the block group level so we move it over with a caveat by putting a tr_ prefix on the gq_specs variable (tr_gq_specs).
 
 ```{r add gq_spec_count_sa to bggq from tr_sa_gq}
-#tr_sa_gq_10[,("gq_spec_count_sa"):=.N,by=c("tract","sex","age_range","institutionalized","gq_type","gq_specs")]
 bggq_10[,("bg_sa_gq_match_id"):=
                     paste0(tract,sex,age_range,gq_type,as.character(100000+sample(1:.N))),
                   by=.(tract,sex,age_range,gq_type)]
@@ -1773,8 +1771,8 @@ bgSAR_10[first_age=="15"&re_code!="A",
 bggq_10[beg_age_gq=="17"&sts_re_code!="A",("SAR_match"):=
                     bgSAR_10[.SD,list(geoid), 
                      on = .(sar_gq_match_id)]]
-nrow(bgSAR_10[first_age=="15"&re_code!="A"&!is.na(institutionalized)])==
-  nrow(bggq_10[beg_age_gq=="17"&sts_re_code!="A"])
+nrow(bgSAR_10[first_age=="15"&re_code!="A"&!is.na(institutionalized)])== #150
+  nrow(bggq_10[beg_age_gq=="17"&sts_re_code!="A"])                      #179
 #false because some sts_ethnicity are missing - so do it again without ethnicity
 bgSAR_10[first_age=="15"&re_code!="A"&is.na(institutionalized),
          ("sar_gq_match1_id"):=
