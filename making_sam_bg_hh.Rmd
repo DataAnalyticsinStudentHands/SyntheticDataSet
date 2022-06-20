@@ -31,11 +31,12 @@ maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ 
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
-vintage = "2019"
+vintage = "2010"
 housingStockFromRDS = TRUE 
 #numberOfCores = 1
 state = 48 #48 Texas; 22 Louisiana
 county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
+st_county = paste0(state,county)
 tract = "*"
 Sam_seed = 135
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
@@ -1003,6 +1004,7 @@ test <- table(
 length(test[test==FALSE])==0
 ```
 
+Followed below - can't remember why I left it in all caps.
 DO ALL HH TO BGSAR BY AGE AND RACE BY HOUSEHOLD FIRST - so not accidentally pulling from them
 JUST LINE THEM UP AFTER A JOIN, SO THAT SEQ.INT WITHIN THE LARGER AGE GROUPS STARTS WITH THE GQ FOLKS - HAVE TO THINK ABOUT HOW THAT WORKS ON BLOCK GROUPS, THOUGH....
 
@@ -1293,20 +1295,20 @@ If you have sa spec count, and you assign every row before .N to the value from 
 
 
 ```{r add gq_spec_count_r and gq_spec_count_e to over 17 gq from tr_r_gq and tr_e_gq}
-tr_r_gq_10[order(tract,race,institutionalized,gq_type,gq_specs), #test to see what's needed
+tr_r_gq_10[order(tract,re_code,institutionalized,gq_type,gq_specs), #test to see what's needed
             ("gq_spec_count_r"):=.N,
-            by=c("tract","race","institutionalized","gq_type","gq_specs")]
+            by=c("tract","re_code","institutionalized","gq_type","gq_specs")]
 tr_r_gq_over17_10[,("bg_r_gq_17_match_id"):=
-                    paste0(tract,race,gq_type,as.character(100000+sample(1:.N))),
-                  by=.(tract,race,gq_type)]
-tr_r_gq_10[age_range!="Under 18 years",("bg_r_gq_17_match_id"):=
-                    paste0(tract,race,gq_type,as.character(100000+sample(1:.N))),
-                  by=.(tract,race,gq_type)]
+                    paste0(tract,re_code,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,re_code,gq_type)]
+tr_r_gq_10[,("bg_r_gq_17_match_id"):=
+                    paste0(tract,re_code,gq_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,re_code,gq_type)]
 tr_r_gq_over17_10[,("gq_spec_count_r"):=
                     tr_r_gq_10[.SD, list(gq_spec_count_r), on = .(bg_r_gq_17_match_id)]]
 #tests
 nrow(tr_r_gq_over17_10[is.na(gq_spec_count_r)])==0
-test <- summary(tr_r_gq_10[age_range!="Under 18 years",gq_spec_count_r])==
+test <- summary(tr_r_gq_10[,gq_spec_count_r])==
   summary(tr_r_gq_over17_10[,gq_spec_count_r])
 length(test[test==FALSE])==0
 ```
