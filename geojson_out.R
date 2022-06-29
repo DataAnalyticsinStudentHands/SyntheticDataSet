@@ -240,6 +240,57 @@ tracts_demog[,("income_under_30k"):=as.integer(as.numeric(income_10k)+
                                                 as.numeric(income_10_15k)+
                                                  as.numeric(income_15_20k)+as.numeric(income_20_25k)+
                                                  as.numeric(income_25_30k)*100/as.numeric(households))] #income_10k,income_10_15k,income_15_20k,income_20_25k,income_25_30k
+#for ICEwnhinc
+#HH above $100k & White & Hispanic
+ICEwnhincome_100_125k <- income[name=="B19001H_014E",4:5]
+setnames(ICEwnhincome_100_125k,"income","ICEwnhincome_100_125k")
+tracts_demog <- tracts_demog[ICEwnhincome_100_125k, on="GEOID"]
+tracts_demog[,("ICEwnhincome_100_125k_pct"):=as.integer((as.numeric(ICEwnhincome_100_125k)*100)/as.numeric(households))]
+ICEwnhincome_125_150k <- income[name=="B19001H_015E",4:5]
+setnames(ICEwnhincome_125_150k,"income","ICEwnhincome_125_150k")
+tracts_demog <- tracts_demog[ICEwnhincome_125_150k, on="GEOID"]
+tracts_demog[,("ICEwnhincome_125_150k_pct"):=as.integer((as.numeric(ICEwnhincome_125_150k)*100)/as.numeric(households))]
+ICEwnhincome_150_200k <- income[name=="B19001H_016E",4:5]
+setnames(ICEwnhincome_150_200k,"income","ICEwnhincome_150_200k")
+tracts_demog <- tracts_demog[ICEwnhincome_150_200k, on="GEOID"]
+tracts_demog[,("ICEwnhincome_150_200k_pct"):=as.integer((as.numeric(ICEwnhincome_150_200k)*100)/as.numeric(households))]
+ICEwnhincome_over_200k <- income[name=="B19001H_017E",4:5]
+setnames(ICEwnhincome_over_200k,"income","ICEwnhincome_over_200k")
+tracts_demog <- tracts_demog[ICEwnhincome_over_200k, on="GEOID"]
+tracts_demog[,("ICEwnhincome_over_100k"):=as.numeric(ICEwnhincome_100_125k)+
+                                                 as.numeric(ICEwnhincome_125_150k)+
+                                                 as.numeric(ICEwnhincome_150_200k)+as.numeric(ICEwnhincome_over_200k)]
+#HH below $25k
+tracts_demog[,("income_under_25k"):=as.integer(as.numeric(income_10k)+
+                                                 as.numeric(income_10_15k)+
+                                                 as.numeric(income_15_20k)+as.numeric(income_20_25k)
+                                                 *100/as.numeric(households))]
+#HH below $25k & White not Hispanic
+ICEwnhincome_less_10k <- income[name=="B19001H_002E",4:5]
+setnames(ICEwnhincome_less_10k,"income","ICEwnhincome_less_10k")
+tracts_demog <- tracts_demog[ICEwnhincome_less_10k, on="GEOID"]
+ICEwnhincome_10k_15k <- income[name=="B19001H_003E",4:5]
+setnames(ICEwnhincome_10k_15k,"income","ICEwnhincome_10k_15k")
+tracts_demog <- tracts_demog[ICEwnhincome_10k_15k, on="GEOID"]
+ICEwnhincome_15k_20k <- income[name=="B19001H_004E",4:5]
+setnames(ICEwnhincome_15k_20k,"income","ICEwnhincome_15k_20k")
+tracts_demog <- tracts_demog[ICEwnhincome_15k_20k, on="GEOID"]
+ICEwnhincome_20k_25k <- income[name=="B19001H_005E",4:5]
+setnames(ICEwnhincome_20k_25k,"income","ICEwnhincome_20k_25k")
+tracts_demog <- tracts_demog[ICEwnhincome_20k_25k, on="GEOID"]
+
+#total households
+total_hh <- income[name=="B19001_001E",4:5]
+setnames(total_hh,"income","total_hh")
+tracts_demog <- tracts_demog[total_hh, on="GEOID"]
+
+tracts_demog[,("ICEwnhinc"):=((as.numeric(ICEwnhincome_100_125k)+as.numeric(ICEwnhincome_125_150k)+
+               as.numeric(ICEwnhincome_150_200k)+as.numeric(ICEwnhincome_150_200k)+
+               as.numeric(ICEwnhincome_over_200k))-
+               (as.numeric(ICEwnhincome_less_10k)+as.numeric(ICEwnhincome_10k_15k)+
+                  as.numeric(ICEwnhincome_15k_20k)+as.numeric(ICEwnhincome_20k_25k)))/
+               as.numeric(total_hh)]
+
 
 #housing/renter
 vacant_houses_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -356,8 +407,10 @@ tracts_demog <- tracts_demog[pub_transport, on="GEOID"]
 tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)*100)/as.numeric(households))]
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
+
 st_write(tracts_demog,"~/Downloads/tracts_demog_polygons.geojson",driver = "GeoJSON")
 write_rds(tracts_demog,"~/Downloads/tracts_demog.RDS")
+rank_demogs <- tracts_demog[""]
 
 tracts_demog_pts <- tracts_demog
 tracts_demog_pts[,("centroids"):=st_centroid(geometry)]
