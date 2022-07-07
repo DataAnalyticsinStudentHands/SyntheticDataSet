@@ -1,0 +1,60 @@
+---
+title: "Assignments and attributes"
+author: "Dan Price"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The final articulation we are struggling toward is understanding the goal and purpose of the distribution of names, so that we can assess whether the names assigned answer the questions that originally framed the collection and analyses of the data - or whether some particular extension retains the sense of being "about" the same data in enough ways to justify that secondary use. For the Census Bureau, there is some attempt to retain the sense of capturing how people want to describe themselves, but a greater technological imperative to ensure that the names are complete (i.e., no one is simply not assigned one of the race categories used for their analysis). 
+
+```{r race allocated 2010}
+race_allocation_data_from_census_10 <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+                                                                  groupname = "P46",county_num = county,
+                                                                  block="block_group",api_type="dec/sf1",path_suff="est.csv")
+race_allocated_data <- race_allocation_data_from_census_10 %>%
+  pivot_longer(4:ncol(race_allocation_data_from_census_10),names_to = "geoid", values_to = "totals")
+race_allocated_data <- as.data.table(race_allocated_data)
+race_allocated_total <- race_allocated_data[label=="Total"]
+race_allocated <- race_allocated_data[label=="Total!!Allocated"]
+race_allocated[,("total"):=race_allocated_total[.SD,list(as.numeric(totals)),on=.(geoid)]]
+race_allocated[,("percent"):=round(as.numeric(totals)/total*100,2)]
+summary(race_allocated[,percent])
+paste0("number of block groups with higher than 10% attributed race is ",
+nrow(race_allocated[percent>10])," and the number with 1% or less is ",
+nrow(race_allocated[percent<=1]),
+" of ",nrow(race_allocated))
+```
+
+There is one block group that is an outlier at 72%, with the next highest at 26%, and only 86 with higher than 10%. It may be interesting to know how those block_groups correlate with other factors about the neighborhood demographics, as we move forward. 
+
+```{r join allocated to other demographics, eval = FALSE}
+bgSAR_10[,("percent_allocated_race"):=race_allocated[.SD,list(percent),on=.(geoid)]]
+bgSAR_10[, ("sum") := .N, by = geoid]
+bgSAR_10[, ("proportion") := .N, by = c("race","geoid")]
+bgSAR_10[, ("proportion") := proportion/sum]
+```
+
+```{r draw plots of percent_allocate and proportion_race, eval = FALSE}
+#setDT(bgSAR_10)[, sum := NULL]
+ggplot(bgSAR_10, aes(proportion,percent_allocated_race,color=re_code,group=re_code)) + #[re_code%in%c("A","B")]
+  geom_smooth() +
+  labs(title = "Block groups by proportion of race and number who had race allocated",color = "Race (by re_code)")
+dt <- as.data.table(list(unique(bgSAR_10$re_code),unique(bgSAR_10$race)))
+setnames(dt, c("V1","V2"),c("re_code","race"))
+dt[order(re_code)]
+ggplot(bgSAR_10, aes(proportion,sum,color=re_code,group=re_code)) +
+  geom_smooth()
+rm(list = ls(pattern="race_allocat"))
+```
+
+##could break out the proportion by population, too. Not sure the graphs help, at all. 
+
+The second chart shows the proportion of a given race inside the block group, and although there may be reasons to think they correlate - perhaps because of patterns in urbanization that have also effected the choice of boundaries for block groups - it is generally meant to show what the general curves for distributions look like. The expected bell curves are not exact, but you can't claim that the first chart shows that as a block group has a higher percentage of blacks, it increases the percentage who have allocated race, until it gets to about 30%, when it starts going down again. After all, the percent allocated by race isn't reported by race, and there will be some tendency for the block groups that are grouped around the mean to have some sort of bell curve shape. Perhaps there's something to look at in depth about F - "some other race alone" - which is saying that as that percentage grows in the block group reports, the allocation by race grows. That number, after all, could easily be an artifact of how the "some other race" is collected, for example around people who consider themselves Arab, as opposed to people who say "put me down as 'some other race'". 
+
+The graphs, frankly, bring up more questions than they answer, but they are only meant to show their limitations in this case. In the language that we are using to describe our overall process, the graphs have set rigid naming structures in place as the outer frame and structure of the visibility of the objects seen as "within" the frame. Then we have both mathematical representations (i.e. percentages) and visualizations (i.e., lines drawn) to help us think about how that conceptual frame captures variation as it is applied to smaller subsets. A large portion of the work of statistics, judging from typical publications in the admittedly subjective position of an outsider to the field, tends to be about using those techniques to make a judgment about whether the population fits the descriptive frame. If something about the population doesn't fit, then that tells us about the population. Only occasionally will one see in the publications that the fit is so obviously bad that a different conceptual frame altogether had to be used. That could be a version of publication bias - one only submits the final story, after all the frames that don't work have been tried and discarded, or one is already working inside a subfield where the decision about the conceptual frame has been well adjudicated in the founding publications for that subfield. For educational purposes, we were of the opinion that we should make these moments of early exploration and decisions about the framing be made explicit - and techniques associated with resolving the issues be explicitly taught. We felt compelled, over the course of almost a decade, to expand the scope and refine the methods, however, as the general paradigm of "testing within" the given frame obscured fundamental questions about how the details of the framing were being constructed. For example, teasing out the contribution of race to the percent of the population for whom race was allocated by the professional staff at the Census Bureau, requires constructing the conceptual space of the question with considerable care to variations - like the size of the block group and the reasons for the need to allocate - that don't rise to the level of questioning the overall frame. How, we asked ourselves, do we understand the tasks associated with constructing the conceptual frame, and where did issues like granularity and question design overlap with the more obviously dubious (but highly important) categories like race and ethnicity? 
+
+We are consciously putting these questions to the side, with the expectation that a careful analysis of how we are constructing the mathematical objects will point to an eventual better way to construct the measures associated with demographics, and that the internal analysis we associate with classical forms of statistical analysis will find their appropriate place in the overall process. (For more philosophically-minded audiences, Van Fraassen, Bas C. The Scientific Image. Clarendon Press, 1980., provides a coherent picture of how the scientific process could mirror broadly "constructive empiricism"; there remains the question of whether that is the best path for science, but it places us within a tradition, for this first step through constructing our explicit model.) We point, by way of adumbration, to the interesting proposition from Tai-Danae Bradley [https://arxiv.org/abs/2004.05631] that the algebraic construction of probability (resulting in the reduced density operator) carries more information than the classical statistical construction, where she helpfully uses quite mundane characteristics (marginal probabilities on the colors of fruit) to show the point behind drawing in the arcane-sounding mathematics. For our purposes, she shows convincingly that a construction that conserves the algebraic commutativity retains more information than one that conserves the statistical representations in isolation.
