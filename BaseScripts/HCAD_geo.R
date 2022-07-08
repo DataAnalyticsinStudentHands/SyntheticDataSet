@@ -209,3 +209,9 @@ libraries <- st_read(paste0(houstondatadir, "COH_LIBRARIES/COH_LIBRARIES.shp"))
 
 
 east_end_tracts <- c("324200","311400","311300","311500","311600","311000","311100","310900","320200","320100")
+
+convenience_stores_HCAD <- HCAD[HCAD$improv_typ_real=="4348",] %>% distinct(account, .keep_all = TRUE)
+fast_food_HCAD <- HCAD[HCAD$improv_typ_real=="4325",] %>% distinct(account, .keep_all = TRUE)
+food_sources_HCAD <- HCAD[HCAD$improv_typ_real %in% c("4325","4323","4324","4335","4347","4348"),] %>% 
+  distinct(account, .keep_all = TRUE)
+
