@@ -242,7 +242,9 @@ trHHe[eth2=="not_known",("tr_sae_hh_match2_id"):=
       by=.(tract,sex,first_age,eth2)]
 trHHr[eth2=="not_known",("tr_sae"):=trHHe[.SD,list(tr_sae),on=.(tr_sae_hh_match2_id)]]
 #add the number still needed to fill out H, not White
-trHHr[,("tr_sare"):=if_else(race!="A",tr_sare+tr_sae,tr_sare)]
+#trHHr[,("tr_sare"):=if_else(race!="A",tr_sare+tr_sae,tr_sare)]#creates na's at race=="A"??
+trHHr[is.na(tr_sae),("tr_sae"):=0]
+trHHr[,("tr_sare"):=tr_sare+tr_sae]
 summary(trHHr[,tr_sare])
 table(trHHr[tr_sare<11,tr_sare])
 paste0("There are ",2*23*3*7," different possible combinations of sex, age, race, and ethnicity in each tract.")
@@ -272,10 +274,11 @@ nrow(bgSAR[sare_diff_tr==0&tr_HH>0])
 #if sare_diff_tr==0 & tr_HH>0, then assign "In household"??
 #then do some summaries on the ones that don't have matches
 
-
 #can I do a count down in each tract?
-#no - trHHr[,("ethnicity_test"):=fcase(tr_sae<=tr_sare,"H",ethnicity)] #doesn't distribute between races...
+#not yet - trHHr[,("ethnicity_test"):=fcase(tr_sae<=tr_sare,"H",ethnicity)] #doesn't distribute between races...
+#do it for bgSAR after getting bggq numbers by block and doing countdown on them 
 
+##CUT BELOW, but maybe redo test? 
 #trHHr[,("household"):=list("In household")] #more convenient for below
 #bgSAR[re_code=="A",("bg_saW_hh_match_id"):=
 #                    paste0(tract,ethnicity,sex,first_age,as.character(100000+sample(1:.N))),
