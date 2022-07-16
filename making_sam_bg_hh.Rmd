@@ -167,6 +167,7 @@ By the rules as we understand them, all individuals with race of "White Alone" a
 Although we know enough to fill in for the rest of the race=="A" (White) population, we want to create matching ids with an if clause that changes if the number is larger than the available designations in that category. We're testing the approach, and will later use it in places where we can't test it on individual steps (but can confirm whether it worked as a composite of steps). There are some complexities, here, that will pay off later as we think more carefully about what it means to have order conserved across table representations.
 
 ```{r count of ethnicity on trHHe and trHHr to determine non-White remainder}
+#also put a temporary variable in place to see if it's the same thing as just having placed the designation directly
 trHHr[race=="A"&is.na(ethnicity),("ethnicity_check"):="H"]
 #but we want to mark the ones in trHHe, so we know which ones to eliminate (although an anti-join should also work)
 trHHr[race=="A"&is.na(ethnicity),("trHHsae2_match_id"):=paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
@@ -181,8 +182,7 @@ trHHe[ethnicity=="H",("marked_r"):=
 #test to see whether race=="A"&ethnicity!="I" tables are equal on tract,sex,age_range with ethnicity=="H"
 nrow(trHHr[race=="A"])-nrow(trHHr[ethnicity=="I"])==nrow(trHHr[ethnicity=="H"])
 nrow(trHHe[!is.na(marked_r)])==nrow(trHHr[ethnicity=="H"])
-#also put a temporary variable in place to see if it's the same thing as just having placed the designation directly
-trHHr[race=="A"&is.na(ethnicity),("ethnicity_check"):="H"]
+
 nrow(trHHr[!is.na(ethnicity_check)])
 test <- table(trHHr[race=="A"&ethnicity!="I",tract],
               trHHr[race=="A"&ethnicity!="I",sex],
@@ -213,13 +213,11 @@ The difference between the number of individuals in households and the number ov
 
 For the household data, we don't have anything that tells us which block they're in yet, although we do have a great deal of block group level data that we'll incorporate in making_sam_hh.Rmd, but it is mostly for the head of household and not for the entire household. Here we want to show how to use the known structure from the block group level sex, age, race, and ethnicity to create a better representation of the households. Since we don't want to create structures that aren't justified by a known relation, we'll create counts for subgroups to use for the matching. So that those counts will be correct at the tract level, we'll need to add the group quarters to the households. To do that, first, we'll add rows to the household population data using only those facts we're sure of, with the other tables helping us add determination. Remember that we know the combination of race and ethnicity for every individual without any loss at the tract level, and only have worries about some of the combinations of non-White and Hispanic or Latino at the block level. We'll use that fact to grow the household table appropriately. Mostly, "appropriately" here means only that we aren't accidentally adding extra structure without warrant; we want to begin, at least, asking strictly mathematical questions about what we can do, given that the political questions about naming are given, at least for the present context. We can approach the mathematics by thinking of both tables as ordered sets, and then adding to the household table the number of rows needed to finish out the rows by sex, age, race, and ethnicity in each tract by group quarters. The group quarters tables includes some information about the block group structure that may also help, so we'll want to include it before distributing the household information to the total population. But let's create a workspace where we allow the characteristics we don't know to vary while securing the traits we do know into place in the table. We know that the information on the tract, race, and ethnicity is complete for the White population, and that the ordering we have for the block level by those same variables is complete - so no information will be lost by matching to the block level for that subgroup.   
 
-If there are 2 people with same demographics in different block_groups, which one is assigned to the household population and which one to group quarters? That asks the question backwards in some sense. What we're really saying is that given that within each tract, a certain number of each type is to be distributed, are all the distributions fully determined? If so, then the block_groups will be correctly distributed. For example, if we have two persons who are identified as "White Alone, Not Hispanic or Latino," "Female," and age of "10 to 14 years," in two different block groups in a single tract in the block groups file and one person identified that way in the household file, there's no way to know which one should be labeled as being in the household and which one in group quarters. We do know some limited things about the distribution of group quarters, however, and let's try to use that to narrow down the issues. It's really a matter of chaneling the distribution into more fully delimited paths, until the underlying structures are as conserved as possible.
+If there are 2 people with same demographics in different block_groups, which one is assigned to the household population and which one to group quarters? That asks the question backwards in some sense. What we're really saying is that given that within each tract, a certain number of each type is to be distributed, are all the distributions fully determined? If so, then the block_groups will be correctly distributed. For example, if we have two persons who are identified as "White Alone, Not Hispanic or Latino," "Female," and age of "10 to 14 years," in two different block groups in a single tract in the block groups file and one person identified that way in the household file, there's no way to know which one should be labeled as being in the household and which one in group quarters. We do know some limited things about the distribution of group quarters, however, and let's try to use that to narrow down the issues. It's really a matter of channeling the distribution into more fully delimited paths, until the underlying structures are as conserved as possible.
 
-#REDO
-UGH UGH UGH - not adding up properly - if we can get the number per block of SAE, then we can do some counting off when finally joining
 
-```{r determine size of potential mismatch}
-#block_group sex, age, race, and ethnicity
+```{r determine size of mismatch across block groups}
+#block_group/tract sex, age, race, and ethnicity = bg_sare/tr_sare 
 bgSAR[,("eth2"):=if_else(ethnicity%in%c("H","I"),ethnicity,"not_known")]
 trHHr[,("eth2"):=if_else(ethnicity%in%c("H","I"),ethnicity,"not_known")] #this will have all not A as not_known
 trHHr[,("tr_sare"):=.N,by=.(tract,sex,first_age,race,eth2)]#only complete for race=="A"
@@ -249,13 +247,14 @@ summary(trHHr[,tr_sare])
 table(trHHr[tr_sare<11,tr_sare])
 paste0("There are ",2*23*3*7," different possible combinations of sex, age, race, and ethnicity in each tract.")
 paste0("Which, by the ",length(unique(trHHr$tract))," tracts would make: ",
-       length(table(trHHr$tract,trHHr$sex,trHHr$first_age,trHHr$race,trHHr$eth2),"combinations."))
+       length(table(trHHr$tract,trHHr$sex,trHHr$first_age,trHHr$race,trHHr$eth2))," combinations.")
 cellnum <- table(trHHr$tract,trHHr$sex,trHHr$first_age,trHHr$race,trHHr$eth2)
 paste0("However, ",length(cellnum[cellnum==0])," have zero in the cell count (",
        as.integer(length(cellnum[cellnum==0])/length(cellnum)*100),"%)")
 
 bgSAR[,("bg_sare"):=.N,by=.(geoid,sex,first_age,re_code,eth2)]
 bgSAR[,("tr_sare"):=.N,by=.(tract,sex,first_age,re_code,eth2)]
+#for each sare combo, rank how many in each block - the lower the number the more that sare is concentrated in that block
 bgSAR[,("sare_diff_tr"):=tr_sare-bg_sare]#only in tracts where ==0, would that not count as potentially off
 summary(bgSAR[,sare_diff_tr])
 table(bgSAR[sare_diff_tr<9,sare_diff_tr])
@@ -269,49 +268,14 @@ trHHr[,("tr_sare_hh_match_id"):=
 bgSAR[,("tr_HH"):=trHHr[.SD, list(tr_sare), on = .(tr_sare_hh_match_id)]] 
 summary(bgSAR[,tr_HH])
 table(bgSAR[is.na(tr_HH),ethnicity])
-nrow(bgSAR[is.na(tr_HH)&ethnicity=="I"])==nrow(bggq[sts_ethnicity=="I"])
 nrow(bgSAR[sare_diff_tr==0&tr_HH>0])
-#if sare_diff_tr==0 & tr_HH>0, then assign "In household"??
-#then do some summaries on the ones that don't have matches
 
-#can I do a count down in each tract?
-#not yet - trHHr[,("ethnicity_test"):=fcase(tr_sae<=tr_sare,"H",ethnicity)] #doesn't distribute between races...
-#do it for bgSAR after getting bggq numbers by block and doing countdown on them 
+#if sare_diff_tr==0 & tr_HH>0, then assign "In household"
+bgSAR[sare_diff_tr==0&tr_HH>0,("household"):=list("In household")]
 
-##CUT BELOW, but maybe redo test? 
-#trHHr[,("household"):=list("In household")] #more convenient for below
-#bgSAR[re_code=="A",("bg_saW_hh_match_id"):=
-#                    paste0(tract,ethnicity,sex,first_age,as.character(100000+sample(1:.N))),
-#                  by=.(tract,ethnicity,sex,first_age)]
-#trHHr[race=="A",("bg_saW_hh_match_id"):=
-#                    paste0(tract,ethnicity,sex,first_age,as.character(100000+sample(1:.N))),
-#                  by=.(tract,ethnicity,sex,first_age)]
-#bgSAR[re_code=="A",("household"):=
-#                    trHHr[.SD, list(household), on = .(bg_saW_hh_match_id)]]
-#if race=="A", and not "In household", then "In group quarters"
-#bgSAR[re_code=="A"&is.na(household),("household"):="In group quarters"]
-#this adds totals, and can be done later in ways that make it only the remaining H...
-#still need to match the other group quarter specific information
-#bgSAR[,("bg_eth_total"):=.N,by=.(geoid,ethnicity)]#have to match with ethnicity in that row
-#bgSAR[ethnicity=="H",("bg_H_eth_total"):=.N,by=.(geoid,ethnicity)]#if only for H 
-#put that value on all rows for the block
-#bgSAR[,("bg_H_total"):=.SD[1,list(as.integer(bg_H_eth_total))],
-#         by=.(geoid)]
-#tests
-#nrow(trHHr[race=="A"])==nrow(bgSAR[household=="In household"])
-#test <- table(
-#  bgSAR[re_code=="A"&household=="In household",tract],
-#  bgSAR[re_code=="A"&household=="In household",sex],
-#  bgSAR[re_code=="A"&household=="In household",ethnicity],
-#  bgSAR[re_code=="A"&household=="In household",first_age]
-#)==table(
-#  trHHr[race=="A",tract],
-#  trHHr[race=="A",sex],
-#  trHHr[race=="A",ethnicity],
-#  trHHr[race=="A",first_age]
-#)
-#length(test[test==FALSE])==0
 ```
+
+We're going to make the information we have about the structure of the group quarter distributions at the block group level help us decide the rest of how we distribute the household vs. group quarter designations in the block group main file (bgSAR). 
 
 One of our difficulties, above, was that we weren't sure how to distribute some of the race and ethnicity combinations that we knew to be valid at the tract level once we moved to the block level - although we knew distributions at the block level for both race and ethnicity, which gives us a ceiling for the possible misattributions. We have some information on group quarters that may help, if we're careful not to overwrite, but in general the very detailed information about age and race means that the household structure should be added first, with the specifics for quarters added within that structure (since no other designations besides sex, age, race, and ethnicity are given at this point, and so no information is lost). 
 
@@ -473,7 +437,7 @@ rm(tr_re_group_quarters)
 rm(tr_re_group_quarters_type_data)
 ```
 
-PCT21 is tract level group quarters, with sex by age. It would be nice for our construction to have the relations by sex, age, and race, ethnicity in the same table, but the Census Bureau decided to mask that information. The protection of privacy for the individuals should be balanced with the need to understand potential patterns across categories, but there are a number of places that such analysis could happen. There are, additionally, many ways in which the population characteristics are available, including many data tables not controlled by the Census Bureau that have very detailed information. The problem of privacy is quickly transforming, and there is no clear long-term solution that addresses all goals. 
+PCT21 is tract level group quarters, with sex by age. It would be nice for our construction to have the relations by sex, age, and race, ethnicity in the same table, but the Census Bureau decided to mask that information. The protection of privacy for the individuals should be balanced with the need to understand potential patterns across categories, but there are a number of places that such analysis could happen. There are, additionally, many ways in which the population characteristics are available, including many data tables not controlled by the Census Bureau that have very detailed information. The problem of privacy is quickly transforming, and there is no clear long-term solution that addresses all goals. In this case, we don't have a direct path to having a better block group distribution by race and ethnicity through the group quarters. The only directly given information is sex and age_3 ("Under 18," "18 to 64," and "65 and over") at the block group and race and ethnicity at the tract level. Let's see if we can still get some hints by triangulation, though
 
 ```{r group quarters to add tract sex age}
 group_quarters_tract_sex_age_data_from_census <- 
@@ -656,17 +620,6 @@ tr_r_gq[re_code=="A"&is.na(ethnicity),("ethnicity"):=
 tr_e_gq[re_code=="H",c("matched"):=
                     tr_r_gq[.SD, list(re_code), on = .(tr_r_gq_match1_id)]]
 nrow(tr_r_gq[re_code=="A"])==nrow(tr_e_gq[!is.na(matched)])
-nrow(bgSAR[re_code=="A"&household=="In group quarters"])==nrow(tr_e_gq[!is.na(matched)])
-test <- table(
-  tr_r_gq[re_code=="A",tract],
-  tr_r_gq[re_code=="A",re_code],
-  tr_r_gq[re_code=="A",ethnicity]
-)==table(
-  bgSAR[re_code=="A"&household=="In group quarters",tract],
-  bgSAR[re_code=="A"&household=="In group quarters",re_code],
-  bgSAR[re_code=="A"&household=="In group quarters",ethnicity]
-)
-length(test[test==FALSE])==0
 #those count as ethnicity known
 #now do re_code!="A"; the remaining hispanic are tr_eh_remain_count as an integer for everyone in that subgroup
 tr_r_gq[is.na(ethnicity),("tr_r_gq_match2_id"):=
@@ -763,18 +716,6 @@ tr_e_gq_over17[re_code=="H",c("matched"):=
                     tr_r_gq_over17[.SD, list(re_code), on = .(tr_r_gq_match1_id)]]
 #those count as ethnicity known
 table(tr_r_gq_over17$re_code,tr_r_gq_over17$ethnicity)
-test <- table(
-  tr_r_gq_over17[re_code=="A",tract],
-  tr_r_gq_over17[re_code=="A",sex],
-  tr_r_gq_over17[re_code=="A",re_code],
-  tr_r_gq_over17[re_code=="A",ethnicity]
-)==table(
-  bgSAR[re_code=="A"&household=="In group quarters"&first_age>17,tract],
-  bgSAR[re_code=="A"&household=="In group quarters"&first_age>17,sex],
-  bgSAR[re_code=="A"&household=="In group quarters"&first_age>17,re_code],
-  bgSAR[re_code=="A"&household=="In group quarters"&first_age>17,ethnicity]
-)
-length(test[test==FALSE])==0
 #now do rest with only what we can know - i.e., count of hispanic remaining by gq_type
 tr_r_gq_over17[is.na(ethnicity),("tr_r_gq_match2_id"):=
                     paste0(tract,sex,gq_type,as.character(100000+sample(1:.N))),
@@ -852,21 +793,6 @@ paste0("Of the ",nrow(tr_r_gq_over17[!is.na(ethnicity)]) ,
 nrow(tr_r_gq_over17[!is.na(matched17)&is.na(ethnicity)]), " matched. However, ",
 nrow(tr_r_gq[is.na(sex)]), " still need a final determination for sex in the overall group quarters race table, in order to match with the givens in bggq")
 ```
-
-Let's try a naive merge with the bgSAR for re_code=="A" and age over 17, since it's what we know most about in both.
-```{r check for match on group quarters to bgSAR directly}
-nrow(tr_r_gq[re_code=="A"])
-nrow(tr_r_gq[re_code=="A"])==nrow(bgSAR[re_code=="A"])-nrow(bgSAR[re_code=="A"&household=="In household"])
-test <- table(tr_r_gq[re_code=="A"&!is.na(sex),tract],
-              tr_r_gq[re_code=="A"&!is.na(sex),sex],
-              tr_r_gq[re_code=="A"&!is.na(sex),ethnicity] #same as tr_r_gq_over17
-              )==
-  table(bgSAR[re_code=="A"&household!="In household"&first_age>17,tract],
-        bgSAR[re_code=="A"&household!="In household"&first_age>17,sex],
-        bgSAR[re_code=="A"&household!="In household"&first_age>17,ethnicity])
-length(test[test==FALSE])==0
-```
-
 
 The idea with tr_r_eh_spec_prob is that if a row by race is showing up in the gq_spec, but not in the same gq_spec by ethnicity, then we know something about how they are distributed. We expect a lot to be determined by the final cast by tract to bgSAR, with the blocks over-riding from here. 
 
@@ -988,7 +914,7 @@ paste0("Local jails and other municipal confinement facilities")
 table(bggq[tr_gq_specs=="Local jails and other municipal confinement facilities (104)",age_range])
 ```
 
-Group quarters are not concentrated, with most block groups having only one kind of residence, even as specified at the detailed level, which means that further specification by age isn't necessary. As part of being as complete as possible, we add a bit of a step to give preference to some things known outside the data tables themselves, as a matter of interpretation. Although the actual distribution still decides the structure of the final distribution, it is possible for some nudge toward one or the other subtype to be given with this technique.
+Group quarters are not concentrated, with most block groups having only one kind of residence, even as specified at the detailed level, which means that further specification by age isn't necessary. As part of being as complete as possible, we add a bit of a step to give preference to some things known outside the data tables themselves, as a matter of interpretation. Although the actual distribution still decides the structure of the final distribution, it is possible for some nudge toward one or the other subtype to be given with this technique. This may go against things that the Census Bureau had introduced as part of their deliberate attempts to conceal some identities, such as instituting differential privacy or simply switching some people into different cells.
 
 ```{r how many tracts have multiple gq_specs}
 bggq[,("num_gq_specs_tr"):=length(unique(tr_gq_specs)),by=.(tract)]
@@ -1059,52 +985,37 @@ We will talk a bit more, below, about how to understand what sort of difference 
 We remember that, above, we had only fully matched bgSAR on households for Whites, since we only had complete information for that race and ethnicity. Now we have some knowledge of the race and ethnicity of other individuals in group quarters and can make sure that we assign race and ethnicity with as much precision as possible at the block group level.
 
 ```{r testing bgSAR and trHHr and bggq}
-test <- table(
-  bgSAR[re_code=="A"&household=="In household",tract],
-  bgSAR[re_code=="A"&household=="In household",sex],
-  bgSAR[re_code=="A"&household=="In household",race],
-  bgSAR[re_code=="A"&household=="In household",ethnicity],
-  bgSAR[re_code=="A"&household=="In household",first_age]
-)==table(
-  trHHr[race=="A",tract],
-  trHHr[race=="A",sex],
-  trHHr[race=="A",race],
-  trHHr[race=="A",ethnicity],
-  trHHr[race=="A",first_age]
-)
-length(test[test==FALSE])==0
+nrow(bgSAR)==nrow(trHHr)+nrow(bggq)
+nrow(bgSAR[re_code=="A"])==nrow(trHHr[race=="A"])+nrow(bggq[sts_re_code=="A"])
+nrow(bgSAR[re_code=="B"])==nrow(trHHr[race=="B"])+nrow(bggq[sts_re_code=="B"])
+nrow(bgSAR[re_code=="C"])==nrow(trHHr[race=="C"])+nrow(bggq[sts_re_code=="C"])
+nrow(bgSAR[re_code=="D"])==nrow(trHHr[race=="D"])+nrow(bggq[sts_re_code=="D"])
+nrow(bgSAR[ethnicity=="I"])==nrow(trHHr[ethnicity=="I"])+nrow(bggq[sts_ethnicity=="I"])
 ```
 
 #Moving Group Quarter Information over to block group individuals table
 
-Our idea now is to move the information we have about group quarters over to matching individuals in our foundational population file (bgSAR). 
-
-To begin, we look at a few tables to understand where we are on the potential match.
-
-```{r tables for bggq and bgSAR before matching}
-nrow(bggq[sts_re_code=="A"])==nrow(bgSAR[household=="In group quarters"&re_code=="A"])
-#table for beg_age for block group group quarters for White only
-table(bggq[sts_re_code=="A",beg_age_gq])
-#table for first_age for White only in group quarters in bgSAR
-table(bgSAR[household=="In group quarters",re_code],bgSAR[household=="In group quarters",first_age])
-#table for sex for block group group quarters for White only
-table(bggq[sts_re_code=="A",sex])
-#table for first_age for White only in group quarters in bgSAR
-table(bgSAR[household=="In group quarters",re_code],bgSAR[household=="In group quarters",sex])
-```
+Our idea now is to move the information we have about group quarters over to matching individuals in our foundational population file at the block_group level (bgSAR). 
 
 Since we don't have age groups in very good detail for the group quarters, and we have done a bit of nudging, what we'll do is match the young and then the old, then the middle. We had assigned sts_re_code as a guess to the block groups. We see that the numbers aren't quite right. What we'll do is carry as many over as we can where the sex also matches, and then allow the last ones to lose the assigned sts_re_code and sts_ethnicity, since they weren't definitive. The bgSAR only has the household vs. group quarter designation for the White population, and we'll use that matching to help refine the cases, below.
+
+What we had with the bgSAR, above, was a measure of which blocks had the largest diversion from the tract for that combination of sex, age, race and ethnicity (bg_sare) and  tr_HH, which was drawn from the same combinations at the tract level in the household file. 
+
+STOPPED HERE!!
+
+
+
 
 ```{r matching group quarter tables to bgSAR for 17 y.o White population}
 bggq[,("household"):="In group quarters"]
 #start with the edge cases
-bgSAR[first_age=="15"&re_code=="A",("sar_gq_15_match_id"):=
+bgSAR[first_age=="15",("sar_gq_15_match_id"):=
                     paste0(geoid,household,sex,re_code,ethnicity,as.character(100000+sample(1:.N))),
                   by=.(geoid,household,sex,re_code,ethnicity)]
-bggq[beg_age_gq=="17"&sts_re_code=="A",("sar_gq_15_match_id"):=
+bggq[beg_age_gq=="17",("sar_gq_15_match_id"):=
                     paste0(geoid,household,sex,sts_re_code,sts_ethnicity,as.character(100000+sample(1:.N))),
                   by=.(geoid,household,sex,sts_re_code,sts_ethnicity)]
-bgSAR[first_age=="15"&re_code=="A",
+bgSAR[first_age=="15",
          c("institutionalized","group_quarter_type","group_quarter_specifics"):=
                     bggq[.SD,c(list(institutionalized),list(gq_type),list(tr_gq_specs)), 
                      on = .(sar_gq_15_match_id)]]
@@ -1337,8 +1248,51 @@ This tells us that there is some mismatch between the block group and the tract 
 
 
 
+```{r maybe for joins}
 
 
+#then do some summaries on the ones that don't have matches
+
+#can I do a count down in each tract?
+#not yet - trHHr[,("ethnicity_test"):=fcase(tr_sae<=tr_sare,"H",ethnicity)] #doesn't distribute between races...
+#do it for bgSAR after getting bggq numbers by block and doing countdown on them 
+
+
+
+##CUT BELOW, but maybe redo test? 
+#trHHr[,("household"):=list("In household")] #more convenient for below
+#bgSAR[re_code=="A",("bg_saW_hh_match_id"):=
+#                    paste0(tract,ethnicity,sex,first_age,as.character(100000+sample(1:.N))),
+#                  by=.(tract,ethnicity,sex,first_age)]
+#trHHr[race=="A",("bg_saW_hh_match_id"):=
+#                    paste0(tract,ethnicity,sex,first_age,as.character(100000+sample(1:.N))),
+#                  by=.(tract,ethnicity,sex,first_age)]
+#bgSAR[re_code=="A",("household"):=
+#                    trHHr[.SD, list(household), on = .(bg_saW_hh_match_id)]]
+#if race=="A", and not "In household", then "In group quarters"
+#bgSAR[re_code=="A"&is.na(household),("household"):="In group quarters"]
+#this adds totals, and can be done later in ways that make it only the remaining H...
+#still need to match the other group quarter specific information
+#bgSAR[,("bg_eth_total"):=.N,by=.(geoid,ethnicity)]#have to match with ethnicity in that row
+#bgSAR[ethnicity=="H",("bg_H_eth_total"):=.N,by=.(geoid,ethnicity)]#if only for H 
+#put that value on all rows for the block
+#bgSAR[,("bg_H_total"):=.SD[1,list(as.integer(bg_H_eth_total))],
+#         by=.(geoid)]
+#tests
+#nrow(trHHr[race=="A"])==nrow(bgSAR[household=="In household"])
+#test <- table(
+#  bgSAR[re_code=="A"&household=="In household",tract],
+#  bgSAR[re_code=="A"&household=="In household",sex],
+#  bgSAR[re_code=="A"&household=="In household",ethnicity],
+#  bgSAR[re_code=="A"&household=="In household",first_age]
+#)==table(
+#  trHHr[race=="A",tract],
+#  trHHr[race=="A",sex],
+#  trHHr[race=="A",ethnicity],
+#  trHHr[race=="A",first_age]
+#)
+#length(test[test==FALSE])==0
+```
 
 
 
