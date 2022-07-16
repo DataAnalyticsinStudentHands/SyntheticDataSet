@@ -144,6 +144,30 @@ civic_within_unlist <- rapply(civic_within,function(x) ifelse(length(x)==0,99999
 civic_within_unlist <- unlist(civic_within_unlist)
 HCAD$civic_club=civic_clubs$NAME[civic_within_unlist] 
 
+#for download new bus info
+#Andrew's primary key: df3a89bdc17449608f370d24a59bb911
+library(httr)
+library(jsonlite)
+metro_resp_stops <- GET("https://api.ridemetro.org/data/Stops?subscription-key=df3a89bdc17449608f370d24a59bb911")
+metro_bus_stops_txt <- content(metro_resp_stops,as="text")
+metro_stops <- fromJSON(metro_bus_stops_txt,flatten = TRUE)
+busstops_dt <- data.table(BSID = c(as.numeric(metro_stops$value$StopCode)),
+                       stop_name = c(metro_stops$value$Name),
+                       longitude = c(metro_stops$value$Lon),
+                       latitude = c(metro_stops$value$Lat))
+ridershipcsv <- read.csv2("~/Downloads/Riders_4_22.csv", stringsAsFactors = TRUE,sep = ",")
+bus_riders_stops <-  busstops_dt[ridershipcsv,on = .(BSID)]
+bus_riders_stops <- bus_riders_stops[!is.na(longitude)]
+busstops_sf <- st_as_sf(bus_riders_stops,coords = c("longitude", "latitude"),crs=4326)
+busstops <- st_transform(busstops_sf,st_crs(censustracts))
+bus_within <- st_within(busstops,censustracts)
+bus_within_unlist <- rapply(bus_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+bus_within_unlist <- unlist(bus_within_unlist)
+busstops$tract=censustracts$GEOID[bus_within_unlist]
+st_write(busstops,"~/Downloads/bus_riders_april_stops_tr.geojson",driver = "GeoJSON")
+saveRDS(busstops,paste0(houstondatadir,"Metro_stops_2022/busstops_tracts.RDS"))
+
+#I think this is from 2017
 bus <- st_read(paste0(houstondatadir, "Bus_Stops/Bus_Stops.shp"))
 #bus$geometry <- st_transform(bus$geometry,st_crs(HCAD$ptcoords))
 #find buses within tracts, and then calculate distance??

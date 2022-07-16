@@ -54,7 +54,7 @@ For restructuring of argument part - that the construction "from the outside" of
 
 Plan: find smallest units of "space" (geographic and/or conceptual) from 2010 census and build a cohesive representation of Harris County (called Sam City) by piecing together the various representations output by the census. 
 
-Somewhere - that there are a few different metaphors one might use for how a table relates to a full population. One can think of it as a sample, or a sample of a sample, as a view on a pivot table, or a kind of literal movement of markers for real things into bins of some sort, counting the predicates. That, instead, we wish to see it as a way of structuring an account that responds to what one is trying to show (or to hide) and how one constructs a cohesive space within which the important other relations will hold (and we can do arithmetic and summarization, etc.).
+Somewhere - that there are a few different metaphors one might use for how a table relates to a full population. One can think of it as a sample, or a sample of a sample, as a view on a pivot table, or a kind of literal movement of markers for real things into bins of some sort, counting the predicates. That, instead, we wish to see it as a way of structuring an account that responds to what one is trying to show (or to hide) and how one constructs a cohesive space within which the important other relations will hold (and we can do arithmetic and summarization, etc.). It's also important that at that point, you're not talking about ways of naming individuals and then aggregating over that name, but that you're talking about ways of talking about collections, and how names are distributed within that space - so there's a subsetting logic, even if you name the whole population, if you're only talking about them in terms of one way of talking. 
 
 By selection, we mean choosing one way of speaking about the population as opposed to another. You are selecting within the power set of all the combined ways of talking, which can exclude whole people from being spoken of at all, or can cause some people to be spoken of in two ways - the example we'll dive into in-depth is race and ethnicity. To select only "children" is then also to select by a way of talking, so that selecting the category of humans under 18 years of age is different than to select the households where a biological child of the householder is present. The way we want to approach this, mathematically, is to record the choices and see what other tools rebound to our use because of those choices. If you've made a selection, after all, you've introduced a distinction into the set that has both what is included and what is excluded. You've also introduced a way of producing individuals "as" either included or excluded. There are tools available to us that take what we know about the included to talk about the excluded, or to talk about the process of producing inclusion or exclusion, and how one might modify a given process to produce different results.
 
@@ -71,17 +71,17 @@ Let's begin with PCT12, which is tract level data but has every age by year, gen
 
 ```{r look at PCT12}
 #this gives you by every year at the tract level - could be a good example for adding together - PCTs never go below tract level
-trSAR_data_from_census_10 <- 
+trSAR_data_from_census <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "PCT12",county_num = county,
                          block="tract",api_type="dec/sf1",path_suff="est.csv")
-trSAR_data_from_census_10 <- trSAR_data_from_census_10 %>%
+trSAR_data_from_census <- trSAR_data_from_census %>%
       select(name,label,concept,starts_with(st_county))
 #needs to be numeric for the sum in the test
-trSAR_data_from_census_10 <- as.data.table(trSAR_data_from_census_10)
-trSAR_data_from_census_10[,4:ncol(trSAR_data_from_census_10)] <- 
-  trSAR_data_from_census_10[,lapply(.SD[,4:ncol(trSAR_data_from_census_10)], as.numeric)]
-head(trSAR_data_from_census_10[,1:5])
+trSAR_data_from_census <- as.data.table(trSAR_data_from_census)
+trSAR_data_from_census[,4:ncol(trSAR_data_from_census)] <- 
+  trSAR_data_from_census[,lapply(.SD[,4:ncol(trSAR_data_from_census)], as.numeric)]
+head(trSAR_data_from_census[,1:5])
 ```
 
 A quick glance shows that this has reporting for every year of age and at fifteen different levels for race and ethnicity, which is considerably more specificity than the reporting under ACS or at the block group level, reported as the number of people who fall into that category for every census tract in the state. That specificity provides a very granular embedding context (or structured space) on the conceptual level but is less specific geographically. It has every tract for the entire state, but some of the larger tracts are divided into 6 block_groups, which provides considerably more geographic context. One of the goals of our current approach is to show why thinking about the reporting on basic concepts like sex and age should be thought of as a similar problem as geographic boundaries - i.e., that both should be thought of as an articulation of structure within the context where the individual is placed in the representation. By paying close attention to that problem of articulating a coherent and meaningful structure, we can make explicit which mathematical operations are justified when transforming between the various possible representations of the data. 
@@ -89,8 +89,8 @@ A quick glance shows that this has reporting for every year of age and at fiftee
 Just to give a sense for how testing for coherent structure arises from and resonates with the broader process of building the data representation, we include some of the very basic ways that we can test for consistency. The following are repeated for each download from the census, as we look for obvious problems with the file either as reported or as a result of an improper download (like asking for the wrong file). In this version, we have put a data.table wrapper around the census data and sum the number of NAs in the columns. Because of how the Census Bureau allows access to its APIs, public users without permission for certain levels of granularity will sometimes return a file with NAs but not consider that a problem and not produce an error. In this case, we decided to represent the number of NAs as a percentage, and not just an absolute count, because sometimes we want to use data that is reported for only some of the rows, even if NAs are reported in some of the other rows. We don't want the download to fail unless there are only NAs, but if there are any at all, we want to know about it and know where to look for the problem. In later downloads, several of these tests are gathered in a single function call in tests.R as census_table_check. One of our ongoing tasks is to better automate those tests.
 
 ```{r test for na}
-    percent_na <- trSAR_data_from_census_10[,sum(is.na(.SD))] / 
-      (trSAR_data_from_census_10[,sum(!is.na(.SD))]+trSAR_data_from_census_10[,sum(is.na(.SD))])
+    percent_na <- trSAR_data_from_census[,sum(is.na(.SD))] / 
+      (trSAR_data_from_census[,sum(!is.na(.SD))]+trSAR_data_from_census[,sum(is.na(.SD))])
     paste("Percentage of NAs in file:",as.integer(100*percent_na))
     rm(percent_na)
 ```
@@ -99,8 +99,8 @@ After seeing that there are no NAs, we need to check to make sure that the repor
 
 ```{r check for consistency on totals}
 #there's a total for each concept and for the whole, but in the ones without a total, there are also total female and male.
-test <- colSums(trSAR_data_from_census_10[label=="Total",4:ncol(trSAR_data_from_census_10)])*2 ==
-      colSums(trSAR_data_from_census_10[label!="Total",4:ncol(trSAR_data_from_census_10)])
+test <- colSums(trSAR_data_from_census[label=="Total",4:ncol(trSAR_data_from_census)])*2 ==
+      colSums(trSAR_data_from_census[label!="Total",4:ncol(trSAR_data_from_census)])
 #see if any of the tests don't match; if false, need to go back and check on what happened
 length(test[test==F])==0
 ```
@@ -108,14 +108,14 @@ length(test[test==F])==0
 If we want to know only the row that gives us the official census total population per census tract, we can add in the designation for concept. We know more having looked at the calculations involving all rows, as above, because if any of the totals had not been equal, we could look for a data problem in the specific place in the tables where the error emerged. Let's get the official totals in a separate file, just so we can use it to check later. (We'll find that we need it right away). 
 
 ```{r get totals by tract}
-pop_totals_tract <- trSAR_data_from_census_10[label=="Total"&concept=="SEX BY AGE",4:ncol(trSAR_data_from_census_10)]
+pop_totals_tract <- trSAR_data_from_census[label=="Total"&concept=="SEX BY AGE",4:ncol(trSAR_data_from_census)]
 paste0("Population total for Harris County by tract: ", sum(pop_totals_tract[,]))
 ```
 
 The same convenience set lets us know some other facts about the variation in size of the tracts in Harris County. Shortly, we'll find better shortcuts for displaying summary statistics, but for now we just create a few quick measures.
 
 ```{r Harris tract stats}
-paste0("Number of Harris County tracts: ", ncol(trSAR_data_from_census_10[,4:ncol(trSAR_data_from_census_10)]))
+paste0("Number of Harris County tracts: ", ncol(trSAR_data_from_census[,4:ncol(trSAR_data_from_census)]))
 paste0("Average population size for Harris County tracts: ", as.integer(mean(as.numeric(pop_totals_tract[,]))))
 paste0("Median population size for Harris County tracts: ", as.integer(median(as.numeric(pop_totals_tract[,]))))
 paste0("Maximum population size for Harris County tract: ", max(as.numeric(pop_totals_tract[,])))
@@ -127,24 +127,24 @@ The population total for Harris County is what you'll find on the internet as th
 Now that we have the information at the tract level, let's also pick up the block level data.
 
 ```{r block_group sex by age}
-bgSAR_data_from_census_10 <- 
+bgSAR_data_from_census <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "P12",county_num = county,
                          block="block_group",api_type="dec/sf1",path_suff="est.csv")
-bgSAR_data_10 <- as.data.table(bgSAR_data_from_census_10)
-bgSAR_data_10[,4:ncol(bgSAR_data_10)] <- 
-  bgSAR_data_10[,lapply(.SD[,4:ncol(bgSAR_data_10)], as.numeric)]
-rm(bgSAR_data_from_census_10)
+bgSAR_data <- as.data.table(bgSAR_data_from_census)
+bgSAR_data[,4:ncol(bgSAR_data)] <- 
+  bgSAR_data[,lapply(.SD[,4:ncol(bgSAR_data)], as.numeric)]
+rm(bgSAR_data_from_census)
 ```
 
 It would be nice to use this immediately as our base, but we quickly see it doesn't have as many rows breaking out race and ethnicity. It has nine total categories for race and ethnicity - losing most of the categories in ethnicity - and age is reported in odd aggregations that will make comparison difficult with other data reporting. Let's run a few quick tests on the download.
 
 ```{r demography test problems}
-check_summary <- census_table_check(bgSAR_data_10, "SEX BY AGE","individuals") #should get a function that fails appropriately
+check_summary <- census_table_check(bgSAR_data, "SEX BY AGE","individuals") #should get a function that fails appropriately
 cat(check_summary[1])
-pop_totals_bg <- bgSAR_data_10[label=="Total"&concept=="SEX BY AGE",4:ncol(bgSAR_data_10)]
+pop_totals_bg <- bgSAR_data[label=="Total"&concept=="SEX BY AGE",4:ncol(bgSAR_data)]
 sum(pop_totals_tract[,])==sum(pop_totals_bg[,])
-paste0("Number of Harris County block groups: ", ncol(bgSAR_data_10[,4:ncol(bgSAR_data_10)]))
+paste0("Number of Harris County block groups: ", ncol(bgSAR_data[,4:ncol(bgSAR_data)]))
 paste0("Average population size for Harris County block groups: ", as.integer(mean(as.numeric(pop_totals_bg[,]))))
 paste0("Median population size for Harris County block groups: ", as.integer(median(as.numeric(pop_totals_bg[,]))))
 paste0("Maximum population size for Harris County block group: ", max(as.numeric(pop_totals_bg[,])))
@@ -178,8 +178,8 @@ First, we need to identify the rows which, if added together, give us a complete
 We can use a little trick because of how the R library dyplyr performs the translation and expansion of the representation, so that we're looking at rows of people with geographic and demographic properties and not rows of categories against columns of geography. We will get a warning that NAs were introduced by coercion, but it happens that those will be the rows that we want to exclude in any case. We'll show the warnings, here, but suppress them later.
 
 ```{r expand trSARE for the tracts in PC12, warning = FALSE}
-trSARE_10 <- trSAR_data_from_census_10 %>%
-  pivot_longer(4:ncol(trSAR_data_from_census_10),names_to = "tract", values_to = "number_sams",
+trSARE <- trSAR_data_from_census %>%
+  pivot_longer(4:ncol(trSAR_data_from_census),names_to = "tract", values_to = "number_sams",
                names_transform = list(tract=as.character)) %>%
   separate(label, c("total","sex","age"), sep = "!!", remove = F, convert = FALSE) %>%
   mutate(re_code = substr(name,7,7),
@@ -190,10 +190,10 @@ trSARE_10 <- trSAR_data_from_census_10 %>%
          age = as.integer(substr(age,1,3))
          ) %>%
   filter(number_sams > 0, !is.na(age))
-paste0("There are ",length(unique(trSARE_10$age)), " unique categories for age (each year up to 100 and then two over 100 groups).")
-paste0("There are ",length(unique(trSARE_10$re_code)), " unique categories for race and ethnicity.")
-paste0("Along with two categories for sex, we have ",length(unique(trSARE_10$age))*length(unique(trSARE_10$re_code))*2," different categories people can fall into.")
-rm(trSAR_data_from_census_10)
+paste0("There are ",length(unique(trSARE$age)), " unique categories for age (each year up to 100 and then two over 100 groups).")
+paste0("There are ",length(unique(trSARE$re_code)), " unique categories for race and ethnicity.")
+paste0("Along with two categories for sex, we have ",length(unique(trSARE$age))*length(unique(trSARE$re_code))*2," different categories people can fall into.")
+rm(trSAR_data_from_census)
 ```
 
 Once we have the file for the entire population, we'll want to make one complete population with ethnicity and one complete population with race. It is worthwhile to take a second to think about what it means for the two representations of the entire population to be "equal" to each other. That they have the same number of people in each tract is part of the justification for saying they are equal but might be better phrased as saying that both tables are about the "same" people. There is also the way of saying they are equal because the schemas for classification have the same number of individuals in them, regardless of what you call the person in the particular category (i.e., "Hispanic" or "Latino" are treated as the same thing). And then, yet further, there is the sense in which the distinctions, and the combinations of the distinctions (i.e., what is called the power set produced by multiplying categories by each other) are equivalent if they divide the individuals considered as objects in the schema in the same way. That is, if you slice up the sets in different ways, but still come up with the same number of people in each cell, there's a certain type of "equality" there. To speak of "equality" in "ways of talking" is an attempt to make clear how mathematical objects, their structures, and the ways that their structures are conserved (or not) when moving between these "ways of talking" are all at stake even in fairly mundane classification tasks.
@@ -206,10 +206,10 @@ Here, we're doing the expansion of race first, because in all the other tables, 
 
 ```{r expand tract SAR}
     race_codes <- c("A","B","C","D","E","F","G")
-    trSAR_10 <- trSARE_10 %>%
+    trSAR <- trSARE %>%
       filter(re_code %in% race_codes) %>%
       uncount(number_sams,.id = "sams_race_id") #will create different id later
-    paste0("Total population in this representation is: ",nrow(trSAR_10))
+    paste0("Total population in this representation is: ",nrow(trSAR))
 ```
 
 Interestingly, because the total wasn't right the first time we processed this example, we were able to look for bugs in the code - in this case, not having noticed that there was an age called "Under 1 year" that needed to be made into a 0 to fit the pattern of the other ages (it's now fixed, above). There's a very practical side that drove us to triangulating - i.e., to checking things from multiple sides to see if they converged on the same answer - as well as the emerging understanding that moving between possible representations was itself a way of understanding how the objects of our inquiry were emerging as such.
@@ -219,23 +219,23 @@ We fixed that and then did one complete population for ethnicity: SET UP TABLE H
 ```{r expand tract Harris SAE}
 #one for Hispanic and then not Hispanic or Latino for each race; H and I do not match race codes in ACS
 ethnicity_codes <- c("H","I","J","K","L","M","N","O") 
-trSAE_10 <- trSARE_10 %>%
+trSAE <- trSARE %>%
   filter(re_code %in% ethnicity_codes) %>%
   mutate(race = str_remove_all(race,", NOT HISPANIC OR LATINO")) %>%
   uncount(number_sams,.id = "sams_ethnicity_id") #will create different id later
-paste0("Total population in this representation is: ",nrow(trSAE_10))
+paste0("Total population in this representation is: ",nrow(trSAE))
 #which is conveniently the same as the totals above
-nrow(trSAE_10)
+nrow(trSAE)
 #let's also clean up
-trSAR_10 <- as.data.table(trSAR_10)
-trSAE_10 <- as.data.table(trSAE_10)
-rm(trSARE_10)
+trSAR <- as.data.table(trSAR)
+trSAE <- as.data.table(trSAE)
+rm(trSARE)
 ```
 
 This table reports on 8 categories of ethnicity. The necessity to aggregate when reporting certainly drives much of the problem, but we do want to begin to disentangle some of the issues. Here are the further characteristics they offer:
 
 ```{r table for ethnicity types}
-dt <- as.data.table(list(unique(trSAE_10$re_code),unique(trSAE_10$concept)))
+dt <- as.data.table(list(unique(trSAE$re_code),unique(trSAE$concept)))
 setnames(dt, c("V1","V2"),c("re_code","concept"))
 dt[order(re_code)]
 rm(dt)
@@ -252,49 +252,49 @@ We'll look at some of the relations in detail in the course of distributing non-
 In terms of the literal computations, we're doing a join, and some times the join could be done with one of the built-in merge functions in R or one of the R libraries. Here, because we want to emphasize the questions about the ordering and relations in terms of those orders, we make explicit the process of assigning numbers to each individual within a subset and then matching on those numbers to add variables across tables. As we move through the process, we'll find more precise control over the numbering within those final subtypes will matter.
 
 ```{r join trSAE and trSAR}
-trSAR_10[,("sar_match_id"):=
+trSAR[,("sar_match_id"):=
                     paste0(tract,sex,age,race,as.character(100000+sample(1:.N))),
                   by=.(tract,sex,age,race)]
-trSAE_10[,("sar_match_id"):=
+trSAE[,("sar_match_id"):=
                     paste0(tract,sex,age,race,as.character(100000+sample(1:.N))),
                   by=.(tract,sex,age,race)]
-trSAR_10[,("ethnicity"):=
-                    trSAE_10[.SD, list(re_code), on = .(sar_match_id)]]
+trSAR[,("ethnicity"):=
+                    trSAE[.SD, list(re_code), on = .(sar_match_id)]]
 #By the disjunctive syllogism, the ones that don't match are the ones that are Hispanic
-trSAR_10[is.na(ethnicity),("ethnicity"):="H"]
-length(table(trSAR_10[re_code=="A",ethnicity]))==2
-length(table(trSAR_10[re_code=="B",ethnicity]))==2
-length(table(trSAR_10[,ethnicity]))==8
+trSAR[is.na(ethnicity),("ethnicity"):="H"]
+length(table(trSAR[re_code=="A",ethnicity]))==2
+length(table(trSAR[re_code=="B",ethnicity]))==2
+length(table(trSAR[,ethnicity]))==8
 ```
 
 Just as we did by summing up the different ways that the total populations could be represented and then comparing the outputs to determine if the two representations are equal, we can use the table function from the base R library to get the number of people in each tract in the smallest cell created by combining factors (the power set). This will tell us if we successfully represented every person from the representation in terms of ethnicity in terms of race, with the same embedding in terms of tract, sex, and age. (Could put a little bit more on why that is better captured by types designating enclosing spaces than by set membership - although, importantly, both are possible, and equivalent for practical purposes within the current problem; in long run, the question is whether more complexity solves the problem, or if the construction can point to the proper levels of complexity)
 
 ```{r trSAE trSAR join tests}
-test <- table(trSAR_10[,tract],
-              trSAR_10[,sex],
-              trSAR_10[,age],
-              trSAR_10[,ethnicity]
+test <- table(trSAR[,tract],
+              trSAR[,sex],
+              trSAR[,age],
+              trSAR[,ethnicity]
 )==table(
-  trSAE_10[,tract],
-  trSAE_10[,sex],
-  trSAE_10[,age],
-  trSAE_10[,re_code]
+  trSAE[,tract],
+  trSAE[,sex],
+  trSAE[,age],
+  trSAE[,re_code]
 )
 length(test[test==F])==0
 #and test that the race codes still match for the non-Hispanic or Latino population
-test <- table(trSAR_10[ethnicity!="H",race])==
-  table(trSAE_10[race!="HISPANIC OR LATINO",race])
+test <- table(trSAR[ethnicity!="H",race])==
+  table(trSAE[race!="HISPANIC OR LATINO",race])
 length(test[test==F])==0
 ```
 
-For sake of completeness, we want to take the people who are over 100 and assign them single years of age, as well. We're going to be using SAR_10 as our base for combinations, so we only do it on that one side. We're using sample with replace, so there will be a different size for the age by year every time the sampling is done. Since we want it to be reproducible, even at this level, we set the seed for the random number generator, so the random variation will be reproduced. There are only a handful of centenarians in the Harris County 2010 census and no reason to try to chase down more specifics in their true age distribution.
+For sake of completeness, we want to take the people who are over 100 and assign them single years of age, as well. We're going to be using SAR as our base for combinations, so we only do it on that one side. We're using sample with replace, so there will be a different size for the age by year every time the sampling is done. Since we want it to be reproducible, even at this level, we set the seed for the random number generator, so the random variation will be reproduced. There are only a handful of centenarians in the Harris County 2010 census and no reason to try to chase down more specifics in their true age distribution.
 
 ```{r centenarian age}
 set.seed(Sam_seed)
-trSAR_10[age==100,("age"):=sample(c(100,101,102,103,104),size = .N,replace = TRUE,prob = c(.29,.24,.19,.16,.12))]
-trSAR_10[age==105,("age"):=sample(c(105:109),size = .N,replace = TRUE,prob = c(.29,.24,.19,.16,.12))]
-trSAR_10[age==110,("age"):=sample(c(110:113),size = .N,replace = TRUE,prob = c(.6,.27,.1,.03))]
-table(trSAR_10[age>100,age])
+trSAR[age==100,("age"):=sample(c(100,101,102,103,104),size = .N,replace = TRUE,prob = c(.29,.24,.19,.16,.12))]
+trSAR[age==105,("age"):=sample(c(105:109),size = .N,replace = TRUE,prob = c(.29,.24,.19,.16,.12))]
+trSAR[age==110,("age"):=sample(c(110:113),size = .N,replace = TRUE,prob = c(.6,.27,.1,.03))]
+table(trSAR[age>100,age])
 ```
 
 We know that it's fully commutative with the SAE file at the tract level, and that any specification to the block group would maintain that tract level commutativity, simply because the blocks are fully contained within the tract. We will find it helpful to draw some commutative triangles, as the tasks will get more and more complicated. In this, we just represent the fact that dividing the tables into one for ethnicity and one for race is still exhaustive on sex and age_range. We'll add more later. [Commutative Triangle: Tract level sex age race and ethnicity.](https://q.uiver.app/?q=WzAsNyxbMSwwLCJQQ1QxMlxcXFx0clNBUkUiXSxbMCwyLCJ0clNBUlxcXFxyYWNlXFxfN1xcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzExMCJdLFsyLDIsInRyU0FFXFxcXGV0aG5pY2l0eVxcXzhcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8xMTAiXSxbMSwxLCJ0b3RhbHNcXFxcc2FtZVxcO2J5XFxcXHRyYWN0XFw7YW5kXFxcXGNvbXBsZXRlXFw7YnlcXFxcYm90aFxcO3JhY2VcXDthbmRcXFxcZXRobmljaXR5Il0sWzEsMiwiXFxidWxsZXQiXSxbMiw0XSxbMCw0LCJ0clNBUlxcXFxyYWNlXFxfN1xcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzExMFxcXFxldGhuaWNpdHlcXF84Il0sWzAsMSwic3Vic2V0cyIsMSx7ImNvbG91ciI6WzEyMCw2MCw2MF19LFsxMjAsNjAsNjAsMV1dLFswLDIsInN1YnNldHMiLDEseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbMSwyXSxbMiwxLCJjb21tdXRlcyJdLFszLDQsInRhYmxlcyA9IiwxLHsiY29sb3VyIjpbMzAwLDYwLDYwXX0sWzMwMCw2MCw2MCwxXV0sWzIsNiwiYWRkXFw7YnlcXFxcbWF0Y2hpbmciLDEseyJjb2xvdXIiOlsxMjAsNjAsNjBdfSxbMTIwLDYwLDYwLDFdXSxbMSw2XV0=)
@@ -319,8 +319,8 @@ Let's set this representation of the population aside for a moment and look at t
 
 
 ```{r expand bgSARE, warning = FALSE}
-bgSARE_10 <- bgSAR_data_10 %>%
-  pivot_longer(4:ncol(bgSAR_data_10),names_to = "geoid", values_to = "number_sams",
+bgSARE <- bgSAR_data %>%
+  pivot_longer(4:ncol(bgSAR_data),names_to = "geoid", values_to = "number_sams",
                    names_transform = list(geoid=as.character)) %>%
       separate(label, c("total","sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
       mutate(re_code = substr(name,5,5),
@@ -339,41 +339,41 @@ bgSARE_10 <- bgSAR_data_10 %>%
              tract = substr(tract,1,11)
              ) %>%
       filter(number_sams > 0, !is.na(age_range))
-rm(bgSAR_data_10)
+rm(bgSAR_data)
 ```
 
 Now we filter and construct distinct tables by race and ethnicity codes.
 
 ```{r SAR expand to bg}
 race_codes <- c("A","B","C","D","E","F","G")
-bgSAR_10 <- bgSARE_10 %>%
+bgSAR <- bgSARE %>%
   filter(re_code %in% race_codes) %>%
   uncount(number_sams,.id = "sams_race_id")
-bgSAR_10 <- as.data.table(bgSAR_10)
-paste0("Total population in this representation is: ",nrow(bgSAR_10))
+bgSAR <- as.data.table(bgSAR)
+paste0("Total population in this representation is: ",nrow(bgSAR))
 #which is also the same as the totals above
-nrow(bgSAR_10)==nrow(trSAR_10)
+nrow(bgSAR)==nrow(trSAR)
 ```
 
 Let's put in ethnicity codes for bgSAE and expand, so that the tables from tract and block group match as far as possible, even if we don't know all the demographic specifics (age by year and race of non-White Hispanics) that had been available at the tract level. Notice that the population totals do not match; the ethnicity description is not complete for the population as it had been for race at the block group and for both race and ethnicity at the tract levels. We will have to account for that structuring choice in how the tables are reported in order to construct our own complete representation for the simulation.
 
 ```{r SAE expand to bg}
 eth_codes <- c("H","I")
-bgSAE_10 <- bgSARE_10 %>%
+bgSAE <- bgSARE %>%
   filter(re_code %in% eth_codes) %>%
   uncount(number_sams,.id = "sams_race_id")
-bgSAE_10 <- as.data.table(bgSAE_10)
-paste0("Total population in this representation is: ",nrow(bgSAE_10))
+bgSAE <- as.data.table(bgSAE)
+paste0("Total population in this representation is: ",nrow(bgSAE))
 #see if age_ranges line up, because sometimes they do not between ethnicity and race reporting by the Census Bureau
-test <- sort(unique(bgSAE_10$age_range))==sort(unique(bgSAR_10$age_range))
+test <- sort(unique(bgSAE$age_range))==sort(unique(bgSAR$age_range))
 length(test[test==FALSE])==0
-rm(bgSARE_10)
+rm(bgSARE)
 ```
 
 Part of what's interesting, here, is that the tract level wanted to keep straight all the potential Hispanic or Latino combinations - for example, Black Hispanic is not listed in the block_group, but is available in the tract (albeit by disjunction). At the tract level, you have both "BLACK OR AFRICAN AMERICAN ALONE" and "BLACK OR AFRICAN AMERICAN ALONE, NOT HISPANIC OR LATINO"), which is what lets you impute Black and Hispanic from the remainder. Tract level reporting did not include that extra level. The race_ethnicity codes (re_code) for ethnicity is only either H or I at the block group level.
 
 ```{r table eth_codes}
-dt <- as.data.table(list(unique(bgSAE_10$re_code),unique(bgSAE_10$race)))
+dt <- as.data.table(list(unique(bgSAE$re_code),unique(bgSAE$race)))
 setnames(dt, c("V1","V2"),c("re_code","concept"))
 dt[order(re_code)]
 rm(dt)
@@ -402,14 +402,14 @@ As an aside that we will take up more at length, later, the race is allocated by
 For instance, in the tract tables, we see that there is a category for "SOME OTHER RACE ALONE" (re_code=="F") that has 583,566 people in it. Of those people, fewer than 8,000 were listed as "NOT HISPANIC OR LATINO" - just over 1%. Similarly, "TWO OR MORE RACES" (with 131,332 total and re_code=="G") has more than 60% (82494) listed as "HISPANIC OR LATINO."  Do we really imagine that the designations make the same sense to the people who are talking about themselves as it does to the Census Bureau? This table shows the cross-tabs for race and ethnicity, where not "H" indicates that they are the race listed, but "NOT HISPANIC OR LATINO."
 
 ```{r table for race and ethnicity and test for zeros}
-test_table <- table(trSAR_10$re_code,trSAR_10$ethnicity)
+test_table <- table(trSAR$re_code,trSAR$ethnicity)
 test_table
 length(test_table[test_table==0])==
-  length(table(trSAR_10$ethnicity))*length(table(trSAR_10$re_code))-
-  (length(table(trSAR_10$re_code))*2)
+  length(table(trSAR$ethnicity))*length(table(trSAR$re_code))-
+  (length(table(trSAR$re_code))*2)
 ```
 
-For now, we want to focus on the prosaic process of construction. To read the data.table script, below, you'd say that for the rows in bgSAR_10 that match the White only group (re_code=="A"), assign a match_id with the components of tract, sex, age, and an appropriate random number chosen between 1 and the total number of individuals in that subgroup (the default is replace=FALSE, which is to say that all those numbers are assigned). Then you do the same for bgSAE_10. Then the folks left in each tract in the category of Hispanic or Latino should be more than the number of White Alone that are left (presumably that portion of the Hispanic population was listed as some other racial category).
+For now, we want to focus on the prosaic process of construction. To read the data.table script, below, you'd say that for the rows in bgSAR that match the White only group (re_code=="A"), assign a match_id with the components of tract, sex, age, and an appropriate random number chosen between 1 and the total number of individuals in that subgroup (the default is replace=FALSE, which is to say that all those numbers are assigned). Then you do the same for bgSAE. Then the folks left in each tract in the category of Hispanic or Latino should be more than the number of White Alone that are left (presumably that portion of the Hispanic population was listed as some other racial category).
 
 With these caveats in mind, let's look at how to best move the detailed tract data onto the block_group, with some discussion of other approaches and inherent dangers to the representations. We begin with the joins on ethnicity and race that are available at the block_group level. An overall view of the first two steps, as we join what is known, can be drawn: [Add White Ethnicity to Race Tables by Block Group](https://q.uiver.app/?q=WzAsOSxbMSwwLCJiZ1NBUlxcXFxyYWNlXFxfN1xcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzIzIl0sWzMsMCwiYmdTQUVcXFxcZXRobmljaXR5XFxfMlxcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzIzIl0sWzMsMl0sWzEsMiwiV2hpdGVcXDtBbG9uZSxcXFxcbm90XFw7SGlzcGFuaWNcXFxcb3JcXDtMYXRpbm8iXSxbMSw0LCJXaGl0ZVxcO0Fsb25lLFxcXFxIaXNwYW5pY1xcXFxvclxcO0xhdGlubyJdLFszLDUsImJnU0FFXFxcXGV0aG5pY2l0eVxcXzJcXDt4XFxcXHNleFxcO3hcXDthZ2VcXF8yM1xcXFx4XFw7cmFjZVxcXzEiXSxbMSw1LCJiZ1NBUlxcXFxyYWNlXFxfN1xcO3hcXFxcc2V4XFw7eFxcO2FnZVxcXzIzXFxcXHhcXDtldGhuaWNpdHlcXF8xLjUiXSxbMCw1LCJOb3RcXDtXaGl0ZSxcXFxcSGlzcGFuaWNcXDtvclxcXFxMYXRpbm9cXFxcbm90XFw7a25vd24iLFswLDYwLDYwLDFdXSxbMSw2LCJjb3VudFxcO0hpc3BhbmljXFxcXG9yXFw7TGF0aW5vXFxcXHJlbWFpbmluZ1xcXFx4XFw7YmxvY2tcXDtncm91cFxcXFx4XFw7c2V4XFw7eFxcO2FnZSJdLFsxLDMsIkV0aG5pY2l0eT09IElcXFxcbWF0Y2hcXFxcc2V4XFw7eFxcO2FnZSIsMV0sWzAsMywicmFjZT09QSIsMV0sWzMsNCwiQnlcXDtkaXNqdW5jdGlvblxcXFxyZW1haW5pbmdcXFxcYXJlOiIsMV0sWzEsNV0sWzQsNSwibWF0Y2hcXFxcc2V4XFw7eFxcO2FnZSIsMV0sWzQsNl0sWzYsOF1d)
 [Image](bgSARnwhlnk.png)
@@ -432,26 +432,26 @@ LaTeX:
 \end{tikzcd}\]
 
 ```{r join bgSAE and bgSAR}
-bgSAR_10[re_code=="A",("sar_match_id"):=
+bgSAR[re_code=="A",("sar_match_id"):=
                     paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
                   by=.(geoid,sex,age_range)]
-bgSAE_10[re_code=="I",("sar_match_id"):=
+bgSAE[re_code=="I",("sar_match_id"):=
                     paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
                   by=.(geoid,sex,age_range)]
-bgSAR_10[re_code=="A",("ethnicity"):=
-                    bgSAE_10[.SD, list(re_code), on = .(sar_match_id)]]
+bgSAR[re_code=="A",("ethnicity"):=
+                    bgSAE[.SD, list(re_code), on = .(sar_match_id)]]
 #move back to SAE, so we can track sex and age_range combinations that have been eliminated
-bgSAE_10[re_code=="I",("r_code"):=
-                    bgSAR_10[.SD, list(re_code), on = .(sar_match_id)]]
-nrow(bgSAR_10[!is.na(ethnicity)&re_code=="A"])==nrow(bgSAE_10[re_code=="I"])
-nrow(bgSAE_10[re_code=="I"])==nrow(bgSAE_10[!is.na(r_code)])
-test <- table(bgSAR_10[re_code=="A"&!is.na(ethnicity),geoid],
-              bgSAR_10[re_code=="A"&!is.na(ethnicity),sex],
-              bgSAR_10[re_code=="A"&!is.na(ethnicity),age_range]
+bgSAE[re_code=="I",("r_code"):=
+                    bgSAR[.SD, list(re_code), on = .(sar_match_id)]]
+nrow(bgSAR[!is.na(ethnicity)&re_code=="A"])==nrow(bgSAE[re_code=="I"])
+nrow(bgSAE[re_code=="I"])==nrow(bgSAE[!is.na(r_code)])
+test <- table(bgSAR[re_code=="A"&!is.na(ethnicity),geoid],
+              bgSAR[re_code=="A"&!is.na(ethnicity),sex],
+              bgSAR[re_code=="A"&!is.na(ethnicity),age_range]
 ) == table(
-  bgSAE_10[re_code=="I",geoid],
-  bgSAE_10[re_code=="I",sex],
-  bgSAE_10[re_code=="I",age_range]
+  bgSAE[re_code=="I",geoid],
+  bgSAE[re_code=="I",sex],
+  bgSAE[re_code=="I",age_range]
 )
 length(test[test==FALSE])==0
 #all the individuals who identify as both White and Hispanic or Latino are accounted for
@@ -460,62 +460,62 @@ length(test[test==FALSE])==0
 Having assigned the part of the population that we know to be White Alone, Not Hispanic or Latino at the block group level, we can now give the White Alone, Hispanic or Latino an "H" for ethnicity and mark off the Hispanics in the ethnicity block group tables by those sex and age_ranges. Since the groups are complements of each other (in fact, adjoint), and there are only a few things ascribed to each table, the subsetting can be done without loss of information. 
 
 ```{r assign rest of White alone ethnicity and do counts for Hispanic or Latino remaining in block}
-bgSAR_10[is.na(ethnicity)&re_code=="A",("ethnicity"):="H"]
+bgSAR[is.na(ethnicity)&re_code=="A",("ethnicity"):="H"]
 #put a marker back on SAE, so that age and sex for the others stays same
-bgSAR_10[re_code=="A"&ethnicity=="H",("sar2_match_id"):=
+bgSAR[re_code=="A"&ethnicity=="H",("sar2_match_id"):=
                     paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
                   by=.(geoid,sex,age_range)]
-bgSAE_10[re_code=="H",("sar2_match_id"):=
+bgSAE[re_code=="H",("sar2_match_id"):=
                     paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
                   by=.(geoid,sex,age_range)]
-bgSAE_10[re_code=="H",("r_code"):=
-                    bgSAR_10[.SD, list(re_code), on = .(sar2_match_id)]]
+bgSAE[re_code=="H",("r_code"):=
+                    bgSAR[.SD, list(re_code), on = .(sar2_match_id)]]
 #check all moved over for White Alone rows
-nrow(bgSAE_10[!is.na(r_code)])==nrow(bgSAR_10[re_code=="A"])
+nrow(bgSAE[!is.na(r_code)])==nrow(bgSAR[re_code=="A"])
 #Now let's do some tests first to ensure we've got what we think we have
-nrow(bgSAR_10[ethnicity!="I"&re_code=="A"])==nrow(trSAR_10[ethnicity!="I"&re_code=="A"])
-nrow(bgSAR_10[is.na(ethnicity)&re_code=="A"])==0
+nrow(bgSAR[ethnicity!="I"&re_code=="A"])==nrow(trSAR[ethnicity!="I"&re_code=="A"])
+nrow(bgSAR[is.na(ethnicity)&re_code=="A"])==0
 #SAE_Harris (tract) for just H and I has the same total size as bgSAE for blocks.
-nrow(trSAE_10[re_code%in%c("H","I")])==nrow(bgSAE_10)
+nrow(trSAE[re_code%in%c("H","I")])==nrow(bgSAE)
 #check that White Alone has right number totals on both sides
-nrow(bgSAE_10[re_code=="H"&!is.na(r_code)])+nrow(bgSAE_10[re_code=="I"])==
-  nrow(bgSAR_10[re_code=="A"])
+nrow(bgSAE[re_code=="H"&!is.na(r_code)])+nrow(bgSAE[re_code=="I"])==
+  nrow(bgSAR[re_code=="A"])
 
 #move number of total non-White Hispanic or Latino onto all rows in block by sex and age_range
-bgSAE_10[is.na(r_code),("H_block"):=.N,by=.(geoid,sex,age_range)]
-bgSAE_10[is.na(r_code),("H_tract"):=.N,by=.(tract,sex,age_range)]
-bgSAR_10[re_code!="A",("sar3_match_id"):=
+bgSAE[is.na(r_code),("H_block"):=.N,by=.(geoid,sex,age_range)]
+bgSAE[is.na(r_code),("H_tract"):=.N,by=.(tract,sex,age_range)]
+bgSAR[re_code!="A",("sar3_match_id"):=
                     paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
                   by=.(geoid,sex,age_range)]
-bgSAE_10[is.na(r_code),("sar3_match_id"):=
+bgSAE[is.na(r_code),("sar3_match_id"):=
                     paste0(geoid,sex,age_range,as.character(100000+sample(1:.N))),
                   by=.(geoid,sex,age_range)]
-bgSAR_10[re_code!="A",c("H_block"):= 
-                    bgSAE_10[.SD, list(H_block), on = .(sar3_match_id)]]
-summary(bgSAR_10[,H_block])==summary(bgSAE_10[,H_block]) #should be TRUE for all except NA's
-nrow(bgSAE_10[!is.na(H_block)])==nrow(bgSAR_10[!is.na(H_block)])
+bgSAR[re_code!="A",c("H_block"):= 
+                    bgSAE[.SD, list(H_block), on = .(sar3_match_id)]]
+summary(bgSAR[,H_block])==summary(bgSAE[,H_block]) #should be TRUE for all except NA's
+nrow(bgSAE[!is.na(H_block)])==nrow(bgSAR[!is.na(H_block)])
 #put the number remaining Hispanic or Latino by block group, sex, and age_range on every row in SAR without ethnicity
-bgSAR_10[is.na(H_block),("H_block"):=0] #something about .SD working with NAs is funky
-bgSAR_10[order(-H_block),("bg_H_remain"):=.SD[1,H_block], #should be only one number per group, but don't know what row it's in
+bgSAR[is.na(H_block),("H_block"):=0] #something about .SD working with NAs is funky
+bgSAR[order(-H_block),("bg_H_remain"):=.SD[1,H_block], #should be only one number per group, but don't know what row it's in
          by=.(geoid,sex,age_range)]
 #some summaries and tests
 paste0("number of Hispanic or Latino who are not White alone: ",
-       nrow(bgSAE_10)-nrow(bgSAR_10[!is.na(ethnicity)]))
+       nrow(bgSAE)-nrow(bgSAR[!is.na(ethnicity)]))
 #which should equal the same in the tract table
-nrow(trSAR_10[ethnicity=="H"])-nrow(trSAR_10[re_code=="A"&ethnicity=="H"])==
-  nrow(bgSAE_10)-nrow(bgSAR_10[!is.na(ethnicity)])
+nrow(trSAR[ethnicity=="H"])-nrow(trSAR[re_code=="A"&ethnicity=="H"])==
+  nrow(bgSAE)-nrow(bgSAR[!is.na(ethnicity)])
 #the ones who are neither H nor I are all the non-White categories minus the Hispanics
-H_A <- nrow(bgSAR_10[ethnicity=="H"&re_code=="A"])
+H_A <- nrow(bgSAR[ethnicity=="H"&re_code=="A"])
 paste0("The number of people listed as White by race and Hispanic or Latino by ",
        "ethnicity at the block level, ",
        H_A,", should equal the total from tracts")
-H_A==nrow(trSAR_10[re_code=="A"])-nrow(trSAR_10[ethnicity=="I"])
+H_A==nrow(trSAR[re_code=="A"])-nrow(trSAR[ethnicity=="I"])
 #which means the complete White population has ethnicity assigned
-paste0("This leaves ",nrow(bgSAE_10[re_code=="H"]) - H_A," non-White, Hispanic or Latino,",
-       " out of ",nrow(bgSAR_10[re_code!="A"])," non-White individuals. Of that remaining Hispanic or Latino population, ", nrow(trSAR_10[re_code=="F"&ethnicity=="H"]), 
+paste0("This leaves ",nrow(bgSAE[re_code=="H"]) - H_A," non-White, Hispanic or Latino,",
+       " out of ",nrow(bgSAR[re_code!="A"])," non-White individuals. Of that remaining Hispanic or Latino population, ", nrow(trSAR[re_code=="F"&ethnicity=="H"]), 
        " consider themselves Some Other Race Alone")
 #also check to see that the number of non-White Hispanic or Latino matches
-nrow(trSAR_10[ethnicity=="H"&re_code!="A"])==nrow(bgSAE_10[is.na(r_code)])
+nrow(trSAR[ethnicity=="H"&re_code!="A"])==nrow(bgSAE[is.na(r_code)])
 ```
 
 We can add in the tract data at this point, matching on ethnicity, with race assigned within the subgroups where we don't know ethnicity by random sample, but there's a potential that some of the folks (1,774,203) who don't have ethnicity assigned at the block group will be misassigned within the tract to the wrong block group. We've been able to identify non-White Hispanic or Latino individuals (702,930), but don't know how they distribute by race by block group (only by tract). That is, we can easily create a commutative representation grounded in both race and ethnicity at the tract level, but it might break with other commutative relations at other levels that depend on how race is combined with ethnicity at the block group level. 
@@ -530,23 +530,23 @@ The idea is that you want the values to have been determined by the structure pr
 What we mean by structure is embodied in how the names can circulate in relation to the named - not the Kantian (as diagnosed by Sellars) moment of simple and single contact with the noumenal, but a channel within which the names circulate according to a structure. That is, we are not trying to find a place where the name is correct, but where the names have a logic of application and the structure that makes that application make sense is captured. This allows for the movement between different ways of naming to make sense. Here, we do it one at a time, so that the determination from the ethnicity as given in the table for tracts has the relation to race moved over from the block group tables. When we match block and ethnicity from the block group level for the group quarters, below, we are combining the two structured ways of naming by capturing how one moves between them. As we find more difficult situations, that sense of movement will allow us to speak to the sense of a dynamic dialogue between different ways of naming that demonstrates more capacity for eliciting and understanding structures. We are not trying to become relativists by refusing the idea of naming as the place where a truth is instantiated, but showing that ways of naming allow us to see structures that encompass multiple strategies for structuring how the names are attached, and to see the comparison in algebraic or topological terms (as ways of combining structures) and not as a single action of determination in an individual's act of naming what is as the result of an act of naming from a determined perspective on the whole. The structure for ethnicity by race is highly determinative for "Some Other Race" (almost 99% in Harris County), but not exhaustive, and just less than two-thirds for "Two or More Races," with a large cohort for "Black or African American" and "Hispanic or Latino" (21,234 people, which is just less than 3% of all "Black or African American").  
 
 ```{r add age_range onto trSAR so that it matches}
-bgSAR_10[order(tract,first_age),("age_match_id"):=
+bgSAR[order(tract,first_age),("age_match_id"):=
                     paste0(tract,sex,re_code,as.character(100000+seq.int(1:.N))),
                   by=.(tract,sex,re_code)]
-trSAR_10[order(tract,age),("age_match_id"):=
+trSAR[order(tract,age),("age_match_id"):=
                     paste0(tract,sex,re_code,as.character(100000+seq.int(1:.N))),
                   by=.(tract,sex,re_code)]
-trSAR_10[,("age_range"):=
-                    bgSAR_10[.SD, list(age_range), on = .(age_match_id)]]
-test <- table(bgSAR_10[,tract],
-              bgSAR_10[,sex],
-              bgSAR_10[,re_code],
-              bgSAR_10[,age_range]
+trSAR[,("age_range"):=
+                    bgSAR[.SD, list(age_range), on = .(age_match_id)]]
+test <- table(bgSAR[,tract],
+              bgSAR[,sex],
+              bgSAR[,re_code],
+              bgSAR[,age_range]
               )==
-        table(trSAR_10[,tract],
-              trSAR_10[,sex],
-              trSAR_10[,re_code],
-              trSAR_10[,age_range]
+        table(trSAR[,tract],
+              trSAR[,sex],
+              trSAR[,re_code],
+              trSAR[,age_range]
               )
 length(test[test==FALSE])==0
 ```
@@ -559,155 +559,155 @@ If we order by H_tract (number of "Hispanic or Latino") remaining in tract by re
 
 ```{r join bgSAR with trSAR for ethnicity by block group}
 #move H_re_code from trSAR to bgSAR
-trSAR_10[ethnicity=="H"&re_code!="A",("H_re_code"):=.N,by=.(tract,sex,age_range,re_code)]
+trSAR[ethnicity=="H"&re_code!="A",("H_re_code"):=.N,by=.(tract,sex,age_range,re_code)]
 #then merge
-trSAR_10[ethnicity=="H"&re_code!="A",("ethSAR_match_id"):=
+trSAR[ethnicity=="H"&re_code!="A",("ethSAR_match_id"):=
            paste0(tract,sex,age_range,re_code,as.character(100000+sample(1:.N))),
            by=.(tract,sex,age_range,re_code)]
-bgSAR_10[re_code!="A",("ethSAR_match_id"):=
+bgSAR[re_code!="A",("ethSAR_match_id"):=
            paste0(tract,sex,age_range,re_code,as.character(100000+sample(1:.N))),
            by=.(tract,sex,age_range,re_code)]
-bgSAR_10[re_code!="A",("H_re_code"):=
-                    trSAR_10[.SD, list(H_re_code), on = .(ethSAR_match_id)]]
-trSAR_10[ethnicity=="H"&re_code!="A",("ethSAR_match_poss"):=
-           bgSAR_10[.SD, list(H_re_code), on = .(ethSAR_match_id)]]
+bgSAR[re_code!="A",("H_re_code"):=
+                    trSAR[.SD, list(H_re_code), on = .(ethSAR_match_id)]]
+trSAR[ethnicity=="H"&re_code!="A",("ethSAR_match_poss"):=
+           bgSAR[.SD, list(H_re_code), on = .(ethSAR_match_id)]]
 #test that they all moved over
-nrow(trSAR_10[!is.na(ethSAR_match_poss)])==nrow(!is.na(bgSAR_10[!is.na(H_re_code)]))
-bgSAR_10[re_code!="A"&is.na(H_re_code),("H_re_code"):=0]
-bgSAR_10[order(-H_re_code),("H_re_code"):=.SD[1,H_re_code],
+nrow(trSAR[!is.na(ethSAR_match_poss)])==nrow(!is.na(bgSAR[!is.na(H_re_code)]))
+bgSAR[re_code!="A"&is.na(H_re_code),("H_re_code"):=0]
+bgSAR[order(-H_re_code),("H_re_code"):=.SD[1,H_re_code],
          by=.(tract,sex,age_range,re_code)]
-paste0("We know by elimination that ",nrow(bgSAR_10[re_code!="A"&H_re_code==0]),
+paste0("We know by elimination that ",nrow(bgSAR[re_code!="A"&H_re_code==0]),
        " are not possible matches on tract, sex, age, race (re_code).")
 paste0("Taken together with the ones where multiple matches are possible (",
-       nrow(bgSAR_10[re_code!="A"&H_re_code!=0]),") minus the ones that needed to match (",
-       nrow(trSAR_10[!is.na(ethSAR_match_poss)]),"), we get: ",
-       nrow(bgSAR_10[re_code!="A"&H_re_code==0])+
-         nrow(bgSAR_10[re_code!="A"&H_re_code!=0])-
-         nrow(trSAR_10[!is.na(ethSAR_match_poss)]),
+       nrow(bgSAR[re_code!="A"&H_re_code!=0]),") minus the ones that needed to match (",
+       nrow(trSAR[!is.na(ethSAR_match_poss)]),"), we get: ",
+       nrow(bgSAR[re_code!="A"&H_re_code==0])+
+         nrow(bgSAR[re_code!="A"&H_re_code!=0])-
+         nrow(trSAR[!is.na(ethSAR_match_poss)]),
        " which equals the number of rows that don't have ethnicity of H or I: ",
-       nrow(trSAR_10[!ethnicity%in%c("H","I")]))
+       nrow(trSAR[!ethnicity%in%c("H","I")]))
 ```
 
 ```{r assign HvI and order bgSAR by block group with number left and count misaligned re_code and ethnicity}
-setorder(bgSAR_10,-bg_H_remain,-H_re_code)
-bgSAR_10[re_code!="A",("HvI"):=if_else(1:.N>bg_H_remain,"notHvI","HvI"),by=.(geoid,sex,age_range)]
-trSAR_10[re_code!="A",("HvI"):=if_else(ethnicity=="H","HvI","notHvI")]
+setorder(bgSAR,-bg_H_remain,-H_re_code)
+bgSAR[re_code!="A",("HvI"):=if_else(1:.N>bg_H_remain,"notHvI","HvI"),by=.(geoid,sex,age_range)]
+trSAR[re_code!="A",("HvI"):=if_else(ethnicity=="H","HvI","notHvI")]
 #a few tests
-table(bgSAR_10[,HvI])==table(trSAR_10[,HvI])
-test <- table(bgSAR_10[,tract],
-              bgSAR_10[,sex],
-              bgSAR_10[,age_range],
-              bgSAR_10[,HvI])==
-  table(trSAR_10[,tract],
-        trSAR_10[,sex],
-        trSAR_10[,age_range],
-        trSAR_10[,HvI])
+table(bgSAR[,HvI])==table(trSAR[,HvI])
+test <- table(bgSAR[,tract],
+              bgSAR[,sex],
+              bgSAR[,age_range],
+              bgSAR[,HvI])==
+  table(trSAR[,tract],
+        trSAR[,sex],
+        trSAR[,age_range],
+        trSAR[,HvI])
 length(test[test==FALSE])==0
-test <- table(bgSAR_10[,tract],
-              bgSAR_10[,sex],
-              bgSAR_10[,age_range],
-              bgSAR_10[,re_code])==
-  table(trSAR_10[,tract],
-        trSAR_10[,sex],
-        trSAR_10[,age_range],
-        trSAR_10[,re_code])
+test <- table(bgSAR[,tract],
+              bgSAR[,sex],
+              bgSAR[,age_range],
+              bgSAR[,re_code])==
+  table(trSAR[,tract],
+        trSAR[,sex],
+        trSAR[,age_range],
+        trSAR[,re_code])
 length(test[test==FALSE])==0
 #however, the re_code is not correctly matched to HvI
-test <- table(bgSAR_10[,tract],
-              bgSAR_10[,re_code],
-              bgSAR_10[,HvI])==
-  table(trSAR_10[,tract],
-        trSAR_10[,re_code],
-        trSAR_10[,HvI])
+test <- table(bgSAR[,tract],
+              bgSAR[,re_code],
+              bgSAR[,HvI])==
+  table(trSAR[,tract],
+        trSAR[,re_code],
+        trSAR[,HvI])
 length(test[test==FALSE])==0
 #we can measure that difference by counting how many don't match and dividing it by the number we tried to match:
 #(which we could compare with other methods of sorting, naive joins, etc., if time)
-sum_missed <- sum(abs(table(bgSAR_10[,tract],
-              bgSAR_10[,re_code],
-              bgSAR_10[,HvI])==
-  table(trSAR_10[,tract],
-        trSAR_10[,re_code],
-        trSAR_10[,HvI])))
+sum_missed <- sum(abs(table(bgSAR[,tract],
+              bgSAR[,re_code],
+              bgSAR[,HvI])==
+  table(trSAR[,tract],
+        trSAR[,re_code],
+        trSAR[,HvI])))
 sum_missed
 #percent of whole:
 round(sum_missed /
-  nrow(trSAR_10[ethnicity=="H"&re_code!="A"]),5)*100
+  nrow(trSAR[ethnicity=="H"&re_code!="A"]),5)*100
 #but what it has done is put the block structure somewhat in place by race
-bgSAR_10[is.na(ethnicity),("ethSAR_id"):=
+bgSAR[is.na(ethnicity),("ethSAR_id"):=
            paste0(tract,sex,age_range,re_code,HvI,as.character(100000+sample(1:.N))),
          by=.(tract,sex,age_range,re_code,HvI)]
-trSAR_10[re_code!="A",
+trSAR[re_code!="A",
          ("ethSAR_id"):=
            paste0(tract,sex,age_range,re_code,HvI,as.character(100000+sample(1:.N))),
            by=.(tract,sex,age_range,re_code,HvI)]
-bgSAR_10[is.na(ethnicity),("ethnicity"):=
-                    trSAR_10[.SD, list(ethnicity), on = .(ethSAR_id)]]
-trSAR_10[re_code!="A",
+bgSAR[is.na(ethnicity),("ethnicity"):=
+                    trSAR[.SD, list(ethnicity), on = .(ethSAR_id)]]
+trSAR[re_code!="A",
          ("ethSAR_match"):=
-           bgSAR_10[.SD, list(H_re_code), on = .(ethSAR_id)]]
-nrow(trSAR_10[!is.na(ethSAR_match) | re_code=="A"])==nrow(bgSAR_10[!is.na(ethnicity)])
-paste0("There are a relatively few (",nrow(trSAR_10[is.na(ethSAR_match)&re_code!="A"])," or ",
-       round(nrow(trSAR_10[is.na(ethSAR_match)&re_code!="A"])/nrow(trSAR_10),5)*100,
+           bgSAR[.SD, list(H_re_code), on = .(ethSAR_id)]]
+nrow(trSAR[!is.na(ethSAR_match) | re_code=="A"])==nrow(bgSAR[!is.na(ethnicity)])
+paste0("There are a relatively few (",nrow(trSAR[is.na(ethSAR_match)&re_code!="A"])," or ",
+       round(nrow(trSAR[is.na(ethSAR_match)&re_code!="A"])/nrow(trSAR),5)*100,
        "%) that didn't match. We take the relation of ethnicity to race as canonical, however,", 
        "so finish assigning those from trSAR. Luckily, none of the unmatched are Hispanic or Latino (",
-       nrow(trSAR_10[is.na(ethSAR_match)&re_code!="A"&ethnicity=="H"])==0, ") so we can just join without HvI")
+       nrow(trSAR[is.na(ethSAR_match)&re_code!="A"&ethnicity=="H"])==0, ") so we can just join without HvI")
 paste0("It is also worth just looking at how this ordering distributed ethnicity, first remembering tract level race by ethnicity: ")
-table(trSAR_10$re_code,trSAR_10$ethnicity)
+table(trSAR$re_code,trSAR$ethnicity)
 paste0("Then the block level up to this point - which looks visually to be in the right direction: ")
-table(bgSAR_10$re_code,bgSAR_10$ethnicity)
+table(bgSAR$re_code,bgSAR$ethnicity)
 ```
 
 ```{r finish assigning ethnicity to bg and do tests}
-bgSAR_10[is.na(ethnicity),("ethSAR2_id"):=
+bgSAR[is.na(ethnicity),("ethSAR2_id"):=
            paste0(tract,sex,age_range,re_code,as.character(100000+sample(1:.N))),
          by=.(tract,sex,age_range,re_code)]
-trSAR_10[is.na(ethSAR_match)&re_code!="A",
+trSAR[is.na(ethSAR_match)&re_code!="A",
          ("ethSAR2_id"):=
            paste0(tract,sex,age_range,re_code,as.character(100000+sample(1:.N))),
            by=.(tract,sex,age_range,re_code)]
-bgSAR_10[is.na(ethnicity),("ethnicity"):=
-                    trSAR_10[.SD, list(ethnicity), on = .(ethSAR2_id)]]
-test <- table(bgSAR_10[,tract],
-              bgSAR_10[,sex],
-              bgSAR_10[,age_range],
-              bgSAR_10[,re_code],
-              bgSAR_10[,ethnicity])==
-  table(trSAR_10[,tract],
-        trSAR_10[,sex],
-        trSAR_10[,age_range],
-        trSAR_10[,re_code],
-        trSAR_10[,ethnicity])
+bgSAR[is.na(ethnicity),("ethnicity"):=
+                    trSAR[.SD, list(ethnicity), on = .(ethSAR2_id)]]
+test <- table(bgSAR[,tract],
+              bgSAR[,sex],
+              bgSAR[,age_range],
+              bgSAR[,re_code],
+              bgSAR[,ethnicity])==
+  table(trSAR[,tract],
+        trSAR[,sex],
+        trSAR[,age_range],
+        trSAR[,re_code],
+        trSAR[,ethnicity])
 length(test[test==FALSE])==0
 #test with bgSAE to see how far off it is - first, double check on tract
-test <- table(bgSAR_10[ethnicity%in%c("H","I"),tract],
-              bgSAR_10[ethnicity%in%c("H","I"),sex],
-              bgSAR_10[ethnicity%in%c("H","I"),age_range],
-              bgSAR_10[ethnicity%in%c("H","I"),ethnicity])==
-  table(bgSAE_10[,tract],
-        bgSAE_10[,sex],
-        bgSAE_10[,age_range],
-        bgSAE_10[,re_code])
+test <- table(bgSAR[ethnicity%in%c("H","I"),tract],
+              bgSAR[ethnicity%in%c("H","I"),sex],
+              bgSAR[ethnicity%in%c("H","I"),age_range],
+              bgSAR[ethnicity%in%c("H","I"),ethnicity])==
+  table(bgSAE[,tract],
+        bgSAE[,sex],
+        bgSAE[,age_range],
+        bgSAE[,re_code])
 length(test[test==FALSE])==0
 #then get count of how many are off within the block groups
-sum(abs(table(bgSAR_10[ethnicity=="I",geoid],
-              bgSAR_10[ethnicity=="I",sex],
-              bgSAR_10[ethnicity=="I",age_range])-
-  table(bgSAE_10[re_code=="I",geoid],
-        bgSAE_10[re_code=="I",sex],
-        bgSAE_10[re_code=="I",age_range])))==0
-bg_sum_eth <- sum(abs(table(bgSAR_10[ethnicity=="H",geoid],
-              bgSAR_10[ethnicity=="H",sex],
-              bgSAR_10[ethnicity=="H",age_range])-
-  table(bgSAE_10[re_code=="H",geoid],
-        bgSAE_10[re_code=="H",sex],
-        bgSAE_10[re_code=="H",age_range])))
+sum(abs(table(bgSAR[ethnicity=="I",geoid],
+              bgSAR[ethnicity=="I",sex],
+              bgSAR[ethnicity=="I",age_range])-
+  table(bgSAE[re_code=="I",geoid],
+        bgSAE[re_code=="I",sex],
+        bgSAE[re_code=="I",age_range])))==0
+bg_sum_eth <- sum(abs(table(bgSAR[ethnicity=="H",geoid],
+              bgSAR[ethnicity=="H",sex],
+              bgSAR[ethnicity=="H",age_range])-
+  table(bgSAE[re_code=="H",geoid],
+        bgSAE[re_code=="H",sex],
+        bgSAE[re_code=="H",age_range])))
 #which is still less than 1% misaligned on Hispanic or Latino (or not) for non-White individuals
-bg_sum_eth/nrow(bgSAE_10[re_code=="H"])
+bg_sum_eth/nrow(bgSAE[re_code=="H"])
 #and for "H" alone
-bg_sum_eth_H <- sum(abs(table(bgSAR_10[ethnicity=="H",geoid])-
-  table(bgSAE_10[re_code=="H",geoid])))
+bg_sum_eth_H <- sum(abs(table(bgSAR[ethnicity=="H",geoid])-
+  table(bgSAE[re_code=="H",geoid])))
 #which is still less than 1% misaligned on Hispanic or Latino (or not) for non-White individuals
-bg_sum_eth_H/nrow(bgSAE_10[re_code=="H"])
+bg_sum_eth_H/nrow(bgSAE[re_code=="H"])
 ```
 
 Less than 1% of people who could have been matched back to the original ethnicity tables for the block group weren't matched with the final representation we created on ethnicity=="H", sex and age_range. For just the ethnicity, we ended up with .3%. We should note that it is also possible that some small misalignments from the block group level could be attributed to the differences between 23 age categories in the block group and separate categories for every year at the tract level, but that should be quite minimal. We can't be sure where that difference happens, and we know that our answer still respects the information at the tract level. We could try to identify the categories where the match failed, but we wouldn't know which racial categories to swap with on the tract level. For now, let's leave it as irreducible introduction of error (or loss of information). 
@@ -715,22 +715,22 @@ Less than 1% of people who could have been matched back to the original ethnicit
 Somewhere above, about Type theory and computability - the only operations allowed to do the matching are things that you can place on a single row and then can match with a different table uniquely by that row. That is a complement or adjoint of the sense of complementarity itself.... You can give a whole group a name, and then count each individual, and you can do things that allow you to count multiple times as you subset, but each individual has to be somehow given a value, so that the row can be assessed. That this is also part of what drives imperative programming and nominalistic epistemology to think that the task is to test whether a name is correctly used as opposed to asking what patterns emerge. (think of difference between adding in imperative and functional languages, or in Peano vs. Church, and the order of calculation; and then how that means that our question, here, is different). Part of the difficulty is that the factors being assigned are slightly different than the cartesian product of possible assignments - could tease that out, above.
 
 ```{r clean up bgSAR and extra files}
-rm(bgSAE_10)
-rm(trSAE_10)
-rm(trSAR_10)
-bgSAR_10[,c("name","label","total","concept","sams_race_id","sar_match_id",
+rm(bgSAE)
+rm(trSAE)
+rm(trSAR)
+bgSAR[,c("name","label","total","concept","sams_race_id","sar_match_id",
             "sar2_match_id","sar3_match_id","H_block","bg_H_remain","age_match_id",
             "ethSAR_match_id","H_re_code","HvI","ethSAR_id","ethSAR2_id"):=NULL]
-if (file.exists(paste0(censusdir,vintage,"/working/bgSAR_10.RDS"))){
-  file.remove(paste0(censusdir,vintage,"/working/bgSAR_10.RDS"))
+if (file.exists(paste0(censusdir,vintage,"/working/bgSAR.RDS"))){
+  file.remove(paste0(censusdir,vintage,"/working/bgSAR.RDS"))
 }
 if (file.exists(paste0(censusdir,vintage,"/working"))){
     print(sprintf("found folder %s", paste0(censusdir,vintage,"/working")))
-    saveRDS(bgSAR_10,paste0(censusdir,vintage,"/working/bgSAR_10.RDS"))
+    saveRDS(bgSAR,paste0(censusdir,vintage,"/working/bgSAR.RDS"))
   }else{
     dir.create(paste0(censusdir,vintage,"/working"))
     print(sprintf("created folder %s", paste0(censusdir,vintage,"/working")))
-    saveRDS(bgSAR_10,paste0(censusdir,vintage,"/working/bgSAR_10.RDS"))
+    saveRDS(bgSAR,paste0(censusdir,vintage,"/working/bgSAR.RDS"))
   }
 
 ```
