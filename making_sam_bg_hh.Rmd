@@ -242,7 +242,7 @@ trHHr[eth2=="not_known",("tr_sae"):=trHHe[.SD,list(tr_sae),on=.(tr_sae_hh_match2
 #add the number still needed to fill out H, not White
 #trHHr[,("tr_sare"):=if_else(race!="A",tr_sare+tr_sae,tr_sare)]#creates na's at race=="A"??
 trHHr[is.na(tr_sae),("tr_sae"):=0]
-trHHr[,("tr_sare"):=tr_sare+tr_sae]
+trHHr[,("tr_sare"):=tr_sare+tr_sae] #this just gives a magnitude for ordering
 summary(trHHr[,tr_sare])
 table(trHHr[tr_sare<11,tr_sare])
 paste0("There are ",2*23*3*7," different possible combinations of sex, age, race, and ethnicity in each tract.")
@@ -271,11 +271,35 @@ table(bgSAR[is.na(tr_HH),ethnicity])
 nrow(bgSAR[sare_diff_tr==0&tr_HH>0])
 
 #if sare_diff_tr==0 & tr_HH>0, then assign "In household"
-bgSAR[sare_diff_tr==0&tr_HH>0,("household"):=list("In household")]
+#bgSAR[sare_diff_tr==0&tr_HH>0,("household"):=list("In household")] #replace with logic, below
+#check if all the ones that would have been listed this way are included
 
 ```
 
 We're going to make the information we have about the structure of the group quarter distributions at the block group level help us decide the rest of how we distribute the household vs. group quarter designations in the block group main file (bgSAR). 
+
+For now, we'll do a quick set of the bgSAR rows that are not matched in trHHr. We'll make a new table, so we don't have to worry about the block groups, and try to get that lined out correctly, below. We'll do two steps. One that lets us get the right number by ethnicity and the other the right number by race (since we only have complete ethnicity for people counted as White).
+
+```{r anti-join to get right structure for group quarters match (forgetting block level)}
+#join bgSAR and trHHe by ethnicity, sex, age at tract level, forgetting rest - create bgSAR_eth as the anti-join without race or group quarters.
+#By using the ordering from bg_sare and tr_HH (which is tr_sare + tr_sae from HH) we hope to show how preserving the order by block would work.
+bgSAR[order(bg_sare),("bg_sare_hh_match_id"):=
+    paste0(tract,sex,first_age,re_code,eth2,as.character(100000+seq.int(1:.N))),
+      by=.(tract,sex,first_age,re_code,eth2,bg_sare)]
+trHHr[order(tr_sare),("bg_sare_hh_match_id"):=
+    paste0(tract,sex,first_age,race,eth2,as.character(100000+seq.int(1:.N))),
+      by=.(tract,sex,first_age,race,eth2,tr_sare)]
+trHHr[,("household"):=list("In household")]
+bgSAR[,("household"):=trHHr[.SD, list(household), on = .(bg_sare_hh_match_id)]] 
+
+
+#join bgSAR and trHHr by race, sex, age at tract level and create bgSAR_gq with the non-matched and without ethnicity
+
+
+
+
+#should be able to count number of H by tr_sare on trHHr order both sides by tr_sare
+```
 
 One of our difficulties, above, was that we weren't sure how to distribute some of the race and ethnicity combinations that we knew to be valid at the tract level once we moved to the block level - although we knew distributions at the block level for both race and ethnicity, which gives us a ceiling for the possible misattributions. We have some information on group quarters that may help, if we're careful not to overwrite, but in general the very detailed information about age and race means that the household structure should be added first, with the specifics for quarters added within that structure (since no other designations besides sex, age, race, and ethnicity are given at this point, and so no information is lost). 
 
@@ -426,7 +450,7 @@ tr_re_group_quarters <- tr_re_group_quarters_type_data %>%
   filter(!is.na(gq_specs)) %>% #to get rid of aggregations by institutional type
   uncount(number_sams,.id = "trregq_id",.remove = TRUE) 
 tr_re_group_quarters <- as.data.table(tr_re_group_quarters) 
-#Break them into race and ethnicity tables.
+#Break them into race and ethnicity tables. We'll add them back together once we have a bit more information to help with block group designations
 tr_r_gq <- tr_re_group_quarters[re_code%in%race_codes]
 tr_e_gq <- tr_re_group_quarters[re_code%in%c("H","I")]
 paste0("Number of individuals in group quarters table: ", nrow(tr_r_gq))
@@ -1002,7 +1026,7 @@ Since we don't have age groups in very good detail for the group quarters, and w
 What we had with the bgSAR, above, was a measure of which blocks had the largest diversion from the tract for that combination of sex, age, race and ethnicity (bg_sare) and  tr_HH, which was drawn from the same combinations at the tract level in the household file. 
 
 STOPPED HERE!!
-
+Plan: use the bgSAR tr_sare to order and create a new file with the bgSAR that doesn't match a trHHr, then match that with bggq, then to bgSAR as group quarters at the block level, then rematch with the trHHr, with the assumption that it now has the blocks right.   
 
 
 
