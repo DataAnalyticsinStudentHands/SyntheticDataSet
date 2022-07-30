@@ -1,0 +1,285 @@
+---
+title: "Food and Transportation"
+author: "Dan Price"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+geometry: margin=1in
+fontsize: 11pt
+documentclass: article
+header-includes: 
+  - \usepackage{tikz}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Preliminaries -- very broad
+https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html for options on the knit - results="hide"; echo=FALSE; include=FALSE, etc.
+
+```{r prelims}
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(data.table)
+library(sf)
+#maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
+maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+#maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
+housingdir = paste0(maindir,"HCAD/")
+houstondatadir = paste0(maindir,"HoustonCityData/") 
+censusdir = paste0(maindir,"Census/") 
+vintage = "2022"
+housingStockFromRDS = TRUE 
+#numberOfCores = 1
+state = 48 #48 Texas; 22 Louisiana
+county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
+tract = "*"
+censuskey <- readLines(paste0(censusdir, "2017", "/key"))
+#HCAD has more census blocks than county=="201" - have to decide on best policy
+geo_vintage <- "2010" #should be able to match vintage, depending on date.
+source('BaseScripts/Census_Data.R') #this is just a quick thing you shouldn't need
+```
+#Notes on where I got files
+from http://pdata.hcad.org/GIS/index.html
+got Parcels 2015, Hwy, School, City, Sub_poly (subdivisions), TIRZ
+on 12/27/2019 got 2017 of Parcels, and most recent of others
+
+on 7/15/2022, got 2005 (no personal property data), 2010, 2020, 2021, 2022 downloads from https://hcad.org/pdata/pdata-property-downloads.html#
+
+got 2015 acct information from: http://pdata.hcad.org/download/2015.html - 2005 - 2020 is available.
+ PP-files, real_account, and real_building
+downloaded 2017 from http://pdata.hcad.org/download/2017.html on Dec. 27, 2019.
+
+http://hcad.org/hcad-resources/hcad-appraisal-codes/
+http://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-building-style-codes/ also exists, but has some diffs
+
+code descriptions for real are from: http://pdata.hcad.org/Desc/2015/code_desc_real.txt #updated https://pdata.hcad.org/data/cama/2015/code_desc_real.txt
+and personal: http://pdata.hcad.org/Desc/2015/code_desc_personal.txt #updated: #https://pdata.hcad.org/data/cama/2015/code_desc_personal.txt
+also exists, but has some diffs, perhaps because of year?
+
+
+they also provide column names from a screenshot of their Access db: http://pdata.hcad.org/DB/Pdata_Fieldnames.pdf
+and http://pdata.hcad.org/Desc/Layout_and_Length.txt
+census geometry files were taken on 12/27/2019 from: https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.2017.html
+
+```{r get HCAD parcels and geometry files from census}
+#start with loading files we need from HCAD
+#most recent parcels doesn't have the _Oct
+HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels/Parcels.shp"),stringsAsFactors = FALSE)
+#for 2022, had 9 unexpected geometry messages
+#or
+#HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE)
+#then rename
+HCAD_parcels <- HCAD_parcels %>%
+  rename(account=HCAD_NUM) %>%
+  select(account,LocAddr,city,zip,geometry,Stacked)
+#HCAD_parcels_dt <- as.data.table(HCAD_parcels)
+#table(HCAD_parcels_dt[,Stacked]) #not sure what to do with them - they aren't particularly correlated with valid or duplicated
+#HCAD_parcels_clean <- unique(HCAD_parcels_dt, by = ('account'))
+HCAD_parcels$valid <- st_is_valid(HCAD_parcels$geometry)
+HCAD_valid <- HCAD_parcels[which(HCAD_parcels$valid==TRUE),]
+HCAD_invalid <- HCAD_parcels[which(HCAD_parcels$valid==FALSE),]
+HCAD_geom <- st_as_sf(HCAD_valid)
+HCAD_geom <- st_transform(HCAD_geom, crs = 3857)
+#get centroids - about 1% of the parcels cross tracts, so need it as a point and not full geometry; 
+#according to census rules, the apt buildings should be in a single tract, but that may not always be true.
+HCAD_geom$centroid <- st_centroid(HCAD_geom$geometry)
+```
+
+```{r add geoid}
+#do on blocks, then just make tract id from geoid for blocks
+censusblocks <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_bg_500k/cb_", geo_vintage, "_", state, "_bg_500k.shp"))
+censusblocks <- st_transform(censusblocks, crs = 3857)
+censusblocks$geoid_centroid <- st_centroid(censusblocks$geometry)
+CensusBlockforHCADParcels <- st_within(HCAD_geom$centroid, censusblocks)
+#unlist into vector
+CensusBlockforHCADParcelsunlisted <- rapply(CensusBlockforHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+CensusBlockforHCADParcelsunlisted <- unlist(CensusBlockforHCADParcelsunlisted)
+# add census geoid information to each parcel
+HCAD_geom$geoid=censusblocks$GEOID[CensusBlockforHCADParcelsunlisted] 
+HCAD_geom$tract <- substr(HCAD_geom$geoid,6,11)
+censusblocks <- as.data.table(censusblocks[which(censusblocks$COUNTYFP=="201"),])
+censusblocks[,("geoid"):=GEOID]
+```
+
+Adding a little bit for Vivienne
+```{r food pantries in census_blocks}
+food_pantries <- read.csv(paste0(houstondatadir,"2022/harriscounty_foodpantries.csv"), header = FALSE)
+food_pantries <- food_pantries %>%
+  rename(address=V1,latitude=V2,longitude=V3)
+food_pantries <- st_as_sf(food_pantries, coords = c("longitude", "latitude"), 
+                 crs = 4326)
+food_pantries <- st_transform(food_pantries, crs = 3857)
+CensusBlockforFoodPantries <- st_within(food_pantries, censusblocks)
+#unlist into vector
+CensusBlockforFoodPantriesunlisted <- rapply(CensusBlockforFoodPantries,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+CensusBlockforFoodPantriesunlisted <- unlist(CensusBlockforFoodPantriesunlisted)
+# add census geoid information to each parcel
+food_pantries$geoid=censusblocks$GEOID[CensusBlockforFoodPantriesunlisted] 
+food_pantries$tract <- substr(food_pantries$geoid,6,11)
+food_pantries_distance <- st_distance(censusblocks$geoid_centroid,food_pantries$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+censusblocks$food_pantry_distance <- as.matrix(apply(food_pantries_distance,1,min,na.rm=TRUE))
+V_cleaned <- read.csv(paste0(houstondatadir,"2022/V_cleanedupdata.csv"), header = TRUE)
+V_cleaned <- as.data.table(V_cleaned)
+V_cleaned[,("TRACTCE"):=substr(GEO_ID,15,21)]
+censusblocks <- censusblocks[which(censusblocks$COUNTYFP=="201"),]
+food_pantries_geom <- merge(censusblocks,V_cleaned,by="TRACTCE")
+food_pantries_geom <- st_transform(food_pantries_geom,crs=4326)
+food_pantries <- st_transform(food_pantries,crs=4326)
+st_write(food_pantries_geom,"~/Downloads/food_pantries_geom.csv",driver = "CSV")
+st_write(food_pantries_geom,"~/Downloads/food_pantries_geom.geojson",driver="GeoJSON")
+food_pantries$longitude <- st_coordinates(food_pantries)[,1]
+food_pantries$latitude <- st_coordinates(food_pantries)[,2]
+st_write(food_pantries,"~/Downloads/food_pantries.csv",driver = "CSV")
+st_write(food_pantries,"~/Downloads/food_pantries.geojson",driver="GeoJSON")
+```
+
+Will add all the administrative and other boundaries in a later version - have to redo
+
+```{r get HCAD raw files for real for processing}
+#add Hcad_geom from HCAD_geo.R - break up parts later and add tests
+
+HCAD_real_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_other.txt"),
+        stringsAsFactors = FALSE,
+        sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+#there are no account numbers in common between res_build and real_build, but some codes are in both
+
+HCAD_real_build$V1 <- str_remove_all(HCAD_real_build$V1, " ")
+HCAD_real_build <- HCAD_real_build %>% 
+  rename(account=V1,improv_typ_real=V4,impr_mdl_cd_real=V5,
+        bldg_value_real=V9,qual_descript_real=V14,date_built_real=V15,
+        yr_remodel_real=V16,bldg_sf_real=V27,nbhd_factor_real=V28,
+        bldg_name=V32,units=V33,  
+        lease_rate=V35,occupancy_rate=V36,total_income=V37) %>%
+  filter(!row_number()==1) %>%
+  select(account,improv_typ_real,impr_mdl_cd_real,bldg_value_real,qual_descript_real,
+         date_built_real,yr_remodel_real,bldg_sf_real,nbhd_factor_real,
+         bldg_name,units,lease_rate,occupancy_rate,total_income) %>%
+  group_by(account) %>%
+  mutate(dup_account_real = row_number() > 1) %>% 
+  ungroup()
+HCAD_real_build_dt <- as.data.table(HCAD_real_build)
+HCAD_geom_dt <- as.data.table(HCAD_geom)
+HCAD <- HCAD_real_build_dt[HCAD_geom_dt,on=.(account)]
+nrow(HCAD[improv_typ_real=="4347"])==nrow(HCAD_real_build_dt[improv_typ_real=="4347"])
+#need to add the distances from HCAD_geo
+busstops <- readRDS(paste0(houstondatadir,vintage,"/Metro_stops/busstops_blocks.RDS"))
+busstops <- st_transform(busstops,crs=st_crs(HCAD_geom))
+#distance to busstops for each block group
+block_bus_distance <- st_distance(censusblocks$geoid_centroid,busstops$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+bus_distance <- as.data.table(block_bus_distance)
+censusblocks$bus_distance <- apply(bus_distance[,1:length(colnames(bus_distance))], 1, min)
+
+#already have the within geoid marked by the fact that theses are in HCAD
+fast_food_HCAD <- HCAD[improv_typ_real%in%c("4323","4325"),] #food stands (130) and fast food (1,627)
+super_market_HCAD <- HCAD[improv_typ_real=="4347",]
+convenience_stores_HCAD <- HCAD[improv_typ_real%in%c("4324","4348","4335"),] #and conv. attached to gas pump and truck stop
+shop_center_HCAD <- HCAD[improv_typ_real%in%c("4341","4342","4343","4344","4345"),] #includes things like Target in 4345
+food_sources_HCAD <- HCAD[HCAD$improv_typ_real %in% c("4325","4323","4324","4335","4347","4348"),] %>% 
+  distinct(account, .keep_all = TRUE)
+
+#for convenience stores
+food_source_distance <- st_distance(censusblocks$geoid_centroid,food_sources_HCAD$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+censusblocks$food_source_distance <- as.matrix(apply(food_source_distance,1,min,na.rm=TRUE))
+
+fast_food_distance <- st_distance(censusblocks$geoid_centroid,fast_food_HCAD$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+censusblocks$fast_food_distance <- as.matrix(apply(fast_food_distance,1,min,na.rm=TRUE))
+
+super_market_distance <- st_distance(censusblocks$geoid_centroid,super_market_HCAD$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+censusblocks$super_market_distance <- as.matrix(apply(super_market_distance,1,min,na.rm=TRUE))
+
+convenience_stores_distance <- st_distance(censusblocks$geoid_centroid,convenience_stores_HCAD$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+censusblocks$convenience_stores_distance <- as.matrix(apply(convenience_stores_distance,1,min,na.rm=TRUE))
+
+shop_center_distance <- st_distance(censusblocks$geoid_centroid,shop_center_HCAD$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+censusblocks$shop_center_distance <- as.matrix(apply(shop_center_distance,1,min,na.rm=TRUE))
+
+censusblocks <- as.data.table(censusblocks) #update its indices
+
+
+#for each county, can have sex_age by blck group - and thus pop by block group, too
+vintage <- "2020" #most recent I could get at the block level is for the redistricting numbers
+block_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                       groupname = "P1",county_num = county,
+                       block="block_group",api_type="dec/pl",path_suff="est.csv")
+
+sex_by_age_race <- block_sex_by_age_race_data_from_census_tx %>%
+  filter(name=="P1_001N") %>%
+  pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
+
+sex_age_race_DT <- as.data.table(sex_by_age_race)
+sex_age_race_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("pop_total_block"):=sex_age_race_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
+
+
+
+```
+
+```{r make summaries for food insecurity and metro availability}
+censusblocks <- censusblocks %>%
+  group_by(TRACTCE) %>%
+  mutate(pop_total_tract = as.integer(sum(pop_total_block)),
+         tract_avg_bus = as.integer(sum(bus_distance*pop_total_block)/pop_total_tract),
+         tract_avg_food = as.integer(sum(food_source_distance*pop_total_block)/pop_total_tract),
+         tract_avg_fast_food = as.integer(sum(fast_food_distance*pop_total_block)/pop_total_tract),
+         tract_avg_super_market = as.integer(sum(super_market_distance*pop_total_block)/pop_total_tract),
+         tract_avg_convenience_stores = as.integer(sum(convenience_stores_distance*pop_total_block)/pop_total_tract),
+         tract_avg_shop_center = as.integer(sum(shop_center_distance*pop_total_block)/pop_total_tract)
+         )
+censusblocks <- st_as_sf(censusblocks)
+censusblocks <- st_transform(censusblocks,crs=4326)
+saveRDS(censusblocks,"~/Downloads/censusblocks.RDS")
+st_write(censusblocks,"~/Downloads/censusblocks.geojson",driver="GeoJSON")
+
+```
+
+Noah had things that didn't work for 2020 - they had been using the 2010 tract boundaries
+Could try the crosswalk that the census provides, but since we have block level centroids, I'm just going to place them in the blocks that are there.
+
+```{r crosswalk from 2010 to 2020 tract boundaries}
+censusblocks <- readRDS("~/Downloads/censusblocks.RDS")
+censusblocks <- st_transform(censusblocks,crs=3857)
+censusblocks_19 <- st_read(paste0(censusdir, "2019/geo_census/cb_2019_", state, "_bg_500k/cb_2019_", state, "_bg_500k.shp"))
+censusblocks_19 <- st_transform(censusblocks_19,crs=3857)
+#censusblocks$geoid_centroid <- st_transform(censusblocks$geoid_centroid,crs=3857) #or censusblocks_19$geoid_centroids??
+#find which TRACTCE each one is in, and then run the dyplyr from above with TRACTCE19 as the group
+CensusBlockfor19 <- st_within(censusblocks$geoid_centroid, censusblocks_19)
+#unlist into vector
+CensusBlockfor19unlisted <- rapply(CensusBlockfor19,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+CensusBlockfor19unlisted <- unlist(CensusBlockfor19unlisted)
+censusblocks$geoid_19=censusblocks_19$GEOID[CensusBlockfor19unlisted] 
+censusblocks$tract_19 <- substr(censusblocks$geoid_19,6,11)
+censusblocksnogeo <- censusblocks
+censusblocksnogeo$geometry <- NULL
+censusblocks_19 <- censusblocks_19[which(censusblocks_19$COUNTYFP=="201"),]
+censusblocks_19$geoid_19 <- censusblocks_19$GEOID
+censusblocks_19 <- left_join(censusblocksnogeo,censusblocks_19,by="geoid_19")
+censusblocks_19$tract_19 <- substr(censusblocks_19$geoid_19,6,11)
+censusblocks_19 <- censusblocks_19 %>%
+  group_by(tract_19) %>%
+  mutate(tract_pop_total = as.integer(sum(pop_total_block)),
+         tract_avg_bus = as.integer(sum(bus_distance*pop_total_block)/pop_total_tract),
+         tract_avg_food = as.integer(sum(food_source_distance*pop_total_block)/pop_total_tract),
+         tract_avg_fast_food = as.integer(sum(fast_food_distance*pop_total_block)/pop_total_tract),
+         tract_avg_super_market = as.integer(sum(super_market_distance*pop_total_block)/pop_total_tract),
+         tract_avg_convenience_stores = as.integer(sum(convenience_stores_distance*pop_total_block)/pop_total_tract),
+         tract_avg_shop_center = as.integer(sum(shop_center_distance*pop_total_block)/pop_total_tract)
+         ) %>%
+  distinct(tract_19, .keep_all = TRUE) %>%
+  select(starts_with("tract_")) %>%
+  select(!ends_with(".x") & !ends_with(".y")) %>%
+  ungroup()
+#now get tract geometry
+geo_vintage <- "2019"
+censustracts <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_tract_500k/cb_", geo_vintage, "_", state, "_tract_500k.shp"))
+censustracts <- censustracts[which(censustracts$COUNTYFP=="201"),]
+censustracts$tract_19 <- censustracts$TRACTCE
+censusblocks_19$geometry <- NULL
+censustracts_19 <- left_join(censustracts,censusblocks_19,by="tract_19")
+#censusblocks_19 <- st_as_sf(censusblocks_19,sf_column_name = "geometry")
+#censusblocks_19 <- st_transform(censusblocks_19,crs=4326)
+saveRDS(censustracts_19,"~/Downloads/censustracts_19.RDS")
+st_write(censustracts_19,"~/Downloads/censustracts_19.geojson",driver="GeoJSON")
+```

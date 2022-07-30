@@ -6,8 +6,8 @@ library(stringr)
 #censusdir from workflow / census_key from expand_from scripts / source CensusData.R
 
 #this depends on where your census dir is, but _tract_500k.shp and _faces and _bg, etc. are all downloaded from census, by year: 
-#https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html (I got these on 7/10/21 - 2020 was most recent)
-geo_vintage <- "2020"
+#https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html (I got these on 7/10/21 - 2020 was most recent; got 2021 on 7/18/2022)
+geo_vintage <- "2021"
 censustracts <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_tract_500k/cb_", geo_vintage, "_", state, "_tract_500k.shp"))
 tractsDT <- as.data.table(censustracts)
 #tractsDT[,("centroids"):=st_centroid(geometry)] #get a warning, because it's not flat space, but should be close enough for labels
@@ -69,7 +69,6 @@ tx_cd116 <- cd116DT[st_within(geometry,tx_boundary) %>% lengths > 0,]
 blck_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B01001",county_num = county,
                        block="block",api_type="acs/acs5",path_suff="est.csv")
-#have to think through how to use - could use the census tract levels
 
 #options(digits = 2, scipen = 999) #for display on all of them
 
@@ -80,6 +79,7 @@ sex_by_age_race <- blck_sex_by_age_race_data_from_census_tx %>%
   separate(label, c("sex","age_range"), sep = ":!!", remove = F, convert = FALSE) 
 sex_age_race_DT <- as.data.table(sex_by_age_race,key="GEOID")
 pop_totals <- sex_age_race_DT[is.na(age_range)&race=="_"&sex=="Estimate!!Total:"]
+#should be on blocks!!!
 tracts_demog <- tractsDT[pop_totals[,7:8],on="GEOID"]
 setnames(tracts_demog,"number_sams","total_pop")
 pop_hispanic <- sex_age_race_DT[is.na(age_range)&race=="I"&sex=="Estimate!!Total:"]

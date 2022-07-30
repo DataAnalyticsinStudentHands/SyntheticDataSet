@@ -6,6 +6,8 @@ library(dplyr)
 library(FactoMineR)
 source("tools.R")
 
+#LOOKS LIKE lodown gets lots of survey things http://asdfree.com/survey-of-consumer-finances-scf.html /https://github.com/ajdamico/lodown
+#https://www.rdocumentation.org/packages/survey/versions/4.1-1 
 
 nhanesdir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/NHANES/" #Dan at home
 #nhanesdir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/NHANES/" #Dan at work

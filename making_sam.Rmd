@@ -41,12 +41,7 @@ source('BaseScripts/Census_Data.R') #move out of BaseScripts?
 source('tests.R')
 ```
 
-Probably use the second one, but need to think about - and maybe only in context, below:
-
-or: 
-
-Probably the second, and "some loss assigned" means that there's a potential for non-commutativity going forward at the block level for race and ethnicity - but it's minimized by the tract level maintaining its commutativity. Nothing is lost, in terms of possible future joins, at levels / places where full commutativity is kept and the specifications within do not change other relations.
-Could start a file that marks that loss, with some numbers!
+Need to decide how to deal with blocks that are in HCAD but not in county=="201" - border cases? take part of population? exclude?
 
 In a broad sense, we're asking - at a practical level - what's it mean to use .map on the construction of epidemiology's domain and co-domain as explicitly about how we talk about vs. how relations build on each other. Not the convergence toward a single perspective, but toward a shared commitment to speaking about what matters in the relations.
 
