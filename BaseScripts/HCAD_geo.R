@@ -74,7 +74,9 @@ HCAD_geom$tractCE=censustracts$TRACTCE[CensusTractforHCADParcelsunlisted]
 council_districts <- st_read(paste0(houstondatadir, "2022/City_Council/COH_ADMINISTRATIVE_BOUNDARY_-_MIL/COH_ADMINISTRATIVE_BOUNDARY_-_MIL.shp"))
 
 #superneighborhoods - some changes in houstondata can happen - have to look at each dataset, since they don't consistently update by year
-superneighborhoods <- st_read(paste0(houstondatadir, "COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
+superneighborhoods <- st_read(paste0(houstondatadir, "2022/HOUSTON_LIMITS_BOUNDARIES_PACKAGE/HOUSTON_LIMITS_BOUNDARIES_PACKAGE.shp"))
+#2017 had different title, but same geometry
+#superneighborhoods <- st_read(paste0(houstondatadir, "2017/COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
 superneighborhoods <- st_transform(superneighborhoods, st_crs(HCAD_geom)) #HCAD is renamed from sf_HCAD in this run - can change
 super_within <- st_within(HCAD_geom$centroid, superneighborhoods)
 super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
@@ -110,7 +112,7 @@ HCAD$HISD_Middle_School=hisdms$Middle_Sch[hisdms_within_unlist]
 #HISD ES
 hisdes <- st_read(paste0(housingdir, "HISD/17-18_maps/Elementary1718/Elementary1718.shp"))
 hisdes <- st_transform(hisdes, st_crs(HCAD))
-hisdes_within <- st_within(HCAD, hisdms)
+hisdes_within <- st_within(HCAD, hisdes)
 hisdes_within_unlist <- rapply(hisdes_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 hisdes_within_unlist <- unlist(hisdes_within_unlist)
 HCAD$HISD_Elem_School=hisdes$Facility[hisdes_within_unlist]

@@ -62,33 +62,40 @@ and http://pdata.hcad.org/Desc/Layout_and_Length.txt
 census geometry files were taken on 12/27/2019 from: https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.2017.html
 
 ```{r get HCAD parcels and geometry files from census}
-censustracts <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", 
-                               geo_vintage, "_", state, "_tract_500k/cb_", geo_vintage, "_", state, "_tract_500k.shp"))
-censustracts <- st_transform(censustracts,crs = 3857) 
+#censustracts <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", 
+#                               geo_vintage, "_", state, "_tract_500k/cb_", geo_vintage, "_", state, "_tract_500k.shp"))
+#censustracts <- st_transform(censustracts,crs = 3857) 
 #start with loading files we need from HCAD
 #most recent parcels doesn't have the _Oct
-HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels/Parcels.shp"),stringsAsFactors = FALSE)
-#for 2022, had 9 unexpected geometry messages
-#or
-#HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE)
+ifelse(file.exists(paste0(housingdir, vintage, "/Parcels/Parcels.shp")),
+       HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels/Parcels.shp"),stringsAsFactors = FALSE),
+       HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE))
+#small number of warnings about the geometry - says they're saved as a collection, and it's hard to see if they end up being lost to the validity check later. There's a variable called "Stacked," but also seems uncorrelated to the warnings.
 #then rename
-nrow_parcels <- nrow(HCAD_parcels)
 HCAD_parcels <- HCAD_parcels %>%
   rename(account=HCAD_NUM) %>%
-  select(account,LocAddr,city,zip,geometry,Stacked)
-#HCAD_parcels_dt <- as.data.table(HCAD_parcels)
-#table(HCAD_parcels_dt[,Stacked]) #not sure what to do with them - they aren't particularly correlated with valid or duplicated
-#HCAD_parcels_clean <- unique(HCAD_parcels_dt, by = ('account'))
+  select(account,LocAddr,city,zip,geometry)
+#check for dups - 
+nrow(HCAD_parcels)-length(unique(HCAD_parcels$account))
+HCAD_parcels <- HCAD_parcels %>%
+  group_by(account) %>%
+  mutate(dup_rows = row_number()) %>%
+  ungroup()
+#on 2022, there were 7 duplicate rows, and they had matching geometries
+#HCAD_parcels_dups[which(HCAD_parcels_dups$account=="1452480010003"),]$geometry == HCAD_parcels_dups[which(HCAD_parcels_dups$account=="1452480010003"),]$geometry
+HCAD_parcels <- HCAD_parcels[which(HCAD_parcels$dup_rows==1),]
+HCAD_parcels$dup_rows <- NULL
 HCAD_parcels$valid <- st_is_valid(HCAD_parcels$geometry)
-HCAD_valid <- HCAD_parcels[which(HCAD_parcels$valid==TRUE),]
-HCAD_invalid <- HCAD_parcels[which(HCAD_parcels$valid==FALSE),]
-HCAD_geom <- st_as_sf(HCAD_valid)
+HCAD_parcels[which(HCAD_parcels$valid==FALSE),]$geometry <-
+  st_make_valid(HCAD_parcels[which(HCAD_parcels$valid==FALSE),]$geometry)
+HCAD_geom <- st_as_sf(HCAD_parcels)
 HCAD_geom <- st_transform(HCAD_geom, crs = 3857)
 #get centroids - about 1% of the parcels cross tracts, so need it as a point and not full geometry; 
 #according to census rules, the apt buildings should be in a single tract, but that may not always be true.
 HCAD_geom$centroid <- st_centroid(HCAD_geom$geometry)
 ```
 
+Add the appropriate geoid (block and tract numbers included):
 ```{r add geoid}
 #do on blocks, then just make tract id from geoid for blocks
 censusblocks <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_bg_500k/cb_", geo_vintage, "_", state, "_bg_500k.shp"))
@@ -102,22 +109,93 @@ CensusBlockforHCADParcelsunlisted <- unlist(CensusBlockforHCADParcelsunlisted)
 HCAD_geom$geoid=censusblocks$GEOID[CensusBlockforHCADParcelsunlisted] 
 HCAD_geom$tract <- substr(HCAD_geom$geoid,6,11)
 censusblocks <- as.data.table(censusblocks)
-length(unique(censusblocks[COUNTYFP=="201",GEOID]))
-length(unique(HCAD_geom$geoid))
-censustracts <- as.data.table(censustracts)
-length(unique(censustracts[COUNTYFP=="201",TRACTCE]))
-length(unique(HCAD_geom$tract))
+paste0("There are ",length(unique(HCAD_geom$geoid)) -
+                             length(unique(censusblocks[COUNTYFP=="201",GEOID])),
+       " more block groups in HCAD than in the census definition of Harris County.")
+paste0("There are ",length(unique(HCAD_geom$tract)),
+       " tracts in HCAD.")
 #check them on tracts, too
 #write out missing to geojson and look at kepler.gl - for now, will just add the extra blocks to be complete
 censusblocks <- censusblocks[GEOID%in%unique(HCAD_geom$geoid)]
 censusblocks[,("geoid"):=GEOID]
+paste0("There are ",length(HCAD_geom[which(is.na(HCAD_geom$geoid)),])," NAs for geoid in the HCAD_geom file")
+```
+We add the 2010-19 geoid designations, too, since many of the matching data sets use it
+```{r add geoid_19 - assuming that even the older ones might need it}
+#do on blocks, then just make tract id from geoid for blocks
+geo_vintage <- "2019"
+censusblocks_19 <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_bg_500k/cb_", geo_vintage, "_", state, "_bg_500k.shp"))
+censusblocks_19 <- st_transform(censusblocks_19,st_crs(HCAD_geom))
+censusblocks_19$geoid_centroid <- st_centroid(censusblocks_19$geometry)
+CensusBlockforHCADParcels <- st_within(HCAD_geom$centroid, censusblocks_19)
+#unlist into vector
+CensusBlockforHCADParcelsunlisted <- rapply(CensusBlockforHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+CensusBlockforHCADParcelsunlisted <- unlist(CensusBlockforHCADParcelsunlisted)
+# add census geoid information to each parcel
+HCAD_geom$geoid_19=censusblocks_19$GEOID[CensusBlockforHCADParcelsunlisted] 
+HCAD_geom$tract_19 <- substr(HCAD_geom$geoid_19,6,11)
+censusblocks_19 <- as.data.table(censusblocks_19)
+paste0("There are ",length(unique(HCAD_geom$geoid_19)) -
+                             length(unique(censusblocks_19[COUNTYFP=="201",GEOID])),
+       " more block groups in HCAD than in the census definition of Harris County.")
+paste0("There are ",length(unique(HCAD_geom$tract_19)),
+       " more tracts in HCAD for the 2010-2019 geometries.")
+#save only the censusblocks that relate to HCAD
+censusblocks_19 <- censusblocks_19[GEOID%in%unique(HCAD_geom$geoid_19)]
+censusblocks_19[,("geoid_19"):=GEOID]
+paste0("There are ",length(HCAD_geom[which(is.na(HCAD_geom$geoid_19)),])," NAs for geoid_19 in the HCAD_geom file")
 ```
 
-Will add all the administrative and other boundaries in a later version - have to redo
+```{r add administrative boundaries}
+#superneighborhoods - some changes in houstondata can happen - have to look at each dataset, since they don't consistently update by year
+#it's only for city of Houston, so lots of Harris County will get NAs
+superneighborhoods <- st_read(paste0(houstondatadir, "2022/HOUSTON_LIMITS_BOUNDARIES_PACKAGE/HOUSTON_LIMITS_BOUNDARIES_PACKAGE.shp"))
+#2017 had different title, but same geometry
+#superneighborhoods <- st_read(paste0(houstondatadir, "2017/COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
+superneighborhoods <- st_transform(superneighborhoods, st_crs(HCAD_geom)) #HCAD is renamed from sf_HCAD in this run - can change
+super_within <- st_within(HCAD_geom$centroid, superneighborhoods)
+super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+super_within_unlist <- unlist(super_within_unlist)
+HCAD_geom$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
+length(unique(HCAD_geom$superneighborhood))==length(unique(superneighborhoods$SNBNAME))+1 #b/c NA in HCAD
+
+#city council for 2022 - some of the geometry is invalid and couldn't be fixed
+#city_council <- st_read(paste0(houstondatadir, #"2022/City_Council/COH_ADMINISTRATIVE_BOUNDARY_-_MIL/COH_ADMINISTRATIVE_BOUNDARY_-_MIL.shp"))
+#city_council <- st_transform(city_council, st_crs(HCAD_geom))
+#city_council$valid <- st_is_valid(city_council$geometry) #- some weren't valid
+#city_council[which(city_council$valid==FALSE),]$geometry <-
+#  st_make_valid(city_council[which(city_council$valid==FALSE),]$geometry)
+#council_within <- st_within(HCAD_geom$centroid,city_council)
+#council_within_unlist <- rapply(council_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+#council_within_unlist <- unlist(council_within_unlist)
+#HCAD_geom$council_district=city_council$DISTRICT[council_within_unlist]
+
+#HISD 
+hisd <- st_read(paste0(houstondatadir, "2022/HISD/Feeder_Pattern_2021_2022.shp"))
+hisd <- st_transform(hisd, st_crs(HCAD_geom))
+hisd_within <- st_within(HCAD_geom, hisd)
+hisd_within_unlist <- rapply(hisd_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+hisd_within_unlist <- unlist(hisd_within_unlist)
+HCAD_geom$HISD_High_School=hisd$High_Schoo[hisd_within_unlist]
+HCAD_geom$HISD_Middle_School=hisd$Middle_Sch[hisd_within_unlist]
+HCAD_geom$HISD_Elementary_School=hisd$Elementary[hisd_within_unlist]
+length(unique(HCAD_geom$HISD_High_School)) == length(unique(hisd$High_Schoo)) + 1
+length(unique(HCAD_geom$HISD_Elementary_School)) == length(unique(hisd$Elementary)) + 1
+geo_vintage <- "2021"
+other_isd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_unsd_500k/cb_", geo_vintage, "_", state, "_unsd_500k.shp"))
+other_isd <- st_transform(other_isd, st_crs(HCAD_geom))
+other_isd_within <- st_within(HCAD_geom, other_isd)
+other_isd_within_unlist <- rapply(other_isd_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+other_isd_within_unlist <- unlist(other_isd_within_unlist)
+HCAD_geom$ISD=other_isd$NAME[other_isd_within_unlist]
+paste0("There are ",length(unique(HCAD_geom$ISD))," ISDs in HCAD.")
+paste0("The merge has left ",nrow(HCAD_geom[which(is.na(HCAD_geom$ISD))," parcels in HCAD without an ISD,
+                                            which is similar to the number that didn't have LocAddr or city."]))
+
+```
 
 ```{r get HCAD raw files for processing}
 #add Hcad_geom from HCAD_geo.R - break up parts later and add tests
-
 HCAD_res_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_res.txt"),
         stringsAsFactors = FALSE,
         sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
@@ -132,9 +210,9 @@ HCAD_real_acct <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/real_a
 HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt_cd.txt"),
                          stringsAsFactors = FALSE,
                          sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
-HCAD_owner_date <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/deeds.txt"),
-                             stringsAsFactors = FALSE,
-                             sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+#HCAD_owner_date <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/deeds.txt"),
+#                             stringsAsFactors = FALSE,
+#                             sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
 HCAD_fixtures <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/fixtures.txt"),
                            stringsAsFactors = FALSE,
                            sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
