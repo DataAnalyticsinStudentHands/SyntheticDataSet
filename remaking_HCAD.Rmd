@@ -39,7 +39,9 @@ county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Bra
 geo_vintage <- "2021" #most recent - it should be able to match vintage, depending on date.
 ```
 #Notes on where I got files
-from http://pdata.hcad.org/GIS/index.html
+https://public.hcad.org/resources/statecode.asp
+
+from http://pdata.hcad.org/GIS/index.html - no longer maintained there.
 got Parcels 2015, Hwy, School, City, Sub_poly (subdivisions), TIRZ
 on 12/27/2019 got 2017 of Parcels, and most recent of others
 
@@ -57,8 +59,8 @@ and personal: http://pdata.hcad.org/Desc/2015/code_desc_personal.txt #updated: #
 also exists, but has some diffs, perhaps because of year?
 
 
-they also provide column names from a screenshot of their Access db: http://pdata.hcad.org/DB/Pdata_Fieldnames.pdf
-and http://pdata.hcad.org/Desc/Layout_and_Length.txt
+they also provide column names from a screenshot of their Access db: http://pdata.hcad.org/DB/Pdata_Fieldnames.pdf (they took that down!)
+and http://pdata.hcad.org/Desc/Layout_and_Length.txt (and took this down!)
 census geometry files were taken on 12/27/2019 from: https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.2017.html
 
 ```{r get HCAD parcels and geometry files from census}
@@ -191,70 +193,69 @@ HCAD_geom$ISD=other_isd$NAME[other_isd_within_unlist]
 paste0("There are ",length(unique(HCAD_geom$ISD))," ISDs in HCAD.")
 paste0("The merge has left ",nrow(HCAD_geom[which(is.na(HCAD_geom$ISD))," parcels in HCAD without an ISD,
                                             which is similar to the number that didn't have LocAddr or city."]))
-
+#zipcodes are pulled from the HCAD site_addr_3 in the real_acct file
+HCAD_geom_dt <- as.data.table(HCAD_geom)
 ```
 
 ```{r get HCAD raw files for processing}
 #add Hcad_geom from HCAD_geo.R - break up parts later and add tests
 HCAD_res_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_res.txt"),
         stringsAsFactors = FALSE,
-        sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+        sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 HCAD_real_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_other.txt"),
         stringsAsFactors = FALSE,
-        sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+        sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 #there are no account numbers in common between res_build and real_build, but some codes are in both
 
 HCAD_real_acct <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/real_acct.txt"),
         stringsAsFactors = FALSE,
-        sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
-HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt_cd.txt"),
-                         stringsAsFactors = FALSE,
-                         sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+        sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
+#HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt_cd.txt"),
+#                         stringsAsFactors = FALSE,
+#                         sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 #HCAD_owner_date <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/deeds.txt"),
 #                             stringsAsFactors = FALSE,
-#                             sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+#                             sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 HCAD_fixtures <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/fixtures.txt"),
                            stringsAsFactors = FALSE,
-                           sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+                           sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 
-
+#state_codes are in: https://www.taxnetusa.com/research/texas/sptb.php (HCAD's own is incomplete: https://hcad.org/search/state-category-codes/)
+#HCAD Site Codes are in: https://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-site-codes/
 
 #for res, they use effective area (V24) for calculating improvement value
 #they have a nbhd_factor that asthma folks could use, but it's not there for apts.
 #there are duplicate accounts (about 29k in 2022); need to mark as such.
-HCAD_res_build$V1 <- str_remove_all(HCAD_res_build$V1, " ")
-nrow_res_build <- nrow(HCAD_res_build)
+HCAD_res_build$acct <- str_remove_all(HCAD_res_build$acct, " ")
 HCAD_res_build <- HCAD_res_build %>% 
-  rename(account=V1,improv_typ=V4,impr_mdl_cd=V5,bldg_value=V8,qual_descript=V12,
-          date_erected=V13,yr_remodel=V15,living_sf=V24,nbhd_factor=V28,
-         size_index=V30) %>%
-#  distinct(account,.keep_all = TRUE) %>% #looks like repeats are deliberate and a combination of improv_typ and account is unique
-  filter(!row_number()==1) %>% #removing names from top row of csv
-  select(account,improv_typ,impr_mdl_cd,bldg_value,qual_descript,date_erected,yr_remodel,
-         living_sf,nbhd_factor,size_index) %>%
+  rename(account=acct,state_code=property_use_cd,improv_typ=impr_tp,impr_mdl_cd=impr_mdl_cd,
+         Depr_Val=dpr_val,qual_descript=dscr,living_sf=im_sq_ft) %>%
+  select(account,state_code,improv_typ,impr_mdl_cd,structure_dscr,
+          Depr_Val,qual_descript,date_erected,yr_remodel,
+         living_sf,size_index) %>%
   group_by(account) %>%
   mutate(dup_account_res = row_number() > 1) %>% 
   ungroup()
-#nrow_res_build - nrow(HCAD_res_build) #do some diagnoses later to make sure I understand
-#HCAD <- full_join(HCAD_geom,HCAD_res_build,by='account')
-HCAD_geom_dt <- as.data.table(HCAD_geom)
+
 HCAD_res_build_dt <- as.data.table(HCAD_res_build)
-HCAD1 <- HCAD_res_build_dt[HCAD_geom_dt,on=.(account)] #there's supposed to be a way to assign with :=, and save on memory, but I couldn't get it to do more than one variable at a time.
-#think about testing on this... and do we account for the invalid rows in a systematic way
+HCAD_res_geom_dt <- HCAD_geom_dt[HCAD_res_build_dt,on=.(account)]
+#HCAD_res_geom <- HCAD_res_build_dt[HCAD_geom_dt,on=.(account)] 
+test <- table(HCAD_res_geom_dt$improv_typ)==
+  table(HCAD_res_build$improv_typ)
+length(test[test==FALSE])==0
+length(unique(HCAD_res_build_dt$account))==length(unique(HCAD_res_geom_dt$account))
+nrow(HCAD_res_build_dt)==nrow(HCAD_res_geom_dt)
 
 #using actual_area for total_bldg_sf - get units from fixtures
 #total_income may include non-rental income?
-HCAD_real_build$V1 <- str_remove_all(HCAD_real_build$V1, " ")
+HCAD_real_build$acct <- str_remove_all(HCAD_real_build$acct, " ")
 HCAD_real_build <- HCAD_real_build %>% 
-  rename(account=V1,improv_typ_real=V4,impr_mdl_cd_real=V5,
-        bldg_value_real=V9,qual_descript_real=V14,date_built_real=V15,
-        yr_remodel_real=V16,bldg_sf_real=V27,nbhd_factor_real=V28,
-        bldg_name=V32,units=V33,  #units in real_building is more like apt. number not number of apts?
-        lease_rate=V35,occupancy_rate=V36,total_income=V37) %>%
-  #distinct(account,.keep_all = TRUE) %>%
-  filter(!row_number()==1) %>%
-  select(account,improv_typ_real,impr_mdl_cd_real,bldg_value_real,qual_descript_real,
-         date_built_real,yr_remodel_real,bldg_sf_real,nbhd_factor_real,
+  rename(account=acct,state_code=property_use_cd,improv_typ=impr_tp,
+        qual_descript=dscr,bldg_sf=im_sq_ft,
+        bldg_name=prop_nm,
+        lease_rate=lease_rt,occupancy_rate=occ_rt,total_income=tot_inc) %>%
+  select(account,state_code,improv_typ,impr_mdl_cd,Depr_Val,qual_descript,
+         date_erected,yr_remodel,bldg_sf,
          bldg_name,units,lease_rate,occupancy_rate,total_income) %>%
   group_by(account) %>%
   mutate(dup_account_real = row_number() > 1) %>% 
@@ -262,23 +263,43 @@ HCAD_real_build <- HCAD_real_build %>%
 #correctional <- HCAD_real_build %>% filter(improv_typ=="4670") 
 #30 correctional facilities, without number of rooms
 HCAD_real_build_dt <- as.data.table(HCAD_real_build)
-HCAD2 <- HCAD_real_build_dt[HCAD1,on=.(account)]
+HCAD_real_geom_dt <- HCAD_geom_dt[HCAD_real_build_dt,on=.(account)]
+test <- table(HCAD_real_geom_dt$improv_typ)==
+  table(HCAD_real_build_dt$improv_typ)
+length(test[test==FALSE])==0
+length(unique(HCAD_real_build_dt$account))==length(unique(HCAD_real_geom_dt$account))
+nrow(HCAD_real_build_dt)==nrow(HCAD_real_geom_dt)
 
-HCAD_real_acct$V1 <- str_remove_all(HCAD_real_acct$V1, " ")
+
+HCAD_real_acct$acct <- str_remove_all(HCAD_real_acct$acct, " ")
 HCAD_real_acct <- HCAD_real_acct %>% 
-  rename(account=V1,tot_bldg_sf=V39,tot_land_sf=V40,land_value=V44,
-         improv_value=V45,xtras_value=V46,market_value=V50) %>%
-  #distinct(account,.keep_all = TRUE) %>%
-  filter(!row_number()==1) %>%
-  select(account,tot_bldg_sf,tot_land_sf,land_value,improv_value,
+  rename(account=acct,site_address_street=site_addr_1,
+         site_address_city=site_addr_2,zip_code=site_addr_3,
+         state_code=state_class,tot_bldg_sf=bld_ar,
+         tot_land_sf=land_ar,land_value=land_val,
+         improv_value=bld_val,xtras_value=x_features_val,market_value=tot_mkt_val) %>%
+  select(account,site_address_street,site_address_city,zip_code,
+         state_code,tot_bldg_sf,tot_land_sf,land_value,improv_value,
          xtras_value,market_value) %>%
   group_by(account) %>%
   mutate(dup_account_acct = row_number() > 1) %>% 
   ungroup()
-#will use market_value to guestimate cost of apt.; here, other codes will also help decide (like LHI)
+##will use market_value to guestimate cost of apt.; here, other codes will also help decide (like LHI)
 HCAD_real_acct_dt <- as.data.table(HCAD_real_acct)
-HCAD3 <- HCAD_real_acct_dt[HCAD2,on=.(account)]
-
+not_in_parcels <- HCAD_real_acct_dt[!account%in%unique(HCAD_geom_dt$account)]
+#some of the above we're also not in parcels
+table(not_in_parcels$state_code)
+paste0("Of the ",nrow(not_in_parcels)," accounts without matching parcel geometries, ",
+       nrow(not_in_parcels[state_code=="X1"]), " are in government exempt. It seems to be things owned by one person and sitting on another person's lot.")
+#in 2022, there are 66351 real accounts not in Parcels; not sure how to do them all.
+#the mobile homes show up in the HCAD_res_geom, but without geometry - matching on site_addr is incomplete at best
+HCAD_res_acct_geom_dt <- HCAD_real_acct_dt[HCAD_res_geom_dt,on=.(account,state_code)]
+HCAD_real_acct_geom_dt <- HCAD_real_acct_dt[HCAD_real_geom_dt,on=.(account,state_code)]
+#tests
+test <- table(HCAD_res_acct_geom_dt$improv_typ) == table(HCAD_res_geom_dt$improv_typ)
+length(test[test==FALSE])==0
+test <- table(HCAD_real_acct_geom_dt$improv_typ) == table(HCAD_real_geom_dt$improv_typ)
+length(test[test==FALSE])==0
 #want to get this eventually, for how recently people moved, but something weird about it, so skipping now
 #remember to replace vintage with date, below
 #HCAD_owner_date <- HCAD_owner_date %>%
@@ -298,96 +319,96 @@ HCAD3 <- HCAD_real_acct_dt[HCAD2,on=.(account)]
 #HCAD_exempt$V1 <- str_remove_all(HCAD_exempt$V1, " ") - fixed by importing col as character
 #exemptions give us some clues about owners, etc. that match up with ACS info
 #cf. jur_exemption_dscr.txt in Real_jur_exempt
-HCAD_exempt <- HCAD_exempt %>% 
-  rename(account=V1,exempt_cat=V2) %>% 
-  #distinct(account,.keep_all = TRUE) %>%
-  filter(!row_number()==1) %>%
-  select(account,exempt_cat) %>% 
-  mutate(
-      homestead = case_when(  #trying to get at who owns...
-        exempt_cat %in% c('RES','PAR') ~ TRUE
-      ),
-      vet = case_when(
-        exempt_cat %in% c('V11','V12','V13','V14','V21','V22','V23','V24') ~ TRUE
-      ),
-      low_income_housing = case_when(
-        exempt_cat == "LIH" ~ TRUE
-      ),
-      over_65 = case_when(
-        exempt_cat %in% c('APO','OVR','POV','SUR') ~ TRUE
-      ),
-      surv_spouse = case_when(
-        exempt_cat %in% c('SSD','STT','STX','SUR','VS1','VS2','VS3','VS4','VTX') ~ TRUE
-      ),
-      disabled = case_when(
-        exempt_cat %in% c('PDS','DIS','APD','STX','V11','V12','V13','V14','V21','V22','V23','V24','VCH','VTX') ~ TRUE
-      )
-    ) %>%
-  group_by(account) %>%
-  mutate(dup_account_exempt = row_number() > 1) %>% 
-  ungroup()
-HCAD_exempt_dt <- as.data.table(HCAD_exempt)
-HCAD4 <- HCAD_exempt_dt[HCAD3,on=.(account)]
+#THIS DOESN'T WORK; HAVE TO GO THROUGH THE LIST OF POSSIBLE EXEMPTS
+#HCAD_exempt <- HCAD_exempt %>% 
+#  rename(account=acct) %>%
+#  select(account,exempt_cat) %>% 
+#  mutate(
+#      exempt_cat_vec = as.vector(str_split," "), #need 
+#      homestead = case_when(  #trying to get at who owns...
+#     #this has to somehow get at if any is true, then it triggers True - is there an "at least one TRUE"..??
+#        exempt_cat %in% c('RES','PAR') ~ TRUE
+#      ),
+#      vet = case_when(
+#        exempt_cat %in% c('V11','V12','V13','V14','V21','V22','V23','V24') ~ TRUE
+#      ),
+#      low_income_housing = case_when(
+#        exempt_cat == "LIH" ~ TRUE
+#      ),
+#      over_65 = case_when(
+#        exempt_cat %in% c('APO','OVR','POV','SUR') ~ TRUE
+#      ),
+#      surv_spouse = case_when(
+#        exempt_cat %in% c('SSD','STT','STX','SUR','VS1','VS2','VS3','VS4','VTX') ~ TRUE
+#      ),
+#      disabled = case_when(
+#        exempt_cat %in% c('PDS','DIS','APD','STX','V11','V12','V13','V14','V21','V22','V23','V24','VCH','VTX') ~ TRUE
+#      )
+#    ) %>%
+#  group_by(account) %>%
+#  mutate(dup_account_exempt = row_number() > 1) %>% 
+#  ungroup()
+#HCAD_exempt_dt <- as.data.table(HCAD_exempt)
 
 #for bldg_data codes: http://pdata.hcad.org/Desc/2015/code_desc_real.txt #updated: https://pdata.hcad.org/data/cama/2015/code_desc_real.txt
 #add counts for rooms and apartments
-HCAD_fixtures <- HCAD_fixtures %>%
-  rename(account=V1,bldg_num=V2,bldg_data=V3,
-         bldg_data_descr=V4,num_units=V5) %>%
-  #distinct(account,.keep_all = TRUE) %>%
-  filter(!row_number()==1) %>%
-  select(account,bldg_num,bldg_data,bldg_data_descr,num_units) %>%
-  group_by(account) %>%
-  mutate(dup_account_fixtures = row_number() > 1) %>% 
-  ungroup() %>%
-  mutate(
-    bedrooms = case_when(
-      bldg_data == 'RMB ' ~ as.integer(num_units),
-      bldg_data == 'AP0 ' ~ as.integer(0),
-      bldg_data == 'AP1 ' ~ as.integer(1),
-      bldg_data == 'AP2 ' ~ as.integer(2),
-      bldg_data == 'AP3 ' ~ as.integer(3),
-      bldg_data == 'AP4 ' ~ as.integer(4)
-    ),
-    total_rooms = case_when(
-      bldg_data == 'RMT ' ~ as.integer(num_units)
-    ),
-    effcncy_apts = case_when(
-      bldg_data == 'AP0 ' ~ as.integer(num_units)
-    ),
-    oneBR_apts = case_when(
-      bldg_data == 'AP1 ' ~ as.integer(num_units)
-    ),
-    twoBR_apts = case_when(
-      bldg_data == 'AP2 ' ~ as.integer(num_units)
-    ),
-    threeBR_apts = case_when(
-      bldg_data == 'AP3 ' ~ as.integer(num_units)
-    ),
-    fourBR_apts = case_when(
-      bldg_data == 'AP4 ' ~ as.integer(num_units),
-      TRUE ~ as.integer(0)
-    ),
-    num_apts = case_when(  #maybe not use - seems to have a lot of missing!
-      grepl('AP', bldg_data) ~ as.integer(num_units),
-      #bldg_data == 'UNT ' ~ as.integer(num_units), #need to confirm it adds correctly
-      TRUE ~ as.integer(0)
-    )
-  ) %>%
-  filter(bedrooms>=0 | total_rooms>0 | effcncy_apts>0 | oneBR_apts>0 | 
-           twoBR_apts>0 | threeBR_apts>0 | fourBR_apts>0 | num_apts>0 ) 
-
-HCAD_fix_b4 <- nrow(HCAD_fixtures)
-HCAD_fixtures_dt <- as.data.table(HCAD_fixtures)
-HCAD5 <- HCAD_fixtures_dt[HCAD4,on=.(account)]
-#there are lots of duplicate accounts - 
-#expand so each apt has its own record
-HCAD6 <- data.table(HCAD5[rep(seq_len(dim(HCAD_fixtures_dt)[1])), 
-           as.integer(HCAD5$num_apts)+1, 
-            #as.integer(HCAD_fixtures$num_apts*.89)), #in case want to do occupancy this way
-            1:dim(HCAD5)[2], drop = FALSE], row.names = NULL)
-#.89 is the overall Harris County occupancy - I have it in another place, too
-HCAD_fix_after <- nrow(HCAD6)
+#HCAD_fixtures <- HCAD_fixtures %>%
+#  rename(account=acct,bldg_num=bld_num,bldg_data=type,
+#         bldg_data_descr=type_descr,num_units=units) %>%
+#  #distinct(account,.keep_all = TRUE) %>%
+#  filter(!row_number()==1) %>%
+#  select(account,bldg_num,bldg_data,bldg_data_descr,num_units) %>%
+#  group_by(account) %>%
+#  mutate(dup_account_fixtures = row_number() > 1) %>% 
+#  ungroup() %>%
+#  mutate(
+#    bedrooms = case_when(
+#      bldg_data == 'RMB ' ~ as.integer(num_units),
+#      bldg_data == 'AP0 ' ~ as.integer(0),
+#      bldg_data == 'AP1 ' ~ as.integer(1),
+#      bldg_data == 'AP2 ' ~ as.integer(2),
+#      bldg_data == 'AP3 ' ~ as.integer(3),
+#      bldg_data == 'AP4 ' ~ as.integer(4)
+#    ),
+#    total_rooms = case_when(
+#      bldg_data == 'RMT ' ~ as.integer(num_units)
+#    ),
+#    effcncy_apts = case_when(
+#      bldg_data == 'AP0 ' ~ as.integer(num_units)
+#    ),
+#    oneBR_apts = case_when(
+#      bldg_data == 'AP1 ' ~ as.integer(num_units)
+#    ),
+#    twoBR_apts = case_when(
+#      bldg_data == 'AP2 ' ~ as.integer(num_units)
+#    ),
+#    threeBR_apts = case_when(
+#      bldg_data == 'AP3 ' ~ as.integer(num_units)
+#    ),
+#    fourBR_apts = case_when(
+#      bldg_data == 'AP4 ' ~ as.integer(num_units),
+#      TRUE ~ as.integer(0)
+#    ),
+#    num_apts = case_when(  #maybe not use - seems to have a lot of missing!
+#      grepl('AP', bldg_data) ~ as.integer(num_units),
+#      #bldg_data == 'UNT ' ~ as.integer(num_units), #need to confirm it adds correctly
+#      TRUE ~ as.integer(0)
+#    )
+#  ) %>%
+#  filter(bedrooms>=0 | total_rooms>0 | effcncy_apts>0 | oneBR_apts>0 | 
+#           twoBR_apts>0 | threeBR_apts>0 | fourBR_apts>0 | num_apts>0 ) 
+#
+#HCAD_fix_b4 <- nrow(HCAD_fixtures)
+#HCAD_fixtures_dt <- as.data.table(HCAD_fixtures)
+#HCAD5 <- HCAD_fixtures_dt[HCAD4,on=.(account)]
+##there are lots of duplicate accounts - 
+##expand so each apt has its own record
+#HCAD6 <- data.table(HCAD5[rep(seq_len(dim(HCAD_fixtures_dt)[1])), 
+#           as.integer(HCAD5$num_apts)+1, 
+#            #as.integer(HCAD_fixtures$num_apts*.89)), #in case want to do occupancy this way
+#            1:dim(HCAD5)[2], drop = FALSE], row.names = NULL)
+##.89 is the overall Harris County occupancy - I have it in another place, too
+#HCAD_fix_after <- nrow(HCAD6)
 
 #add apt_ids
 ##HCAD_fixtures_single <- HCAD_fixtures %>%
