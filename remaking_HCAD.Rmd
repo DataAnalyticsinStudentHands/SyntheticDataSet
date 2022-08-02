@@ -24,6 +24,7 @@ library(dplyr)
 library(stringr)
 library(data.table)
 library(sf)
+library(lwgeom)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
@@ -70,8 +71,8 @@ census geometry files were taken on 12/27/2019 from: https://www.census.gov/geog
 #start with loading files we need from HCAD
 #most recent parcels doesn't have the _Oct
 ifelse(file.exists(paste0(housingdir, vintage, "/Parcels/Parcels.shp")),
-       HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels/Parcels.shp"),stringsAsFactors = FALSE),
-       HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE))
+       HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels/Parcels.shp"),stringsAsFactors = FALSE,quiet = TRUE),
+       HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE,quiet = TRUE))
 #small number of warnings about the geometry - says they're saved as a collection, and it's hard to see if they end up being lost to the validity check later. There's a variable called "Stacked," but also seems uncorrelated to the warnings.
 #then rename
 HCAD_parcels <- HCAD_parcels %>%
@@ -191,62 +192,48 @@ other_isd_within_unlist <- rapply(other_isd_within,function(x) ifelse(length(x)=
 other_isd_within_unlist <- unlist(other_isd_within_unlist)
 HCAD_geom$ISD=other_isd$NAME[other_isd_within_unlist]
 paste0("There are ",length(unique(HCAD_geom$ISD))," ISDs in HCAD.")
-paste0("The merge has left ",nrow(HCAD_geom[which(is.na(HCAD_geom$ISD))," parcels in HCAD without an ISD,
-                                            which is similar to the number that didn't have LocAddr or city."]))
+paste0("The merge has left ",nrow(HCAD_geom[which(is.na(HCAD_geom$ISD)),])," parcels in HCAD without an ISD,
+                                            which is similar to the number that didn't have LocAddr or city.")
 #zipcodes are pulled from the HCAD site_addr_3 in the real_acct file
 HCAD_geom_dt <- as.data.table(HCAD_geom)
 ```
 
 ```{r get HCAD raw files for processing}
-#add Hcad_geom from HCAD_geo.R - break up parts later and add tests
+#state_codes are in: https://www.taxnetusa.com/research/texas/sptb.php (HCAD's own is incomplete: https://hcad.org/search/state-category-codes/)
+#HCAD Site Codes (improv_typ) are in: https://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-site-codes/
+
 HCAD_res_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_res.txt"),
         stringsAsFactors = FALSE,
         sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-HCAD_real_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_other.txt"),
-        stringsAsFactors = FALSE,
-        sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-#there are no account numbers in common between res_build and real_build, but some codes are in both
 
-HCAD_real_acct <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/real_acct.txt"),
-        stringsAsFactors = FALSE,
-        sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-#HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt_cd.txt"),
-#                         stringsAsFactors = FALSE,
-#                         sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-#HCAD_owner_date <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/deeds.txt"),
-#                             stringsAsFactors = FALSE,
-#                             sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-HCAD_fixtures <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/fixtures.txt"),
-                           stringsAsFactors = FALSE,
-                           sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-
-#state_codes are in: https://www.taxnetusa.com/research/texas/sptb.php (HCAD's own is incomplete: https://hcad.org/search/state-category-codes/)
-#HCAD Site Codes are in: https://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-site-codes/
-
-#for res, they use effective area (V24) for calculating improvement value
-#they have a nbhd_factor that asthma folks could use, but it's not there for apts.
-#there are duplicate accounts (about 29k in 2022); need to mark as such.
+#there are duplicate accounts (about 29k in 2022); just added total_sf in; seems to work from account side
 HCAD_res_build$acct <- str_remove_all(HCAD_res_build$acct, " ")
 HCAD_res_build <- HCAD_res_build %>% 
   rename(account=acct,state_code=property_use_cd,improv_typ=impr_tp,impr_mdl_cd=impr_mdl_cd,
-         Depr_Val=dpr_val,qual_descript=dscr,living_sf=im_sq_ft) %>%
+         qual_descript=dscr,living_sf=im_sq_ft) %>%
   select(account,state_code,improv_typ,impr_mdl_cd,structure_dscr,
-          Depr_Val,qual_descript,date_erected,yr_remodel,
+          qual_descript,date_erected,yr_remodel,
          living_sf,size_index) %>%
   group_by(account) %>%
-  mutate(dup_account_res = row_number() > 1) %>% 
+  mutate(num_buildings = n(),
+         total_living_sf = sum(as.numeric(living_sf),na.rm = TRUE)) %>%
+  distinct(account, .keep_all = TRUE) %>%
   ungroup()
 
 HCAD_res_build_dt <- as.data.table(HCAD_res_build)
-HCAD_res_geom_dt <- HCAD_geom_dt[HCAD_res_build_dt,on=.(account)]
+#HCAD_res_geom_dt <- HCAD_geom_dt[HCAD_res_build_dt,on=.(account)]
 #HCAD_res_geom <- HCAD_res_build_dt[HCAD_geom_dt,on=.(account)] 
-test <- table(HCAD_res_geom_dt$improv_typ)==
-  table(HCAD_res_build$improv_typ)
-length(test[test==FALSE])==0
-length(unique(HCAD_res_build_dt$account))==length(unique(HCAD_res_geom_dt$account))
-nrow(HCAD_res_build_dt)==nrow(HCAD_res_geom_dt)
+#test <- table(HCAD_res_geom_dt$improv_typ)==
+#  table(HCAD_res_build$improv_typ)
+#length(test[test==FALSE])==0
+#length(unique(HCAD_res_build_dt$account))==length(unique(HCAD_res_geom_dt$account))
+#nrow(HCAD_res_build_dt)==nrow(HCAD_res_geom_dt)
 
-#using actual_area for total_bldg_sf - get units from fixtures
+HCAD_real_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/building_other.txt"),
+        stringsAsFactors = FALSE,
+        sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
+
+#there are no account numbers in common between res_build and real_build, but some codes are in both
 #total_income may include non-rental income?
 HCAD_real_build$acct <- str_remove_all(HCAD_real_build$acct, " ")
 HCAD_real_build <- HCAD_real_build %>% 
@@ -254,23 +241,27 @@ HCAD_real_build <- HCAD_real_build %>%
         qual_descript=dscr,bldg_sf=im_sq_ft,
         bldg_name=prop_nm,
         lease_rate=lease_rt,occupancy_rate=occ_rt,total_income=tot_inc) %>%
-  select(account,state_code,improv_typ,impr_mdl_cd,Depr_Val,qual_descript,
+  select(account,state_code,improv_typ,impr_mdl_cd,qual_descript,
          date_erected,yr_remodel,bldg_sf,
          bldg_name,units,lease_rate,occupancy_rate,total_income) %>%
   group_by(account) %>%
-  mutate(dup_account_real = row_number() > 1) %>% 
+  mutate(num_buildings = n(),
+         total_bldg_sf = sum(as.numeric(bldg_sf),na.rm = TRUE)) %>% #units seems to already be summarized!!
+  distinct(account, .keep_all = TRUE) %>%
   ungroup()
 #correctional <- HCAD_real_build %>% filter(improv_typ=="4670") 
 #30 correctional facilities, without number of rooms
 HCAD_real_build_dt <- as.data.table(HCAD_real_build)
-HCAD_real_geom_dt <- HCAD_geom_dt[HCAD_real_build_dt,on=.(account)]
-test <- table(HCAD_real_geom_dt$improv_typ)==
-  table(HCAD_real_build_dt$improv_typ)
-length(test[test==FALSE])==0
-length(unique(HCAD_real_build_dt$account))==length(unique(HCAD_real_geom_dt$account))
-nrow(HCAD_real_build_dt)==nrow(HCAD_real_geom_dt)
+#HCAD_real_geom_dt <- HCAD_geom_dt[HCAD_real_build_dt,on=.(account)]
+#test <- table(HCAD_real_geom_dt$improv_typ)==
+#  table(HCAD_real_build_dt$improv_typ)
+#length(test[test==FALSE])==0
+#length(unique(HCAD_real_build_dt$account))==length(unique(HCAD_real_geom_dt$account))
+#nrow(HCAD_real_build_dt)==nrow(HCAD_real_geom_dt)
 
-
+HCAD_real_acct <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/real_acct.txt"),
+        stringsAsFactors = FALSE,
+        sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 HCAD_real_acct$acct <- str_remove_all(HCAD_real_acct$acct, " ")
 HCAD_real_acct <- HCAD_real_acct %>% 
   rename(account=acct,site_address_street=site_addr_1,
@@ -280,17 +271,15 @@ HCAD_real_acct <- HCAD_real_acct %>%
          improv_value=bld_val,xtras_value=x_features_val,market_value=tot_mkt_val) %>%
   select(account,site_address_street,site_address_city,zip_code,
          state_code,tot_bldg_sf,tot_land_sf,land_value,improv_value,
-         xtras_value,market_value) %>%
-  group_by(account) %>%
-  mutate(dup_account_acct = row_number() > 1) %>% 
-  ungroup()
+         xtras_value,market_value)
+nrow(HCAD_real_acct)==length(unique(HCAD_real_acct$account))
 ##will use market_value to guestimate cost of apt.; here, other codes will also help decide (like LHI)
 HCAD_real_acct_dt <- as.data.table(HCAD_real_acct)
-not_in_parcels <- HCAD_real_acct_dt[!account%in%unique(HCAD_geom_dt$account)]
+#not_in_parcels <- HCAD_real_acct_dt[!account%in%unique(HCAD_geom_dt$account)]
 #some of the above we're also not in parcels
-table(not_in_parcels$state_code)
-paste0("Of the ",nrow(not_in_parcels)," accounts without matching parcel geometries, ",
-       nrow(not_in_parcels[state_code=="X1"]), " are in government exempt. It seems to be things owned by one person and sitting on another person's lot.")
+#table(not_in_parcels$state_code)
+#paste0("Of the ",nrow(not_in_parcels)," accounts without matching parcel geometries, ",
+#       nrow(not_in_parcels[state_code=="X1"]), " are in government exempt. It seems to be things owned by one person and sitting on another person's lot.")
 #in 2022, there are 66351 real accounts not in Parcels; not sure how to do them all.
 #the mobile homes show up in the HCAD_res_geom, but without geometry - matching on site_addr is incomplete at best
 HCAD_res_acct_geom_dt <- HCAD_real_acct_dt[HCAD_res_geom_dt,on=.(account,state_code)]
@@ -300,6 +289,10 @@ test <- table(HCAD_res_acct_geom_dt$improv_typ) == table(HCAD_res_geom_dt$improv
 length(test[test==FALSE])==0
 test <- table(HCAD_real_acct_geom_dt$improv_typ) == table(HCAD_real_geom_dt$improv_typ)
 length(test[test==FALSE])==0
+
+#HCAD_owner_date <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/deeds.txt"),
+#                             stringsAsFactors = FALSE,
+#                             sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 #want to get this eventually, for how recently people moved, but something weird about it, so skipping now
 #remember to replace vintage with date, below
 #HCAD_owner_date <- HCAD_owner_date %>%
@@ -316,6 +309,9 @@ length(test[test==FALSE])==0
 #HCAD <- full_join(HCAD,HCAD_owner_date,by="account")
 #nrow_HCAD4 <- nrow(HCAD)
 
+#HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt_cd.txt"),
+#                         stringsAsFactors = FALSE,
+#                         sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 #HCAD_exempt$V1 <- str_remove_all(HCAD_exempt$V1, " ") - fixed by importing col as character
 #exemptions give us some clues about owners, etc. that match up with ACS info
 #cf. jur_exemption_dscr.txt in Real_jur_exempt
@@ -327,7 +323,7 @@ length(test[test==FALSE])==0
 #      exempt_cat_vec = as.vector(str_split," "), #need 
 #      homestead = case_when(  #trying to get at who owns...
 #     #this has to somehow get at if any is true, then it triggers True - is there an "at least one TRUE"..??
-#        exempt_cat %in% c('RES','PAR') ~ TRUE
+#        str_split(exempt_cat," ") %in% c('RES','PAR') ~ TRUE
 #      ),
 #      vet = case_when(
 #        exempt_cat %in% c('V11','V12','V13','V14','V21','V22','V23','V24') ~ TRUE
@@ -350,54 +346,69 @@ length(test[test==FALSE])==0
 #  ungroup()
 #HCAD_exempt_dt <- as.data.table(HCAD_exempt)
 
-#for bldg_data codes: http://pdata.hcad.org/Desc/2015/code_desc_real.txt #updated: https://pdata.hcad.org/data/cama/2015/code_desc_real.txt
+#HCAD Site Codes (improv_typ) are in: https://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-site-codes/
+HCAD_fixtures <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/fixtures.txt"),
+                           stringsAsFactors = FALSE,
+                           sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
 #add counts for rooms and apartments
-#HCAD_fixtures <- HCAD_fixtures %>%
-#  rename(account=acct,bldg_num=bld_num,bldg_data=type,
-#         bldg_data_descr=type_descr,num_units=units) %>%
-#  #distinct(account,.keep_all = TRUE) %>%
-#  filter(!row_number()==1) %>%
-#  select(account,bldg_num,bldg_data,bldg_data_descr,num_units) %>%
-#  group_by(account) %>%
-#  mutate(dup_account_fixtures = row_number() > 1) %>% 
-#  ungroup() %>%
-#  mutate(
-#    bedrooms = case_when(
-#      bldg_data == 'RMB ' ~ as.integer(num_units),
-#      bldg_data == 'AP0 ' ~ as.integer(0),
-#      bldg_data == 'AP1 ' ~ as.integer(1),
-#      bldg_data == 'AP2 ' ~ as.integer(2),
-#      bldg_data == 'AP3 ' ~ as.integer(3),
-#      bldg_data == 'AP4 ' ~ as.integer(4)
-#    ),
-#    total_rooms = case_when(
-#      bldg_data == 'RMT ' ~ as.integer(num_units)
-#    ),
-#    effcncy_apts = case_when(
-#      bldg_data == 'AP0 ' ~ as.integer(num_units)
-#    ),
-#    oneBR_apts = case_when(
-#      bldg_data == 'AP1 ' ~ as.integer(num_units)
-#    ),
-#    twoBR_apts = case_when(
-#      bldg_data == 'AP2 ' ~ as.integer(num_units)
-#    ),
-#    threeBR_apts = case_when(
-#      bldg_data == 'AP3 ' ~ as.integer(num_units)
-#    ),
-#    fourBR_apts = case_when(
-#      bldg_data == 'AP4 ' ~ as.integer(num_units),
-#      TRUE ~ as.integer(0)
-#    ),
-#    num_apts = case_when(  #maybe not use - seems to have a lot of missing!
-#      grepl('AP', bldg_data) ~ as.integer(num_units),
-#      #bldg_data == 'UNT ' ~ as.integer(num_units), #need to confirm it adds correctly
-#      TRUE ~ as.integer(0)
-#    )
-#  ) %>%
-#  filter(bedrooms>=0 | total_rooms>0 | effcncy_apts>0 | oneBR_apts>0 | 
-#           twoBR_apts>0 | threeBR_apts>0 | fourBR_apts>0 | num_apts>0 ) 
-#
+HCAD_fixtures <- HCAD_fixtures %>%
+  rename(account=acct,bldg_num=bld_num,bldg_data=type,
+         bldg_data_descr=type_dscr,num_units=units) %>%
+  select(account,bldg_num,bldg_data,bldg_data_descr,num_units) %>%
+  mutate(
+    bedrooms = case_when(
+      bldg_data == 'RMB ' ~ as.integer(num_units),
+      bldg_data == 'AP0 ' ~ as.integer(0),
+      bldg_data == 'AP1 ' ~ as.integer(1),
+      bldg_data == 'AP2 ' ~ as.integer(2),
+      bldg_data == 'AP3 ' ~ as.integer(3),
+      bldg_data == 'AP4 ' ~ as.integer(4)
+    ),
+    total_rooms = case_when(
+      bldg_data == 'RMT ' ~ as.integer(num_units)
+    ),
+    effcncy_apts = case_when(
+      bldg_data == 'AP0 ' ~ as.integer(num_units)
+    ),
+    oneBR_apts = case_when(
+      bldg_data == 'AP1 ' ~ as.integer(num_units)
+    ),
+    twoBR_apts = case_when(
+      bldg_data == 'AP2 ' ~ as.integer(num_units)
+    ),
+    threeBR_apts = case_when(
+      bldg_data == 'AP3 ' ~ as.integer(num_units)
+    ),
+    fourBR_apts = case_when(
+      bldg_data == 'AP4 ' ~ as.integer(num_units),
+      TRUE ~ as.integer(0)
+    ),
+    num_apts = case_when(  #maybe not use - seems to have a lot of missing!
+      grepl('AP', bldg_data) ~ as.integer(num_units),
+      #bldg_data == 'UNT ' ~ as.integer(num_units), #need to confirm it adds correctly
+      TRUE ~ as.integer(0)
+    )
+  ) %>%
+  filter(bedrooms>=0 | total_rooms>0 | effcncy_apts>0 | oneBR_apts>0 | 
+           twoBR_apts>0 | threeBR_apts>0 | fourBR_apts>0 | num_apts>0 ) %>%
+  group_by(account) %>%
+  summarise(total_num_units = sum(num_apts)) 
+#check to see how many are in res and how many in real
+#test_real <- unique(HCAD_fixtures$account) %in% unique(HCAD_real_geom_dt$account)
+#length(test_real[test_real==TRUE])
+HCAD_real_fixt_dt <- HCAD_real_build_dt[account %in% unique(HCAD_fixtures$account),]
+
+HCAD_geom_dt <- HCAD_real_fixt_dt[HCAD_geom_dt,on=.(account)]
+paste0("Missing ",
+nrow(HCAD_real_fixt_dt[!is.na(improv_typ)])-nrow(HCAD_geom_dt[!is.na(improv_typ)]),
+"of the geometries for the fixtures for the real buildings - some of the mobile homes, etc.")
+#not_in_parcels_real <- 
+#then add to res file
+HCAD_res_fixt_dt <- HCAD_res_build_dt[account %in% unique(HCAD_fixtures$account),] #had a handful (21) not match!!
+HCAD_geom_dt <- HCAD_res_fixt_dt[HCAD_geom_dt,on=.(account)]
+#275k without matches!!!
+nrow(HCAD_geom_dt_2[is.na(improv_typ)])
+
 #HCAD_fix_b4 <- nrow(HCAD_fixtures)
 #HCAD_fixtures_dt <- as.data.table(HCAD_fixtures)
 #HCAD5 <- HCAD_fixtures_dt[HCAD4,on=.(account)]
@@ -439,7 +450,71 @@ length(test[test==FALSE])==0
 #fourplex4 <- HCAD %>% filter(improv_typ.x == 1004) #looks like each account has it listed as 8 bedrooms, instead of as 4 apts.
 #1002 = duplex, 1003 = triplex, with same problems.
 
-#need to add the distances from HCAD_geo
+
+#TRY ST_IS VALID and MAKE VALID and see how it works on the null geometries
+
+
+
+```
+
+```{r add distances to censusblocks and then to HCAD}
+#make more subunits
+census_blocks_sf <- st_as_sf(censusblocks)
+census_sub_blocks <- st_subdivide(census_blocks_sf,max_vertices = 8)
+census_sub_blocks <- st_collection_extract(census_sub_blocks,type = c("POLYGON", "POINT", "LINESTRING"),warn = FALSE)
+census_sub_blocks <- census_sub_blocks %>%
+  group_by(geoid) %>%
+  mutate(subgeoid = paste0(geoid,"_",100+row_number())) %>%
+  ungroup()
+census_sub_blocks$subgeoid_centroid <- st_centroid(census_sub_blocks$geometry)
+#and add subgeoid to parcels
+CensusSubBlockforHCADParcels <- st_within(HCAD_geom$centroid, census_sub_blocks)
+#unlist into vector
+CensusSubBlockforHCADParcelsunlisted <- rapply(CensusSubBlockforHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+CensusSubBlockforHCADParcelsunlisted <- unlist(CensusSubBlockforHCADParcelsunlisted)
+# add census geoid information to each parcel
+HCAD_geom$subgeoid=census_sub_blocks$GEOID[CensusSubBlockforHCADParcelsunlisted]           
+#and for 2019 - although should only need it for the crosswalks...
+census_blocks19_sf <- st_as_sf(censusblocks_19)
+census_sub_blocks19 <- st_subdivide(census_blocks19_sf,max_vertices = 8)
+census_sub_blocks19 <- st_collection_extract(census_sub_blocks19,type = c("POLYGON", "POINT", "LINESTRING"),warn = FALSE)
+census_sub_blocks19 <- census_sub_blocks19 %>%
+  group_by(geoid_19) %>%
+  mutate(subgeoid = paste0(geoid_19,"_",100+row_number())) %>%
+  ungroup()
+census_sub_blocks19$subgeoid_centroid <- st_centroid(census_sub_blocks19$geometry)
+#assign each parcel to a subgeoid
+CensusSubBlock19forHCADParcels <- st_within(HCAD_geom$centroid, census_sub_blocks19)
+#unlist into vector
+CensusSubBlock19forHCADParcelsunlisted <- rapply(CensusSubBlock19forHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+CensusSubBlock19forHCADParcelsunlisted <- unlist(CensusSubBlock19forHCADParcelsunlisted)
+# add census geoid information to each parcel
+HCAD_geom$subgeoid=census_sub_blocks$GEOID[CensusSubBlock19forHCADParcelsunlisted]
+
+#so we can have some reporting other direction, too, get population counts for the censusblocks.
+HCAD_block_residence <- HCAD %>%
+  #need this to give numbers by sub, block, and tract.
+
+#for busstops #originally made in HCAD_geo, with ridership from April, 2022
+busstops <- readRDS(paste0(houstondatadir,vintage,"/Metro_stops/busstops_blocks.RDS"))
+busstops <- st_transform(busstops,crs=st_crs(HCAD_geom))
+#distance to busstops for each block group
+block_bus_distance <- st_distance(census_sub_blocks$subgeoid_centroid,busstops$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+bus_distance <- as.data.table(block_bus_distance)
+census_sub_blocks$bus_distance <- apply(bus_distance[,1:length(colnames(bus_distance))], 1, min)
+
+#distance to busstops for each block group
+block_bus_distance19 <- st_distance(census_sub_blocks19$subgeoid_centroid,busstops$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
+bus_distance19 <- as.data.table(block_bus_distance19)
+census_sub_blocks19$bus_distance <- apply(bus_distance19[,1:length(colnames(bus_distance19))], 1, min)
+censustracts_bus19a <- census_sub_blocks19 %>%
+  group_by(TRACTCE) %>%
+  mutate(tract_avg_min_bus = as.integer(mean(bus_distance))) %>%
+  ungroup() %>%
+  distinct(TRACTCE,tract_avg_min_bus)
+
+
+
 HCAD <- as.data.table(HCAD)
 censusblocks <- as.data.table(censusblocks) #update its indices
 censusblocks[,("geoid"):=GEOID]

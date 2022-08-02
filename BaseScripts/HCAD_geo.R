@@ -196,12 +196,13 @@ bus_within_unlist <- unlist(bus_within_unlist)
 busstops$geoid=censusblocks$GEOID[bus_within_unlist]
 st_write(busstops,paste0(houstondatadir,vintage,"/Metro_stops/bus_riders_april_stops_bg.geojson"),driver = "GeoJSON")
 saveRDS(busstops,paste0(houstondatadir,vintage,"/Metro_stops/busstops_blocks.RDS"))
-busstops <- readRDS(busstops,paste0(houstondatadir,vintage,"/Metro_stops/busstops_blocks.RDS"))
+busstops <- readRDS(paste0(houstondatadir,vintage,"/Metro_stops/busstops_blocks.RDS"))
 
 #distance to busstops for each block group
 block_bus_distance <- st_distance(censusblocks$geoid_centroid,busstops$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
 bus_distance <- as.data.table(block_bus_distance)
 censusblocks$min_bus_distance <- apply(bus_distance[,1:length(colnames(bus_distance))], 1, min) #minimum distance in meters
+
 #need to figure out how to get the index number and the BSID for top 20 or so, to make calculation from front doors in groups by censusblock
 #censusblocks$min_bus_ID <- busstops[apply(bus_distance[,1:length(colnames(bus_distance))], 1, min),]$BSID
 
