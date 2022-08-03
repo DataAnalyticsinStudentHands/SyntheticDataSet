@@ -72,7 +72,7 @@ census geometry files were taken on 12/27/2019 from: https://www.census.gov/geog
 #most recent parcels doesn't have the _Oct
 ifelse(file.exists(paste0(housingdir, vintage, "/Parcels/Parcels.shp")),
        HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels/Parcels.shp"),stringsAsFactors = FALSE,quiet = TRUE),
-       HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE,quiet = TRUE))
+       HCAD_parcels <- st_read(paste0(housingdir, vintage, "/Parcels_", vintage, "_Oct/Parcels.shp"),stringsAsFactors = FALSE,quiet = TRUE)) #verbose = FALSE throws a weird error!! Just have to live with the printout, for now
 #small number of warnings about the geometry - says they're saved as a collection, and it's hard to see if they end up being lost to the validity check later. There's a variable called "Stacked," but also seems uncorrelated to the warnings.
 #then rename
 HCAD_parcels <- HCAD_parcels %>%
@@ -192,13 +192,13 @@ other_isd_within_unlist <- rapply(other_isd_within,function(x) ifelse(length(x)=
 other_isd_within_unlist <- unlist(other_isd_within_unlist)
 HCAD_geom$ISD=other_isd$NAME[other_isd_within_unlist]
 paste0("There are ",length(unique(HCAD_geom$ISD))," ISDs in HCAD.")
-paste0("The merge has left ",nrow(HCAD_geom[which(is.na(HCAD_geom$ISD)),])," parcels in HCAD without an ISD,
-                                            which is similar to the number that didn't have LocAddr or city.")
+paste0("The merge has left ",nrow(HCAD_geom[which(is.na(HCAD_geom$ISD)),])," parcels in HCAD without an ISD,which is similar to the number that didn't have LocAddr or city.")
 #zipcodes are pulled from the HCAD site_addr_3 in the real_acct file
 HCAD_geom_dt <- as.data.table(HCAD_geom)
 ```
 
 ```{r get HCAD raw files for processing}
+#https://hcad.org/assets/uploads/pdf/pdataCodebook.pdf also in 2022
 #state_codes are in: https://www.taxnetusa.com/research/texas/sptb.php (HCAD's own is incomplete: https://hcad.org/search/state-category-codes/)
 #HCAD Site Codes (improv_typ) are in: https://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-site-codes/
 
@@ -282,13 +282,13 @@ HCAD_real_acct_dt <- as.data.table(HCAD_real_acct)
 #       nrow(not_in_parcels[state_code=="X1"]), " are in government exempt. It seems to be things owned by one person and sitting on another person's lot.")
 #in 2022, there are 66351 real accounts not in Parcels; not sure how to do them all.
 #the mobile homes show up in the HCAD_res_geom, but without geometry - matching on site_addr is incomplete at best
-HCAD_res_acct_geom_dt <- HCAD_real_acct_dt[HCAD_res_geom_dt,on=.(account,state_code)]
-HCAD_real_acct_geom_dt <- HCAD_real_acct_dt[HCAD_real_geom_dt,on=.(account,state_code)]
+#HCAD_res_acct_geom_dt <- HCAD_real_acct_dt[HCAD_res_geom_dt,on=.(account,state_code)]
+#HCAD_real_acct_geom_dt <- HCAD_real_acct_dt[HCAD_real_geom_dt,on=.(account,state_code)]
 #tests
-test <- table(HCAD_res_acct_geom_dt$improv_typ) == table(HCAD_res_geom_dt$improv_typ)
-length(test[test==FALSE])==0
-test <- table(HCAD_real_acct_geom_dt$improv_typ) == table(HCAD_real_geom_dt$improv_typ)
-length(test[test==FALSE])==0
+#test <- table(HCAD_res_acct_geom_dt$improv_typ) == table(HCAD_res_geom_dt$improv_typ)
+#length(test[test==FALSE])==0
+#test <- table(HCAD_real_acct_geom_dt$improv_typ) == table(HCAD_real_geom_dt$improv_typ)
+#length(test[test==FALSE])==0
 
 #HCAD_owner_date <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/deeds.txt"),
 #                             stringsAsFactors = FALSE,
@@ -309,42 +309,48 @@ length(test[test==FALSE])==0
 #HCAD <- full_join(HCAD,HCAD_owner_date,by="account")
 #nrow_HCAD4 <- nrow(HCAD)
 
-#HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt_cd.txt"),
-#                         stringsAsFactors = FALSE,
-#                         sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-#HCAD_exempt$V1 <- str_remove_all(HCAD_exempt$V1, " ") - fixed by importing col as character
+HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt.txt"),
+                         stringsAsFactors = FALSE,
+                         sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
+#HCAD_exempt$V1 <- str_remove_all(HCAD_exempt$V1, " ") 
 #exemptions give us some clues about owners, etc. that match up with ACS info
 #cf. jur_exemption_dscr.txt in Real_jur_exempt
 #THIS DOESN'T WORK; HAVE TO GO THROUGH THE LIST OF POSSIBLE EXEMPTS
-#HCAD_exempt <- HCAD_exempt %>% 
-#  rename(account=acct) %>%
-#  select(account,exempt_cat) %>% 
-#  mutate(
-#      exempt_cat_vec = as.vector(str_split," "), #need 
-#      homestead = case_when(  #trying to get at who owns...
-#     #this has to somehow get at if any is true, then it triggers True - is there an "at least one TRUE"..??
-#        str_split(exempt_cat," ") %in% c('RES','PAR') ~ TRUE
-#      ),
-#      vet = case_when(
-#        exempt_cat %in% c('V11','V12','V13','V14','V21','V22','V23','V24') ~ TRUE
-#      ),
-#      low_income_housing = case_when(
-#        exempt_cat == "LIH" ~ TRUE
-#      ),
-#      over_65 = case_when(
-#        exempt_cat %in% c('APO','OVR','POV','SUR') ~ TRUE
-#      ),
-#      surv_spouse = case_when(
-#        exempt_cat %in% c('SSD','STT','STX','SUR','VS1','VS2','VS3','VS4','VTX') ~ TRUE
-#      ),
-#      disabled = case_when(
-#        exempt_cat %in% c('PDS','DIS','APD','STX','V11','V12','V13','V14','V21','V22','V23','V24','VCH','VTX') ~ TRUE
-#      )
-#    ) %>%
-#  group_by(account) %>%
-#  mutate(dup_account_exempt = row_number() > 1) %>% 
-#  ungroup()
-#HCAD_exempt_dt <- as.data.table(HCAD_exempt)
+HCAD_exempt_wide <- HCAD_exempt %>% 
+  rename(account=acct) %>%
+  group_by(account) %>%
+  pivot_wider(id_cols = "account",names_from = "exempt_cat",values_from = "exempt_val",
+              names_expand = TRUE,values_fn = list) %>%
+  mutate(
+    Total_val = ifelse(is.character(TOT[[1]][[1]][1]),TOT[[1]][[1]][1],"No Value"),
+    
+  )
+
+#might be a better way to do it - most of them are null across all. 
+  #    homestead = case_when(  #trying to get at who owns...
+# #    #this has to somehow get at if any is true, then it triggers True - is there an "at least one TRUE"..??
+  #      exempt_cat %in% c('RES','PAR') ~ TRUE
+  #    ),
+  #    vet = case_when(
+  #      exempt_cat %in% c('V11','V12','V13','V14','V21','V22','V23','V24') ~ TRUE
+  #    ),
+  #    low_income_housing = case_when(
+  #      exempt_cat == "LIH" ~ TRUE
+  #    ),
+  #    over_65 = case_when(
+  #      exempt_cat %in% c('APO','OVR','POV','SUR') ~ TRUE
+  #    ),
+  #    surv_spouse = case_when(
+  #      exempt_cat %in% c('SSD','STT','STX','SUR','VS1','VS2','VS3','VS4','VTX') ~ TRUE
+  #    ),
+  #    disabled = case_when(
+  #      exempt_cat %in% c('PDS','DIS','APD','STX','V11','V12','V13','V14','V21','V22','V23','V24','VCH','VTX') ~ TRUE
+  #    )
+  #  ) %>%
+  #distinct(account, .keep_all = TRUE) %>%
+  #ungroup() 
+
+HCAD_exempt_dt <- as.data.table(HCAD_exempt_wide)
 
 #HCAD Site Codes (improv_typ) are in: https://hcad.org/hcad-resources/hcad-appraisal-codes/hcad-site-codes/
 HCAD_fixtures <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/fixtures.txt"),
@@ -392,22 +398,42 @@ HCAD_fixtures <- HCAD_fixtures %>%
   filter(bedrooms>=0 | total_rooms>0 | effcncy_apts>0 | oneBR_apts>0 | 
            twoBR_apts>0 | threeBR_apts>0 | fourBR_apts>0 | num_apts>0 ) %>%
   group_by(account) %>%
-  summarise(total_num_units = sum(num_apts)) 
+  mutate(total_num_units = sum(num_apts)) %>%
+  distinct(account,.keep_all = TRUE) %>%
+  ungroup()
+HCAD_fixtures_dt <- as.data.table(HCAD_fixtures)
 #check to see how many are in res and how many in real
 #test_real <- unique(HCAD_fixtures$account) %in% unique(HCAD_real_geom_dt$account)
 #length(test_real[test_real==TRUE])
-HCAD_real_fixt_dt <- HCAD_real_build_dt[account %in% unique(HCAD_fixtures$account),]
+#HCAD_real_fixt_dt <- HCAD_real_build_dt[account %in% unique(HCAD_fixtures$account),]
+```
 
-HCAD_geom_dt <- HCAD_real_fixt_dt[HCAD_geom_dt,on=.(account)]
-paste0("Missing ",
-nrow(HCAD_real_fixt_dt[!is.na(improv_typ)])-nrow(HCAD_geom_dt[!is.na(improv_typ)]),
-"of the geometries for the fixtures for the real buildings - some of the mobile homes, etc.")
+```{r now for the joins}
+HCADra_ex <- HCAD_real_acct_dt[HCAD_exempt_dt,on=.(account)]
+HCADra_ex_miss <- HCAD_real_acct_dt[!account%in%unique(HCAD_exempt_dt$account),]
+nrow(HCADra_ex[is.na(improv_value)])
+HCADra_ex_geom <- HCADra_ex[HCAD_geom_dt,on=.(account)]
+HCADra_ex_geom_miss <- HCADra_ex[!account%in%unique(HCAD_geom_dt$account),]
+nrow(HCADra_ex_geom[is.na(improv_value)])
+HCAD_res_fixt_dt <- HCAD_res_build_dt[account %in% unique(HCAD_fixtures$account),] #had a handful (21) not match!!
+HCADra_ex_geom_fxt <- HCAD_res_fixt_dt[HCADra_ex_geom,on=.(account)] 
+HCAD_real_fixt_dt <- HCAD_real_build_dt[account %in% unique(HCAD_fixtures$account),]
+HCAD <- HCAD_real_fixt_dt[HCADra_ex_geom_fxt,on=.(account)]
+#NEED to fix the .i on improv_typ and data_erected - I think it comes from doing two for res_build AND real_build
+#MAYBE add them to each other first, then do join???
+HCAD[,("num_residences"):=if_else(is.na(units),as.integer(1),as.integer(units))] #304 NAs, still
+
+
+
+#HCAD_geom_dt <- HCAD_real_fixt_dt[HCAD_geom_dt,on=.(account)]
+#paste0("Missing ",
+#nrow(HCAD_real_fixt_dt[!is.na(improv_typ)])-nrow(HCAD_geom_dt[!is.na(improv_typ)]),
+#"of the geometries for the fixtures for the real buildings - some of the mobile homes, etc.")
 #not_in_parcels_real <- 
 #then add to res file
-HCAD_res_fixt_dt <- HCAD_res_build_dt[account %in% unique(HCAD_fixtures$account),] #had a handful (21) not match!!
-HCAD_geom_dt <- HCAD_res_fixt_dt[HCAD_geom_dt,on=.(account)]
-#275k without matches!!!
-nrow(HCAD_geom_dt_2[is.na(improv_typ)])
+
+#270k without matches!!!
+nrow(HCAD[is.na(i.improv_typ) & is.na(improv_typ)])
 
 #HCAD_fix_b4 <- nrow(HCAD_fixtures)
 #HCAD_fixtures_dt <- as.data.table(HCAD_fixtures)
@@ -468,7 +494,7 @@ census_sub_blocks <- census_sub_blocks %>%
   ungroup()
 census_sub_blocks$subgeoid_centroid <- st_centroid(census_sub_blocks$geometry)
 #and add subgeoid to parcels
-CensusSubBlockforHCADParcels <- st_within(HCAD_geom$centroid, census_sub_blocks)
+CensusSubBlockforHCADParcels <- st_within(HCAD$centroid, census_sub_blocks)
 #unlist into vector
 CensusSubBlockforHCADParcelsunlisted <- rapply(CensusSubBlockforHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 CensusSubBlockforHCADParcelsunlisted <- unlist(CensusSubBlockforHCADParcelsunlisted)
@@ -484,16 +510,25 @@ census_sub_blocks19 <- census_sub_blocks19 %>%
   ungroup()
 census_sub_blocks19$subgeoid_centroid <- st_centroid(census_sub_blocks19$geometry)
 #assign each parcel to a subgeoid
-CensusSubBlock19forHCADParcels <- st_within(HCAD_geom$centroid, census_sub_blocks19)
+CensusSubBlock19forHCADParcels <- st_within(HCAD$centroid, census_sub_blocks19)
 #unlist into vector
 CensusSubBlock19forHCADParcelsunlisted <- rapply(CensusSubBlock19forHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 CensusSubBlock19forHCADParcelsunlisted <- unlist(CensusSubBlock19forHCADParcelsunlisted)
 # add census geoid information to each parcel
-HCAD_geom$subgeoid=census_sub_blocks$GEOID[CensusSubBlock19forHCADParcelsunlisted]
+HCAD$subgeoid=census_sub_blocks$GEOID[CensusSubBlock19forHCADParcelsunlisted]
 
 #so we can have some reporting other direction, too, get population counts for the censusblocks.
-HCAD_block_residence <- HCAD %>%
+
+HCAD_block_residence <- HCAD %>% 
+  group_by(geoid) %>%
+  summarize(residents_block = sum(num_residences,na.rm = TRUE)) 
   #need this to give numbers by sub, block, and tract.
+HCAD_tract_residence <- HCAD %>% 
+  group_by(tract) %>%
+  summarize(residents_tract = sum(num_residences,na.rm = TRUE))
+HCAD_subgeoid_residence <- HCAD %>% 
+  group_by(subgeoid) %>%
+  summarize(residents_subgeoid = sum(num_residences,na.rm = TRUE))
 
 #for busstops #originally made in HCAD_geo, with ridership from April, 2022
 busstops <- readRDS(paste0(houstondatadir,vintage,"/Metro_stops/busstops_blocks.RDS"))
@@ -513,7 +548,9 @@ censustracts_bus19a <- census_sub_blocks19 %>%
   ungroup() %>%
   distinct(TRACTCE,tract_avg_min_bus)
 
+```
 
+```{r add census info back to right places in HCAD}
 
 HCAD <- as.data.table(HCAD)
 censusblocks <- as.data.table(censusblocks) #update its indices
