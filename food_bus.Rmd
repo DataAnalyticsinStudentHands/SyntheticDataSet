@@ -24,9 +24,8 @@ library(dplyr)
 library(stringr)
 library(data.table)
 library(sf)
-#maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
-#maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
+#maindir = "~/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
