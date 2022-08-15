@@ -118,6 +118,8 @@ CensusBlockforFoodPantriesunlisted <- unlist(CensusBlockforFoodPantriesunlisted)
 # add census geoid information to each parcel
 food_pantries$geoid=censusblocks$GEOID[CensusBlockforFoodPantriesunlisted] 
 food_pantries$tract <- substr(food_pantries$geoid,6,11)
+#perhaps try https://rdrr.io/cran/nngeo/man/st_connect.html instead????
+#or: https://gis.stackexchange.com/questions/356768/nngeo-nearest-neighbor-with-distance-dataframe
 food_pantries_distance <- st_distance(censusblocks$geoid_centroid,food_pantries$geometry,by_element = FALSE) #by element picks a vector and not a dense matrix - from closest to furthest - could choose a bunch of them
 censusblocks$food_pantry_distance <- as.matrix(apply(food_pantries_distance,1,min,na.rm=TRUE))
 V_cleaned <- read.csv(paste0(houstondatadir,"2022/V_cleanedupdata.csv"), header = TRUE)
@@ -127,12 +129,12 @@ censusblocks <- censusblocks[which(censusblocks$COUNTYFP=="201"),]
 food_pantries_geom <- merge(censusblocks,V_cleaned,by="TRACTCE")
 food_pantries_geom <- st_transform(food_pantries_geom,crs=4326)
 food_pantries <- st_transform(food_pantries,crs=4326)
-st_write(food_pantries_geom,"~/Downloads/food_pantries_geom.csv",driver = "CSV")
-st_write(food_pantries_geom,"~/Downloads/food_pantries_geom.geojson",driver="GeoJSON")
+#st_write(food_pantries_geom,"~/Downloads/food_pantries_geom.csv",driver = "CSV")
+#st_write(food_pantries_geom,"~/Downloads/food_pantries_geom.geojson",driver="GeoJSON")
 food_pantries$longitude <- st_coordinates(food_pantries)[,1]
 food_pantries$latitude <- st_coordinates(food_pantries)[,2]
-st_write(food_pantries,"~/Downloads/food_pantries.csv",driver = "CSV")
-st_write(food_pantries,"~/Downloads/food_pantries.geojson",driver="GeoJSON")
+#st_write(food_pantries,"~/Downloads/food_pantries.csv",driver = "CSV")
+#st_write(food_pantries,"~/Downloads/food_pantries.geojson",driver="GeoJSON")
 ```
 
 Will add all the administrative and other boundaries in a later version - have to redo
@@ -204,15 +206,69 @@ block_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, v
                        groupname = "P1",county_num = county,
                        block="block_group",api_type="dec/pl",path_suff="est.csv")
 
-sex_by_age_race <- block_sex_by_age_race_data_from_census_tx %>%
+tot_pop <- block_sex_by_age_race_data_from_census_tx %>%
   filter(name=="P1_001N") %>%
   pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
 
-sex_age_race_DT <- as.data.table(sex_by_age_race)
-sex_age_race_DT[,("geoid"):=str_remove_all(GEOID,"_")]
-censusblocks[,("pop_total_block"):=sex_age_race_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
+tot_pop_DT <- as.data.table(tot_pop)
+tot_pop_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("pop_total_block"):=tot_pop_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
 
+white_tot <- block_sex_by_age_race_data_from_census_tx %>%
+  filter(name=="P1_003N") %>%
+  pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
 
+white_tot_DT <- as.data.table(sex_by_age_race)
+white_tot_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("white_total_block"):=white_tot_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
+
+black_tot <- block_sex_by_age_race_data_from_census_tx %>%
+  filter(name=="P1_004N") %>%
+  pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
+
+black_tot_DT <- as.data.table(sex_by_age_race)
+black_tot_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("black_total_block"):=black_tot_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
+
+aiaa_tot <- block_sex_by_age_race_data_from_census_tx %>%
+  filter(name=="P1_005N") %>%
+  pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
+
+aiaa_tot_DT <- as.data.table(sex_by_age_race)
+aiaa_tot_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("aiaa_total_block"):=aiaa_tot_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
+
+asian_tot <- block_sex_by_age_race_data_from_census_tx %>%
+  filter(name=="P1_006N") %>%
+  pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
+
+asian_tot_DT <- as.data.table(sex_by_age_race)
+asian_tot_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("asian_total_block"):=asian_tot_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
+
+nhopi_tot <- block_sex_by_age_race_data_from_census_tx %>%
+  filter(name=="P1_007N") %>%
+  pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
+
+nhopi_tot_DT <- as.data.table(sex_by_age_race)
+nhopi_tot_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("nhopi_total_block"):=nhopi_tot_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
+
+other_race_tot <- block_sex_by_age_race_data_from_census_tx %>%
+  filter(name=="P1_008N") %>%
+  pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
+
+other_race_tot_DT <- as.data.table(sex_by_age_race)
+other_race_tot_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("other_race_total_block"):=other_race_tot_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
+
+two_races_tot <- block_sex_by_age_race_data_from_census_tx %>%
+  filter(name=="P1_009N") %>%
+  pivot_longer(4:ncol(block_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")
+
+two_races_tot_DT <- as.data.table(sex_by_age_race)
+two_races_tot_DT[,("geoid"):=str_remove_all(GEOID,"_")]
+censusblocks[,("two_races_total_block"):=two_races_tot_DT[.SD,list(as.integer(number_sams)),on=.(geoid)]]
 
 ```
 
