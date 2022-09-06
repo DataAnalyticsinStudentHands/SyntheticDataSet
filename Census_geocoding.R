@@ -49,7 +49,7 @@ library(purrr)
 
 path <- paste0(houstondatadir,"2022/HPD_crime")
 
-
+#looks like I need to do each, since they have slight differences between files
 # in one pipeline:
 full_crime_data  <- path %>% 
   
