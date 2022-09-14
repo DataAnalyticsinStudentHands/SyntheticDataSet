@@ -7,7 +7,7 @@ library(stringr)
 
 #this depends on where your census dir is, but _tract_500k.shp and _faces and _bg, etc. are all downloaded from census, by year: 
 #https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html (I got these on 7/10/21 - 2020 was most recent; got 2021 on 7/18/2022)
-geo_vintage <- "2021"
+geo_vintage <- "2019"
 censustracts <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_tract_500k/cb_", geo_vintage, "_", state, "_tract_500k.shp"))
 tractsDT <- as.data.table(censustracts)
 #tractsDT[,("centroids"):=st_centroid(geometry)] #get a warning, because it's not flat space, but should be close enough for labels
@@ -51,14 +51,16 @@ unsdDT <- as.data.table(censusunsd)
 censusvtd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_vtd_500k/cb_", geo_vintage, "_", state, "_vtd_500k.shp"))
 vtdDT <- as.data.table(censusvtd)
 
-#zip codes, or zctas, most recent was 2018, as of 7/102021
+#zip codes, or zctas, most recent was 2020, as of 9/10/2022
 #https://www.census.gov/programs-surveys/geography/guidance/geo-areas/zctas.html
 #it's the national file
-zip_vintage <- "2018"
-censuszctas <- st_read(paste0(censusdir, zip_vintage, "/geo_census/cb_", zip_vintage, "_us_zcta510_500k/cb_", zip_vintage, "_us_zcta510_500k.shp"))
+zip_vintage <- "2020"
+#censuszctas <- st_read(paste0(censusdir, zip_vintage, "/geo_census/cb_", zip_vintage, "_us_zcta510_500k/cb_", zip_vintage, "_us_zcta510_500k.shp"))
+censuszctas <- st_read(paste0(censusdir, zip_vintage, "/geo_census/cb_", zip_vintage, "_us_zcta520_500k/cb_", zip_vintage, "_us_zcta520_500k.shp"))
+
 zctasDT <- as.data.table(censuszctas)
 tx_boundary <- st_union(tractsDT$geometry)
-tx_zctas <- zctasDT[st_within(geometry,tx_boundary) %>% lengths > 0,]
+#tx_zctas <- zctasDT[st_within(geometry,tx_boundary) %>% lengths > 0,]
 
 #congressional districts
 censuscd116 <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us", "_cd116_500k/cb_", geo_vintage, "_us", "_cd116_500k.shp"))
@@ -440,6 +442,9 @@ HISD_HS <- st_transform(HISD_HS,crs = st_crs(coords))
 st_write(HISD_HS,"~/Downloads/HISD_HS.geojson",driver = "GeoJSON")
 
 #for the vaccine stuff
+#City of Houston Vaccine info
+CoH_zip_vaccines <- as.data.table(read.csv2(file = paste0(houstondatadir,"2022/CoHvaccines_09072022.xlsx")))
+CoH_priority_zips <- c("77072","77099")
 
 HarrisTracts <- tractsDT[COUNTYFP=="201"]  #[str_starts(GEOID,"48201")]
 #or
