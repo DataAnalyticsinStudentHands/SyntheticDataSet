@@ -443,8 +443,28 @@ st_write(HISD_HS,"~/Downloads/HISD_HS.geojson",driver = "GeoJSON")
 
 #for the vaccine stuff
 #City of Houston Vaccine info
-CoH_zip_vaccines <- as.data.table(read.csv2(file = paste0(houstondatadir,"2022/CoHvaccines_09072022.xlsx")))
-CoH_priority_zips <- c("77072","77099")
+CoH_zip_vaccines <- as.data.table(readxl::read_xlsx(path = paste0(houstondatadir,"2022/CoHvaccines_09072022.xlsx"),sheet = "ZipWeekly"))
+#make it do a runnning total and then time step...?
+CoH_priority_zips <- as.data.table(readxl::read_xlsx(path = paste0(houstondatadir,"2022/CoHvaccines_09072022.xlsx"),sheet = "ZipCodeVaccineTier"))
+Houston_vaccines_zip <- CoH_priority_zips[CoH_zip_vaccines,on=.(`ZIP Code`)]
+Houston_vaccines_zip$ZIP <- as.character(Houston_vaccines_zip$`ZIP Code`)
+Houston_vaccines_zip$Week <- as.POSIXct(Houston_vaccines_zip$`Start of Week`)
+
+setDT(Houston_vaccines_zip)[,("cum_sum_full_vax"):=
+              cumsum(`Fully Vaccinated_104`),
+                by=.(ZIP)]
+setDT(Houston_vaccines_zip)[,("sum_full_vax"):=
+                              sum(`Fully Vaccinated_104`),
+                            by=.(ZIP)]
+Houston_zips <- zctasDT[ZCTA5CE20 %in% unique(Houston_vaccines_zip[,ZIP])]
+Houston_zips$ZIP <- Houston_zips$ZCTA5CE20
+Houston_vax_geo <- Houston_zips[Houston_vaccines_zip,on=.(ZIP)]
+#for full map, want to do it by percentage of eligible pop
+Houston_vax_geo_9_18 <- st_as_sf(Houston_vax_geo[!is.na(ZIP),
+                                                 c("Week","ZIP","cum_sum_full_vax",
+                "Vaccine Tier","geometry")],sf_column_name = "geometry")
+st_write(Houston_vax_geo_9_18,"~/Downloads/HoustonVax_9_18.geojson",driver="GeoJSON")
+
 
 HarrisTracts <- tractsDT[COUNTYFP=="201"]  #[str_starts(GEOID,"48201")]
 #or
