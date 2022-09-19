@@ -147,7 +147,7 @@ tracts_demog <- tracts_demog[total_hh_occupied, on="GEOID"]
 renters <- own_rent_hh[name=="B25011_026E",4:5]
 setnames(renters,"households","renters")
 tracts_demog <- tracts_demog[renters, on="GEOID"]
-tracts_demog[,("renter_pct"):=as.integer((as.numeric(renters*100))/as.numeric(households))]
+tracts_demog[,("renter_pct"):=as.integer((as.numeric(renters)*100)/as.numeric(households))]
 tracts_demog[,("owner_pct"):=as.integer(((as.numeric(households)*100)-as.numeric(renters)*100)/as.numeric(households))]
 married_couple_owners <- own_rent_hh[name=="B25011_004E",4:5]
 setnames(married_couple_owners,"households","married_owners")
@@ -410,8 +410,8 @@ tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
 
-st_write(tracts_demog,"~/Downloads/tracts_demog_polygons.geojson",driver = "GeoJSON")
-write_rds(tracts_demog,"~/Downloads/tracts_demog.RDS")
+st_write(tracts_demog,"~/Downloads/tracts_demog_polygons_9_19_22.geojson",driver = "GeoJSON")
+write_rds(tracts_demog,"~/Downloads/tracts_demog_9_19_22.RDS")
 rank_demogs <- tracts_demog[""]
 
 tracts_demog_pts <- tracts_demog
