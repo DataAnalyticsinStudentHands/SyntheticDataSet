@@ -1,3 +1,29 @@
+library(ggplot2)
+library(ggalluvial)
+
+#for Monique/ S/LI Disproportionality
+S_LI_disprop <- data.table(
+  TX_student=as.character(1:5372806)
+)
+S_LI_disprop[,("black_pop_TX"):=681745]
+S_LI_disprop[,("S_LI_tot_pop_TX"):=190804]
+S_LI_disprop[,("S_LI_black_pop_TX"):=29084]
+ggplot(S_LI_disprop,
+       aes(x=role,stratum=role,alluvium=group_social,
+           axis1 = role, axis2 = group_social, axis3 = group_chronic, axis4 = group_children, axis5 = group_seniors)) + 
+  geom_alluvium(aes(fill = UserLanguage),
+                width = 0, knot.pos = 0, reverse = TRUE) +
+  #guides(fill = FALSE) +  
+  geom_stratum(width = 1/6, alpha = .5, reverse = TRUE) +  #na.rm=TRUE includes the na as gray
+  geom_text(stat = "stratum", aes(label=after_stat(stratum)),color="black") +
+  scale_x_discrete(expand = c(.1, 0)) +
+  #scale_x_continuous(breaks = 1:5, labels = c("role", "social", "chronic", "kids", "seniors")) +
+  #coord_flip() +
+  ggtitle("CHW-frontline Survey - Respondent Role in Work and Community Served")
+#this plot showed us that everyone who was not a CHW didn't list a community they worked with
+
+
+
 #for CHW-frontline survey
 CHW_survey <- read.csv2("~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/CHW-Frontline_Survey_ Data_combined.csv",header = TRUE, sep = ",")
 CHW_survey_dt <- as.data.table(CHW_survey)
