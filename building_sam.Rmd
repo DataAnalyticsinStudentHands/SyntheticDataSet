@@ -15,6 +15,7 @@ date: "`r Sys.Date()`"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Preliminaries -- not using much, if any, of this - too much like a continental philosophy paper
+##there's a rewrite called "SAM notes" as a word doc
 We are not saying that there's a proper way to speak - that is, in fact, what we are trying to contest. The idea that names and saying true things about names is the end of the story, and that there are true and false ways of talking, misunderstands the force of language. "I live in fear of the one true God" is not the same as "I am afraid of this God of which you speak". The idea that context makes the difference; the idea that comparing the two sentences to even understand in what sense they are saying the same thing is even troubled - yet, there are ways to begin that comparison....
 Take away from Touching Difficulty - that the world recedes and language moves forward - formalism in math is made possible by the way the world recedes. In our fundamental presence in the world, there is no positive moment of intuition, which proves or disproves a hypothesis. There is a restriction of ways in which things can appear "as" something, a set of symmetries that allow things a place in our world, and then the commitments we undertake to stay true to those ways of talking. In physics, think of groups and symmetries; in ontology, think of ethics preceding representation. 
 
