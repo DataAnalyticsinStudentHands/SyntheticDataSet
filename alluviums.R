@@ -5,13 +5,17 @@ library(ggalluvial)
 S_LI_disprop <- data.table(
   TX_student=as.character(1:5372806)
 )
-S_LI_disprop[,("black_pop_TX"):=681745]
-S_LI_disprop[,("S_LI_tot_pop_TX"):=190804]
-S_LI_disprop[,("S_LI_black_pop_TX"):=29084]
+S_LI_disprop[,("race"):=if_else(as.numeric(TX_student)<681746,"black","white")]
+S_LI_disprop[race=="white",("race"):=if_else(as.numeric(TX_student)<(681746+254197),"asian","white")]
+S_LI_disprop[race=="white",("race"):=if_else(as.numeric(TX_student)<(681746+254197+1424600),"white","other")]
+S_LI_disprop[,("S_LI"):=if_else(as.numeric(TX_student)<29085,"SL_I","not_SL_I")]
+S_LI_disprop[as.numeric(TX_student)>681745,("S_LI"):=sample(
+                                c(rep(c("SL_I"),(190804-29084)),rep(c("not_SL_I"),(5372806-190804-681745+29084))))]
+
 ggplot(S_LI_disprop,
-       aes(x=role,stratum=role,alluvium=group_social,
-           axis1 = role, axis2 = group_social, axis3 = group_chronic, axis4 = group_children, axis5 = group_seniors)) + 
-  geom_alluvium(aes(fill = UserLanguage),
+       aes(x=race,stratum=race,alluvium=S_LI,
+           axis1 = race, axis2 = S_LI)) + 
+  geom_alluvium(aes(fill = S_LI),
                 width = 0, knot.pos = 0, reverse = TRUE) +
   #guides(fill = FALSE) +  
   geom_stratum(width = 1/6, alpha = .5, reverse = TRUE) +  #na.rm=TRUE includes the na as gray
@@ -19,7 +23,7 @@ ggplot(S_LI_disprop,
   scale_x_discrete(expand = c(.1, 0)) +
   #scale_x_continuous(breaks = 1:5, labels = c("role", "social", "chronic", "kids", "seniors")) +
   #coord_flip() +
-  ggtitle("CHW-frontline Survey - Respondent Role in Work and Community Served")
+  ggtitle("S_LI in Texas")
 #this plot showed us that everyone who was not a CHW didn't list a community they worked with
 
 
