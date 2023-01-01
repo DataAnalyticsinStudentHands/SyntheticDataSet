@@ -441,7 +441,7 @@ coords <- st_as_sf(Tx_tract_demog8)
 HISD_HS <- st_transform(HISD_HS,crs = st_crs(coords))
 st_write(HISD_HS,"~/Downloads/HISD_HS.geojson",driver = "GeoJSON")
 
-#for the vaccine stuff
+#for the vaccine stuff - why isn't the OneDrive the same at home and at school????
 #City of Houston Vaccine info
 CoH_zip_vaccines <- as.data.table(readxl::read_xlsx(path = paste0(houstondatadir,"2022/CoHvaccines_09072022.xlsx"),sheet = "ZipWeekly"))
 #make it do a runnning total and then time step...?
@@ -449,6 +449,8 @@ CoH_priority_zips <- as.data.table(readxl::read_xlsx(path = paste0(houstondatadi
 Houston_vaccines_zip <- CoH_priority_zips[CoH_zip_vaccines,on=.(`ZIP Code`)]
 Houston_vaccines_zip$ZIP <- as.character(Houston_vaccines_zip$`ZIP Code`)
 Houston_vaccines_zip$Week <- as.POSIXct(Houston_vaccines_zip$`Start of Week`)
+
+Harris_tracts_vax_9_2022 <- read.csv(paste0(houstondatadir,"2022/vax_by_tract_9_2022.csv"))
 
 setDT(Houston_vaccines_zip)[,("cum_sum_full_vax"):=
               cumsum(`Fully Vaccinated_104`),

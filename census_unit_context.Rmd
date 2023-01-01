@@ -1,0 +1,123 @@
+---
+title: "Census - Unit and Context"
+author: "Dan Price"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+geometry: margin=1in
+fontsize: 11pt
+documentclass: article
+header-includes: 
+  - \usepackage{tikz}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include=TRUE)
+```
+## Context and Unit
+
+# Using the Census to Represent Society
+In the context of an exploration of how to better represent the strengths of both individuals and communities when representing the social determinants of health, we start by looking at how the data is available from the census. We look first at the data that was first published after the 2020 decennial census, which is the closest to the raw counts you can get publicly. These are published as quickly as possible, in order to help with the redistricting process in each state, and the first table we look at has raw counts of individual people in the smallest geographic areas they make public, the census block group. (https://www.census.gov/programs-surveys/geography/about/glossary.html#par_textimage_4). The block groups are subdivisions within census tracts and  defined by a process within the census bureau for use with the new decennial census to allow users to aggregate within larger boundaries, since tracts never cross state or county lines. Data that is reported by the census comes at various levels of granularity, with the block group often being the smallest unit, but also including data reported by areas that do not match the tract boundaries, such as zip code, city, or metro area. 
+
+```{r prelims, include=FALSE}
+library(knitr)
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(data.table)
+library(sf)
+maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+#maindir = "~/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
+housingdir = paste0(maindir,"HCAD/")
+houstondatadir = paste0(maindir,"HoustonCityData/") 
+censusdir = paste0(maindir,"Census/") 
+vintage = "2020"
+state = 48 #48 Texas; 22 Louisiana
+county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
+tract = "*"
+censuskey <- readLines(paste0(censusdir, "2017", "/key"))
+#you have to get your own key - it's free, but private - put it wherever is convenient but not accessible to the public.
+#https://api.census.gov/data/key_signup.html
+#Notes on where I got the raw files
+#census geometry files for 2010 (and earlier) lines were taken on 12/27/2019 from: https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.2017.html 
+#and https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html under the year (they changed the web interface), selecting the block group for Texas - but should work on other states, too. Put the unzipped files into the folder that matches the censusdir you set up.
+geo_vintage <- "2021" #should be able to match vintage, depending on date.
+source('BaseScripts/Census_Data.R') #this is just the helpers for accessing the U.S. Census api 
+```
+
+```{r get geometry files from census, include=FALSE}
+#do on blocks, then just make tract id from geoid for blocks
+censusblocks <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_bg_500k/cb_", geo_vintage, "_", state, "_bg_500k.shp"))
+censusblocks <- as.data.table(st_transform(censusblocks, crs = 3857)) #for eventual merge with HCAD
+#Counties around Houston: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller - here we get only Harris.
+censusblocks_8counties <- censusblocks[COUNTYFP%in%c("201","157","167","039","071","291","339","473"),]
+censusblocks <- censusblocks[COUNTYFP=="201",]
+#some quick things for convenience - finding the centroid of each file.
+censusblocks$geoid_centroid <- st_centroid(censusblocks$geometry)
+```
+
+```{css, echo=FALSE}
+table {
+  margin: auto;
+  border-top: 1px solid #666;
+  border-bottom: 1px solid #666;
+}
+table thead th { border-bottom: 1px solid #ddd; }
+th, td { padding: 5px; }
+thead, tfoot, tr:nth-child(even) { background: #eee; }
+.striped tr:nth-child(even) { background: #eee; }
+```
+
+```{r get decennial census data from census}
+#for each county, can have sex_age by blck group - and thus pop by block group, too
+block_race_data_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                       groupname = "P1",county_num = county,
+                       block="block_group",api_type="dec/pl",path_suff="est.csv")
+kable(block_race_data_from_census[10:18,1:5],caption = "Block group census data",table.attr = "class=\"striped\"", format = "html")
+```
+
+
+```{r look at only labels}
+block_race_data_DT <- as.data.table(block_race_data_from_census)
+block_race_data_DT <- block_race_data_DT[order(label)]
+kable(block_race_data_DT[1:20,1:2],caption = "Block group census data - Name and Label",table.attr = "class=\"striped\"", format = "html")
+```
+
+There are a number of things to talk about in terms of how the census is collected, and how they've decided on their various categories for race and ethnicity - both originally and in the development over time. For right now, I just want to point out how the census thinks about representing individuals in their geographical context. You can think of it as a pyramid, where each higher level of aggregation simply sums over the parts, or as a map where each larger section completely contains the smaller areas without losing the integrity of the boundary (i.e., it still adds up properly because it covers the same area and/or the same number of people). In this table, we only showed the name and the label - the concept (in this case, race) is meant to tie the tables to other tables and isn't relevant to the analyses within the table. The label, in some sense, is like the type for the number given in the column, each of which is a census block group. Just as the geoid encodes the embedding of the block group - i.e., 48 is the state, 201 is the county, the next six numbers are the tract and the final number is the block group - the label encodes the type of thing the number represents - it is a total number, with the population of either one or more races, with a designation made by the census for different racial categories.
+
+Because we have both the geographic boundaries and the population numbers by census block group, we can combine them and look at the values.
+
+```{r create geography file with basic population numbers}
+block_race <- block_race_data_DT[str_detect(name,"P1_00"),] %>%
+  pivot_longer(4:ncol(block_race_data_DT),names_to = "tract", values_to = "number") %>%
+  mutate(label = str_remove_all(label,"!!Total:!!"),
+         label = str_remove_all(label,"Population of one race:!!"),
+         label = str_remove_all(label,":"),
+         label = str_remove_all(label,"!!"),
+         GEOID = str_remove_all(tract, "_")) %>%
+  select(GEOID,label,number) %>%
+  pivot_wider(names_from = label,values_from = number)
+ 
+censusblocks <- censusblocks %>% 
+  left_join(block_race, by = "GEOID")
+```
+
+Can try to get land area (or water area) for each tract vs. population for density?
+
+```{r plot block group population size across Harris}
+library(ggplot2)
+ggplot(censusblocks,
+       aes(x = COUNTYFP, y = num_sams))
+```
+
+
+What we notice in the tables is that the subpopulations add up to the higher levels. When the groups don't match, we can project down to a lower unit (i.e., the individual at a certain time) and then try to re-assign individuals to positions within the spatial distribution. You can do that with the concept and label columns, as one tries to aggregate across the tables available from the census, but if the concepts don't match, it's like trying to line up cities with the tract data - sometimes the boundaries don't match.
+
+But more importantly, there's what the mathematicians call an adjunction at work between the production and the construction - placing something in an order and creating a space within which that production can happen - where the movement from the top down in the order of the geography is, at every intersection, embedded in the higher level, and where the social determinants are not embedded in the same way. The difference in the embeddings produces effects that allow us to understand the distributions at other levels and to find the characteristic functions that relate the various elements and layers. We need to take this in a couple of steps, though.
+
+
+
+First, what is a context in this case? It's the frame that makes it possible to coherently make sense of the transformations between levels. When we say that we understand a point in terms of the surrounding points, we're transforming the context to a single point, but that's not the only example. When we say that the population should be understood in terms of population density by area, or by percentage of the total population, or by percentage of the population that is white, etc., we're constraining one layer of explanation in a way that makes the individual appear as meaningful because of that constraint.
+
+How does that teach us about strengths? Strengths are overcoming constraints / barriers? Power is imposing constraints, or creating a situation where a response has to happen within a certain framework. (this is to be understood algebraically and not arithmetically). The framing creates an order - a poset or a toset is easy to see, but more broadly, any way that things can be ordered - well-ordering theorem and the axiom of choice.
