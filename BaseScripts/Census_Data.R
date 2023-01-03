@@ -19,6 +19,7 @@ library(dplyr) #may not be using; need to check
 #' @param county_num the census code for the county - only needed if there are blockgroups
 #' @param api_type the census api called from - https://www.census.gov/data/developers/data-sets.html
 #' @path_suff the suffix for the variable file and whether estimate or error -   "dec.csv" | "est.csv" | "err.csv"
+#' @block for region - either block_group or tract
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
 #tools

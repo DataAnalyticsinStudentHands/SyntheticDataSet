@@ -69,6 +69,8 @@ thead, tfoot, tr:nth-child(even) { background: #eee; }
 .striped tr:nth-child(even) { background: #eee; }
 ```
 
+For the decennial 2020: https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/summary-file/2020Census_PL94_171Redistricting_StatesTechDoc_English.pdf
+
 ```{r get decennial census data from census}
 #for each county, can have sex_age by blck group - and thus pop by block group, too
 block_race_data_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -116,8 +118,22 @@ What we notice in the tables is that the subpopulations add up to the higher lev
 
 But more importantly, there's what the mathematicians call an adjunction at work between the production and the construction - placing something in an order and creating a space within which that production can happen - where the movement from the top down in the order of the geography is, at every intersection, embedded in the higher level, and where the social determinants are not embedded in the same way. The difference in the embeddings produces effects that allow us to understand the distributions at other levels and to find the characteristic functions that relate the various elements and layers. We need to take this in a couple of steps, though.
 
-
+```{r make geojson map 2020 census}
+```
 
 First, what is a context in this case? It's the frame that makes it possible to coherently make sense of the transformations between levels. When we say that we understand a point in terms of the surrounding points, we're transforming the context to a single point, but that's not the only example. When we say that the population should be understood in terms of population density by area, or by percentage of the total population, or by percentage of the population that is white, etc., we're constraining one layer of explanation in a way that makes the individual appear as meaningful because of that constraint.
 
 How does that teach us about strengths? Strengths are overcoming constraints / barriers? Power is imposing constraints, or creating a situation where a response has to happen within a certain framework. (this is to be understood algebraically and not arithmetically). The framing creates an order - a poset or a toset is easy to see, but more broadly, any way that things can be ordered - well-ordering theorem and the axiom of choice.
+
+What's it mean for "number" to be the context? A set of rules for combining, etc - i.e., a category. But then one should think about how categories are added, and not just things that have already been translated into number. The symmetric monoidal category as the unit - initial object, etc. Note on why that breaks with set theory?
+
+```{r test for ACS vs Decennial 2020}
+bg_sex_by_age_race_data_from_acs_20 <- 
+          censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                 groupname = "B01001",county_num = "201",
+                                 block="block_group",api_type="acs/acs5",path_suff="est.csv")
+tr_sex_by_age_race_data_from_acs_20 <- 
+          censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                 groupname = "B01001",county_num = "201",
+                                 block="tract",api_type="acs/acs5",path_suff="est.csv")
+```
