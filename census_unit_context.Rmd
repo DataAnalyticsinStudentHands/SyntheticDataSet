@@ -127,6 +127,8 @@ How does that teach us about strengths? Strengths are overcoming constraints / b
 
 What's it mean for "number" to be the context? A set of rules for combining, etc - i.e., a category. But then one should think about how categories are added, and not just things that have already been translated into number. The symmetric monoidal category as the unit - initial object, etc. Note on why that breaks with set theory?
 
+Still want to move toward the idea that functor is the right way to see the mapping between individuals as capacity grows, and that adjunction is the right way to understand what the right space from which good development emerges.
+
 ```{r test for ACS vs Decennial 2020}
 bg_sex_by_age_race_data_from_acs_20 <- 
           censusData_byGroupName(censusdir, vintage, state, censuskey, 
