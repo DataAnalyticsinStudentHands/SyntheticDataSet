@@ -108,9 +108,7 @@ censusblocks <- censusblocks %>%
 Can try to get land area (or water area) for each tract vs. population for density?
 
 ```{r plot block group population size across Harris}
-library(ggplot2)
-ggplot(censusblocks,
-       aes(x = COUNTYFP, y = num_sams))
+
 ```
 
 
