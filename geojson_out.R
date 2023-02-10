@@ -7,10 +7,12 @@ library(stringr)
 
 #this depends on where your census dir is, but _tract_500k.shp and _faces and _bg, etc. are all downloaded from census, by year: 
 #https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html (I got these on 7/10/21 - 2020 was most recent; got 2021 on 7/18/2022)
-geo_vintage <- "2019"
+geo_vintage <- "2021"
 censustracts <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_tract_500k/cb_", geo_vintage, "_", state, "_tract_500k.shp"))
 tractsDT <- as.data.table(censustracts)
-#tractsDT[,("centroids"):=st_centroid(geometry)] #get a warning, because it's not flat space, but should be close enough for labels
+tractsDT[,("centroid"):=st_centroid(geometry)] 
+tractsDT[,("longitude"):=unlist(map(centroid,1))]
+tractsDT[,("latitude"):=unlist(map(centroid,2))]
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
 FIPS_vector <- c("201","157","167","039","071","291","339","473")
@@ -23,9 +25,22 @@ blocks_8county <- blocksDT[COUNTYFP%in%FIPS_vector]
 censusplace <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_place_500k/cb_", geo_vintage, "_", state, "_place_500k.shp"))
 placeDT <- as.data.table(censusplace) #just cities
 
+#assign to tractsDT
+placeDT <- st_as_sf(placeDT)
+tracts4places <- st_within(tractsDT$centroid, placeDT)
+#unlist into vector
+tracts4placesunlisted <- rapply(tracts4places,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+tracts4placesunlisted <- unlist(tracts4placesunlisted)
+tractsDT$placename=placeDT$NAME[tracts4placesunlisted]
+
 #metro stat areas
 census_cbsa <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us_cbsa_500k/cb_", geo_vintage, "_us_cbsa_500k.shp"))
 us_cbsaDT <- as.data.table(census_cbsa)
+us_cbsaDT <- st_as_sf(us_cbsaDT)
+tracts4cbsa <- st_within(tractsDT$centroid, us_cbsaDT)
+tracts4cbsaunlisted <- rapply(tracts4cbsa,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+tracts4cbsaunlisted <- unlist(tracts4cbsaunlisted)
+tractsDT$cbsa=us_cbsaDT$NAME[tracts4cbsaunlisted]
 
 #TX state representatives
 censussldl <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_sldl_500k/cb_", geo_vintage, "_", state, "_sldl_500k.shp"))
@@ -46,10 +61,20 @@ scsdDT <- as.data.table(censusscsd)
 #unified school districts - 1019 districts
 censusunsd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_unsd_500k/cb_", geo_vintage, "_", state, "_unsd_500k.shp"))
 unsdDT <- as.data.table(censusunsd)
+unsdDT <- st_as_sf(unsdDT)
+tracts4unsd <- st_within(tractsDT$centroid, unsdDT)
+tracts4unsdunlisted <- rapply(tracts4unsd,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+tracts4unsdunlisted <- unlist(tracts4unsdunlisted)
+tractsDT$unsd=unsdDT$NAME[tracts4unsdunlisted]
 
-#2020 voting districts
+#2020 voting districts - have to get right date
 censusvtd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_vtd_500k/cb_", geo_vintage, "_", state, "_vtd_500k.shp"))
 vtdDT <- as.data.table(censusvtd)
+vtdDT <- st_as_sf(vtdDT)
+tracts4vtd <- st_within(tractsDT$centroid, vtdDT)
+tracts4vtdunlisted <- rapply(tracts4vtd,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+tracts4vtdunlisted <- unlist(tracts4vtdunlisted)
+tractsDT$vtd=vtdDT$NAME20[tracts4vtdunlisted]
 
 #zip codes, or zctas, most recent was 2020, as of 9/10/2022
 #https://www.census.gov/programs-surveys/geography/guidance/geo-areas/zctas.html
@@ -57,31 +82,38 @@ vtdDT <- as.data.table(censusvtd)
 zip_vintage <- "2020"
 #censuszctas <- st_read(paste0(censusdir, zip_vintage, "/geo_census/cb_", zip_vintage, "_us_zcta510_500k/cb_", zip_vintage, "_us_zcta510_500k.shp"))
 censuszctas <- st_read(paste0(censusdir, zip_vintage, "/geo_census/cb_", zip_vintage, "_us_zcta520_500k/cb_", zip_vintage, "_us_zcta520_500k.shp"))
-
 zctasDT <- as.data.table(censuszctas)
-tx_boundary <- st_union(tractsDT$geometry)
-#tx_zctas <- zctasDT[st_within(geometry,tx_boundary) %>% lengths > 0,]
+zctasDT <- st_as_sf(zctasDT)
+tracts4zctas <- st_within(tractsDT$centroid, zctasDT)
+tracts4zctasunlisted <- rapply(tracts4zctas,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+tracts4zctasunlisted <- unlist(tracts4zctasunlisted)
+tractsDT$zip=zctasDT$ZCTA5CE20[tracts4zctasunlisted]
 
 #congressional districts
 censuscd116 <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us", "_cd116_500k/cb_", geo_vintage, "_us", "_cd116_500k.shp"))
 cd116DT <- as.data.table(censuscd116)
-tx_cd116 <- cd116DT[st_within(geometry,tx_boundary) %>% lengths > 0,]
+texas_cd116DT <- cd116DT[STATEFP=="48"]
+texas_cd116DT <- st_as_sf(texas_cd116DT)
+tracts4cd116 <- st_within(tractsDT$centroid, texas_cd116DT)
+tracts4cd116unlisted <- rapply(tracts4cd116,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+tracts4cd116unlisted <- unlist(tracts4cd116unlisted)
+tractsDT$Congress_district=texas_cd116DT$NAMELSAD[tracts4cd116unlisted]
 
+vintage <- "2021"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
-blck_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+tract_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B01001",county_num = county,
-                       block="block",api_type="acs/acs5",path_suff="est.csv")
+                       block="tract",api_type="acs/acs5",path_suff="est.csv")
 
 #options(digits = 2, scipen = 999) #for display on all of them
 
-sex_by_age_race <- blck_sex_by_age_race_data_from_census_tx %>%
+sex_by_age_race <- tract_sex_by_age_race_data_from_census_tx %>%
   mutate(label = str_remove_all(label,"Estimate!!Total:!!"),
          race = substr(name,7,7)) %>%
-  pivot_longer(4:ncol(blck_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")%>%
+  pivot_longer(4:ncol(tract_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")%>%
   separate(label, c("sex","age_range"), sep = ":!!", remove = F, convert = FALSE) 
 sex_age_race_DT <- as.data.table(sex_by_age_race,key="GEOID")
 pop_totals <- sex_age_race_DT[is.na(age_range)&race=="_"&sex=="Estimate!!Total:"]
-#should be on blocks!!!
 tracts_demog <- tractsDT[pop_totals[,7:8],on="GEOID"]
 setnames(tracts_demog,"number_sams","total_pop")
 pop_hispanic <- sex_age_race_DT[is.na(age_range)&race=="I"&sex=="Estimate!!Total:"]
@@ -410,15 +442,12 @@ tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
 
-st_write(tracts_demog,"~/Downloads/tracts_demog_polygons_9_19_22.geojson",driver = "GeoJSON")
-write_rds(tracts_demog,"~/Downloads/tracts_demog_9_19_22.RDS")
+
+st_write(tracts_demog,"~/Downloads/TX_tracts_demog_2019_on_2_9_23.csv",driver = "CSV",factorsAsCharacter=FALSE)
+st_write(tracts_demog,"~/Downloads/TX_tracts_demog_2019_on_2_9_23_vax.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_2_9_23"))
 rank_demogs <- tracts_demog[""]
 
-tracts_demog_pts <- tracts_demog
-tracts_demog_pts[,("centroids"):=st_centroid(geometry)]
-tracts_demog_pts[,("longitude"):=unlist(map(centroids,1))]
-tracts_demog_pts[,("latitude"):=unlist(map(centroids,2))]
-st_write(tracts_demog_pts,"~/Downloads/tracts_demog_pts.geojson",driver = "GeoJSON")
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
 FIPS_vector <- c("201","157","167","039","071","291","339","473")
@@ -441,23 +470,37 @@ coords <- st_as_sf(Tx_tract_demog8)
 HISD_HS <- st_transform(HISD_HS,crs = st_crs(coords))
 st_write(HISD_HS,"~/Downloads/HISD_HS.geojson",driver = "GeoJSON")
 
-#for the vaccine stuff - why isn't the OneDrive the same at home and at school????
+
+#for the vaccine stuff 
+
+Harris_tracts_vax_9_2022 <- read.csv(paste0(houstondatadir,"2022/vax_by_tract_9_2022.csv"))
+Harris_tracts_vax_9_2022 <- as.data.table(Harris_tracts_vax_9_2022)
+Harris_tracts_vax_9_2022[,("total_covid_vax_9_22"):=sum(Number.of.People.Vaccinated),by=GEOID]
+Harris_tracts_vax_9_2022[,("GEOID"):=as.character(GEOID)]
+Harris_tracts_clean <- unique(Harris_tracts_vax_9_2022,by="GEOID")[,c(1,8)]
+tracts_demog[,("total_covid_vax_9_22"):=Harris_tracts_clean[.SD,
+                                                            total_covid_vax_9_22,on=.(GEOID)]]
+
+
 #City of Houston Vaccine info
 CoH_zip_vaccines <- as.data.table(readxl::read_xlsx(path = paste0(houstondatadir,"2022/CoHvaccines_09072022.xlsx"),sheet = "ZipWeekly"))
 #make it do a runnning total and then time step...?
 CoH_priority_zips <- as.data.table(readxl::read_xlsx(path = paste0(houstondatadir,"2022/CoHvaccines_09072022.xlsx"),sheet = "ZipCodeVaccineTier"))
 Houston_vaccines_zip <- CoH_priority_zips[CoH_zip_vaccines,on=.(`ZIP Code`)]
-Houston_vaccines_zip$ZIP <- as.character(Houston_vaccines_zip$`ZIP Code`)
+Houston_vaccines_zip$zip <- as.character(Houston_vaccines_zip$`ZIP Code`)
 Houston_vaccines_zip$Week <- as.POSIXct(Houston_vaccines_zip$`Start of Week`)
 
-Harris_tracts_vax_9_2022 <- read.csv(paste0(houstondatadir,"2022/vax_by_tract_9_2022.csv"))
 
 setDT(Houston_vaccines_zip)[,("cum_sum_full_vax"):=
               cumsum(`Fully Vaccinated_104`),
-                by=.(ZIP)]
+                by=.(zip)]
 setDT(Houston_vaccines_zip)[,("sum_full_vax"):=
                               sum(`Fully Vaccinated_104`),
-                            by=.(ZIP)]
+                            by=.(zip)]
+
+tracts_demog[,("zip_full_covid_vax"):=Houston_vaccines_zip[.SD,sum_full_vax,on=.(zip)]]
+
+
 Houston_zips <- zctasDT[ZCTA5CE20 %in% unique(Houston_vaccines_zip[,ZIP])]
 Houston_zips$ZIP <- Houston_zips$ZCTA5CE20
 Houston_vax_geo <- Houston_zips[Houston_vaccines_zip,on=.(ZIP)]
