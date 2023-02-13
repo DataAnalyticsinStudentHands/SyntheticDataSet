@@ -99,7 +99,7 @@ tracts4cd116unlisted <- rapply(tracts4cd116,function(x) ifelse(length(x)==0,9999
 tracts4cd116unlisted <- unlist(tracts4cd116unlisted)
 tractsDT$Congress_district=texas_cd116DT$NAMELSAD[tracts4cd116unlisted]
 
-vintage <- "2021"
+vintage <- "2019"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
 tract_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B01001",county_num = county,
@@ -144,7 +144,7 @@ tracts_demog[,("10_14_pct"):=as.integer(as.numeric(pop_10_14*100)/as.numeric(tot
 #have to have sourced Census_Data.R and get censuskey from expand_from_census
 gini_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B19083",county_num = county,
-                       block="block",api_type="acs/acs5",path_suff="est.csv")
+                       block="tract",api_type="acs/acs5",path_suff="est.csv")
 gini_data <- gini_from_census %>%
   pivot_longer(4:ncol(gini_from_census),names_to = "GEOID", values_to = "gini_index")
 gini_DT <- as.data.table(gini_data)
@@ -154,7 +154,7 @@ tracts_demog[,("gini_index"):=if_else(as.numeric(gini_index)<0,0,as.numeric(gini
 
 place_born_med_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B06011",county_num = county,
-                       block="block",api_type="acs/acs5",path_suff="est.csv")
+                       block="tract",api_type="acs/acs5",path_suff="est.csv")
 med_income <- place_born_med_income %>%
   pivot_longer(4:ncol(place_born_med_income),names_to = "GEOID", values_to = "median_income")
 median_income <- as.data.table(med_income)
@@ -167,9 +167,33 @@ setnames(tracts_demog,"median_income","median_income_fb")
 tracts_demog[,("median_income_total"):=if_else(median_income_total=="-666666666","0",median_income_total)]
 tracts_demog[,("median_income_fb"):=if_else(median_income_fb=="-666666666","0",median_income_fb)]
 
+place_born_med_income_err <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                groupname = "B06011",county_num = county,
+                                                block="tract",api_type="acs/acs5",path_suff="err.csv")
+
+family_med_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                groupname = "B19113",county_num = county,
+                                                block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+median_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                            groupname = "B19050",county_num = county,
+                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+aggregate_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                     groupname = "B19049",county_num = county,
+                                                     block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+earnings_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                     groupname = "B19051",county_num = county,
+                                                     block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+dividend_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                     groupname = "B19054",county_num = county,
+                                                     block="tract",api_type="acs/acs5",path_suff="est.csv")
+
 own_rent_hh_type_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B25011",county_num = county,
-                       block="block",api_type="acs/acs5",path_suff="est.csv")
+                       block="tract",api_type="acs/acs5",path_suff="est.csv")
 own_rentDT <- as.data.table(own_rent_hh_type_census)
 own_rent_hh <- own_rentDT %>%
   pivot_longer(4:ncol(own_rentDT),names_to = "GEOID", values_to = "households")
@@ -201,7 +225,7 @@ tracts_demog[,("renter_non_family_shared_pct"):=as.integer((as.numeric(renter_no
 #income B19001
 income_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                              groupname = "B19001",county_num = county,
-                                             block="block",api_type="acs/acs5",path_suff="est.csv")
+                                             block="tract",api_type="acs/acs5",path_suff="est.csv")
 incomeDT <- as.data.table(income_from_census)
 income <- incomeDT %>%
   pivot_longer(4:ncol(incomeDT),names_to = "GEOID", values_to = "income")
@@ -329,7 +353,7 @@ tracts_demog[,("ICEwnhinc"):=((as.numeric(ICEwnhincome_100_125k)+as.numeric(ICEw
 #housing/renter
 vacant_houses_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                groupname = "B25002",county_num = county,
-                                               block="block",api_type="acs/acs5",path_suff="est.csv")
+                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
 vacant_housesDT <- as.data.table(vacant_houses_census)
 vacant_houses_total <- vacant_housesDT[name=="B25002_001E"]
 vacant_houses_total <- vacant_houses_total %>%
@@ -348,7 +372,7 @@ tracts_demog <- tracts_demog[vacancies[,4:7],on="GEOID"]
 #citizenship and nativity B05003
 citizenship_pb <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                          groupname = "B05003",county_num = county,
-                                         block="block",api_type="acs/acs5",path_suff="est.csv")
+                                         block="tract",api_type="acs/acs5",path_suff="est.csv")
 #also has under 18 male / female
 cit_pb_under_18 <- citizenship_pb %>%
   pivot_longer(4:ncol(citizenship_pb),names_to = "GEOID", values_to = "num")
@@ -381,7 +405,7 @@ tracts_demog[,("fb_pct"):=as.integer((as.numeric(over_17_fb)+as.numeric(under_18
 #people per room B25014
 pp_room_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "B25014",county_num = county,
-                         block="block",api_type="acs/acs5",path_suff="est.csv")
+                         block="tract",api_type="acs/acs5",path_suff="est.csv")
 pp_roomDT <- as.data.table(pp_room_census)
 pp_room <- pp_roomDT %>%
   pivot_longer(4:ncol(pp_roomDT),names_to = "GEOID", values_to = "households")
@@ -431,7 +455,7 @@ tracts_demog[,("renter_over_2_pct"):=as.integer((as.numeric(renter_over_2)*100)/
 #transport by tenure B08137
 transport_tenure <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                            groupname = "B08137",county_num = county,
-                                           block="block",api_type="acs/acs5",path_suff="est.csv")
+                                           block="tract",api_type="acs/acs5",path_suff="est.csv")
 pub_transportDT <- as.data.table(transport_tenure)
 pub_transport <- pub_transportDT %>%
   pivot_longer(4:ncol(pub_transportDT),names_to = "GEOID", values_to = "pub_transport_hh")
@@ -443,8 +467,9 @@ tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - some
 
 
 
-st_write(tracts_demog,"~/Downloads/TX_tracts_demog_2019_on_2_9_23.csv",driver = "CSV",factorsAsCharacter=FALSE)
-st_write(tracts_demog,"~/Downloads/TX_tracts_demog_2019_on_2_9_23_vax.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+st_write(tracts_demog,"~/Downloads/TX_tracts_demog_2019_on_2_13_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
+         layer_options = "GEOMETRY=AS_WKT")
+st_write(tracts_demog,"~/Downloads/TX_tracts_demog_2019_on_2_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_2_9_23"))
 rank_demogs <- tracts_demog[""]
 
