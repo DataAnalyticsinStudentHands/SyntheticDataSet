@@ -174,6 +174,13 @@ place_born_med_income_err <- censusData_byGroupName(censusdir, vintage, state, c
 family_med_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                 groupname = "B19113",county_num = county,
                                                 block="tract",api_type="acs/acs5",path_suff="est.csv")
+med_family_income <- family_med_income %>%
+  pivot_longer(4:ncol(family_med_income),names_to = "GEOID", values_to = "median_family_income")
+median_family_income <- as.data.table(med_family_income)
+med_fam_income_total <- median_family_income[name=="B19113_001E"]
+tracts_demog <- tracts_demog[med_fam_income_total[,4:5],on="GEOID"]
+tracts_demog[,("diff_med_family_hh_income"):=as.numeric(median_income_total)-as.numeric(median_family_income)]
+
 
 median_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                             groupname = "B19050",county_num = county,
@@ -466,10 +473,9 @@ tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
 
-
-st_write(tracts_demog,"~/Downloads/TX_tracts_demog_2019_on_2_13_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
+st_write(tracts_demog2,"~/Downloads/TX_tracts_demog_vax_2019_on_2_13_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(tracts_demog,"~/Downloads/TX_tracts_demog_2019_on_2_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+st_write(tracts_demog,"~/Downloads/TX_tracts_demog_vax_2019_on_2_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_2_9_23"))
 rank_demogs <- tracts_demog[""]
 
@@ -503,9 +509,9 @@ Harris_tracts_vax_9_2022 <- as.data.table(Harris_tracts_vax_9_2022)
 Harris_tracts_vax_9_2022[,("total_covid_vax_9_22"):=sum(Number.of.People.Vaccinated),by=GEOID]
 Harris_tracts_vax_9_2022[,("GEOID"):=as.character(GEOID)]
 Harris_tracts_clean <- unique(Harris_tracts_vax_9_2022,by="GEOID")[,c(1,8)]
-tracts_demog[,("total_covid_vax_9_22"):=Harris_tracts_clean[.SD,
-                                                            total_covid_vax_9_22,on=.(GEOID)]]
-
+tracts_demog[,("total_covid_vax_9_22"):=Harris_tracts_clean[.SD,total_covid_vax_9_22,on=.(GEOID)]]
+tracts_demog[,("percent_covid_vax_9_22"):=as.numeric(total_covid_vax_9_22)/as.numeric(total_pop)]
+tracts_demog[,("percent_covid_vax_9_22"):=as.character(percent_covid_vax_9_22)]
 
 #City of Houston Vaccine info
 CoH_zip_vaccines <- as.data.table(readxl::read_xlsx(path = paste0(houstondatadir,"2022/CoHvaccines_09072022.xlsx"),sheet = "ZipWeekly"))
@@ -522,8 +528,8 @@ setDT(Houston_vaccines_zip)[,("cum_sum_full_vax"):=
 setDT(Houston_vaccines_zip)[,("sum_full_vax"):=
                               sum(`Fully Vaccinated_104`),
                             by=.(zip)]
-
-tracts_demog[,("zip_full_covid_vax"):=Houston_vaccines_zip[.SD,sum_full_vax,on=.(zip)]]
+Houston_vaccines_uniq <- unique(Houston_vaccines_zip,by="zip")[,c(6,9)]
+tracts_demog[,("zip_full_covid_vax"):=Houston_vaccines_uniq[.SD,sum_full_vax,on=.(zip)]]
 
 
 Houston_zips <- zctasDT[ZCTA5CE20 %in% unique(Houston_vaccines_zip[,ZIP])]
