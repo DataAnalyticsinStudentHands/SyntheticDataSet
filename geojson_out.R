@@ -170,6 +170,13 @@ tracts_demog[,("median_income_fb"):=if_else(median_income_fb=="-666666666","0",m
 place_born_med_income_err <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                 groupname = "B06011",county_num = county,
                                                 block="tract",api_type="acs/acs5",path_suff="err.csv")
+med_income_err <- place_born_med_income_err %>%
+  pivot_longer(4:ncol(place_born_med_income_err),names_to = "GEOID", values_to = "median_income_err")
+median_income_err <- as.data.table(med_income_err)
+median_income_err_total <- median_income_err[name=="B06011_001M"]
+tracts_demog <- tracts_demog[median_income_err_total[,4:5],on="GEOID"]
+tracts_demog[,("median_income_err"):=as.character(median_income_err)]
+
 
 family_med_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                 groupname = "B19113",county_num = county,
@@ -472,10 +479,10 @@ tracts_demog <- tracts_demog[pub_transport, on="GEOID"]
 tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)*100)/as.numeric(households))]
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
-
-st_write(tracts_demog2,"~/Downloads/TX_tracts_demog_vax_2019_on_2_13_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
+tracts_demog[,("centroid"):=NULL]
+st_write(tracts_demog,"~/Downloads/TX_tracts_2019_on_2_14_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(tracts_demog,"~/Downloads/TX_tracts_demog_vax_2019_on_2_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+st_write(tracts_demog,"~/Downloads/TX_tracts_2019_on_2_14_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_2_9_23"))
 rank_demogs <- tracts_demog[""]
 
