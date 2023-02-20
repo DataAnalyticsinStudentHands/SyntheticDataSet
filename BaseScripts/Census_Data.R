@@ -19,7 +19,7 @@ library(dplyr) #may not be using; need to check
 #' @param county_num the census code for the county - only needed if there are blockgroups
 #' @param api_type the census api called from - https://www.census.gov/data/developers/data-sets.html
 #' @path_suff the suffix for the variable file and whether estimate or error -   "dec.csv" | "est.csv" | "err.csv"
-#' @block for region - either block_group or tract
+#' @block for region - either block_group or tract or zip
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
 #tools
@@ -93,7 +93,7 @@ censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,c
       region = paste0("block group:*")
       regionin = paste0("state:", state,"+county:",county_num,"+tract:*") #it gets confused if this var is named "county" 
     }else{
-      region = paste0("tract:", tract)
+      region = paste0(block,":*") #, tract)
       regionin = paste0("state:", state)
     }
     data_for_vars_state <- getCensus(name = api_type,
