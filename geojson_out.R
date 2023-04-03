@@ -99,7 +99,7 @@ tracts4cd116unlisted <- rapply(tracts4cd116,function(x) ifelse(length(x)==0,9999
 tracts4cd116unlisted <- unlist(tracts4cd116unlisted)
 tractsDT$Congress_district=texas_cd116DT$NAMELSAD[tracts4cd116unlisted]
 
-vintage <- "2019"
+vintage <- "2021"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
 tract_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B01001",county_num = county,
@@ -381,39 +381,110 @@ vacancies <- vacant_totalDT[vacantDT[,4:5],on="GEOID"]
 vacancies[,("vacant_housing_pct"):=as.integer((as.numeric(vacant)*100)/as.numeric(vacant_houses_total))]
 tracts_demog <- tracts_demog[vacancies[,4:7],on="GEOID"]
 
-#place_born_census <- est_StateCensusData_byGroupName(censusdir, vintage, state, censuskey, groupname = "B06004") #by race, have to total
+place_born_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                            groupname = "B06004",county_num = county,
+                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
+#by race/eth, if needed
 
 #citizenship and nativity B05003
 citizenship_pb <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                          groupname = "B05003",county_num = county,
                                          block="tract",api_type="acs/acs5",path_suff="est.csv")
+pb_DT <- as.data.table(citizenship_pb)
+pb_fem_under_18_foreign_born <- pb_DT[name=="B05003_016E"]
+pb_fem_under_18_fb <- pb_fem_under_18_foreign_born %>%
+  pivot_longer(4:ncol(pb_fem_under_18_foreign_born), names_to = "GEOID", values_to = "fem_under_18_foreign_born")
+pb_fem_under_18_fb_dt <- as.data.table(pb_fem_under_18_fb)
+tracts_demog <- tracts_demog[pb_fem_under_18_fb_dt[,4:5],on="GEOID"]
+
+pb_fem_under_18_native_born <- pb_DT[name=="B05003_015E"]
+pb_fem_under_18_nb <- pb_fem_under_18_native_born %>%
+  pivot_longer(4:ncol(pb_fem_under_18_native_born), names_to = "GEOID", values_to = "fem_under_18_native_born")
+pb_fem_under_18_nb_dt <- as.data.table(pb_fem_under_18_nb)
+tracts_demog <- tracts_demog[pb_fem_under_18_nb_dt[,4:5],on="GEOID"]
+
+pb_male_under_18_foreign_born <- pb_DT[name=="B05003_005E"]
+pb_male_under_18_fb <- pb_male_under_18_foreign_born %>%
+  pivot_longer(4:ncol(pb_male_under_18_foreign_born), names_to = "GEOID", values_to = "male_under_18_foreign_born")
+pb_male_under_18_fb_dt <- as.data.table(pb_male_under_18_fb)
+tracts_demog <- tracts_demog[pb_male_under_18_fb_dt[,4:5],on="GEOID"]
+
+pb_male_under_18_native_born <- pb_DT[name=="B05003_004E"]
+pb_male_under_18_nb <- pb_male_under_18_native_born %>%
+  pivot_longer(4:ncol(pb_male_under_18_native_born), names_to = "GEOID", values_to = "male_under_18_native_born")
+pb_male_under_18_nb_dt <- as.data.table(pb_male_under_18_nb)
+tracts_demog <- tracts_demog[pb_male_under_18_nb_dt[,4:5],on="GEOID"]
+
+pb_fem_adult_foreign_born <- pb_DT[name=="B05003_021E"]
+pb_fem_adult_fb <- pb_fem_adult_foreign_born %>%
+  pivot_longer(4:ncol(pb_fem_adult_foreign_born), names_to = "GEOID", values_to = "fem_adult_foreign_born")
+pb_fem_adult_fb_dt <- as.data.table(pb_fem_adult_fb)
+tracts_demog <- tracts_demog[pb_fem_adult_fb_dt[,4:5],on="GEOID"]
+
+pb_fem_adult_native_born <- pb_DT[name=="B05003_020E"]
+pb_fem_adult_nb <- pb_fem_adult_native_born %>%
+  pivot_longer(4:ncol(pb_fem_adult_native_born), names_to = "GEOID", values_to = "fem_adult_native_born")
+pb_fem_adult_nb_dt <- as.data.table(pb_fem_adult_nb)
+tracts_demog <- tracts_demog[pb_fem_adult_nb_dt[,4:5],on="GEOID"]
+
+pb_male_adult_foreign_born <- pb_DT[name=="B05003_010E"]
+pb_male_adult_fb <- pb_male_adult_foreign_born %>%
+  pivot_longer(4:ncol(pb_male_adult_foreign_born), names_to = "GEOID", values_to = "male_adult_foreign_born")
+pb_male_adult_fb_dt <- as.data.table(pb_male_adult_fb)
+tracts_demog <- tracts_demog[pb_male_adult_fb_dt[,4:5],on="GEOID"]
+
+pb_male_adult_native_born <- pb_DT[name=="B05003_009E"]
+pb_male_adult_nb <- pb_male_adult_native_born %>%
+  pivot_longer(4:ncol(pb_male_adult_native_born), names_to = "GEOID", values_to = "male_adult_native_born")
+pb_male_adult_nb_dt <- as.data.table(pb_male_adult_nb)
+tracts_demog <- tracts_demog[pb_male_adult_nb_dt[,4:5],on="GEOID"]
+
+tracts_demog[,("foreign_born"):=as.numeric(fem_under_18_foreign_born)+as.numeric(fem_adult_foreign_born)+
+               as.numeric(male_under_18_foreign_born)+as.numeric(male_adult_foreign_born)]
+tracts_demog[,("native_born"):=as.numeric(fem_under_18_native_born)+as.numeric(fem_adult_native_born)+
+               as.numeric(male_under_18_native_born)+as.numeric(male_adult_native_born)]
+tracts_demog[,("diff_in_total_pop_check"):=total_pop-foreign_born-native_born]
+tracts_demog[foreign_born!=0,("percent_foreign_born"):=total_pop/foreign_born]
+
+#B05003_016E - Estimate!!Total:!!Female:!!Under 18 years:!!Foreign born:
+#B05003_015E - Estimate!!Total:!!Female:!!Under 18 years:!!Native
+#B05003_010E - Estimate!!Total:!!Male:!!18 years and over:!!Foreign born:
+#B05003_004E - Estimate!!Total:!!Male:!!Under 18 years:!!Native
+#B05003_005E - Estimate!!Total:!!Male:!!Under 18 years:!!Foreign born:
+#B05003_009E - Estimate!!Total:!!Male:!!18 years and over:!!Native
+#B05003_020E - Estimate!!Total:!!Female:!!18 years and over:!!Native
+#B05003_021E - Estimate!!Total:!!Female:!!18 years and over:!!Foreign born:
+place_born_age_sex <- place_born %>%
+  pivot_longer(4:ncol(place_born), names_to = "GEOID", values_to = "number")
+
+
 #also has under 18 male / female
-cit_pb_under_18 <- citizenship_pb %>%
-  pivot_longer(4:ncol(citizenship_pb),names_to = "GEOID", values_to = "num")
-cit_pb_under_18 <- as.data.table(cit_pb_under_18)
-male_under_18 <- cit_pb_under_18[name=="B05003_003E",4:5]
-fem_under_18 <- cit_pb_under_18[name=="B05003_014E",4:5]
-under_18s <- male_under_18[fem_under_18,on="GEOID"]
-under_18s[,("under_18"):=as.numeric(num)+as.numeric(i.num)]
-under_18s <- under_18s[,c("GEOID","under_18")]
-tracts_demog <- tracts_demog[under_18s,on="GEOID"]
-tracts_demog[,("under_18_pct"):=as.integer((as.numeric(under_18)*100)/as.numeric(total_pop))]
-under_18_fbM <- cit_pb_under_18[name=="B05003_005E",4:5]
-under_18_fbF <- cit_pb_under_18[name=="B05003_016E",4:5]
-under_18_fb <- under_18_fbM[under_18_fbF,on="GEOID"]
-under_18_fb[,("under_18_fb"):=as.numeric(num)+as.numeric(i.num)]
-under_18_fbs <- under_18_fb[,c("GEOID","under_18_fb")]
-tracts_demog <- tracts_demog[under_18_fbs,on="GEOID"]
-tracts_demog[,("under_18_fb_pct"):=as.integer((as.numeric(under_18_fb)*100)/as.numeric(under_18))]
-over_17_fbM <- cit_pb_under_18[name=="B05003_010E",4:5]
-over_17_fbF <- cit_pb_under_18[name=="B05003_021E",4:5]
-over_17_fb <- over_17_fbM[over_17_fbF,on="GEOID"]
-over_17_fb[,("over_17_fb"):=as.numeric(num)+as.numeric(i.num)]
-over_17_fbs <- over_17_fb[,c("GEOID","over_17_fb")]
-tracts_demog <- tracts_demog[over_17_fbs,on="GEOID"]
-tracts_demog[,("over_17"):=as.numeric(total_pop)-as.numeric(under_18)]
-tracts_demog[,("over_17_fb_pct"):=as.integer((as.numeric(over_17_fb)*100)/as.numeric(over_17))]
-tracts_demog[,("fb_pct"):=as.integer((as.numeric(over_17_fb)+as.numeric(under_18_fb))*100/as.numeric(total_pop))]
+#cit_pb_under_18 <- citizenship_pb %>%
+#  pivot_longer(4:ncol(citizenship_pb),names_to = "GEOID", values_to = "num")
+#cit_pb_under_18 <- as.data.table(cit_pb_under_18)
+#male_under_18 <- cit_pb_under_18[name=="B05003_003E",4:5]
+#fem_under_18 <- cit_pb_under_18[name=="B05003_014E",4:5]
+#under_18s <- male_under_18[fem_under_18,on="GEOID"]
+#under_18s[,("under_18"):=as.numeric(num)+as.numeric(i.num)]
+#under_18s <- under_18s[,c("GEOID","under_18")]
+#tracts_demog <- tracts_demog[under_18s,on="GEOID"]
+#tracts_demog[,("under_18_pct"):=as.integer((as.numeric(under_18)*100)/as.numeric(total_pop))]
+#under_18_fbM <- cit_pb_under_18[name=="B05003_005E",4:5]
+#under_18_fbF <- cit_pb_under_18[name=="B05003_016E",4:5]
+#under_18_fb <- under_18_fbM[under_18_fbF,on="GEOID"]
+#under_18_fb[,("under_18_fb"):=as.numeric(num)+as.numeric(i.num)]
+#under_18_fbs <- under_18_fb[,c("GEOID","under_18_fb")]
+#tracts_demog <- tracts_demog[under_18_fbs,on="GEOID"]
+#tracts_demog[,("under_18_fb_pct"):=as.integer((as.numeric(under_18_fb)*100)/as.numeric(under_18))]
+#over_17_fbM <- cit_pb_under_18[name=="B05003_010E",4:5]
+#over_17_fbF <- cit_pb_under_18[name=="B05003_021E",4:5]
+#over_17_fb <- over_17_fbM[over_17_fbF,on="GEOID"]
+#over_17_fb[,("over_17_fb"):=as.numeric(num)+as.numeric(i.num)]
+#over_17_fbs <- over_17_fb[,c("GEOID","over_17_fb")]
+#tracts_demog <- tracts_demog[over_17_fbs,on="GEOID"]
+#tracts_demog[,("over_17"):=as.numeric(total_pop)-as.numeric(under_18)]
+#tracts_demog[,("over_17_fb_pct"):=as.integer((as.numeric(over_17_fb)*100)/as.numeric(over_17))]
+#tracts_demog[,("fb_pct"):=as.integer((as.numeric(over_17_fb)+as.numeric(under_18_fb))*100/as.numeric(total_pop))]
 
 
 #people per room B25014
@@ -480,11 +551,25 @@ tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
 tracts_demog[,("centroid"):=NULL]
-st_write(tracts_demog,"~/Downloads/TX_tracts_2019_vax_on_2_15_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
+st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(tracts_demog,"~/Downloads/TX_tracts_2019_vax_on_2_15_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
-write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_2_9_23"))
+st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_4_3_23"))
 rank_demogs <- tracts_demog[""]
+
+fatal_police_shootings_agencies_wp <- read.csv(paste0(maindir,"WP_Police_shootings/fatal_police_shootings_agencies_wp_4_3_23.txt"))
+
+fatal_police_shootings_wp <- read.csv(paste0(maindir,"WP_Police_shootings/fatal_police_shootings_wp_thru_4_3_23.txt"))
+dt_fatal_police_shootings_wp <- as.data.table(fatal_police_shootings_wp)
+dt_fatal_police_shootings_wp <- dt_fatal_police_shootings_wp[!is.na(longitude)] #896 missing location!
+sf_fatal_police_shootings_wp <- st_as_sf(dt_fatal_police_shootings_wp,coords = c("longitude", "latitude"))#, 
+                                         #crs = 4326, relation_to_geometry = "field")
+sf_fatal_police_shootings_wp<-st_set_crs(sf_fatal_police_shootings_wp,4326)
+tracts_demog <- st_as_sf(tracts_demog,coords="geometry",crs=4326)
+tracts4fatal_police <- st_within(sf_fatal_police_shootings_wp, tracts_demog$geometry)
+tracts4fatal_police_unlisted <- rapply(tracts4fatal_police,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+tracts4fatal_police_unlisted <- unlist(tracts4fatal_police_unlisted)
+#tracts_demog$fatal_police_id=tracts4fatal_police$id[tracts4fatal_police_unlisted]
 
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
