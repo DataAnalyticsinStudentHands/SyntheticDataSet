@@ -43,7 +43,7 @@ HCAD_real_build <- read.csv2(paste0(housingdir, vintage, "/Real_building_land/bu
 
 HCAD_real_acct <- read.csv2(paste0(housingdir, vintage, "/Real_acct_owner/real_acct.txt"),
         stringsAsFactors = FALSE,
-        sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))
+        sep = "\t", header = TRUE, quote="",colClasses = c("V1"="character"))
 HCAD_exempt <- read.csv2(paste0(housingdir, vintage, "/Real_jur_exempt/jur_exempt_cd.txt"),
                          stringsAsFactors = FALSE,
                          sep = "\t", header = FALSE, quote="",colClasses = c("V1"="character"))

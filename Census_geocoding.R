@@ -11,11 +11,39 @@ maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ 
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
-vintage = "2020"
+vintage = "2021"
 #numberOfCores = 1
 state = "48" #48 Texas; 22 Louisiana
 county = "201" #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
 st_county = paste0(state,county) #"48201"
+
+#get block data from geojson_out.R
+#st_crs(censusblocks)
+
+fatal_police_shootings_wp <- read.csv(paste0(maindir,"WP_Police_shootings/fatal_police_shootings_wp_thru_4_3_23.txt"))
+dt_fatal_police_shootings_wp <- as.data.table(fatal_police_shootings_wp)
+dt_fatal_police_shootings_wp <- dt_fatal_police_shootings_wp[state=="TX"]
+missing_fatal_police_shootings_wp <- dt_fatal_police_shootings_wp[is.na(longitude)]
+dt_fatal_police_shootings_wp <- dt_fatal_police_shootings_wp[!is.na(longitude)] #70 missing location in TX!
+
+sf_fatal_police_shootings_wp <- st_as_sf(dt_fatal_police_shootings_wp,coords = c("longitude", "latitude"),
+                                         crs = 4269, agr = "constant")
+
+blocks4fatal_police <- st_within(sf_fatal_police_shootings_wp, censusblocks)
+blocks4fatal_police_unlisted <- rapply(blocks4fatal_police,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+blocks4fatal_police_unlisted <- unlist(blocks4fatal_police_unlisted)
+dt_fatal_police_shootings_wp$censusblock=censusblocks$GEOID[blocks4fatal_police_unlisted]
+dt_fatal_police_shootings_wp[,("GEOID"):=as.numeric(substr(censusblock,1,11))]
+
+tracts4baqir_dt <- as.data.table(tracts4baqir)
+tracts_fatal_police_shootings <- dt_fatal_police_shootings_wp[tracts4baqir_dt,on="GEOID"]
+
+fatal_police_shootings_agencies_wp <- read.csv(paste0(maindir,"WP_Police_shootings/fatal_police_shootings_agencies_wp_4_3_23.txt"))
+colnames(tracts_fatal_police_shootings)[colnames(tracts_fatal_police_shootings)=="NAME"] <- "NAME_ID"
+st_write(tracts_fatal_police_shootings,"~/Downloads/tracts_2021_fatal_police_shootings_4_3_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
+         layer_options = "GEOMETRY=AS_WKT")
+st_write(tracts_fatal_police_shootings,"~/Downloads/tracts_2021_fatal_police_shootings_4_3_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+
 
 #import data in right format
 crime_report_1 <- read_xlsx(paste0(houstondatadir,"2022/HPD_crime/2019_NIBRSPublicView.Jan1-Dec31.xlsx"))

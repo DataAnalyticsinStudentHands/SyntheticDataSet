@@ -557,21 +557,6 @@ st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.geojson",driver = "G
 write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_4_3_23"))
 rank_demogs <- tracts_demog[""]
 
-fatal_police_shootings_agencies_wp <- read.csv(paste0(maindir,"WP_Police_shootings/fatal_police_shootings_agencies_wp_4_3_23.txt"))
-
-fatal_police_shootings_wp <- read.csv(paste0(maindir,"WP_Police_shootings/fatal_police_shootings_wp_thru_4_3_23.txt"))
-dt_fatal_police_shootings_wp <- as.data.table(fatal_police_shootings_wp)
-dt_fatal_police_shootings_wp <- dt_fatal_police_shootings_wp[!is.na(longitude)] #896 missing location!
-sf_fatal_police_shootings_wp <- st_as_sf(dt_fatal_police_shootings_wp,coords = c("longitude", "latitude"))#, 
-                                         #crs = 4326, relation_to_geometry = "field")
-sf_fatal_police_shootings_wp<-st_set_crs(sf_fatal_police_shootings_wp,4326)
-tracts_demog <- st_as_sf(tracts_demog,coords="geometry",crs=4326)
-tracts4fatal_police <- st_within(sf_fatal_police_shootings_wp, tracts_demog$geometry)
-tracts4fatal_police_unlisted <- rapply(tracts4fatal_police,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-tracts4fatal_police_unlisted <- unlist(tracts4fatal_police_unlisted)
-#tracts_demog$fatal_police_id=tracts4fatal_police$id[tracts4fatal_police_unlisted]
-
-
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
 FIPS_vector <- c("201","157","167","039","071","291","339","473")
 tracts_demog8 <- tracts_demog[COUNTYFP%in%FIPS_vector]
