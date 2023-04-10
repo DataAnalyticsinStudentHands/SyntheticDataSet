@@ -101,14 +101,17 @@ block_race <- block_race_data_DT[str_detect(name,"P1_00"),] %>%
   select(GEOID,label,number) %>%
   pivot_wider(names_from = label,values_from = number)
  
-censusblocks <- censusblocks %>% 
-  left_join(block_race, by = "GEOID")
+#SHOULD DO SOME TESTS!
+block_race <- as.data.table(block_race)
+censusblocks <- block_race[censusblocks,on = "GEOID"] #avoids shallow copy problem
 ```
 
 Can try to get land area (or water area) for each tract vs. population for density?
 
 ```{r plot block group population size across Harris}
-
+censusblocks[,("pop_area"):=Total/ALAND]
+library(ggplot2)
+ggplot(censusblocks, aes(x=ALAND,y=Total)) + geom_point()
 ```
 
 
@@ -117,6 +120,7 @@ What we notice in the tables is that the subpopulations add up to the higher lev
 But more importantly, there's what the mathematicians call an adjunction at work between the production and the construction - placing something in an order and creating a space within which that production can happen - where the movement from the top down in the order of the geography is, at every intersection, embedded in the higher level, and where the social determinants are not embedded in the same way. The difference in the embeddings produces effects that allow us to understand the distributions at other levels and to find the characteristic functions that relate the various elements and layers. We need to take this in a couple of steps, though.
 
 ```{r make geojson map 2020 census}
+
 ```
 
 First, what is a context in this case? It's the frame that makes it possible to coherently make sense of the transformations between levels. When we say that we understand a point in terms of the surrounding points, we're transforming the context to a single point, but that's not the only example. When we say that the population should be understood in terms of population density by area, or by percentage of the total population, or by percentage of the population that is white, etc., we're constraining one layer of explanation in a way that makes the individual appear as meaningful because of that constraint.
@@ -132,6 +136,19 @@ bg_sex_by_age_race_data_from_acs_20 <-
           censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                  groupname = "B01001",county_num = "201",
                                  block="block_group",api_type="acs/acs5",path_suff="est.csv")
+#compare with totals for censusblocks
+#looks like right total, but the blocks have very large different numbers per block.
+bg_dt <- as.data.table(bg_sex_by_age_race_data_from_acs_20)
+sum(bg_dt[name=="B01001_001E",4:2833])
+#[1] 4680609
+bg_sex_by_age_race_data_from_acs_20_error <- 
+          censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                 groupname = "B01001",county_num = "201",
+                                 block="block_group",api_type="acs/acs5",path_suff="err.csv")
+bg_err_dt <- as.data.table(bg_sex_by_age_race_data_from_acs_20_error)
+sum(bg_err_dt[name=="B01001_001M",as.numeric(4:2833)])
+#[1] 4014355
+
 tr_sex_by_age_race_data_from_acs_20 <- 
           censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                  groupname = "B01001",county_num = "201",
