@@ -4,9 +4,7 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 #censusdir from workflow / census_key from expand_from scripts / source CensusData.R
-chwstorydir = paste0(maindir,"CHW_stories") # CHW_stories_3_2023.csv
-chw_stories <- paste0(chwstorydir,"/CHW_stories_3_2023.csv")
-chw_stories.csv <- read.csv(chw_stories)
+
 #this depends on where your census dir is, but _tract_500k.shp and _faces and _bg, etc. are all downloaded from census, by year: 
 #https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html (I got these on 7/10/21 - 2020 was most recent; got 2021 on 7/18/2022)
 geo_vintage <- "2021"
@@ -39,11 +37,11 @@ tracts4placesunlisted <- rapply(tracts4places,function(x) ifelse(length(x)==0,99
 tracts4placesunlisted <- unlist(tracts4placesunlisted)
 tractsDT$placename=placeDT$NAME[tracts4placesunlisted]
 #or
-tracts4places <- st_within(blocksDT$centroid, placeDT)
+tracts4places <- st_within(tractsDT$centroid, placeDT)
 #unlist into vector
 tracts4placesunlisted <- rapply(tracts4places,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 tracts4placesunlisted <- unlist(tracts4placesunlisted)
-blocksDT$placename=placeDT$NAME[tracts4placesunlisted]
+tractsDT$placename=placeDT$NAME[tracts4placesunlisted]
 
 #metro stat areas
 census_cbsa <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us_cbsa_500k/cb_", geo_vintage, "_us_cbsa_500k.shp"))
@@ -561,6 +559,28 @@ pub_transport <- pub_transport[name=="B08137_010E",4:5]
 tracts_demog <- tracts_demog[pub_transport, on="GEOID"]
 tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)*100)/as.numeric(households))]
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
+
+#CHW Stories
+chwstorydir = paste0(maindir,"CHW_stories") # CHW_stories_3_2023.csv
+chw_stories_csv <- paste0(chwstorydir,"/CHW_stories_3_2023.csv")
+chw_stories <- read.csv(chw_stories_csv)
+chw_stories <- as.data.table(chw_stories)
+#just a quick and dirty
+chw_stories[,("zip"):=Zip.code.where.story.is.collected]
+#doesn't work right for tract_rank!!!
+chw_stories[,("tract_rank"):=as.character(sample(1:.N)),by=(zip)]
+tracts_demog[,("tract_rank"):=as.character(sample(1:.N)),by=(zip)]
+chw_stories[,("story_match_id"):=
+              paste0(zip,tract_rank)]
+dec_bgHHr_10[,("hh_tenure_match_id"):=
+               paste0(geoid,race,as.character(hh_size_n),as.character(100000+sample(1:.N))),
+             by=.(geoid,race,hh_size_n)]
+dec_bgHHr_tenure_10[,("hh_tenure_match_id"):=
+                      paste0(geoid,race,as.character(hh_size_n),as.character(100000+sample(1:.N))),
+                    by=.(geoid,race,hh_size_n)]
+dec_bgHHr_10[,("tenure"):=
+               dec_bgHHr_tenure_10[.SD, list(tenure), on = .(hh_tenure_match_id)]]
+
 
 tracts_demog[,("centroid"):=NULL]
 st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
