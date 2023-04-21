@@ -49,7 +49,7 @@ source('BaseScripts/Census_Data.R') #this is just the helpers for accessing the 
 ```{r get geometry files from census, include=FALSE}
 #do on blocks, then just make tract id from geoid for blocks
 censusblocks <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_bg_500k/cb_", geo_vintage, "_", state, "_bg_500k.shp"))
-censusblocks <- as.data.table(st_transform(censusblocks, crs = 3857)) #for eventual merge with HCAD
+censusblocks <- as.data.table(st_transform(censusblocks, crs = 3857)) #for eventual merge with HCAD / 4326 for census
 #Counties around Houston: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller - here we get only Harris.
 censusblocks_8counties <- censusblocks[COUNTYFP%in%c("201","157","167","039","071","291","339","473"),]
 censusblocks <- censusblocks[COUNTYFP=="201",]
@@ -77,6 +77,9 @@ block_race_data_from_census <- censusData_byGroupName(censusdir, vintage, state,
                        groupname = "P1",county_num = county,
                        block="block_group",api_type="dec/pl",path_suff="est.csv")
 kable(block_race_data_from_census[10:18,1:5],caption = "Block group census data",table.attr = "class=\"striped\"", format = "html")
+block_ethnicity_data_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                       groupname = "P2",county_num = county,
+                       block="block_group",api_type="dec/pl",path_suff="est.csv")
 ```
 
 
@@ -92,7 +95,7 @@ Because we have both the geographic boundaries and the population numbers by cen
 
 ```{r create geography file with basic population numbers}
 block_race <- block_race_data_DT[str_detect(name,"P1_00"),] %>%
-  pivot_longer(4:ncol(block_race_data_DT),names_to = "tract", values_to = "number") %>%
+  pivot_longer(4:ncol(block_race_data_DT),names_to = "GEOID", values_to = "number") %>%
   mutate(label = str_remove_all(label,"!!Total:!!"),
          label = str_remove_all(label,"Population of one race:!!"),
          label = str_remove_all(label,":"),
@@ -104,6 +107,8 @@ block_race <- block_race_data_DT[str_detect(name,"P1_00"),] %>%
 #SHOULD DO SOME TESTS!
 block_race <- as.data.table(block_race)
 censusblocks <- block_race[censusblocks,on = "GEOID"] #avoids shallow copy problem
+
+
 ```
 
 Can try to get land area (or water area) for each tract vs. population for density?

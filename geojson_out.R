@@ -37,11 +37,11 @@ tracts4placesunlisted <- rapply(tracts4places,function(x) ifelse(length(x)==0,99
 tracts4placesunlisted <- unlist(tracts4placesunlisted)
 tractsDT$placename=placeDT$NAME[tracts4placesunlisted]
 #or
-tracts4places <- st_within(tractsDT$centroid, placeDT)
-#unlist into vector
-tracts4placesunlisted <- rapply(tracts4places,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-tracts4placesunlisted <- unlist(tracts4placesunlisted)
-tractsDT$placename=placeDT$NAME[tracts4placesunlisted]
+placeDT <- st_transform(placeDT,st_crs(censusblocks))
+blocks4places <- st_within(censusblocks$centroid, placeDT)
+blocks4placesunlisted <- rapply(blocks4places,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+blocks4placesunlisted <- unlist(blocks4placesunlisted)
+censusblocks$placename=placeDT$NAME[blocks4placesunlisted]
 
 #metro stat areas
 census_cbsa <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us_cbsa_500k/cb_", geo_vintage, "_us_cbsa_500k.shp"))
@@ -76,6 +76,12 @@ tracts4unsd <- st_within(tractsDT$centroid, unsdDT)
 tracts4unsdunlisted <- rapply(tracts4unsd,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 tracts4unsdunlisted <- unlist(tracts4unsdunlisted)
 tractsDT$unsd=unsdDT$NAME[tracts4unsdunlisted]
+#or
+unsdDT <- st_transform(unsdDT,st_crs(censusblocks))
+blocks4unsd <- st_within(censusblocks$centroid, unsdDT)
+blocks4unsdunlisted <- rapply(blocks4unsd,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+blocks4unsdunlisted <- unlist(blocks4unsdunlisted)
+censusblocks$school_district=unsdDT$NAME[blocks4unsdunlisted]
 
 #2020 voting districts - have to get right date
 censusvtd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_vtd_500k/cb_", geo_vintage, "_", state, "_vtd_500k.shp"))
@@ -98,6 +104,12 @@ tracts4zctas <- st_within(tractsDT$centroid, zctasDT)
 tracts4zctasunlisted <- rapply(tracts4zctas,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 tracts4zctasunlisted <- unlist(tracts4zctasunlisted)
 tractsDT$zip=zctasDT$ZCTA5CE20[tracts4zctasunlisted]
+#or
+zctasDT <- st_transform(zctasDT,st_crs(censusblocks))
+blocks4zctas <- st_within(censusblocks$centroid, zctasDT)
+blocks4zctasunlisted <- rapply(blocks4zctas,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+blocks4zctasunlisted <- unlist(blocks4zctasunlisted)
+censusblocks$zip=zctasDT$ZCTA5CE20[blocks4zctasunlisted]
 
 #congressional districts
 censuscd116 <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us", "_cd116_500k/cb_", geo_vintage, "_us", "_cd116_500k.shp"))
@@ -162,6 +174,9 @@ gini_DT$gini_index <- format(gini_DT$gini_index,scientific=FALSE)
 tracts_demog <- tracts_demog[gini_DT[,4:5],on="GEOID"]
 tracts_demog[,("gini_index"):=if_else(as.numeric(gini_index)<0,0,as.numeric(gini_index))]
 
+#when just adding for blocksblocksDT[,("TRACTGEOID"):=substr(GEOID,1,11)]
+censusblocks[,("TRACTCE"):=substr(GEOID,1,11)]
+#and names to TRACTCE, etc., but change back 
 place_born_med_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B06011",county_num = county,
                        block="tract",api_type="acs/acs5",path_suff="est.csv")
@@ -220,7 +235,7 @@ own_rent_hh_type_census <- censusData_byGroupName(censusdir, vintage, state, cen
                        block="tract",api_type="acs/acs5",path_suff="est.csv")
 own_rentDT <- as.data.table(own_rent_hh_type_census)
 own_rent_hh <- own_rentDT %>%
-  pivot_longer(4:ncol(own_rentDT),names_to = "GEOID", values_to = "households")
+  pivot_longer(4:ncol(own_rentDT),names_to = "TRACTCE", values_to = "households")
 own_rent_hh <- as.data.table(own_rent_hh)
 total_hh_occupied <- own_rent_hh[name=="B25011_001E",4:5]
 tracts_demog <- tracts_demog[total_hh_occupied, on="GEOID"]
@@ -568,19 +583,33 @@ chw_stories <- as.data.table(chw_stories)
 #just a quick and dirty
 chw_stories[,("zip"):=Zip.code.where.story.is.collected]
 #doesn't work right for tract_rank!!!
-chw_stories[,("tract_rank"):=as.character(sample(1:.N)),by=(zip)]
-tracts_demog[,("tract_rank"):=as.character(sample(1:.N)),by=(zip)]
+chw_stories[,("block_rank"):=as.character(1:.N),by=(zip)]
+censusblocks[order(-percent_white),("block_rank"):=as.character(1:.N),by=(zip)]
 chw_stories[,("story_match_id"):=
-              paste0(zip,tract_rank)]
-dec_bgHHr_10[,("hh_tenure_match_id"):=
-               paste0(geoid,race,as.character(hh_size_n),as.character(100000+sample(1:.N))),
-             by=.(geoid,race,hh_size_n)]
-dec_bgHHr_tenure_10[,("hh_tenure_match_id"):=
-                      paste0(geoid,race,as.character(hh_size_n),as.character(100000+sample(1:.N))),
-                    by=.(geoid,race,hh_size_n)]
-dec_bgHHr_10[,("tenure"):=
-               dec_bgHHr_tenure_10[.SD, list(tenure), on = .(hh_tenure_match_id)]]
-
+              paste0(zip,block_rank)]
+censusblocks[,("story_match_id"):=
+               paste0(zip,block_rank),
+             by=.(zip,block_rank)]
+setnames(chw_stories,"Name.of.CHW.that.collected.story","CHW")
+setnames(chw_stories,"Age.Range.","Age")
+setnames(chw_stories,"Race.Ethnicity...Selected.Choice","Race/Ethnicity")
+setnames(chw_stories,"Story..Barriers.Challenges..Issues.they.can.t.get.help.with..Ways.a.CHW.can.help..Info.about.community","Story")
+chw_stories_clean <- chw_stories[,c("zip","CHW","Age","Race/Ethnicity","Story","story_match_id")]
+censusblocks1 <- st_as_sf(censusblocks)
+censusblocks2 <- st_transform(censusblocks1,st_crs(censusblocksA))
+blocks_stories1 <- chw_stories_clean[censusblocks3,on="story_match_id"]
+blocks_stories1$centroid <- NULL
+#blocks_stories <- censusblocks[chw_stories_clean,on="story_match_id"]
+#chw_stories_kepler <- chw_stories_census[,c("median_income","renter_pct","owner_pct","pub_transport_hh_pct","Total_population",
+ #                                           "percent_white","percent_black","percent_hispanic","percent_asian","percent_other_or_2+races",
+  #                                          "school_district","placename","zip","TRACTCE","GEOID","latitude","longitude","geometry")]
+chw_stories_kepler <- st_as_sf(blocks_stories1)
+#chw_stories_kepler <- as.data.table(chw_stories_kepler)
+chw_stories_kepler1 <- st_transform(chw_stories_kepler,crs = 4326)
+st_write(chw_stories_kepler,"~/Downloads/chw_stories_4_20_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
+         layer_options = "GEOMETRY=AS_WKT")
+st_write(censusblocks2,"~/Downloads/chw_stories_kepler_2020_on_4_20_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+write_rds(chw_stories_kepler,paste0(censusdir,vintage,"/chw_stories_kepler2_2021_on_4_20_23"))
 
 tracts_demog[,("centroid"):=NULL]
 st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
