@@ -71,6 +71,33 @@ cr2_sf <- cxy_geocode(crime_rep_2, street = "address",
                       class="dataframe")
 )
 
+#for Lizbet
+#import data in right format
+concrete_plants <- read_xlsx("~/Downloads/Concrete_Batch_Plants_Locations_Harris_County_.xlsx")
+#sort by address, so it only looks up once per address
+crime_report_2 <- read_xls(paste0(houstondatadir,"2022/HPD_crime/apr10.xls"))
+crime_report_2 <- crime_report_2 %>%
+  group_by(`Street Name`,`Block Range`) %>%
+  mutate(address = paste0(str_split(`Block Range`,"-")[[1]][1],
+                          " ",ifelse(Suffix!="-",Suffix,""),
+                          " ",`Street Name`," ",ifelse(Type!="-",Type," ")
+  ),
+  end_address = paste0(str_split(`Block Range`,"-")[[1]][2],
+                       " ",ifelse(Suffix!="-",Suffix,""),
+                       " ",`Street Name`," ",ifelse(Type!="-",Type," ")
+  ),
+  city = "Houston",
+  state = "TX") 
+crime_rep_2 <- crime_report_2 %>%
+  distinct(address,.keep_all = TRUE)
+
+system.time(
+  concrete_sf <- cxy_geocode(concrete_plants, street = "Adress", 
+                        city = "City", 
+                        state = "state", 
+                        class="dataframe")
+)
+
 #for whole folder and merge:https://stackoverflow.com/questions/68397122/how-to-merge-files-in-a-directory-with-r
 library(tidyr)
 library(purrr)
