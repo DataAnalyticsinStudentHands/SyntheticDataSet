@@ -92,11 +92,13 @@ crime_rep_2 <- crime_report_2 %>%
   distinct(address,.keep_all = TRUE)
 
 system.time(
-  concrete_sf <- cxy_geocode(concrete_plants, street = "Adress", 
+  concrete_sf2 <- cxy_geocode(concrete_plants, street = "Adress", 
                         city = "City", 
                         state = "state", 
                         class="dataframe")
 )
+st_write(concrete_sf2,"~/Downloads/concrete_plants2.csv",driver = "CSV",factorsAsCharacter=FALSE,
+         layer_options = "GEOMETRY=AS_WKT")
 
 #for whole folder and merge:https://stackoverflow.com/questions/68397122/how-to-merge-files-in-a-directory-with-r
 library(tidyr)
