@@ -51,6 +51,7 @@ censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 geo_vintage <- "2021" #should be able to match vintage, depending on date.
 source('BaseScripts/Census_Data.R') #this is just the helpers for accessing the U.S. Census api 
 ```
+Only add later!!!
 
 ```{r get geometry files from census, include=FALSE}
 #do on blocks, then just make tract id from geoid for blocks
@@ -63,7 +64,7 @@ censusblocks <- censusblocks[COUNTYFP=="201",]
 #some quick things for convenience - finding the centroid of each file.
 censusblocks$geoid_centroid <- st_centroid(censusblocks$geometry)
 ```
-#Do I need this? Try with and without...
+
 ```{css, echo=FALSE}
 table {
   margin: auto;
@@ -83,7 +84,6 @@ For the decennial 2020: https://www2.census.gov/programs-surveys/decennial/2020/
 block_race_data_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "P1",county_num = county,
                        block="block_group",api_type="dec/pl",path_suff="est.csv")
-kable(block_race_data_from_census[10:18,1:5],caption = "Block group census data",table.attr = "class=\"striped\"", format = "html")
 
 ```
 
@@ -102,53 +102,131 @@ block_eth_data_DT <- block_eth_data_DT[order(label)]
 kable(block_eth_data_DT[1:20,1:2],caption = "Block group census data ethnicity - Name and Label",table.attr = "class=\"striped\"", format = "html")
 ```
 
-There are a number of things to talk about in terms of how the census is collected, and how they've decided on their various categories for race and ethnicity - both originally and in the development over time. For right now, I just want to point out how the census thinks about representing individuals in their geographical context. You can think of it as a pyramid, where each higher level of aggregation simply sums over the parts, or as a map where each larger section completely contains the smaller areas without losing the integrity of the boundary (i.e., it still adds up properly because it covers the same area and/or the same number of people). In this table, we only showed the name and the label - the concept (in this case, race) is meant to tie the tables to other tables and isn't relevant to the analyses within the table. The label, in some sense, is like the type for the number given in the column, each of which is a census block group. Just as the geoid encodes the embedding of the block group - i.e., 48 is the state, 201 is the county, the next six numbers are the tract and the final number is the block group - the label encodes the type of thing the number represents - it is a total number, with the population of either one or more races, with a designation made by the census for different racial categories. The idea is that as you add a characteristic to a person - either geographic location or race - you are also designating them as belonging to a subset of a larger population. With an appropriate schema, the subsets are complete and mutually exclusive, like the block groups adding into tracts, then counties (for most of the U.S.), and states. For geography, this requires some stipulations - you have to declare April 1st as the day of residence, for example, and do other things to account for transient populations, incarcerated people, and children with multiple guardians, for some obvious examples. The census largely deals with these edge cases behind the scenes and we start just with what they are making available. 
+There are a number of things to talk about in terms of how the census is collected, and how they've decided on their various categories for race and ethnicity - both originally and in the development over time. For right now, I just want to point out how the census thinks about representing individuals in their geographical context. You can think of it as a pyramid, where each higher level of aggregation simply sums over the parts, or as a map where each larger section completely contains the smaller areas without losing the integrity of the boundary (i.e., it still adds up properly because it covers the same area and/or the same number of people). In this table, we only showed the name and the label - the concept (in this case, race) is meant to tie the tables to other tables and isn't relevant to the analyses within the table. The label, in some sense, is like the type for the number given in the column, each of which is a census block group. Just as the geoid encodes the embedding of the block group - i.e., 48 is the state, 201 is the county, the next six numbers are the tract and the final number is the block group - the label encodes the type of thing the number represents - it is a total number, with the population of either one or more races, with a designation made by the census for different racial categories. The idea is that as you add a characteristic to a person - either geographic location or race - you are also designating them as belonging to a subset of a larger population. With an appropriate schema, the subsets are complete and mutually exclusive, like the block groups adding into tracts, then counties (for most of the U.S.), and states. For geography, this requires some stipulations - you have to declare April 1st as the day of residence, for example, and do other things to account for transient populations, incarcerated people, and children with multiple guardians, for some obvious examples. The census largely deals with these edge cases behind the scenes and we start just with what they are making available. For the sake of calculations, the number of people in each category is given, with totals for the whole and each subset, so that percentages and other types of summary statistics can be calculated in whatever aggregations over geography and category are most relevant. That projection down to the individuals as unit from which other calculations are constructed is something we'll take advantage of, for example, in creating comparisons between different times, places, and categories used by the census in ways that make direct comparison difficult. 
 
 Also, as we look at the two data sets, one organized by race, and the other by ethnicity, and we see that the ethnicity table includes all the race categories under "Not Hispanic or Latino," but no race categories for "Hispanic or Latino." Because we have the race categories, without reference to ethnicity, we can tell how many people are categorized as "Hispanic or Latino" by race, but it's not given directly in the category. The decision of how to represent yourself, which seemed to have been firmly in your hands as the person responding to the questions, was overridden by the way in which the table was constructed for those who answered that they were "Hispanic or Latino" and "Black or African American." Those decisions, of course, may have been downstream from other designations - if you had wanted to use "Latinx," for example, the census taker would have nodded in a friendly recognition, and then written down "Hispanic or Latino." 
 
 Because we have both the geographic boundaries and the population numbers by census block group, we can combine them and look at the values.
 
-```{r create geography file with basic population numbers}
-block_race <- block_race_data_DT %>%
+First, some very quick tests to make sure we have consistent files.
+```{r test consistency race and ethnicity}
+#quick checks on the total population, as published by the census
+#for census quickfacts, on Harris County: https://www.census.gov/quickfacts/harriscountytexas
+sum(block_race_data_DT[name=="P1_001N",4:length(block_race_data_DT[1,])])==4731145
+sum(block_eth_data_DT[name=="P2_001N",4:length(block_eth_data_DT[1,])])==4731145
+```
+
+```{r create demographic file with basic population numbers}
+#test structure
+block_race <- block_race_data_DT[!endsWith(label,":")] %>%
   pivot_longer(4:ncol(block_race_data_DT),names_to = "GEOID", values_to = "number") %>%
   mutate(label = str_remove_all(label,"!!Total:!!"),
          label = str_remove_all(label,"Population of one race:!!"),
          label = str_remove_all(label,"Population of two or more races:!!"),
-         label = str_remove_all(label,":"),
-         label = str_remove_all(label,"!!"),
          GEOID = str_remove_all(GEOID, "_")) %>%
   select(GEOID,label,number) %>%
   pivot_wider(names_from = label,values_from = number)
- 
-#quick checks on the total population, as published by the census
-#for census quickfacts, on Harris County: https://www.census.gov/quickfacts/harriscountytexas
-sum(block_race$Total)==4731145
+block_race <- as.data.table(block_race)
+sum(block_race[,2:length(block_race[1,])])==sum(block_race_data_DT[name=="P1_001N",4:length(block_race_data_DT[1,])])
+#uncount race
+bg_population <- block_race_data_DT[!endsWith(label,":")] %>%
+  pivot_longer(4:ncol(block_race_data_DT),names_to = "GEOID", values_to = "number") %>%
+  mutate(label = str_remove_all(label,"!!Total:!!"),
+         label = str_remove_all(label,"Population of two or more races:!!"),
+         GEOID = str_remove_all(GEOID, "_")) %>%
+  select(GEOID,label,number) %>% 
+  separate(label, c("number_of_races","full_race"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(includes_White = if_else(str_detect(full_race,"White"),T,F),
+         includes_Black = if_else(str_detect(full_race,"Black"),T,F),
+         includes_Asian = if_else(str_detect(full_race,"Asian"),T,F),
+         includes_Some_Other = if_else(str_detect(full_race,"Some Other"),T,F),
+         includes_AIAN = if_else(str_detect(full_race,"American Indian"),T,F),#American Indian and Alaska Native
+         includes_Islands = if_else(str_detect(full_race,"Islander"),T,F)) %>%
+  uncount(as.numeric(number),.id = "race_id")
+      
+nrow(block_population)==sum(block_race_data_DT[name=="P1_001N",4:length(block_race_data_DT[1,])])
 
 #The ethnicity files are structured in a way that let's us match them
-block_eth <- block_eth_data_DT %>%
+block_eth <- block_eth_data_DT[!endsWith(label,":")] %>%
   pivot_longer(4:ncol(block_eth_data_DT),names_to = "GEOID", values_to = "number") %>%
   mutate(label = str_remove_all(label,"!!Total:!!"),
+         label = str_remove_all(label,"Not Hispanic or Latino:!!"),
          label = str_remove_all(label,"Population of one race:!!"),
          label = str_remove_all(label,"Population of two or more races:!!"),
-         label = str_remove_all(label,":"),
-         label = str_remove_all(label,"!!"),
          GEOID = str_remove_all(GEOID, "_")) %>%
   select(GEOID,label,number) %>%
   pivot_wider(names_from = label,values_from = number)
- 
+block_eth <- as.data.table(block_eth)
+sum(block_eth[,2:length(block_eth[1,])])==sum(block_eth_data_DT[name=="P2_001N",4:length(block_eth_data_DT[1,])])
 
+#uncount ethnicity 
+block_eth_pop <- block_eth_data_DT[!endsWith(label,":")] %>%
+  pivot_longer(4:ncol(block_eth_data_DT),names_to = "GEOID", values_to = "number") %>%
+  mutate(label = str_remove_all(label,"!!Total:!!"),
+         label = str_remove_all(label,"Not Hispanic or Latino:!!"),
+         #label = str_remove_all(label,"Population of one race:!!"),
+         label = str_remove_all(label,"Population of two or more races:!!"),
+         GEOID = str_remove_all(GEOID, "_")) %>%
+  select(GEOID,label,number) %>%
+  separate(label, c("number_of_races","full_race"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(includes_White = if_else(str_detect(full_race,"White"),T,F),
+         includes_Black = if_else(str_detect(full_race,"Black"),T,F),
+         includes_Asian = if_else(str_detect(full_race,"Asian"),T,F),
+         includes_Some_Other = if_else(str_detect(full_race,"Some Other"),T,F),
+         includes_AIAN = if_else(str_detect(full_race,"American Indian"),T,F),#American Indian and Alaska Native
+         includes_Islands = if_else(str_detect(full_race,"Islander"),T,F)) %>%
+  uncount(as.numeric(number),.id = "eth_id") 
+  
+nrow(block_eth_pop)==sum(block_eth_data_DT[name=="P2_001N",4:length(block_eth_data_DT[1,])])
+
+
+#left merge on data.table; NAs become Hispanic; had technical difficulties with dplyr
+bg_population <- as.data.table(bg_population)
+bg_population[,("bg_race_id") := paste0(GEOID,number_of_races,includes_White,
+                             includes_Black,includes_Asian,includes_Some_Other,
+                             includes_AIAN,includes_Islands,
+                             as.character(1000000+sample(1:.N))),
+              by=.(GEOID,number_of_races,includes_White,
+                             includes_Black,includes_Asian,includes_Some_Other,
+                             includes_AIAN,includes_Islands)]
+block_eth_pop <- as.data.table(block_eth_pop)
+block_eth_pop[,("bg_race_id") := paste0(GEOID,number_of_races,includes_White,
+                             includes_Black,includes_Asian,includes_Some_Other,
+                             includes_AIAN,includes_Islands,
+                             as.character(1000000+sample(1:.N))),
+              by=.(GEOID,number_of_races,includes_White,
+                             includes_Black,includes_Asian,includes_Some_Other,
+                             includes_AIAN,includes_Islands)]
+
+demog_pop <- bg_population[bg_demographic,on="bg_race_id"]
+nrow(demog_pop[is.na(i.GEOID)]) == nrow(block_eth_pop[number_of_races=="Hispanic or Latino"])
+demog_pop[,("Latino"):=if_else(is.na(i.GEOID),T,F)]
+table(demog_pop$Latino)
+#we now have how each person had their race characterized, as well as their ethnicity
+#clean up
+pop_demographic <- demog_pop[,c("GEOID","Latino","number_of_races","full_race",
+                                     "includes_White","includes_Black",
+                              "includes_Asian","includes_AIAN","includes_Islands",
+                              "includes_Some_Other")]
+```
+
+
+
+
+```{r add to census geography file}
 #and add to the maps of the censusblocks
 #I like the way data.table does the merge, avoiding a shallow copy error
-block_race <- as.data.table(block_race)
-censusblocks <- block_race[censusblocks,on = "GEOID"] 
+censusblocks_demographics <- censusblocks[pop_demographic,on = "GEOID"] 
+rm(list = ls(pattern = "^block"))
 ```
 
 Adding ethnicity and race together is difficult because the categories are constructed and implemented in different ways over time, and there are political considerations that drive how people characterize themselves - or have their designations over-ridden by the census takers [note].  
 
 ```{r plot block group population size across Harris}
-censusblocks[,("pop_density_sq_km"):=round((Total/ALAND)*1000000)] #people per square kilometer
-pop_density_Harris <- st_as_sf(censusblocks[!is.na(STATEFP),
-                                      c("Total","pop_density_sq_km",
+censusblocks_demographics[,("pop_density_sq_km"):=round((Total/ALAND)*1000000)] #people per square kilometer
+pop_density_Harris <- st_as_sf(censusblocks_demographics[!is.na(STATEFP),
+                                      c("Total","pop_density_sq_km","GEOID","includes_White","includes_Black",
+                                        "includes_Asian","includes_Some_Other",
                                         "geometry")],sf_column_name = "geometry")
 pop_density_Harris <- st_transform(pop_density_Harris,crs = 4326)
 st_write(pop_density_Harris,"~/Downloads/pop_density_Harris.geojson",driver="GeoJSON")
@@ -157,10 +235,14 @@ st_write(pop_density_Harris,"~/Downloads/pop_density_Harris.geojson",driver="Geo
 It's interesting that the population density is high at places where there are apartment complexes. Here's a [kepler.gl map](https://kepler.gl/demo/map?mapUrl=https://dl.dropboxusercontent.com/s/crph6k44lcudkmz/keplergl_wc5hg642.json)
 Houston is still a largely segregated city, although housing segregation is not enforced by law. One immediate question is whether the decennial census will reflect that segregation in ways that help us understand important patterns in neighborhoods. 
 
+#Add gender and ages from making_sam.Rmd
 
 
 
-#do the matching with ethnicity from other making_Sam.RMD
+
+
+
+
 
 
 What we notice in the tables is that the subpopulations add up to the higher levels. When the groups don't match, we can project down to a lower unit (i.e., the individual at a certain time) and then try to re-assign individuals to positions within the spatial distribution. You can do that with the concept and label columns, as one tries to aggregate across the tables available from the census, but if the concepts don't match, it's like trying to line up cities with the tract data - sometimes the boundaries don't match. Cf. arguments in "Abstraction and Adjunction." Should also discuss the reconstruction attack - https://www.pnas.org/doi/10.1073/pnas.2218605120
