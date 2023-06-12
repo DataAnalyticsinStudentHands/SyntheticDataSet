@@ -67,9 +67,13 @@ Let's begin with PCT12, which is tract level data but has every age by year, gen
 ```{r look at PCT12}
 #this gives you by every year at the tract level - could be a good example for adding together - PCTs never go below tract level
 trSAR_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+  #2020 added dhc to the api call and took away sf1??
+  censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
                          groupname = "PCT12",county_num = county,
-                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+  #censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+  #                       groupname = "PCT12",county_num = county,
+  #                       block="tract",api_type="dec/sf1",path_suff="est.csv")
 trSAR_data_from_census <- trSAR_data_from_census %>%
       select(name,label,concept,starts_with(st_county))
 #needs to be numeric for the sum in the test
