@@ -1,5 +1,5 @@
 ---
-title: "Making Sam"
+title: "Schematic Sam"
 author: "Dan Price"
 date: "`r Sys.Date()`"
 output:
@@ -15,20 +15,17 @@ header-includes:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-## Preliminaries -- very broad - 
-
-
-#every so often this chunk causes R to abort!!! Not sure why - perhaps something about the "source"? 
+ 
 ```{r prelims, include=FALSE}
-library(tidyverse)
+library(dplyr)
 library(data.table)
-library(gtsummary)
+library(stringr)
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
-vintage = "2010"
+vintage = "2020"
 #numberOfCores = 1
 state = "48" #48 Texas; 22 Louisiana
 county = "201" #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
@@ -38,8 +35,18 @@ Sam_seed = 135
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 source('BaseScripts/Census_Data.R') #move out of BaseScripts?
-source('tests.R')
+source('tests.R') #need to redo!
 ```
+
+Naming conventions: 
+bg_ = block_group; tr_ = tract; zip_ = zcta; city_ = city; county_ = county; 
+pop = individual level;
+hh = household;
+gq = group quarters;
+_data_from_census for the raw census data
+SARE = Sex, Age, Race, Ethnicity; race_ and eth_ when too confusing
+_DT for a data.table (need to think about how to remove not needed files)
+
 
 Need to decide how to deal with blocks that are in HCAD but not in county=="201" - border cases? take part of population? exclude?
 
@@ -61,19 +68,19 @@ We will see a paired problem - or opportunity - of what we may call "computabili
 As we saw in the previous section on problems with the American Community Survey, there are practical reasons we need to move back to the 2010 decennial census, especially it's detailed geographic reports. There are two main technical documents for the tables created for smallest area (block group) demographic data. 
 
 The two have similar tables, but different levels of detail provided. They provide some information on how to download the files, although we're using the R library censusapi in our script, CensusData.R, to make calls.
-If you want to look at the details, go to the List of Tables (Matrices) to see what sorts of reports are produced. The first is populations summarized (with a few exceptions) at the block level: [block level summary](https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf)
+If you want to look at the details, go to the List of Tables (Matrices) to see what sorts of reports are produced. The first is populations summarized (with a few exceptions) at the block level: [2010 block level summary](https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf) [2020 technical summary block and tract](https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/demographic-and-housing-characteristics-file-and-demographic-profile/2020census-demographic-and-housing-characteristics-file-and-demographic-profile-techdoc.pdf)
 
-and the second is for the tract level summaries: [tract level summary](http://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf2.pdf)
-The table names that begin with PCT never go below the tract level, but occassionally have more detail in some of the concepts. The Census Bureau is bound by law to produce a count for the decennial census and it pairs that with only the basic demographic, household, and family data. Things like income, employment, and education (among many others) are modeled by the Census Bureau only for the American Community Survey, which tries to prevent the reconstruction of individual identities and location of individuals in particular tracts. They did this because early on there was a general recognition that such information would be used to violate people's expectations of privacy - they would be subject to advertising or perhaps harassment or prejudice - based on their honest answers to the census. Unfortunately, the financial interest in producing such information is quite large and most of that expected privacy has already been lost. We have no interest in breaking down even the walls that the census puts up. We are not calling out the Census Bureau for some sort of mistake. We are saying that in one of the most foundational products that people use for representing U.S. society, there is a way to think about how the structure pervades the construction of tables and other representations. Understanding that structure helps us point to some hidden opportunities in using population-level data, but also to limitations to thinking about a population of individuals with relations at a given time (the fundamental metaphor of the census, after all) instead of thinking about people on lived trajectories in relation with others being constrained or guided by structures. That one, for example, should address a problem by removing unnecessary barriers instead of adding capacity to the individual facing the barrier, is a (perhaps) surprising result of the method. 
+and the second is for the tract level summaries: [2010 tract level summary](http://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf2.pdf)
+The table names that begin with PCT never go below the tract level, but occasionally have more detail in some of the concepts. The Census Bureau is bound by law to produce a count for the decennial census and it pairs that with only the basic demographic, household, and family data. Things like income, employment, and education (among many others) are modeled by the Census Bureau only for the American Community Survey, which tries to prevent the reconstruction of individual identities and location of individuals in particular tracts. They did this because early on there was a general recognition that such information would be used to violate people's expectations of privacy - they would be subject to advertising or perhaps harassment or prejudice - based on their honest answers to the census. Unfortunately, the financial interest in producing such information is quite large and most of that expected privacy has already been lost. We have no interest in breaking down even the walls that the census puts up. We are not calling out the Census Bureau for some sort of mistake. We are saying that in one of the most foundational products that people use for representing U.S. society, there is a way to think about how the structure pervades the construction of tables and other representations. Understanding that structure helps us point to some hidden opportunities in using population-level data, but also to limitations to thinking about a population of individuals with relations at a given time (the fundamental metaphor of the census, after all) instead of thinking about people on lived trajectories in relation with others being constrained or guided by structures. That one, for example, should address a problem by removing unnecessary barriers instead of adding capacity to the individual facing the barrier, is a (perhaps) surprising result of the method. 
 
 Let's begin with PCT12, which is tract level data but has every age by year, gender, ethnicity and race. It has 101 possible age groups, with 1-99 years and then one for "100 to 104 years" and one for "105 to 109 years". It then has categories for all the built in race and ethnicity categories, with each person counted in the total, and every person categorized by race (there are tables for how many people had to have a race assigned by the census bureau, since they refused to provide one, but they tell us how many people have an assigned race and describe their protocols); Hispanic is a problematic category for counting, as well as for historical reasons, and is dealt with differently in the decennial and ACS reporting. Let's download table PCT12, do some quick checks, and then look at it.  
 
 ```{r look at PCT12}
 #this gives you by every year at the tract level - could be a good example for adding together - PCTs never go below tract level
 trSAR_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT12",county_num = county,
-                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+                         block="tract",api_type="dec/dhc",path_suff="est.csv") #dec/sf1 for 2010!!
 trSAR_data_from_census <- trSAR_data_from_census %>%
       select(name,label,concept,starts_with(st_county))
 #needs to be numeric for the sum in the test
@@ -127,9 +134,9 @@ Now that we have the information at the tract level, let's also pick up the bloc
 
 ```{r block_group sex by age}
 bgSAR_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P12",county_num = county,
-                         block="block_group",api_type="dec/sf1",path_suff="est.csv")
+                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
 bgSAR_data <- as.data.table(bgSAR_data_from_census)
 bgSAR_data[,4:ncol(bgSAR_data)] <- 
   bgSAR_data[,lapply(.SD[,4:ncol(bgSAR_data)], as.numeric)]
