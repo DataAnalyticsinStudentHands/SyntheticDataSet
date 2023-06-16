@@ -261,6 +261,8 @@ What's it mean for "number" to be the context? A set of rules for combining, etc
 
 Still want to move toward the idea that functor is the right way to see the mapping between individuals as capacity grows, and that adjunction is the right way to understand what the right space from which good development emerges.
 
+#Need to do Post-Enumeration Survey comparison. In what sense is the ACS retrievable from the DEC + the PES???
+
 ```{r test for ACS vs Decennial 2020}
 bg_sex_by_age_race_data_from_acs_20 <- 
           censusData_byGroupName(censusdir, vintage, state, censuskey, 

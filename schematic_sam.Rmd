@@ -17,7 +17,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
  
 ```{r prelims, include=FALSE}
+source('BaseScripts/Census_Data.R') #move out of BaseScripts?
 library(dplyr)
+library(tidyr)
 library(data.table)
 library(stringr)
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
@@ -31,11 +33,10 @@ state = "48" #48 Texas; 22 Louisiana
 county = "201" #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
 st_county = paste0(state,county) #"48201"
 tract = "*"
-Sam_seed = 135
+#Sam_seed = 135
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
-source('BaseScripts/Census_Data.R') #move out of BaseScripts?
-source('tests.R') #need to redo!
+source('tests.R') #need to redo! Using for some of bgSAR now, but not consistent
 ```
 
 Naming conventions: 
@@ -44,28 +45,15 @@ pop = individual level;
 hh = household;
 gq = group quarters;
 _data_from_census for the raw census data
+_dec = decennial; _acs = American Community Survey; years are included when known to only work for those years...
 SARE = Sex, Age, Race, Ethnicity; race_ and eth_ when too confusing
 _DT for a data.table (need to think about how to remove not needed files)
 
 
 Need to decide how to deal with blocks that are in HCAD but not in county=="201" - border cases? take part of population? exclude?
 
-In a broad sense, we're asking - at a practical level - what's it mean to use .map on the construction of epidemiology's domain and co-domain as explicitly about how we talk about vs. how relations build on each other. Not the convergence toward a single perspective, but toward a shared commitment to speaking about what matters in the relations.
 
-For restructuring of argument part - that the construction "from the outside" of the type theory lets you resolve the arguments without positing the consistency of the inside as given - you don't have to believe the axiom of reducibility or that there is a zero-degree homotopy (should we try to show that things like that are equal?)
-
-Plan: find smallest units of "space" (geographic and/or conceptual) from 2010 census and build a cohesive representation of Harris County (called Sam City) by piecing together the various representations output by the census. 
-
-Somewhere - that there are a few different metaphors one might use for how a table relates to a full population. One can think of it as a sample, or a sample of a sample, as a view on a pivot table, or a kind of literal movement of markers for real things into bins of some sort, counting the predicates. That, instead, we wish to see it as a way of structuring an account that responds to what one is trying to show (or to hide) and how one constructs a cohesive space within which the important other relations will hold (and we can do arithmetic and summarization, etc.). It's also important that at that point, you're not talking about ways of naming individuals and then aggregating over that name, but that you're talking about ways of talking about collections, and how names are distributed within that space - so there's a subsetting logic, even if you name the whole population, if you're only talking about them in terms of one way of talking. 
-
-By selection, we mean choosing one way of speaking about the population as opposed to another. You are selecting within the power set of all the combined ways of talking, which can exclude whole people from being spoken of at all, or can cause some people to be spoken of in two ways - the example we'll dive into in-depth is race and ethnicity. To select only "children" is then also to select by a way of talking, so that selecting the category of humans under 18 years of age is different than to select the households where a biological child of the householder is present. The way we want to approach this, mathematically, is to record the choices and see what other tools rebound to our use because of those choices. If you've made a selection, after all, you've introduced a distinction into the set that has both what is included and what is excluded. You've also introduced a way of producing individuals "as" either included or excluded. There are tools available to us that take what we know about the included to talk about the excluded, or to talk about the process of producing inclusion or exclusion, and how one might modify a given process to produce different results.
-
-By "space" we mean something that helps situate a characterization within a structure, not the placement of an individual thing within a bunch of other individual things that happen to be "close" in some assigned sense of distance. A context is an example of a distance-based space, as your neighborhood provides context for your dwelling, but part of the point of our exercise with Sam City is to show other ways to think about the structuring of "space" and the ways in which an attention to space allows one to better engage in structuring data representations that are fully responsive to their originating questions. Such a project has basic implications for how we think about neighborhood effects on individuals, most immediately in terms of the granularity we build into the representations and our sense for whether that matters for the interpretation.
-We will follow a long trajectory from mathematics since the 1960s, and think about the objects of mathematics as having structure, and themselves being amenable to analyses of various sorts. This is one (of many) attempts in the academic disciplines to not begin with atomistic individuals and then build a representation of the world as the interaction of those individuals. In the social sciences one runs into discussions of the primacy of fields, relations, ecological systems, emergent forms, or complex adaptive systems. They (and others) seek to have a way of representing the social reality as having a structure that isn't simply the aggregation of individual effects. This can be because they want to find better ways of performing the aggregation - i.e., they still believe that the underlying reality is composed of individuals doing things - or it can be that they believe that the structures precede and produce the individuals in some way - i.e., that there is a natural order, a shared set of interests, commonalities in ways of acting, or constraints on the field of becoming that will result in only certain outcomes being available to the individual.  
-
-We will see a paired problem - or opportunity - of what we may call "computability." It has to do with the choice of the basic unit around which other computations will be performed. It is a determination that is in terms of the space, as determined above, but that gives that space its "best" metric, and grounds calculation in terms of operations that fit that metric. In this case, the natural choice is the individual person, although there are times when it might be more effective to use "family" or "household" - that the households and families are ultimately made up of individuals is what grounds the final choice of the computational metric, but that choice makes it harder to model people who don't live in traditional arrangements. They end up being either implicitly or explicitly excluded from models of social dynamics based on household and family data, at sometimes hard to measure loss in the utility of the models produced. There are other ways of thinking about computability, mostly having to do with whether the internal logic of the computation guarantees completion, with famously difficult cases arising from the way that computational approaches handle infinity. Here we note that there is a complement to that question, which is merely that the sense of having completed a computation requires a meaningful unit upon which the computation terminates. That every thing that we can represent to ourselves can be represented in terms of binary code jumps to the end of the argument, and although we'll touch on that, later, the point here is to note that there are mundane senses in which computation depends on knowing what the unit of computation is, and how it relates to the operations performed on those units.
-
-As we saw in the previous section on problems with the American Community Survey, there are practical reasons we need to move back to the 2010 decennial census, especially it's detailed geographic reports. There are two main technical documents for the tables created for smallest area (block group) demographic data. 
+As we saw in the previous section on problems with the American Community Survey, there are practical reasons we need to move back to the 2010 and 2020 decennial census reports, especially the detailed geographic reports. There are two main technical documents for the tables created for smallest area (block group) demographic data in each decade. 
 
 The two have similar tables, but different levels of detail provided. They provide some information on how to download the files, although we're using the R library censusapi in our script, CensusData.R, to make calls.
 If you want to look at the details, go to the List of Tables (Matrices) to see what sorts of reports are produced. The first is populations summarized (with a few exceptions) at the block level: [2010 block level summary](https://www2.census.gov/programs-surveys/decennial/2010/technical-documentation/complete-tech-docs/summary-file/sf1.pdf) [2020 technical summary block and tract](https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/demographic-and-housing-characteristics-file-and-demographic-profile/2020census-demographic-and-housing-characteristics-file-and-demographic-profile-techdoc.pdf)
@@ -77,17 +65,18 @@ Let's begin with PCT12, which is tract level data but has every age by year, gen
 
 ```{r look at PCT12}
 #this gives you by every year at the tract level - could be a good example for adding together - PCTs never go below tract level
-trSAR_data_from_census <- 
+trSAR_dec_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT12",county_num = county,
                          block="tract",api_type="dec/dhc",path_suff="est.csv") #dec/sf1 for 2010!!
-trSAR_data_from_census <- trSAR_data_from_census %>%
+#This is all of Texas, and for this example, we'll just use Harris County. 
+trSAR_dec_data_from_census <- trSAR_dec_data_from_census %>%
       select(name,label,concept,starts_with(st_county))
 #needs to be numeric for the sum in the test
-trSAR_data_from_census <- as.data.table(trSAR_data_from_census)
-trSAR_data_from_census[,4:ncol(trSAR_data_from_census)] <- 
-  trSAR_data_from_census[,lapply(.SD[,4:ncol(trSAR_data_from_census)], as.numeric)]
-head(trSAR_data_from_census[,1:5])
+trSAR_dec_data_from_census_DT <- as.data.table(trSAR_dec_data_from_census)
+trSAR_dec_data_from_census_DT[,4:ncol(trSAR_dec_data_from_census_DT)] <- 
+  trSAR_dec_data_from_census_DT[,lapply(.SD[,4:ncol(trSAR_dec_data_from_census_DT)], as.numeric)]
+head(trSAR_dec_data_from_census_DT[,1:5])
 ```
 
 A quick glance shows that this has reporting for every year of age and at fifteen different levels for race and ethnicity, which is considerably more specificity than the reporting under ACS or at the block group level, reported as the number of people who fall into that category for every census tract in the state. That specificity provides a very granular embedding context (or structured space) on the conceptual level but is less specific geographically. It has every tract for the entire state, but some of the larger tracts are divided into 6 block_groups, which provides considerably more geographic context. One of the goals of our current approach is to show why thinking about the reporting on basic concepts like sex and age should be thought of as a similar problem as geographic boundaries - i.e., that both should be thought of as an articulation of structure within the context where the individual is placed in the representation. By paying close attention to that problem of articulating a coherent and meaningful structure, we can make explicit which mathematical operations are justified when transforming between the various possible representations of the data. 
@@ -95,8 +84,8 @@ A quick glance shows that this has reporting for every year of age and at fiftee
 Just to give a sense for how testing for coherent structure arises from and resonates with the broader process of building the data representation, we include some of the very basic ways that we can test for consistency. The following are repeated for each download from the census, as we look for obvious problems with the file either as reported or as a result of an improper download (like asking for the wrong file). In this version, we have put a data.table wrapper around the census data and sum the number of NAs in the columns. Because of how the Census Bureau allows access to its APIs, public users without permission for certain levels of granularity will sometimes return a file with NAs but not consider that a problem and not produce an error. In this case, we decided to represent the number of NAs as a percentage, and not just an absolute count, because sometimes we want to use data that is reported for only some of the rows, even if NAs are reported in some of the other rows. We don't want the download to fail unless there are only NAs, but if there are any at all, we want to know about it and know where to look for the problem. In later downloads, several of these tests are gathered in a single function call in tests.R as census_table_check. One of our ongoing tasks is to better automate those tests.
 
 ```{r test for na}
-    percent_na <- trSAR_data_from_census[,sum(is.na(.SD))] / 
-      (trSAR_data_from_census[,sum(!is.na(.SD))]+trSAR_data_from_census[,sum(is.na(.SD))])
+    percent_na <- trSAR_dec_data_from_census_DT[,sum(is.na(.SD))] / 
+      (trSAR_dec_data_from_census_DT[,sum(!is.na(.SD))]+trSAR_dec_data_from_census_DT[,sum(is.na(.SD))])
     paste("Percentage of NAs in file:",as.integer(100*percent_na))
     rm(percent_na)
 ```
@@ -105,8 +94,10 @@ After seeing that there are no NAs, we need to check to make sure that the repor
 
 ```{r check for consistency on totals}
 #there's a total for each concept and for the whole, but in the ones without a total, there are also total female and male.
-test <- colSums(trSAR_data_from_census[label=="Total",4:ncol(trSAR_data_from_census)])*2 ==
-      colSums(trSAR_data_from_census[label!="Total",4:ncol(trSAR_data_from_census)])
+#test_2010 <- colSums(trSAR_dec_data_from_census_DT[label=="Total",4:ncol(trSAR_dec_data_from_census_DT)])*2 ==
+#      colSums(trSAR_dec_data_from_census_DT[label!="Total",4:ncol(trSAR_dec_data_from_census_DT)])
+test <- colSums(trSAR_dec_data_from_census_DT[label=="!!Total:",4:ncol(trSAR_dec_data_from_census_DT)])*2 ==
+      colSums(trSAR_dec_data_from_census_DT[label!="!!Total:",4:ncol(trSAR_dec_data_from_census_DT)])
 #see if any of the tests don't match; if false, need to go back and check on what happened
 length(test[test==F])==0
 ```
@@ -114,49 +105,52 @@ length(test[test==F])==0
 If we want to know only the row that gives us the official census total population per census tract, we can add in the designation for concept. We know more having looked at the calculations involving all rows, as above, because if any of the totals had not been equal, we could look for a data problem in the specific place in the tables where the error emerged. Let's get the official totals in a separate file, just so we can use it to check later. (We'll find that we need it right away). 
 
 ```{r get totals by tract}
-pop_totals_tract <- trSAR_data_from_census[label=="Total"&concept=="SEX BY AGE",4:ncol(trSAR_data_from_census)]
+pop_totals_tract <- trSAR_dec_data_from_census_DT[label=="!!Total:"&concept=="SEX BY SINGLE-YEAR AGE",4:ncol(trSAR_dec_data_from_census_DT)] #SEX BY AGE in 2010
 paste0("Population total for Harris County by tract: ", sum(pop_totals_tract[,]))
 ```
 
-The same convenience set lets us know some other facts about the variation in size of the tracts in Harris County. Shortly, we'll find better shortcuts for displaying summary statistics, but for now we just create a few quick measures.
+The same convenience set lets us know some other facts about the variation in size of the tracts in Texas. Shortly, we'll find better shortcuts for displaying summary statistics, but for now we just create a few quick measures.
 
 ```{r Harris tract stats}
-paste0("Number of Harris County tracts: ", ncol(trSAR_data_from_census[,4:ncol(trSAR_data_from_census)]))
+paste0("Number of Harris County tracts: ", ncol(trSAR_dec_data_from_census_DT[,4:ncol(trSAR_dec_data_from_census_DT)]))
 paste0("Average population size for Harris County tracts: ", as.integer(mean(as.numeric(pop_totals_tract[,]))))
 paste0("Median population size for Harris County tracts: ", as.integer(median(as.numeric(pop_totals_tract[,]))))
 paste0("Maximum population size for Harris County tract: ", max(as.numeric(pop_totals_tract[,])))
 paste0("Minimum population size for Harris County tract: ", min(as.numeric(pop_totals_tract[,])))
+rm(trSAR_dec_data_from_census_DT)
+rm(pop_totals_tract)
 ```
-
-The population total for Harris County is what you'll find on the internet as the official population of Harris County in 2010, as long as it's referring back to the Census Bureau (cf, https://www.census.gov/quickfacts/harriscountytexas, accessed on 1/14/22).
 
 Now that we have the information at the tract level, let's also pick up the block level data.
 
 ```{r block_group sex by age}
-bgSAR_data_from_census <- 
+bgSAR_dec_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "P12",county_num = county,
+                         groupname = "P12",county_num = county, 
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
-bgSAR_data <- as.data.table(bgSAR_data_from_census)
-bgSAR_data[,4:ncol(bgSAR_data)] <- 
-  bgSAR_data[,lapply(.SD[,4:ncol(bgSAR_data)], as.numeric)]
-rm(bgSAR_data_from_census)
+bgSAR_dec_data_from_census_DT <- as.data.table(bgSAR_dec_data_from_census)
+bgSAR_dec_data_from_census_DT[,4:ncol(bgSAR_dec_data_from_census_DT)] <- 
+  bgSAR_dec_data_from_census_DT[,lapply(.SD[,4:ncol(bgSAR_dec_data_from_census_DT)], as.numeric)]
+#rm(bgSAR_dec_data_from_census)
 ```
 
 It would be nice to use this immediately as our base, but we quickly see it doesn't have as many rows breaking out race and ethnicity. It has nine total categories for race and ethnicity - losing most of the categories in ethnicity - and age is reported in odd aggregations that will make comparison difficult with other data reporting. Let's run a few quick tests on the download.
 
 ```{r demography test problems}
-check_summary <- census_table_check(bgSAR_data, "SEX BY AGE","individuals") #should get a function that fails appropriately
+#2010 check_summary <- census_table_check(bgSAR_dec_data_from_census_DT, "SEX BY AGE","individuals") #should get a function that fails appropriately
+check_summary <- census_table_check(bgSAR_dec_data_from_census_DT, "SEX BY AGE FOR SELECTED AGE CATEGORIES","individuals","!!Total:")
 cat(check_summary[1])
-pop_totals_bg <- bgSAR_data[label=="Total"&concept=="SEX BY AGE",4:ncol(bgSAR_data)]
-sum(pop_totals_tract[,])==sum(pop_totals_bg[,])
-paste0("Number of Harris County block groups: ", ncol(bgSAR_data[,4:ncol(bgSAR_data)]))
-paste0("Average population size for Harris County block groups: ", as.integer(mean(as.numeric(pop_totals_bg[,]))))
-paste0("Median population size for Harris County block groups: ", as.integer(median(as.numeric(pop_totals_bg[,]))))
-paste0("Maximum population size for Harris County block group: ", max(as.numeric(pop_totals_bg[,])))
-paste0("Minimum population size for Harris County block group: ", min(as.numeric(pop_totals_bg[,])))
+pop_totals_bg <- bgSAR_dec_data_from_census_DT[label=="!!Total:"&concept=="SEX BY AGE FOR SELECTED AGE CATEGORIES",4:ncol(bgSAR_dec_data_from_census_DT)]
+sum(pop_totals_tract[,])==sum(pop_totals_bg[,],na.rm = TRUE)
+paste0("Number of Harris County block groups: ", ncol(bgSAR_dec_data_from_census_DT[,4:ncol(bgSAR_dec_data_from_census_DT)]))
+paste0("Average population size for Harris County block groups: ", as.integer(mean(as.numeric(pop_totals_bg[,]),na.rm = TRUE)))
+paste0("Median population size for Harris County block groups: ", as.integer(median(as.numeric(pop_totals_bg[,]),na.rm = TRUE)))
+paste0("Maximum population size for Harris County block group: ", max(as.numeric(pop_totals_bg[,]),na.rm = TRUE))
+paste0("Minimum population size for Harris County block group: ", min(as.numeric(pop_totals_bg[,]),na.rm = TRUE))
 rm(pop_totals_bg)
 rm(pop_totals_tract)
+rm(bgSAR_dec_data_from_census_DT)
+rm(trSAR_dec_data_from_census_DT)
 ```
 
 We note, very quickly, that the median tract is almost three times as large as the median block group, but there is a good deal of variability in size on both. 
@@ -184,22 +178,35 @@ First, we need to identify the rows which, if added together, give us a complete
 We can use a little trick because of how the R library dyplyr performs the translation and expansion of the representation, so that we're looking at rows of people with geographic and demographic properties and not rows of categories against columns of geography. We will get a warning that NAs were introduced by coercion, but it happens that those will be the rows that we want to exclude in any case. We'll show the warnings, here, but suppress them later.
 
 ```{r expand trSARE for the tracts in PC12, warning = FALSE}
-trSARE <- trSAR_data_from_census %>%
-  pivot_longer(4:ncol(trSAR_data_from_census),names_to = "tract", values_to = "number_sams",
+#not using DT for this
+trSARE_dec <- trSAR_dec_data_from_census %>%
+  pivot_longer(4:ncol(trSAR_dec_data_from_census),names_to = "tract", values_to = "number_sams",
                names_transform = list(tract=as.character)) %>%
-  separate(label, c("total","sex","age"), sep = "!!", remove = F, convert = FALSE) %>%
-  mutate(re_code = substr(name,7,7),
-         race = str_replace(concept,"SEX BY AGE \\(",""),
+  separate(label, c("total","sex","age"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(re_code = substr(name,6,6),
+         race = str_replace(concept,"SEX BY SINGLE-YEAR AGE \\(",""),
          race = str_replace(race,"\\)",""),
          age = str_replace(age, "Under 1 year", "0"),
          age = str_replace(age,"year"," year"),
          age = as.integer(substr(age,1,3))
          ) %>%
   filter(number_sams > 0, !is.na(age))
-paste0("There are ",length(unique(trSARE$age)), " unique categories for age (each year up to 100 and then two over 100 groups).")
-paste0("There are ",length(unique(trSARE$re_code)), " unique categories for race and ethnicity.")
-paste0("Along with two categories for sex, we have ",length(unique(trSARE$age))*length(unique(trSARE$re_code))*2," different categories people can fall into.")
-rm(trSAR_data_from_census)
+#2010trSARE_dec <- trSAR_dec_data_from_census %>%
+#  pivot_longer(4:ncol(trSAR_dec_data_from_census),names_to = "tract", values_to = "number_sams",
+#               names_transform = list(tract=as.character)) %>%
+#  separate(label, c("total","sex","age"), sep = "!!", remove = F, convert = FALSE) %>%
+#  mutate(re_code = substr(name,7,7),
+#         race = str_replace(concept,"SEX BY AGE \\(",""),
+#         race = str_replace(race,"\\)",""),
+#         age = str_replace(age, "Under 1 year", "0"),
+#         age = str_replace(age,"year"," year"),
+#         age = as.integer(substr(age,1,3))
+#         ) %>%
+#  filter(number_sams > 0, !is.na(age))
+paste0("There are ",length(unique(trSARE_dec$age)), " unique categories for age (each year up to 100 and then two over 100 groups).")
+paste0("There are ",length(unique(trSARE_dec$re_code)), " unique categories for race and ethnicity.")
+paste0("Along with two categories for sex, we have ",length(unique(trSARE_dec$age))*length(unique(trSARE_dec$re_code))*2," different categories people can fall into.")
+rm(trSAR_dec_data_from_census)
 ```
 
 Once we have the file for the entire population, we'll want to make one complete population with ethnicity and one complete population with race. It is worthwhile to take a second to think about what it means for the two representations of the entire population to be "equal" to each other. That they have the same number of people in each tract is part of the justification for saying they are equal but might be better phrased as saying that both tables are about the "same" people. There is also the way of saying they are equal because the schemas for classification have the same number of individuals in them, regardless of what you call the person in the particular category (i.e., "Hispanic" or "Latino" are treated as the same thing). And then, yet further, there is the sense in which the distinctions, and the combinations of the distinctions (i.e., what is called the power set produced by multiplying categories by each other) are equivalent if they divide the individuals considered as objects in the schema in the same way. That is, if you slice up the sets in different ways, but still come up with the same number of people in each cell, there's a certain type of "equality" there. To speak of "equality" in "ways of talking" is an attempt to make clear how mathematical objects, their structures, and the ways that their structures are conserved (or not) when moving between these "ways of talking" are all at stake even in fairly mundane classification tasks.
@@ -325,27 +332,48 @@ Let's set this representation of the population aside for a moment and look at t
 
 
 ```{r expand bgSARE, warning = FALSE}
-bgSARE <- bgSAR_data %>%
-  pivot_longer(4:ncol(bgSAR_data),names_to = "geoid", values_to = "number_sams",
+#2010 - bgSARE <- bgSAR_dec_data_from_census %>%
+#  pivot_longer(4:ncol(bgSAR_dec_data_from_census),names_to = "geoid", values_to = "number_sams",
+#                   names_transform = list(geoid=as.character)) %>%
+#      separate(label, c("total","sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+#      mutate(re_code = substr(name,5,5),
+#             race = str_replace(concept,"SEX BY AGE \\(",""),
+#             race = str_replace(race,"\\)",""),
+#             age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), 
+#             age_range = str_replace(age_range,"5 to 9 years","05 to  9 years"),
+#             age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
+#             age_range = str_replace(age_range,"20 years","20 to 20 years"),
+#             age_range = str_replace(age_range,"21 years","21 to 21 years"),
+#             age_range = str_replace(age_range,"85 years and over","85 to 110 years"),
+#             age_range = str_replace(age_range,"and","to"),
+#             first_age = as.integer(substr(age_range,1,2)),
+#             last_age = as.integer(substr(age_range,7,8)),
+#             tract = str_remove_all(geoid,"_"),
+#             tract = substr(tract,1,11)
+#             ) %>%
+#      filter(number_sams > 0, !is.na(age_range))
+bgSARE_dec <- bgSAR_dec_data_from_census %>%
+  pivot_longer(6:ncol(bgSAR_dec_data_from_census),names_to = "geoid", values_to = "number_sams",
                    names_transform = list(geoid=as.character)) %>%
-      separate(label, c("total","sex","age_range"), sep = "!!", remove = F, convert = FALSE) %>%
-      mutate(re_code = substr(name,5,5),
-             race = str_replace(concept,"SEX BY AGE \\(",""),
-             race = str_replace(race,"\\)",""),
-             age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), 
-             age_range = str_replace(age_range,"5 to 9 years","05 to  9 years"),
-             age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
-             age_range = str_replace(age_range,"20 years","20 to 20 years"),
-             age_range = str_replace(age_range,"21 years","21 to 21 years"),
-             age_range = str_replace(age_range,"85 years and over","85 to 110 years"),
-             age_range = str_replace(age_range,"and","to"),
-             first_age = as.integer(substr(age_range,1,2)),
-             last_age = as.integer(substr(age_range,7,8)),
-             tract = str_remove_all(geoid,"_"),
-             tract = substr(tract,1,11)
-             ) %>%
-      filter(number_sams > 0, !is.na(age_range))
-rm(bgSAR_data)
+  mutate(geoid = str_remove_all(geoid, "_")) %>%
+  separate(label, c("total","sex","age_range"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(re_code = substr(name,5,5),
+         race = str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(",""),
+         race = str_replace(race,"\\)",""),
+         age_range = str_replace(age_range,"Under 5 years","0  to  4 years"), 
+         age_range = str_replace(age_range,"5 to 9 years","05 to  9 years"),
+         age_range = str_replace(age_range,"18 and 19 years","18 to 19 years"),
+         age_range = str_replace(age_range,"20 years","20 to 20 years"),
+         age_range = str_replace(age_range,"21 years","21 to 21 years"),
+         age_range = str_replace(age_range,"85 years and over","85 to 110 years"),
+         age_range = str_replace(age_range,"and","to"),
+         first_age = as.integer(substr(age_range,1,2)),
+         last_age = as.integer(substr(age_range,7,8)),
+         tract = str_remove_all(geoid,"_"),
+         tract = substr(tract,1,11)
+         ) %>%
+  filter(number_sams > 0, !is.na(age_range))
+rm(bgSAR_dec_data_from_census)
 ```
 
 Now we filter and construct distinct tables by race and ethnicity codes.
@@ -742,3 +770,20 @@ if (file.exists(paste0(censusdir,vintage,"/working"))){
 ```
 
 Continue with making_sam_bg_hh
+
+
+NOTES:
+In a broad sense, we're asking - at a practical level - what's it mean to use .map on the construction of epidemiology's domain and co-domain as explicitly about how we talk about vs. how relations build on each other. Not the convergence toward a single perspective, but toward a shared commitment to speaking about what matters in the relations.
+
+For restructuring of argument part - that the construction "from the outside" of the type theory lets you resolve the arguments without positing the consistency of the inside as given - you don't have to believe the axiom of reducibility or that there is a zero-degree homotopy (should we try to show that things like that are equal?)
+
+Plan: find smallest units of "space" (geographic and/or conceptual) from decennial census and build a cohesive representation of Harris County (called Sam City) by piecing together the various representations output by the census. 
+
+Somewhere - that there are a few different metaphors one might use for how a table relates to a full population. One can think of it as a sample, or a sample of a sample, as a view on a pivot table, or a kind of literal movement of markers for real things into bins of some sort, counting the predicates. That, instead, we wish to see it as a way of structuring an account that responds to what one is trying to show (or to hide) and how one constructs a cohesive space within which the important other relations will hold (and we can do arithmetic and summarization, etc.). It's also important that at that point, you're not talking about ways of naming individuals and then aggregating over that name, but that you're talking about ways of talking about collections, and how names are distributed within that space - so there's a subsetting logic, even if you name the whole population, if you're only talking about them in terms of one way of talking. 
+
+By selection, we mean choosing one way of speaking about the population as opposed to another. You are selecting within the power set of all the combined ways of talking, which can exclude whole people from being spoken of at all, or can cause some people to be spoken of in two ways - the example we'll dive into in-depth is race and ethnicity. To select only "children" is then also to select by a way of talking, so that selecting the category of humans under 18 years of age is different than to select the households where a biological child of the householder is present. The way we want to approach this, mathematically, is to record the choices and see what other tools rebound to our use because of those choices. If you've made a selection, after all, you've introduced a distinction into the set that has both what is included and what is excluded. You've also introduced a way of producing individuals "as" either included or excluded. There are tools available to us that take what we know about the included to talk about the excluded, or to talk about the process of producing inclusion or exclusion, and how one might modify a given process to produce different results.
+
+By "space" we mean something that helps situate a characterization within a structure, not the placement of an individual thing within a bunch of other individual things that happen to be "close" in some assigned sense of distance. A context is an example of a distance-based space, as your neighborhood provides context for your dwelling, but part of the point of our exercise with Sam City is to show other ways to think about the structuring of "space" and the ways in which an attention to space allows one to better engage in structuring data representations that are fully responsive to their originating questions. Such a project has basic implications for how we think about neighborhood effects on individuals, most immediately in terms of the granularity we build into the representations and our sense for whether that matters for the interpretation.
+We will follow a long trajectory from mathematics since the 1960s, and think about the objects of mathematics as having structure, and themselves being amenable to analyses of various sorts. This is one (of many) attempts in the academic disciplines to not begin with atomistic individuals and then build a representation of the world as the interaction of those individuals. In the social sciences one runs into discussions of the primacy of fields, relations, ecological systems, emergent forms, or complex adaptive systems. They (and others) seek to have a way of representing the social reality as having a structure that isn't simply the aggregation of individual effects. This can be because they want to find better ways of performing the aggregation - i.e., they still believe that the underlying reality is composed of individuals doing things - or it can be that they believe that the structures precede and produce the individuals in some way - i.e., that there is a natural order, a shared set of interests, commonalities in ways of acting, or constraints on the field of becoming that will result in only certain outcomes being available to the individual.  
+
+We will see a paired problem - or opportunity - of what we may call "computability." It has to do with the choice of the basic unit around which other computations will be performed. It is a determination that is in terms of the space, as determined above, but that gives that space its "best" metric, and grounds calculation in terms of operations that fit that metric. In this case, the natural choice is the individual person, although there are times when it might be more effective to use "family" or "household" - that the households and families are ultimately made up of individuals is what grounds the final choice of the computational metric, but that choice makes it harder to model people who don't live in traditional arrangements. They end up being either implicitly or explicitly excluded from models of social dynamics based on household and family data, at sometimes hard to measure loss in the utility of the models produced. There are other ways of thinking about computability, mostly having to do with whether the internal logic of the computation guarantees completion, with famously difficult cases arising from the way that computational approaches handle infinity. Here we note that there is a complement to that question, which is merely that the sense of having completed a computation requires a meaningful unit upon which the computation terminates. That every thing that we can represent to ourselves can be represented in terms of binary code jumps to the end of the argument, and although we'll touch on that, later, the point here is to note that there are mundane senses in which computation depends on knowing what the unit of computation is, and how it relates to the operations performed on those units.
