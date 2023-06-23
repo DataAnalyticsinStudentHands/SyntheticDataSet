@@ -60,6 +60,8 @@ Do post-enumeration fix
 Point is that after you've expanded to all the products, you are distributing among them.
 You multiply the percentages by each category given, then the others provide a limit for the distribution from the other intersecting side. With just the variables given in PES, what can we do...
 
+https://www.census.gov/data/developers/data-sets/decennial-response-rates/2020.html goes to tract level on self-response rates; could use it vs. race to see which is better for getting at total...
+
 Idea is that sampling from a concept space is always happening - you're not sampling individuals from a total constructed by nature, but from one of many ways that you might do so. Some of them will make more sense than others, of course.
 
 Might compare it with what you get from doing cross-tabs with the 100k folks in a PUMS, because that gives a sense of what it means for something to be sampled from a constructed space...
@@ -657,6 +659,7 @@ What we mean by structure is embodied in how the names can circulate in relation
 #> unique(bgSARE[re_code_eth=="I",race])
 #[1] "WHITE ALONE, NOT HISPANIC OR LATINO"
 #> 
+#> #adding in each year doesn't make much difference, but serves the same purpose of making it individuated.
 bgSARE[,("re_code"):=fcase(re_code_eth=="I","A",
                             re_code_eth=="P","A",
                             re_code_eth=="J","B",
@@ -698,6 +701,10 @@ FIGURE OUT WHICH ONES TO CLEAN AND THEN SAVE
 rm(trSAE)
 rm(trSAR)
 bgSARE[,c("name","label","total","concept","sams_race_id","age_match_id"):=NULL]
+```
+
+
+```{r save working bgSARE}
 if (file.exists(paste0(censusdir,vintage,"/working/bgSARE.RDS"))){
   file.remove(paste0(censusdir,vintage,"/working/bgSARE.RDS"))
 }

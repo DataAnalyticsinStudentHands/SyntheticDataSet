@@ -41,12 +41,140 @@ tract = "*"
 Sam_seed = 135
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
-if(file.exists(paste0(censusdir,vintage,"/working/bgSARE.RDS"))){
-  bgSARE <- readRDS(paste0(censusdir,vintage,"/working/bgSARE.RDS"))
-}else{
-  print("no bgSARE file found")
-}
+
 #need to think through the  part of the naming throughout...
+```
+
+
+```{r add P16 hh type race and eth}
+#1
+bg_hh_type_race_eth_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "P16", county_num = "*",
+                         block="block_group", api_type="dec/dhc",
+                         path_suff="est.csv")
+```
+
+The households have data associated with them, and each household will have an id. The head of household is given extra tables, although there are reasons to think hard about the various ways in which head of household is designated and only recently has the census allowed for female head of household when a male is present.
+The one with household type, race and ethnicity will serve as our base, and so we'll call it bgHH. 
+
+```{r set up bgHH from bg_hh_type_race_eth_data_from_census}
+bgHH_data <- as.data.table(bg_hh_type_race_eth_data_from_census)
+bgHH_data[,6:ncol(bgHH_data)] <- 
+  bgHH_data[,lapply(.SD[,6:ncol(bgHH_data)], as.numeric)]
+bgHH_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
+rm(bg_hh_type_race_eth_data_from_census)
+
+#feed to test.R - doesn't work for totals because of how ethnicity is counted. So just make sure pop totals work
+#check_summary <- census_table_check(bgHH_data, "HOUSEHOLD TYPE","household","!!Total:",3)
+#cat(check_summary)
+
+#make a totals file
+pop_totals_hh <- bgHH_data[name=="P16_001N",4:ncol(bgHH_data)]
+sum(pop_totals_hh[,],na.rm = TRUE) #==sum(pop_totals_bg[,],na.rm = TRUE)
+paste0("Number of block groups: ", ncol(bgHH_data[,4:ncol(bgHH_data)]))
+paste0("Average number of households in block groups: ", as.integer(mean(as.numeric(pop_totals_hh[,]),na.rm = TRUE)))
+paste0("Median number of households in block groups: ", as.integer(median(as.numeric(pop_totals_hh[,]),na.rm = TRUE)))
+paste0("Maximum number of households in block group: ", max(as.numeric(pop_totals_hh[,]),na.rm = TRUE))
+paste0("Minimum number of households in block group: ", min(as.numeric(pop_totals_hh[,]),na.rm = TRUE))
+
+#make long
+system.time(
+trSARE_dec <- trSAR_dec_data_from_census %>%
+  pivot_longer(4:ncol(trSAR_dec_data_from_census),names_to = "tract", values_to = "number_sams",
+               names_transform = list(tract=as.character)) %>%
+  separate(label, c("total","sex","age"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(re_code = substr(name,6,6),
+         race = str_replace(concept,"SEX BY SINGLE-YEAR AGE \\(",""),
+         race = str_replace(race,"\\)",""),
+         age = str_replace(age, "Under 1 year", "0"),
+         age = str_replace(age,"year"," year"),
+         age = as.integer(substr(age,1,3))
+         ) %>%
+  filter(number_sams > 0, !is.na(age))
+)
+
+#uncount
+```
+
+#add age tenure for hh with race and ethnicity
+```{r add age tenure to bgHH with race and ethnicity}
+#2
+bg_hh_age_tenure_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "H13", county_num = "*",
+                         block="block_group", api_type="dec/dhc",
+                         path_suff="est.csv")
+bg_hh_age_data <- as.data.table(bg_hh_age_tenure_data_from_census)
+bg_hh_age_data[,6:ncol(bg_hh_age_data)] <- 
+  bg_hh_age_data[,lapply(.SD[,6:ncol(bg_hh_age_data)], as.numeric)]
+rm(bg_hh_age_tenure_data_from_census)
+
+#feed to test.R
+
+#make a totals file
+
+#make long
+
+#uncount
+
+#add to bgHH
+
+#tests
+```
+
+#add type and tenure by race and ethnicity
+```{r add hh type and tenure by race and ethnicity}
+#3
+bg_hh_type_tenure_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "H14", county_num = "*",
+                         block="block_group", api_type="dec/dhc",
+                         path_suff="est.csv")
+bg_hh_type_data <- as.data.table(bg_hh_type_tenure_data_from_census)
+bg_hh_type_data[,6:ncol(bg_hh_type_data)] <- 
+  bg_hh_type_data[,lapply(.SD[,6:ncol(bg_hh_type_data)], as.numeric)]
+rm(bg_hh_type_tenure_data_from_census)
+
+#feed to test.R
+
+#make a totals file
+
+#make long
+
+#uncount
+
+#add to bgHH
+
+#tests
+```
+
+#add hh size
+```{r add hh size data to bgHH}
+#4
+bg_hh_size_tenure_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "H12", county_num = "*",
+                         block="block_group", api_type="dec/dhc",
+                         path_suff="est.csv")
+#add with PCT7 (tract), which breaks these out for family and non-family, but otherwise matches...
+bg_hh_size_data <- as.data.table(bg_hh_size_tenure_data_from_census)
+bg_hh_size_data[,6:ncol(bg_hh_size_data)] <- 
+  bg_hh_size_data[,lapply(.SD[,6:ncol(bg_hh_size_data)], as.numeric)]
+rm(bg_hh_size_tenure_data_from_census)
+
+#feed to test.R
+
+#make a totals file
+
+#make long
+
+#uncount
+
+#add to bgHH
+
+#tests
+
 ```
 
 #some tests
@@ -61,46 +189,21 @@ bg_gq_data[,4:ncol(bg_gq_data)] <-
 rm(bg_gq_data_from_census)
 
 
-bg_hh_tenure_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "H10",county_num = "*",
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
-bg_hh_tenure_data <- as.data.table(bg_hh_tenure_data_from_census)
-bg_hh_tenure_data[,4:ncol(bg_gq_data)] <- 
-  bg_hh_tenure_data[,lapply(.SD[,4:ncol(bg_gq_data)], as.numeric)]
-rm(bg_hh_tenure_data_from_census)
 
-bg_hh_tenure_eth_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "H11",county_num = "*",
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
 
-#compare with 10 and 11
+#compare with 10 and 11 / could use just for testing that the others still hold, but probably don't need
 bg_hh_race_eth_tenure_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "H7",county_num = "*",
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
-
-bg_hh_size_tenure_data_from_census <- 
+bg_hh_tenure_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "H12",county_num = "*",
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
-#add with PCT7 (tract), which breaks these out for family and non-family, but otherwise matches...
-
-#this might be the starting one!!
-bg_hh_age_tenure_bg_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "H13",county_num = "*",
+                         groupname = "H10",county_num = "*",
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
 
-bg_hh_type_tenure_data_from_census <- 
+bg_hh_tenure_eth_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "H14",county_num = "*",
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
-
-bg_hh_type_race_eth_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "P16",county_num = "*",
+                         groupname = "H11",county_num = "*",
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
 
 tr_hh_own_children_tenure_data_from_census <- 
@@ -108,17 +211,17 @@ tr_hh_own_children_tenure_data_from_census <-
                          groupname = "HCT2",county_num = "*",
                          block="tract",api_type="dec/dhc",path_suff="est.csv")
 #and PCT8 RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
-
+#5
 bg_hh_own_children_type_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P20",county_num = "*",
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
 
-tr_hh_type_children_data_from_census <- 
+tr_hh_tenure_children_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "HCT3",county_num = "*",
                          block="tract",api_type="dec/dhc",path_suff="est.csv")
-
+#6
 bg_hh_family_children_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P21",county_num = "*",
@@ -134,7 +237,7 @@ bg_hh_type_relation_data_from_census <-  #seems to have all the categories of PC
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P17",county_num = "*",
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
-
+#7
 bg_hh_seniors_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P19",county_num = "*",
@@ -163,7 +266,6 @@ response_data_from_census <- getCensus(name = "dec/responserate",
                                          key = censuskey)
 #and https://api.census.gov/data/2020/dec/pes/variables.html for other alternatives on expanding...
 ```
-
 
 #ADD HOUSEHOLDS AND GROUP QUARTERS
 
@@ -330,6 +432,13 @@ For the household data, we don't have anything that tells us which block they're
 
 If there are 2 people with same demographics in different block_groups, which one is assigned to the household population and which one to group quarters? That asks the question backwards in some sense. What we're really saying is that given that within each tract, a certain number of each type is to be distributed, are all the distributions fully determined? If so, then the block_groups will be correctly distributed. For example, if we have two persons who are identified as "White Alone, Not Hispanic or Latino," "Female," and age of "10 to 14 years," in two different block groups in a single tract in the block groups file and one person identified that way in the household file, there's no way to know which one should be labeled as being in the household and which one in group quarters. We do know some limited things about the distribution of group quarters, however, and let's try to use that to narrow down the issues. It's really a matter of channeling the distribution into more fully delimited paths, until the underlying structures are as conserved as possible.
 
+```{r bring back bgSARE}
+if(file.exists(paste0(censusdir,vintage,"/working/bgSARE.RDS"))){
+  bgSARE <- readRDS(paste0(censusdir,vintage,"/working/bgSARE.RDS"))
+}else{
+  print("no bgSARE file found")
+}
+```
 
 ```{r determine size of mismatch across block groups}
 #block_group/tract sex, age, race, and ethnicity = bg_sare/tr_sare 
@@ -1121,6 +1230,8 @@ bggq[tr_gq_specs=="Correctional residential facilities (105)"&
 We will talk a bit more, below, about how to understand what sort of difference these nudges made, but for right now we should concentrate on finishing the matches at the level that we can know.
 
 #Finishing the bgSAR matches for group quarters and households
+
+
 We remember that, above, we had only fully matched bgSAR on households for Whites, since we only had complete information for that race and ethnicity. Now we have some knowledge of the race and ethnicity of other individuals in group quarters and can make sure that we assign race and ethnicity with as much precision as possible at the block group level.
 
 ```{r testing bgSAR and trHHr and bggq}

@@ -16,14 +16,14 @@ library(dplyr) #may not be using; need to check
 #' @param vintage The census data year
 #' @param state The state for which the data is being pulled
 #' @param groupname the variable groupname we are pulling the data for
-#' @param county_num the census code for the county - only needed if there are blockgroups
+#' @param county_num the census code for the county - only needed if there are blockgroups; some APIs seem to ignore and return whole state...
 #' @param api_type the census api called from - https://www.census.gov/data/developers/data-sets.html
 #' @path_suff the suffix for the variable file and whether estimate or error -   "dec.csv" | "est.csv" | "err.csv"
 #' @block for region - either block_group or tract or zip
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
 #tools
-valid_file_path <- function(censusdir,vintage,state,api_type,block,groupname,path_suff){
+valid_file_path <- function(censusdir,vintage,state,county,api_type,block,groupname,path_suff){
   folder_path <- paste0(censusdir,vintage,"/state_",state)
   if (file.exists(paste0(folder_path,"/downloaded"))){
     print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))
@@ -37,7 +37,7 @@ valid_file_path <- function(censusdir,vintage,state,api_type,block,groupname,pat
     print(sprintf("created folder %s", paste0(folder_path,"/downloaded")))
   }
   api <- str_replace_all(api_type,"/","_")
-  file_path <- paste0(censusdir,vintage,"/state_",state,"/downloaded/", state, "_", api, "_", block, "_", groupname, "_", path_suff)
+  file_path <- paste0(censusdir,vintage,"/state_",state,"/downloaded/", state, county, "_", api, "_", block, "_", groupname, "_", path_suff)
   return(file_path)
 }
 
@@ -52,7 +52,7 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
       name = paste0(vintage,"/",api_type), 
       type = "variables") 
     write_json(census_variables,variables_json)
-    print(sprintf("retrieved variable options from census api"))
+    print(sprintf("retrieved variable options from %s from census api", variables_json))
   }else{
     #census_variables <- read_json(variables_json)
     print(sprintf("Read variable options from %s", variables_json))
@@ -75,7 +75,7 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
 }
 
 censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,county_num,block,api_type,path_suff){
-  file_path <- valid_file_path(censusdir,vintage,state,api_type,block,groupname,path_suff)
+  file_path <- valid_file_path(censusdir,vintage,state,county,api_type,block,groupname,path_suff)
   if (file.exists(file_path)){
     result <- read_csv(file_path, col_types = cols())
     print(sprintf("Reading file from %s", file_path))
@@ -119,7 +119,7 @@ censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,c
       select(-predicateType, -group, -limit, -attributes, -required)
     percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
-    print("Writing census file for variable group as csv ...")
+    print(sprintf("Writing census file for variable group as csv %s", file_path))
     write_csv(result,file_path)
     print("Done.")
   } 
