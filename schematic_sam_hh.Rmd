@@ -66,10 +66,10 @@ bgHH_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
 rm(bg_hh_type_race_eth_data_from_census)
 
 #feed to test.R - doesn't work for totals because of how ethnicity is counted. So just make sure pop totals work
-#check_summary <- census_table_check(bgHH_data, "HOUSEHOLD TYPE","household","!!Total:",3)
+#check_summary <- census_table_check(bgHH_data, "HOUSEHOLD TYPE","household"," !!Total:",2)
 #cat(check_summary)
 
-#make a totals file
+#make a totals file and check that way
 pop_totals_hh <- bgHH_data[name=="P16_001N",4:ncol(bgHH_data)]
 sum(pop_totals_hh[,],na.rm = TRUE) #==sum(pop_totals_bg[,],na.rm = TRUE)
 paste0("Number of block groups: ", ncol(bgHH_data[,4:ncol(bgHH_data)]))
@@ -79,22 +79,43 @@ paste0("Maximum number of households in block group: ", max(as.numeric(pop_total
 paste0("Minimum number of households in block group: ", min(as.numeric(pop_totals_hh[,]),na.rm = TRUE))
 
 #make long
-system.time(
-trSARE_dec <- trSAR_dec_data_from_census %>%
-  pivot_longer(4:ncol(trSAR_dec_data_from_census),names_to = "tract", values_to = "number_sams",
-               names_transform = list(tract=as.character)) %>%
-  separate(label, c("total","sex","age"), sep = ":!!", remove = F, convert = FALSE) %>%
-  mutate(re_code = substr(name,6,6),
-         race = str_replace(concept,"SEX BY SINGLE-YEAR AGE \\(",""),
-         race = str_replace(race,"\\)",""),
-         age = str_replace(age, "Under 1 year", "0"),
-         age = str_replace(age,"year"," year"),
-         age = as.integer(substr(age,1,3))
-         ) %>%
-  filter(number_sams > 0, !is.na(age))
-)
-
-#uncount
+bgHH_dec <- bgHH_data %>%
+  filter(label!=" !!Total:") %>% #sometimes doesn't have the beginning space!!!???
+  mutate(label=str_remove(label,"!!Total:!!"),
+         label=str_remove(label,"!!Other family:"),
+         label=str_remove(label,"!!Other family:")) %>%
+  pivot_longer(4:ncol(bgHH_data),names_to = "geoid", values_to = "number_sams",
+               names_transform = list(geoid=as.character)) %>%
+  filter(str_detect(geoid,"48_201")) %>% #for test, only Harris
+  separate(label, c("family","hh_type"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(
+    geoid = str_remove_all(geoid,"_"),
+    re_code = substr(name,4,4),
+    race_description = str_replace(concept,"HOUSEHOLD TYPE \\(",""),
+    race_description = str_replace(race_description,"\\)",""),
+    hispanic = if_else(str_detect(race_description,"NOT"),FALSE,TRUE),
+    race = case_when(re_code=="I" ~ "A",
+                      re_code=="P" ~ "A",
+                      re_code=="J" ~ "B",
+                      re_code=="Q" ~ "B",
+                      re_code=="K" ~ "C",
+                      re_code=="R" ~ "C",
+                      re_code=="L" ~ "D",
+                      re_code=="S" ~ "D",
+                      re_code=="M" ~ "E",
+                      re_code=="T" ~ "E",
+                      re_code=="N" ~ "F",
+                      re_code=="U" ~ "F",
+                      re_code=="O" ~ "G",
+                      re_code=="V" ~ "G",
+                     TRUE ~ "No match")
+    ) %>%
+  filter(number_sams > 0, !is.na(hh_type) & str_detect(race_description,"HISPANIC") & re_code != "H") %>% 
+  select(-c(name,label,concept)) %>%
+  uncount(number_sams,.id = "hh_type_race_id")
+nrow(bgHH_dec)==sum(pop_totals_hh[,], na.rm = TRUE) 
+bgHH_dec <- as.data.table(bgHH_dec)
+#rm(bgHH_data)
 ```
 
 #add age tenure for hh with race and ethnicity
@@ -105,22 +126,60 @@ bg_hh_age_tenure_data_from_census <-
                          groupname = "H13", county_num = "*",
                          block="block_group", api_type="dec/dhc",
                          path_suff="est.csv")
-bg_hh_age_data <- as.data.table(bg_hh_age_tenure_data_from_census)
-bg_hh_age_data[,6:ncol(bg_hh_age_data)] <- 
-  bg_hh_age_data[,lapply(.SD[,6:ncol(bg_hh_age_data)], as.numeric)]
+bgHH_age_data <- as.data.table(bg_hh_age_tenure_data_from_census)
+bgHH_age_data[,6:ncol(bgHH_age_data)] <- 
+  bgHH_age_data[,lapply(.SD[,6:ncol(bgHH_age_data)], as.numeric)]
+bgHH_age_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
 rm(bg_hh_age_tenure_data_from_census)
 
-#feed to test.R
+#feed to test.R (doesn't work with the Hispanic in there in it's odd way)
 
-#make a totals file
+#uncount by race and by Hispanic
+bgHH_age <- bgHH_age_data %>%
+  filter(label!="!!Total:") %>%
+  mutate(label=str_remove(label,"!!Total:!!")) %>%
+  pivot_longer(4:ncol(bgHH_age_data),names_to = "geoid", values_to = "number_sams",
+               names_transform = list(geoid=as.character)) %>%
+  filter(str_detect(geoid,"48_201")) %>% #for test, only Harris
+  separate(label, c("rent_own","hh_age_range"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(
+    geoid = str_remove_all(geoid,"_"),
+    race = substr(name,4,4),
+    race_description = str_replace(concept,"TENURE BY AGE OF HOUSEHOLDER \\(",""),
+    race_description = str_replace(race_description,"\\)",""),
+    hh_age_range_3 = case_when(hh_age_range=="Householder 15 to 24 years" | 
+                                 hh_age_range=="Householder 25 to 34 years" ~ "Householder 15 to 34 years",
+                               hh_age_range=="Householder 35 to 44 years" | 
+                                 hh_age_range=="Householder 45 to 54 years" |
+                                 hh_age_range=="Householder 55 to 59 years" |
+                                 hh_age_range=="Householder 60 to 64 years" ~ "Householder 35 to 64 years",
+                               hh_age_range=="Householder 65 to 74 years" | 
+                                 hh_age_range=="Householder 75 to 84 years" |
+                                 hh_age_range=="Householder 85 years and over" ~ "Householder 65 years and over")
+    ) %>%
+  filter(number_sams > 0, !is.na(hh_age_range)) %>% 
+  select(-c(name,label,concept)) 
 
-#make long
+race_codes <- c("A","B","C","D","E","F","G")
+bgHH_age_race <- bgHH_age %>%
+  filter(race %in% race_codes) %>%
+  uncount(number_sams,.id = "hh_age_race_id")
+nrow(bgHH_dec)==nrow(bgHH_age_race)
+bgHH_age_race <- as.data.table(bgHH_age_race)
 
-#uncount
+bgHH_age_eth <- bgHH_age %>%
+  filter(race=="H") %>%
+  uncount(number_sams,.id = "hh_age_eth_id")
+nrow(bgHH_dec[hispanic==TRUE])==nrow(bgHH_age_eth)
+bgHH_age_eth <- as.data.table(bgHH_age_eth)
 
-#add to bgHH
-
-#tests
+test <- table(bgHH_dec[,geoid],
+              bgHH_dec[,race]
+              )==
+        table(bgHH_age_race[,geoid],
+              bgHH_age_race[,race]
+              )
+length(test[test==FALSE])==0
 ```
 
 #add type and tenure by race and ethnicity
@@ -131,16 +190,71 @@ bg_hh_type_tenure_data_from_census <-
                          groupname = "H14", county_num = "*",
                          block="block_group", api_type="dec/dhc",
                          path_suff="est.csv")
-bg_hh_type_data <- as.data.table(bg_hh_type_tenure_data_from_census)
-bg_hh_type_data[,6:ncol(bg_hh_type_data)] <- 
-  bg_hh_type_data[,lapply(.SD[,6:ncol(bg_hh_type_data)], as.numeric)]
+bgHH_type_data <- as.data.table(bg_hh_type_tenure_data_from_census)
+bgHH_type_data[,6:ncol(bgHH_type_data)] <- 
+  bgHH_type_data[,lapply(.SD[,6:ncol(bgHH_type_data)], as.numeric)]
+bgHH_type_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
 rm(bg_hh_type_tenure_data_from_census)
 
 #feed to test.R
 
-#make a totals file
-
 #make long
+bgHH_type <- bgHH_type_data %>%
+  filter(label!="!!Total:") %>%
+  mutate(label=str_remove(label,"!!Total:!!"),
+         label=str_remove(label,"!!Other family:")) %>%
+  pivot_longer(4:ncol(bgHH_type_data),names_to = "geoid", values_to = "number_sams",
+               names_transform = list(geoid=as.character)) %>%
+  filter(str_detect(geoid,"48_201")) %>% #for test, only Harris
+  separate(label, c("rent_own","family","hh_type_fm","alone","hh_age_range_3"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(
+    geoid = str_remove_all(geoid,"_"),
+    hh_age_range_3 = if_else(is.na(hh_age_range_3) & !str_detect(alone,"alone"),alone,hh_age_range_3),
+    alone = if_else(str_detect(alone,"Living alone"),"Living alone","Not living alone"),
+    hh_type = case_when(hh_type_fm=="Male householder" & alone == "Living alone" ~ "Householder living alone",
+                        hh_type_fm=="Female householder" & alone == "Living alone" ~ "Householder living alone",
+                        hh_type_fm=="Married couple" ~ "Married couple family",
+                        str_detect(hh_type_fm,"spouse") ~ hh_type_fm,
+                        TRUE ~ "Householder not living alone")
+    ) %>%
+  filter(number_sams > 0, !is.na(hh_age_range_3)) %>% 
+  select(-c(name,label,concept)) %>%
+  uncount(number_sams,.id = "hh_type_age_id")
+nrow(bgHH_dec)==nrow(bgHH_type)
+bgHH_type <- as.data.table(bgHH_type)
+#rm(bhHH_type)
+
+test <- table(bgHH_age_race[,geoid],
+              bgHH_age_race[,hh_age_range_3],
+              bgHH_age_race[,rent_own]
+              )==
+        table(bgHH_type[,geoid],
+              bgHH_type[,hh_age_range_3],
+              bgHH_type[,rent_own]
+              )
+length(test[test==FALSE])==0
+test <- table(bgHH_dec[,geoid],
+              bgHH_dec[,family],
+              bgHH_dec[,hh_type]
+              )==
+        table(bgHH_type[,geoid],
+              bgHH_type[,family],
+              bgHH_type[,hh_type]
+              )
+length(test[test==FALSE])==0
+
+#triangulate with bgHH_dec - by adding age_range to dec from bgHH_age_eth by hispanic... maybe need to match some others...
+
+#bgHH_dec[,("hh_age_match_id"):=
+#                    paste0(geoid,race,as.character(100000+seq.int(1:.N))),
+#                  by=.(tract,sex,re_code)]
+#trSAR[order(tract,age),("age_match_id"):=
+#                    paste0(tract,sex,re_code,as.character(100000+seq.int(1:.N))),
+#                  by=.(tract,sex,re_code)]
+#bgSARE[,("age"):=
+#                    trSAR[.SD, list(age), on = .(age_match_id)]]
+
+
 
 #uncount
 
@@ -151,30 +265,153 @@ rm(bg_hh_type_tenure_data_from_census)
 
 #add hh size
 ```{r add hh size data to bgHH}
-#4
+#4 
 bg_hh_size_tenure_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "H12", county_num = "*",
                          block="block_group", api_type="dec/dhc",
                          path_suff="est.csv")
 #add with PCT7 (tract), which breaks these out for family and non-family, but otherwise matches...
-bg_hh_size_data <- as.data.table(bg_hh_size_tenure_data_from_census)
-bg_hh_size_data[,6:ncol(bg_hh_size_data)] <- 
-  bg_hh_size_data[,lapply(.SD[,6:ncol(bg_hh_size_data)], as.numeric)]
+bgHH_size_data <- as.data.table(bg_hh_size_tenure_data_from_census)
+bgHH_size_data[,6:ncol(bgHH_size_data)] <- 
+  bgHH_size_data[,lapply(.SD[,6:ncol(bgHH_size_data)], as.numeric)]
+bgHH_size_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
 rm(bg_hh_size_tenure_data_from_census)
 
 #feed to test.R
 
-#make a totals file
+#uncount by race and by Hispanic
+bgHH_size <- bgHH_size_data %>%
+  filter(label!="!!Total:") %>%
+  mutate(label=str_remove(label,"!!Total:!!")) %>%
+  pivot_longer(4:ncol(bgHH_size_data),names_to = "geoid", values_to = "number_sams",
+               names_transform = list(geoid=as.character)) %>%
+  filter(str_detect(geoid,"48_201")) %>% #for test, only Harris
+  separate(label, c("rent_own","hh_size"), sep = ":!!", remove = F, convert = FALSE) %>%
+  mutate(
+    geoid = str_remove_all(geoid,"_"),
+    race = substr(name,4,4),
+    race_description = str_replace(concept,"TENURE BY HOUSEHOLD SIZE \\(",""),
+    race_description = str_replace(race_description,"\\)","")
+    ) %>%
+  filter(number_sams > 0, !is.na(hh_size)) %>% 
+  select(-c(name,label,concept)) 
 
-#make long
+race_codes <- c("A","B","C","D","E","F","G")
+bgHH_size_race <- bgHH_size %>%
+  filter(race %in% race_codes) %>%
+  uncount(number_sams,.id = "hh_size_race_id")
+nrow(bgHH_dec)==nrow(bgHH_size_race)
+bgHH_size_race <- as.data.table(bgHH_size_race)
 
-#uncount
+bgHH_size_eth <- bgHH_size %>%
+  filter(race=="H") %>%
+  uncount(number_sams,.id = "hh_age_eth_id")
+nrow(bgHH_dec[hispanic==TRUE])==nrow(bgHH_size_eth)
+bgHH_size_eth <- as.data.table(bgHH_size_eth)
 
-#add to bgHH
+test <- table(bgHH_dec[,geoid],
+              bgHH_dec[,race]
+              )==
+        table(bgHH_size_race[,geoid],
+              bgHH_size_race[,race]
+              )
+length(test[test==FALSE])==0
+#do a few more of the tests
 
-#tests
+```
+bgHH_type - can we do an expand and then slice? it's a way of thinking of a co-limit... goes with thought about PES
+if we do everyone on the cartesian product that could match by first two, and then subtract the ones that could match on the 3rd...
+So, for every row that we would have matched by adding a sample, just do a left_join that saves multiples rows, then on the second leg of the triangle, do the sample, but back down to the smaller number.
+bgHH_dec_expanded <- bgHH_dec[bgHH_type, on=c(geoid,family,hhtype)]
+or - more brute force: bgHH_dec_expanded <- bgHH_dec with both options for rentown and three options for agerange3
+then - what does it mean for bg_HH_type to constrain those options... per geoid there are only so many rent, etc...
+erase every one that can't match - it's the upper limit of the adjunct.
+then for the next factor, etc.
+what counts as upper limit and lower limit??
 
+how is that different from just doing weighted averages? How more like construction of domain and codomain?
+Part is not to take each piece as an added piece of knowledge - constructing from what we know about the things - but as an added piece of structure that will tell us what we can know in the next step.
+The duplicates will have duplicate hh_type_race_ids so that might be able to be used for the final "cut" - maybe it's part of the construction on the matching, so that from the right side, we're referring to it somehow.
+
+What we'll do is add bgHH_age/eth to bgHH_dec: start by adding eth to race, with a join that creates extra rows if no match and doesn't add more columns... in order to do that, look at some particular rows...
+
+Just append eth to race, and then do the matching on the full set from dec, discarding the ones from age/eth/race that don't match
+
+```{r join bgHH_age to bgHH_type on rent_own and age_range_3}
+bgHH_age_eth[,("hispanic"):=TRUE]
+#do the naive match, but eth first
+bgHH_age_eth[,("bgHH_aet_match_id"):=
+                    paste0(geoid,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,rent_own,hh_age_range_3)]
+bgHH_type[,("bgHH_aet_match_id"):=
+                    paste0(geoid,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,rent_own,hh_age_range_3)]
+bgHH_type[,("hispanic"):=
+                    bgHH_age_eth[.SD, list(hispanic), on = .(bgHH_aet_match_id)]]
+nrow(bgHH_age_eth)==nrow(bgHH_type[!is.na(hispanic)])
+bgHH_type[is.na(hispanic),("hispanic"):=FALSE]
+
+test <- table(
+  bgHH_type[hispanic==TRUE,geoid],
+  bgHH_type[hispanic==TRUE,rent_own],
+  bgHH_type[hispanic==TRUE,hh_age_range_3],
+  bgHH_type[hispanic==TRUE,hispanic]
+) == table(
+  bgHH_age_eth[,geoid],
+  bgHH_age_eth[,rent_own],
+  bgHH_age_eth[,hh_age_range_3],
+  bgHH_age_eth[,hispanic]
+)
+length(test[test==FALSE])==0
+
+#add race from bgHH_dec on family, hh_type and hispanic - add the amount that didn't match by duplicating categories???
+#what if we just doubled the size of the folks that have hispanic == TRUE
+#point is that each row that is hispanic either should have been or should not have been, but that a bunch are now seen as only being possibly not and thus are excluded. Once larger for hispanic and once larger for rent_own?
+#this made it worse! with only one, it actually matched better!!
+bgHH_type1 <- rbindlist(list(bgHH_type,bgHH_type[rep(hispanic==TRUE,2,length=.N),])) 
+bgHH_type1a <- rbindlist(list(bgHH_type1,bgHH_type[rep(hispanic==FALSE,2,length=.N),])) 
+bgHH_type1b <- rbindlist(list(bgHH_type1a,bgHH_type[rep(rent_own=="Renter occupied",2,length=.N),])) 
+bgHH_type1c <- rbindlist(list(bgHH_type1b,bgHH_type[rep(rent_own=="Owner occupied",2,length=.N),])) 
+bgHH_type1d <- rbindlist(list(bgHH_type1c,bgHH_type[rep(hh_age_range_3=="Householder 15 to 34 years",2,length=.N),]))
+bgHH_type1e <- rbindlist(list(bgHH_type1d,bgHH_type[rep(hh_age_range_3=="Householder 65 years and over",2,length=.N),]))
+bgHH_type2 <- rbindlist(list(bgHH_type1e,bgHH_type[rep(hh_age_range_3=="Householder 35 to 64 years",2,length=.N),]))
+#it has to be that some aren't matching because of the .N part of the counting, since it works by the not expanded
+bgHH_dec[,("bgHH_ft_match_id"):=
+                    paste0(geoid,family,hh_type,hispanic,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,hh_type,hispanic)]
+bgHH_type2[,("bgHH_ft_match_id"):=
+                    paste0(geoid,family,hh_type,hispanic,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,hh_type,hispanic)]
+bgHH_type2[,("race"):=
+                    bgHH_dec[.SD, list(race), on = .(bgHH_ft_match_id)]]
+bgHH_type3 <- bgHH_type2[!is.na(race)]
+
+#then repeat taking race and age_range down to bgHH_type, but matching on race, too!
+
+
+
+test <- table(
+  bgHH_type[is.na(hispanic),geoid],
+  bgHH_type[is.na(hispanic),rent_own],
+  bgHH_type[is.na(hispanic),hh_age_range_3],
+  bgHH_type[is.na(hispanic),hispanic]
+) == table(
+  bgHH_age_eth[,geoid],
+  bgHH_age_eth[,rent_own],
+  bgHH_age_eth[,hh_age_range_3],
+  bgHH_age_eth[,hispanic]
+)
+length(test[test==FALSE])==0
+
+
+```
+
+```{r join bgHH_size to bgHH_dec on family and hh_type}
+```
+
+
+```{r join bgHH_type to bgHH_dec on family and hh_type}
 ```
 
 #some tests
@@ -242,7 +479,7 @@ bg_hh_seniors_data_from_census <-
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P19",county_num = "*",
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
-#and PCT3: HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER and PCT5 HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE; and PCT9 HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER
+#and PCT3: HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER and ; and PCT9 HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER
 
 #PCT12 and 13 give sex by age in hh and total, so could deduce others... but at tract level
 #PCT15 is coupled households, including same sex
@@ -356,27 +593,7 @@ Let's do a couple of quick tests to make sure that the overall approach will wor
 Later, we'll match with the block group; the remainder between those in households and the whole population (by the rules of the construction and the disjunctive syllogism) should be those in group quarters, but we'll also take some steps to ensure that we haven't accidentally misattributed cases. In particular, we don't want to lose any of the fine-grained information on race and ethnicity combined at the tract level, or the greater geographic specificity available for all demographics at the block level for the total population table (bgSAR). The only race category that is completely exhausted by the ethnicity categories given in the household population tables is White, and so we go ahead and match them, with those in the Hispanic non-white remaining to be counted and distributed more carefully, below.
 
 ```{r join trHHr and trHHe for White non-Hispanic}
-trHHr[race=="A",("trHHsae_match_id"):=
-                    paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
-                  by=.(tract,sex,age_range)]
-trHHe[ethnicity=="I",("trHHsae_match_id"):=
-                    paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
-                  by=.(tract,sex,age_range)]
-trHHr[race=="A",("ethnicity"):=
-                    trHHe[.SD, list(ethnicity), on = .(trHHsae_match_id)]]
-nrow(trHHr[!is.na(ethnicity)])==nrow(trHHe[ethnicity=="I"])
-test <- table(
-  trHHr[!is.na(ethnicity),tract],
-  trHHr[!is.na(ethnicity),sex],
-  trHHr[!is.na(ethnicity),age_range],
-  trHHr[!is.na(ethnicity),ethnicity]
-) == table(
-  trHHe[ethnicity=="I",tract],
-  trHHe[ethnicity=="I",sex],
-  trHHe[ethnicity=="I",age_range],
-  trHHe[ethnicity=="I",ethnicity]
-)
-length(test[test==FALSE])==0
+
 ```
 
 By the rules as we understand them, all individuals with race of "White Alone" are either Hispanic or not, but let's check that and use it to also give us some sense of a new method we will use to assign a specific number to missing categories, and then use that ordering within our types to make more detailed assignations. We will try to create an expanded table that includes as much information as possible about the individuals in households and group quarters, including the number of individuals in categories that we don't yet know how to assign, and then join with the block group information for all individuals. Talk a bit about the conservation of structure in terms of relation as a problem of well-ordered sets and the construction of the domains within which things are determined - building from outside in and not from inside out.
