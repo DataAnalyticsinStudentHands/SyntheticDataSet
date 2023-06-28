@@ -93,7 +93,7 @@ bgHH_dec <- bgHH_data %>%
     re_code = substr(name,4,4),
     race_description = str_replace(concept,"HOUSEHOLD TYPE \\(",""),
     race_description = str_replace(race_description,"\\)",""),
-    hispanic = if_else(str_detect(race_description,"NOT"),FALSE,TRUE),
+    HvL = if_else(str_detect(race_description,"NOT"),FALSE,TRUE),
     race = case_when(re_code=="I" ~ "A",
                       re_code=="P" ~ "A",
                       re_code=="J" ~ "B",
@@ -132,9 +132,9 @@ bgHH_age_data[,6:ncol(bgHH_age_data)] <-
 bgHH_age_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
 rm(bg_hh_age_tenure_data_from_census)
 
-#feed to test.R (doesn't work with the Hispanic in there in it's odd way)
+#feed to test.R (doesn't work with the Hispanic or Latino in there in it's odd way)
 
-#uncount by race and by Hispanic
+#uncount by race and by Hispanic or Latino (HvL)
 bgHH_age <- bgHH_age_data %>%
   filter(label!="!!Total:") %>%
   mutate(label=str_remove(label,"!!Total:!!")) %>%
@@ -170,7 +170,7 @@ bgHH_age_race <- as.data.table(bgHH_age_race)
 bgHH_age_eth <- bgHH_age %>%
   filter(race=="H") %>%
   uncount(number_sams,.id = "hh_age_eth_id")
-nrow(bgHH_dec[hispanic==TRUE])==nrow(bgHH_age_eth)
+nrow(bgHH_dec[HvL==TRUE])==nrow(bgHH_age_eth)
 bgHH_age_eth <- as.data.table(bgHH_age_eth)
 
 test <- table(bgHH_dec[,geoid],
@@ -243,7 +243,7 @@ test <- table(bgHH_dec[,geoid],
               )
 length(test[test==FALSE])==0
 
-#triangulate with bgHH_dec - by adding age_range to dec from bgHH_age_eth by hispanic... maybe need to match some others...
+#triangulate with bgHH_dec - by adding age_range to dec from bgHH_age_eth by HvL... maybe need to match some others...
 
 #bgHH_dec[,("hh_age_match_id"):=
 #                    paste0(geoid,race,as.character(100000+seq.int(1:.N))),
@@ -263,8 +263,8 @@ length(test[test==FALSE])==0
 #tests
 ```
 
-#add hh size
-```{r add hh size data to bgHH}
+#get hh size
+```{r get hh size data}
 #4 
 bg_hh_size_tenure_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -280,7 +280,7 @@ rm(bg_hh_size_tenure_data_from_census)
 
 #feed to test.R
 
-#uncount by race and by Hispanic
+#uncount by race and by HvL
 bgHH_size <- bgHH_size_data %>%
   filter(label!="!!Total:") %>%
   mutate(label=str_remove(label,"!!Total:!!")) %>%
@@ -307,7 +307,7 @@ bgHH_size_race <- as.data.table(bgHH_size_race)
 bgHH_size_eth <- bgHH_size %>%
   filter(race=="H") %>%
   uncount(number_sams,.id = "hh_age_eth_id")
-nrow(bgHH_dec[hispanic==TRUE])==nrow(bgHH_size_eth)
+nrow(bgHH_dec[HvL==TRUE])==nrow(bgHH_size_eth)
 bgHH_size_eth <- as.data.table(bgHH_size_eth)
 
 test <- table(bgHH_dec[,geoid],
@@ -337,9 +337,79 @@ The duplicates will have duplicate hh_type_race_ids so that might be able to be 
 What we'll do is add bgHH_age/eth to bgHH_dec: start by adding eth to race, with a join that creates extra rows if no match and doesn't add more columns... in order to do that, look at some particular rows...
 
 Just append eth to race, and then do the matching on the full set from dec, discarding the ones from age/eth/race that don't match
+```{r join bgHH_age_race to bgHH_type on rent_own and age_range_3}
+#then do the match
+bgHH_age_race[,("bgHH_aer_match_id"):=
+                    paste0(geoid,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,rent_own,hh_age_range_3)]
+bgHH_type[,("bgHH_aer_match_id"):=
+                    paste0(geoid,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,rent_own,hh_age_range_3)]
+bgHH_type[,("race"):=
+                    bgHH_age_race[.SD, list(race), on = .(bgHH_aer_match_id)]]
+nrow(bgHH_age_race)==nrow(bgHH_type1[!is.na(race)])
+
+test <- table(
+  bgHH_type[,geoid],
+  bgHH_type[,rent_own],
+  bgHH_type[,hh_age_range_3],
+  bgHH_type[,race]
+) == table(
+  bgHH_age_race[,geoid],
+  bgHH_age_race[,rent_own],
+  bgHH_age_race[,hh_age_range_3],
+  bgHH_age_race[,race]
+)
+length(test[test==FALSE])==0
+
+#the naive match on race restricts the space of possible matches in a way that causes conflict later.
+#let's double the size of bgHH_type, so that every row could possibly be either HvL or not and family or not
+bgHH_type1 <- rbindlist(list(bgHH_type,bgHH_type[rep(!is.na(geoid),4,length=.N),])) 
+#now do a double on family==,???? why still 19k short????
+
+bgHH_dec[,("bgHH_ftr_match_id"):=
+                    paste0(geoid,family,hh_type,race,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,hh_type,race)]
+bgHH_type[,("bgHH_ftr_match_id"):=
+                    paste0(geoid,family,hh_type,race,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,hh_type,race)]
+bgHH_type[,("re_code"):=
+                    bgHH_dec[.SD, list(re_code), on = .(bgHH_ftr_match_id)]]
+bgHH_dec[,("matched"):=
+                    bgHH_type1[.SD, list(re_code), on = .(bgHH_ftr_match_id)]]
+bgHH_type1 <- bgHH_type2[!is.na(re_code)]
+
+#then repeat taking race and age_range down to bgHH_type, but matching on race, too!
+
+
+
+test <- table(
+  bgHH_type[is.na(HvL),geoid],
+  bgHH_type[is.na(HvL),rent_own],
+  bgHH_type[is.na(HvL),hh_age_range_3],
+  bgHH_type[is.na(HvL),HvL]
+) == table(
+  bgHH_age_eth[,geoid],
+  bgHH_age_eth[,rent_own],
+  bgHH_age_eth[,hh_age_range_3],
+  bgHH_age_eth[,HvL]
+)
+length(test[test==FALSE])==0
+
+
+#bgHH_type1a <- rbindlist(list(bgHH_type1,bgHH_type[rep(HvL==FALSE,2,length=.N),])) 
+#bgHH_type1b <- rbindlist(list(bgHH_type1a,bgHH_type[rep(rent_own=="Renter occupied",2,length=.N),])) 
+#bgHH_type1c <- rbindlist(list(bgHH_type1b,bgHH_type[rep(rent_own=="Owner occupied",2,length=.N),])) 
+#bgHH_type1d <- rbindlist(list(bgHH_type1c,bgHH_type[rep(hh_age_range_3=="Householder 15 to 34 years",2,length=.N),]))
+#bgHH_type1e <- rbindlist(list(bgHH_type1d,bgHH_type[rep(hh_age_range_3=="Householder 65 years and over",2,length=.N),]))
+#bgHH_type2 <- rbindlist(list(bgHH_type1e,bgHH_type[rep(hh_age_range_3=="Householder 35 to 64 years",2,length=.N),]))
+#it has to be that some aren't matching because of the .N part of the counting, since it works by the not expanded
+
+```
+
 
 ```{r join bgHH_age to bgHH_type on rent_own and age_range_3}
-bgHH_age_eth[,("hispanic"):=TRUE]
+bgHH_age_eth[,("HvL"):=TRUE]
 #do the naive match, but eth first
 bgHH_age_eth[,("bgHH_aet_match_id"):=
                     paste0(geoid,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
@@ -347,30 +417,30 @@ bgHH_age_eth[,("bgHH_aet_match_id"):=
 bgHH_type[,("bgHH_aet_match_id"):=
                     paste0(geoid,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
                   by=.(geoid,rent_own,hh_age_range_3)]
-bgHH_type[,("hispanic"):=
-                    bgHH_age_eth[.SD, list(hispanic), on = .(bgHH_aet_match_id)]]
-nrow(bgHH_age_eth)==nrow(bgHH_type[!is.na(hispanic)])
-bgHH_type[is.na(hispanic),("hispanic"):=FALSE]
+bgHH_type[,("HvL"):=
+                    bgHH_age_eth[.SD, list(HvL), on = .(bgHH_aet_match_id)]]
+nrow(bgHH_age_eth)==nrow(bgHH_type[!is.na(HvL)])
+bgHH_type[is.na(HvL),("HvL"):=FALSE]
 
 test <- table(
-  bgHH_type[hispanic==TRUE,geoid],
-  bgHH_type[hispanic==TRUE,rent_own],
-  bgHH_type[hispanic==TRUE,hh_age_range_3],
-  bgHH_type[hispanic==TRUE,hispanic]
+  bgHH_type[HvL==TRUE,geoid],
+  bgHH_type[HvL==TRUE,rent_own],
+  bgHH_type[HvL==TRUE,hh_age_range_3],
+  bgHH_type[HvL==TRUE,HvL]
 ) == table(
   bgHH_age_eth[,geoid],
   bgHH_age_eth[,rent_own],
   bgHH_age_eth[,hh_age_range_3],
-  bgHH_age_eth[,hispanic]
+  bgHH_age_eth[,HvL]
 )
 length(test[test==FALSE])==0
 
-#add race from bgHH_dec on family, hh_type and hispanic - add the amount that didn't match by duplicating categories???
-#what if we just doubled the size of the folks that have hispanic == TRUE
-#point is that each row that is hispanic either should have been or should not have been, but that a bunch are now seen as only being possibly not and thus are excluded. Once larger for hispanic and once larger for rent_own?
+#add race from bgHH_dec on family, hh_type and HvL - add the amount that didn't match by duplicating categories???
+#what if we just doubled the size of the folks that have HvL == TRUE
+#point is that each row that is HvL either should have been or should not have been, but that a bunch are now seen as only being possibly not and thus are excluded. Once larger for HvL and once larger for rent_own?
 #this made it worse! with only one, it actually matched better!!
-bgHH_type1 <- rbindlist(list(bgHH_type,bgHH_type[rep(hispanic==TRUE,2,length=.N),])) 
-bgHH_type1a <- rbindlist(list(bgHH_type1,bgHH_type[rep(hispanic==FALSE,2,length=.N),])) 
+bgHH_type1 <- rbindlist(list(bgHH_type,bgHH_type[rep(HvL==TRUE,2,length=.N),])) 
+bgHH_type1a <- rbindlist(list(bgHH_type1,bgHH_type[rep(HvL==FALSE,2,length=.N),])) 
 bgHH_type1b <- rbindlist(list(bgHH_type1a,bgHH_type[rep(rent_own=="Renter occupied",2,length=.N),])) 
 bgHH_type1c <- rbindlist(list(bgHH_type1b,bgHH_type[rep(rent_own=="Owner occupied",2,length=.N),])) 
 bgHH_type1d <- rbindlist(list(bgHH_type1c,bgHH_type[rep(hh_age_range_3=="Householder 15 to 34 years",2,length=.N),]))
@@ -378,11 +448,11 @@ bgHH_type1e <- rbindlist(list(bgHH_type1d,bgHH_type[rep(hh_age_range_3=="Househo
 bgHH_type2 <- rbindlist(list(bgHH_type1e,bgHH_type[rep(hh_age_range_3=="Householder 35 to 64 years",2,length=.N),]))
 #it has to be that some aren't matching because of the .N part of the counting, since it works by the not expanded
 bgHH_dec[,("bgHH_ft_match_id"):=
-                    paste0(geoid,family,hh_type,hispanic,as.character(100000+seq.int(1:.N))),
-                  by=.(geoid,family,hh_type,hispanic)]
+                    paste0(geoid,family,hh_type,HvL,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,hh_type,HvL)]
 bgHH_type2[,("bgHH_ft_match_id"):=
-                    paste0(geoid,family,hh_type,hispanic,as.character(100000+seq.int(1:.N))),
-                  by=.(geoid,family,hh_type,hispanic)]
+                    paste0(geoid,family,hh_type,HvL,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,hh_type,HvL)]
 bgHH_type2[,("race"):=
                     bgHH_dec[.SD, list(race), on = .(bgHH_ft_match_id)]]
 bgHH_type3 <- bgHH_type2[!is.na(race)]
@@ -392,15 +462,15 @@ bgHH_type3 <- bgHH_type2[!is.na(race)]
 
 
 test <- table(
-  bgHH_type[is.na(hispanic),geoid],
-  bgHH_type[is.na(hispanic),rent_own],
-  bgHH_type[is.na(hispanic),hh_age_range_3],
-  bgHH_type[is.na(hispanic),hispanic]
+  bgHH_type[is.na(HvL),geoid],
+  bgHH_type[is.na(HvL),rent_own],
+  bgHH_type[is.na(HvL),hh_age_range_3],
+  bgHH_type[is.na(HvL),HvL]
 ) == table(
   bgHH_age_eth[,geoid],
   bgHH_age_eth[,rent_own],
   bgHH_age_eth[,hh_age_range_3],
-  bgHH_age_eth[,hispanic]
+  bgHH_age_eth[,HvL]
 )
 length(test[test==FALSE])==0
 
@@ -513,7 +583,7 @@ response_data_from_census <- getCensus(name = "dec/responserate",
 
 SARE tract level for households does not have all the ethnicities that SARE for individuals had - just more breakdowns (23 groups) in age and H,I in ethnicity at the tract level; since we've already done the match on bgSAE, though, we can be sure that we can get the right matches. We'll want to add it to as much information as we can get from the Group Quarters, first, so that the extra information on that side isn't obscured. 
 
-We'll also want to make sure to not move to matching at the tract level too quickly, because we want to conserve that tract level matching when assigning block level matches and there are possible ways to introduce non-commutative relations - for example, by having non-White Hispanics in the wrong block for households and then not having that category given for group quarters and so having a mis-assignment.
+We'll also want to make sure to not move to matching at the tract level too quickly, because we want to conserve that tract level matching when assigning block level matches and there are possible ways to introduce non-commutative relations - for example, by having non-White HvL in the wrong block for households and then not having that category given for group quarters and so having a mis-assignment.
 
 What we'll do, therefore, is move the tract level information from bgSAR to the tract level on HH_SARE, since no information is lost that way, and then we'll do refinements from that side, before moving back to the bgSAR and making assignments - to the best of our ability! some information was not given - at the block level.
 
@@ -655,6 +725,8 @@ if(file.exists(paste0(censusdir,vintage,"/working/bgSARE.RDS"))){
 }else{
   print("no bgSARE file found")
 }
+#change race to match race_descriptions
+colnames(bgSARE)[colnames(bgSARE) == "race"] <- "race_description_HvL"
 ```
 
 ```{r determine size of mismatch across block groups}
