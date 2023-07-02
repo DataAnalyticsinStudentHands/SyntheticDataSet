@@ -320,9 +320,13 @@ length(test[test==FALSE])==0
 #do a few more of the tests
 
 ```
+FOR OVERALL: We're trying to show how the structure of statistical representation - at every point, see whether or not it's statistically likely that the individual is in a certain part of the conceptual space - loses structure. It's metaphysically based in the questions of epistemology, and not of making the representation that best captures the situation. (and those two framings don't converge). The idea that relations precede objects needs to be made mathematically precise. Category theory does that be giving precedence to the morphisms in the understanding of structure, as opposed to some idea of definition, and of either fitting in to the schema or not. One way that this is concrete is in terms of the space that something is destined to.
+NEED to DIAGRAM it - idea is that the embeddings are left to the production, but also - as destination - give you a limit to the representation
+
+
 bgHH_type - can we do an expand and then slice? it's a way of thinking of a co-limit... goes with thought about PES
 if we do everyone on the cartesian product that could match by first two, and then subtract the ones that could match on the 3rd...
-So, for every row that we would have matched by adding a sample, just do a left_join that saves multiples rows, then on the second leg of the triangle, do the sample, but back down to the smaller number.
+So, for every row that we would have matched by adding a sample, just do a left_join that saves multiples rows, then on the second leg of the triangle, do the sample, but back down to the smaller number. Think about as a Kan extension, and as a factorization on the objects - vs. thinking about it as a destination - where the domain is not some abstract realm of possible apperceptions, but is locally preserved structure.
 bgHH_dec_expanded <- bgHH_dec[bgHH_type, on=c(geoid,family,hhtype)]
 or - more brute force: bgHH_dec_expanded <- bgHH_dec with both options for rentown and three options for agerange3
 then - what does it mean for bg_HH_type to constrain those options... per geoid there are only so many rent, etc...
@@ -339,62 +343,95 @@ What we'll do is add bgHH_age/eth to bgHH_dec: start by adding eth to race, with
 Just append eth to race, and then do the matching on the full set from dec, discarding the ones from age/eth/race that don't match
 ```{r join bgHH_age_race to bgHH_type on rent_own and age_range_3}
 #then do the match
-bgHH_age_race[,("bgHH_aer_match_id"):=
-                    paste0(geoid,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
-                  by=.(geoid,rent_own,hh_age_range_3)]
-bgHH_type[,("bgHH_aer_match_id"):=
-                    paste0(geoid,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
-                  by=.(geoid,rent_own,hh_age_range_3)]
-bgHH_type[,("race"):=
-                    bgHH_age_race[.SD, list(race), on = .(bgHH_aer_match_id)]]
-nrow(bgHH_age_race)==nrow(bgHH_type1[!is.na(race)])
+#or expand by family already, since we don't know on it??
+bgHH_age_race1a <- bgHH_age_race[rep(!is.na(geoid),2,length=.N),] #to make a copy that is separate and not a reference
+bgHH_age_race1a[,("family"):="Family households"]
+bgHH_age_race1b <- bgHH_age_race[rep(!is.na(geoid),2,length=.N),]
+bgHH_age_race1b[,("family"):="Nonfamily households"]
+bgHH_age_race1a1 <- rbindlist(list(bgHH_age_race1a,bgHH_age_race1b))
+bgHH_age_race1c <- bgHH_age_race1a1[rep(!is.na(geoid),2,length=.N),]
+bgHH_age_race1c[,("HvL"):=TRUE]
+bgHH_age_race1d <- bgHH_age_race1a1[rep(!is.na(geoid),2,length=.N),]
+bgHH_age_race1d[,("HvL"):=FALSE]
+bgHH_age_race1 <- rbindlist(list(bgHH_age_race1c,bgHH_age_race1d)) 
+bgHH_age_race1[,("bgHH_taer_match_id"):=
+                    paste0(geoid,family,rent_own,hh_age_range_3,race,HvL,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,rent_own,hh_age_range_3,race,HvL)]
+#double up on the side with smaller difference, for more matches? should be after??? really just about stats, still
+bgHH_type1a <- bgHH_type[rep(!is.na(geoid),2,length=.N),] 
+bgHH_type1a[,("race"):="A"]
+bgHH_type1b <- bgHH_type[rep(!is.na(geoid),2,length=.N),] 
+bgHH_type1b[,("race"):="B"]
+bgHH_type1c <- bgHH_type[rep(!is.na(geoid),2,length=.N),] 
+bgHH_type1c[,("race"):="C"]
+bgHH_type1d <- bgHH_type[rep(!is.na(geoid),2,length=.N),] 
+bgHH_type1d[,("race"):="D"]
+bgHH_type1e <- bgHH_type[rep(!is.na(geoid),2,length=.N),] 
+bgHH_type1e[,("race"):="E"]
+bgHH_type1f <- bgHH_type[rep(!is.na(geoid),2,length=.N),] 
+bgHH_type1f[,("race"):="F"]
+bgHH_type1g <- bgHH_type[rep(!is.na(geoid),2,length=.N),] 
+bgHH_type1g[,("race"):="G"]
+bgHH_type1HvL <- rbindlist(list(bgHH_type1a,bgHH_type1b,bgHH_type1c,bgHH_type1d,bgHH_type1e,bgHH_type1f,bgHH_type1g))
+bgHH_type1HvL[,("HvL"):=TRUE]
+bgHH_type1r <- rbindlist(list(bgHH_type1a,bgHH_type1b,bgHH_type1c,bgHH_type1d,bgHH_type1e,bgHH_type1f,bgHH_type1g)) 
+bgHH_type1r[,("HvL"):=FALSE]
+bgHH_type1 <- rbindlist(list(bgHH_type1r,bgHH_type1HvL))
+bgHH_type1[,("bgHH_taer_match_id"):=
+                    paste0(geoid,family,rent_own,hh_age_range_3,race,HvL,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,rent_own,hh_age_range_3,race,HvL)]
+bgHH_type1[,c("hh_age_range","hh_age_range_3"):=
+                    bgHH_age_race1[.SD, c(list(hh_age_range),list(hh_age_range_3)), on = .(bgHH_taer_match_id)]]
+bgHH_age_race1[,c("matched","hh_type"):=
+                    bgHH_type1[.SD, c(list(race),list(hh_type)), on = .(bgHH_taer_match_id)]]
+#do tests to just make sure basic steps are being performed
+nrow(bgHH_age_race1[!is.na(matched)])==nrow(bgHH_type1[!is.na(hh_age_range)])
+test <- table(
+  bgHH_type1[!is.na(hh_age_range),geoid],
+  bgHH_type1[!is.na(hh_age_range),family],
+  bgHH_type1[!is.na(hh_age_range),rent_own],
+  bgHH_type1[!is.na(hh_age_range),hh_age_range],
+  bgHH_type1[!is.na(hh_age_range),hh_age_range_3],
+  bgHH_type1[!is.na(hh_age_range),race],
+  bgHH_type1[!is.na(hh_age_range),HvL]
+) == table(
+  bgHH_age_race1[!is.na(matched),geoid],
+  bgHH_age_race1[!is.na(matched),family],
+  bgHH_age_race1[!is.na(matched),rent_own],
+  bgHH_age_race1[!is.na(matched),hh_age_range],
+  bgHH_age_race1[!is.na(matched),hh_age_range_3],
+  bgHH_age_race1[!is.na(matched),race],
+  bgHH_age_race1[!is.na(matched),HvL]
+)
+length(test[test==FALSE])==0
+
+bgHH_type2 <- bgHH_type1[!is.na(hh_age_range)]
+bgHH_dec[,("bgHH_ftr_match_id"):=
+                    paste0(geoid,family,hh_type,race,HvL,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,hh_type,race,HvL)]
+bgHH_type2[,("bgHH_ftr_match_id"):=
+                    paste0(geoid,family,hh_type,race,HvL,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,family,hh_type,race,HvL)]
+bgHH_dec[,c("rent_own","hh_age_range","hh_age_range_3"):=
+                    bgHH_type2[.SD, c(list(rent_own),list(hh_age_range),list(hh_age_range_3)), on = .(bgHH_ftr_match_id)]]
+bgHH_type2[,("matched2"):=
+                    bgHH_dec[.SD, list(re_code), on = .(bgHH_ftr_match_id)]]
+
+nrow(bgHH_type)==nrow(bgHH_dec[!is.na(rent_own)])
 
 test <- table(
   bgHH_type[,geoid],
   bgHH_type[,rent_own],
-  bgHH_type[,hh_age_range_3],
-  bgHH_type[,race]
+  bgHH_type[,family],
+  bgHH_type[,hh_type]
 ) == table(
-  bgHH_age_race[,geoid],
-  bgHH_age_race[,rent_own],
-  bgHH_age_race[,hh_age_range_3],
-  bgHH_age_race[,race]
+  bgHH_dec[,geoid],
+  bgHH_dec[,rent_own],
+  bgHH_dec[,family],
+  bgHH_dec[,hh_type]
 )
 length(test[test==FALSE])==0
 
-#the naive match on race restricts the space of possible matches in a way that causes conflict later.
-#let's double the size of bgHH_type, so that every row could possibly be either HvL or not and family or not
-bgHH_type1 <- rbindlist(list(bgHH_type,bgHH_type[rep(!is.na(geoid),4,length=.N),])) 
-#now do a double on family==,???? why still 19k short????
-
-bgHH_dec[,("bgHH_ftr_match_id"):=
-                    paste0(geoid,family,hh_type,race,as.character(100000+seq.int(1:.N))),
-                  by=.(geoid,family,hh_type,race)]
-bgHH_type[,("bgHH_ftr_match_id"):=
-                    paste0(geoid,family,hh_type,race,as.character(100000+seq.int(1:.N))),
-                  by=.(geoid,family,hh_type,race)]
-bgHH_type[,("re_code"):=
-                    bgHH_dec[.SD, list(re_code), on = .(bgHH_ftr_match_id)]]
-bgHH_dec[,("matched"):=
-                    bgHH_type1[.SD, list(re_code), on = .(bgHH_ftr_match_id)]]
-bgHH_type1 <- bgHH_type2[!is.na(re_code)]
-
-#then repeat taking race and age_range down to bgHH_type, but matching on race, too!
-
-
-
-test <- table(
-  bgHH_type[is.na(HvL),geoid],
-  bgHH_type[is.na(HvL),rent_own],
-  bgHH_type[is.na(HvL),hh_age_range_3],
-  bgHH_type[is.na(HvL),HvL]
-) == table(
-  bgHH_age_eth[,geoid],
-  bgHH_age_eth[,rent_own],
-  bgHH_age_eth[,hh_age_range_3],
-  bgHH_age_eth[,HvL]
-)
-length(test[test==FALSE])==0
 
 
 #bgHH_type1a <- rbindlist(list(bgHH_type1,bgHH_type[rep(HvL==FALSE,2,length=.N),])) 
