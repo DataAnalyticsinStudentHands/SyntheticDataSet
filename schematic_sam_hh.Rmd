@@ -396,11 +396,6 @@ nrow(bgHH_age_eth[is.na(family)])==0
 #put race from dec on type, as a first approx
 #maybe that gives us a first match, and then we can do the second match with one less variable, like I used to??? or coming from a different set??
 
-#grow age_eth by switching family / non-family (if you don't flip, it just matches on duplicate geoids)
-#2x (for family) got it down to 2161 missing; 3x to 767; 4x to 503 - let's try a different strategy, with only 2x on this
-#bgHH_age_eth1a <- bgHH_age_eth[rep(!is.na(geoid),2,length=.N),]
-#bgHH_age_eth1a[,("family"):=ifelse(family=="Nonfamily households","Family households","Nonfamily households")]
-#bgHH_age_eth1 <- rbindlist(list(bgHH_age_eth,bgHH_age_eth1a))  
 bgHH_age_eth[,("bgHH_ed_match_id"):=
                     paste0(geoid,family,hh_type,HvL,as.character(100000+sample(1:.N))),
                   by=.(geoid,family,hh_type,HvL)]
@@ -467,6 +462,8 @@ bgHH_type[HvL==TRUE,("bgHH_rte_match_id"):=
                   by=.(geoid,hh_age_range_3,rent_own,race)]
 bgHH_age_race[,c("hh_type","family","HvL"):=
                  bgHH_type[.SD, c(list(hh_type),list(family),list(HvL)), on = .(bgHH_rte_match_id)]]
+bgHH_type[HvL==TRUE,c("race","HvL"):=
+                 bgHH_type[.SD, c(list(race),list(HvL)), on = .(bgHH_rte_match_id)]]
 nrow(bgHH_age_race[!is.na(family)])-nrow(bgHH_age_eth) #missing 37800
 #rest of type for race
 bgHH_type[is.na(HvL),("HvL"):=FALSE]
@@ -478,11 +475,49 @@ bgHH_type[HvL==FALSE,("bgHH_rt_match_id"):=
                   by=.(geoid,hh_age_range_3,rent_own)]
 bgHH_age_race[is.na(family),c("hh_type","family"):=
                  bgHH_type[.SD, c(list(hh_type),list(family)), on = .(bgHH_rt_match_id)]]
-nrow(bgHH_age_race[!is.na(family)]) #1512045, or 180000 unmatched!!!
+bgHH_type[HvL==FALSE,c("race","HvL"):=
+                 bgHH_type[.SD, c(list(race),list(HvL)), on = .(bgHH_rt_match_id)]]
+nrow(bgHH_age_race[is.na(family)]) #35614 unmatched!!! (about 2%)
 
+#now get dec to nail it down - something is broken!!!!!!
+bgHH_age_race[,("bgHH_tdr_match_id"):=
+                    paste0(geoid,family,hh_type,HvL,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,hh_type,HvL)]
+bgHH_dec[,("bgHH_tdr_match_id"):=
+                    paste0(geoid,family,hh_type,HvL,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,hh_type,HvL)]
+bgHH_age_race[,c("hh_type","family"):=
+                 bgHH_dec[.SD, c(list(hh_type),list(family)), on = .(bgHH_tdr_match_id)]]
+nrow(bgHH_age_race[is.na(family)]) #ugh!! broken!!
+#so find the ones that weren't matched and move from dec to eth, since they were off by about 10% because of the earlier match
+bgHH_dec[,("matched_rd"):=
+                 bgHH_age_race[.SD, list(race), on = .(bgHH_tdr_match_id)]]
+nrow(bgHH_dec[!is.na(matched_rd)])==nrow(bgHH_age_race[!is.na(family)])
+#and get last ones on age_eth that don't match 
+bgHH_age_race[is.na(family),("bgHH_rd1_match_id"):=
+                    paste0(geoid,race,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race)]
+bgHH_dec[is.na(matched_rd),("bgHH_rd1_match_id"):=
+                    paste0(geoid,race,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race)]
+bgHH_age_race[is.na(family),c("family","hh_type"):=
+                 bgHH_dec[.SD, c(list(family),list(hh_type)), on = .(bgHH_rd1_match_id)]]
+nrow(bgHH_age_eth[is.na(race)])==0
+test <- table(bgHH_age_eth[,geoid],
+              bgHH_age_eth[,family],
+              bgHH_age_eth[,hh_type],
+              bgHH_age_eth[,race],
+              bgHH_age_eth[,HvL]
+              )==
+        table(bgHH_dec[HvL==TRUE,geoid],
+              bgHH_dec[HvL==TRUE,family],
+              bgHH_dec[HvL==TRUE,hh_type],
+              bgHH_dec[HvL==TRUE,race],
+              bgHH_dec[HvL==TRUE,HvL]
+              )
+length(test[test==FALSE])==0
 
-
-
+#when add size, remember we know alone etc.
 
 ```
 
