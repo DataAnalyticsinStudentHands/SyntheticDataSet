@@ -389,8 +389,32 @@ length(test[test==FALSE])==0
 #do a few more of the tests
 rm(trHH_size)
 rm(trHH_size_data)
+#add geoid to trHH_size_eth from dec
+trHH_size_eth[,("trbgHH_ds_match_id"):=
+                    paste0(tract,HvL,family,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,family)]
+bgHH_dec[,("trbgHH_ds_match_id"):=
+                    paste0(tract,HvL,family,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,family)]
+bgHH_dec[,("hh_size_match"):=
+                 trHH_size_eth[.SD, list(hh_size), on = .(trbgHH_ds_match_id)]]
+trHH_size_eth[,("geoid"):=
+                 bgHH_dec[.SD, list(geoid), on = .(trbgHH_ds_match_id)]]
+nrow(trHH_size_eth[is.na(geoid)])==0
 
-#add family to bgHH_size - see how much just the variation in race/eth keeps the family in the right block...
+#add family from trHH_size to bgHH_size - see how much just the variation in race/eth keeps the family in the right block...
+trHH_size_eth[,("trbgHH_sg_match_id"):=
+                    paste0(tract,geoid,HvL,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,geoid,HvL,hh_size)]
+bgHH_size_eth[,("trbgHH_sg_match_id"):=
+                    paste0(tract,geoid,HvL,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,geoid,HvL,hh_size)]
+bgHH_size_eth[,("family"):=
+                 trHH_size_eth[.SD, list(family), on = .(trbgHH_sg_match_id)]]
+trHH_size_eth[,("geoid_match"):=
+                 bgHH_size_eth[.SD, list(geoid), on = .(trbgHH_sg_match_id)]]
+nrow(bgHH_size_eth[is.na(family)]) #43801 non matches
+#don't go back to _dec for full match - just trying to get in the right direction and triangulate
 trHH_size_eth[,("trbgHH_s_match_id"):=
                     paste0(tract,HvL,hh_size,as.character(100000+sample(1:.N))),
                   by=.(tract,HvL,hh_size)]
@@ -424,6 +448,31 @@ length(test[test>0])
 length(test[test>5]) #441
 length(test[test>15]) #7
 #for race
+#add a possible geoid to tract
+trHH_size_race[,("trbgHH_dsrg_match_id"):=
+                    paste0(tract,race,family,as.character(100000+sample(1:.N))),
+                  by=.(tract,race,family)]
+bgHH_dec[,("trbgHH_dsrg_match_id"):=
+                    paste0(tract,race,family,as.character(100000+sample(1:.N))),
+                  by=.(tract,race,family)]
+bgHH_dec[,("hh_sizer_match"):=
+                 trHH_size_race[.SD, list(hh_size), on = .(trbgHH_dsrg_match_id)]]
+trHH_size_race[,("geoid"):=
+                 bgHH_dec[.SD, list(geoid), on = .(trbgHH_dsrg_match_id)]]
+nrow(trHH_size_race[is.na(geoid)])==0
+#add family to bg race from tract
+trHH_size_race[,("trbgHH_sr_match_id"):=
+                    paste0(geoid,race,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,hh_size)]
+bgHH_size_race[,("trbgHH_sr_match_id"):=
+                    paste0(geoid,race,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,hh_size)]
+bgHH_size_race[,("family"):=
+                 trHH_size_race[.SD, list(family), on = .(trbgHH_sr_match_id)]]
+trHH_size_race[,("geoid"):=
+                 bgHH_size_race[.SD, list(geoid), on = .(trbgHH_sr_match_id)]]
+nrow(bgHH_size_race[is.na(family)])==0
+#and at tract level
 trHH_size_race[,("trbgHH_sr_match_id"):=
                     paste0(tract,race,hh_size,as.character(100000+sample(1:.N))),
                   by=.(tract,race,hh_size)]
@@ -492,7 +541,6 @@ What we'll do is add bgHH_age/eth to bgHH_dec: start by adding eth to race, with
 
 Trying to think about what it means to iterate through construction / composition.
 
-
 ```{r join bgHH_age_eth to size, type, and dec}
 #then do the match
 #we have been given the number of single people households with a senior present - which gives us some ages
@@ -507,65 +555,81 @@ bgHH_age_eth[,c("hh_size","family"):=
                  bgHH_size_eth[.SD, c(list(hh_size),list(family)), on = .(bgHH_aes_match_id)]]
 nrow(bgHH_age_eth[is.na(hh_size)])==0 
 nrow(bgHH_age_eth[is.na(family)])==0
+#move HvL from _dec to type, based on family and type
+bgHH_type[,("bgHH_ad_match_id"):=
+                    paste0(geoid,hh_type,family,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_type,family)]
+bgHH_dec[,("bgHH_ad_match_id"):=
+                    paste0(geoid,hh_type,family,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_type,family)]
+bgHH_type[,c("HvL","race"):=
+                 bgHH_dec[.SD, c(list(HvL),list(race)), on = .(bgHH_ad_match_id)]]
+bgHH_dec[,("HvL_type_matched"):=
+                 bgHH_type[.SD, list(HvL), on = .(bgHH_ad_match_id)]]
+nrow(bgHH_type[HvL==TRUE])-nrow(bgHH_age_eth) #0 made 2309 match by prepping the geoid and HvL
+nrow(bgHH_dec[HvL_type_matched==TRUE])==nrow(bgHH_type[!is.na(HvL)])
+
 #move single family households over from type to age:
 bgHH_age_eth[hh_size=="1-person household",("bgHH_aet1_match_id"):=
-                    paste0(geoid,hh_age_range_3,rent_own,family,as.character(100000+sample(1:.N))),
-                  by=.(geoid,hh_age_range_3,rent_own,family)]
+                    paste0(geoid,HvL,hh_age_range_3,rent_own,family,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,hh_age_range_3,rent_own,family)]
 bgHH_type[alone=="Living alone",("bgHH_aet1_match_id"):=
-                    paste0(geoid,hh_age_range_3,rent_own,family,as.character(100000+sample(1:.N))),
-                  by=.(geoid,hh_age_range_3,rent_own,family)]
+                    paste0(geoid,HvL,hh_age_range_3,rent_own,family,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,hh_age_range_3,rent_own,family)]
 bgHH_age_eth[hh_size=="1-person household",c("hh_type","hh_type_fm"):=
                  bgHH_type[.SD, c(list(hh_type),list(hh_type_fm)), on = .(bgHH_aet1_match_id)]]
 bgHH_type[alone=="Living alone",("age_eth_matched"):=
                  bgHH_age_eth[.SD, list(HvL), on = .(bgHH_aet1_match_id)]]
-nrow(bgHH_type[alone=="Living alone"])-nrow(bgHH_age_eth[!is.na(hh_type)]) #for race, it should be close, here 94,502 matched
-nrow(bgHH_size_eth[hh_size=="1-person household"])-nrow(bgHH_age_eth[!is.na(hh_type)])# 2309 not matched
+nrow(bgHH_type[alone=="Living alone"])
+nrow(bgHH_age_eth[!is.na(hh_type)]) #74,020 - fewer than before
 #then the more than 1 person households
 bgHH_age_eth[hh_size!="1-person household",("bgHH_aet_match_id"):=
-                    paste0(geoid,hh_age_range_3,rent_own,family,as.character(100000+sample(1:.N))),
-                  by=.(geoid,hh_age_range_3,rent_own,family)]
+                    paste0(geoid,HvL,hh_age_range_3,rent_own,family,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,hh_age_range_3,rent_own,family)]
 bgHH_type[alone!="Living alone",("bgHH_aet_match_id"):=
-                    paste0(geoid,hh_age_range_3,rent_own,family,as.character(100000+sample(1:.N))),
-                  by=.(geoid,hh_age_range_3,rent_own,family)]
+                    paste0(geoid,HvL,hh_age_range_3,rent_own,family,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,hh_age_range_3,rent_own,family)]
 bgHH_age_eth[hh_size!="1-person household",c("hh_type","hh_type_fm","alone"):=
                  bgHH_type[.SD, c(list(hh_type),list(hh_type_fm),list(alone)), on = .(bgHH_aet_match_id)]]
 bgHH_type[alone!="Living alone",("age_eth_matched"):=
                  bgHH_age_eth[.SD, list(HvL), on = .(bgHH_aet_match_id)]]
-nrow(bgHH_age_eth)-nrow(bgHH_age_eth[!is.na(hh_type)]) #7893
+nrow(bgHH_age_eth[!is.na(hh_type)]) #7893
 #then by tract - but allowing the geoid to shift, since some of the mismatch came from that; will recapture ground geoid from dec, although family should be right and geoid should be better than just an approximation and should still work at tract in any case
 bgHH_age_eth[is.na(hh_type),("bgHH_aet_match_id"):=
-                    paste0(tract,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
-                  by=.(tract,hh_age_range_3,rent_own)]
+                    paste0(tract,HvL,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,hh_age_range_3,rent_own)]
 bgHH_type[is.na(age_eth_matched),("bgHH_aet_match_id"):=
-                    paste0(tract,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
-                  by=.(tract,hh_age_range_3,rent_own)]
-bgHH_age_eth[is.na(hh_type),c("hh_type","hh_type_fm","alone","family","geoid"):= # - maybe play with that later - lots of moving parts
+                    paste0(tract,HvL,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,hh_age_range_3,rent_own)]
+bgHH_age_eth[is.na(hh_type),c("hh_type","hh_type_fm","alone","family"):= #,"geoid" - maybe play with that later - lots of moving parts
                  bgHH_type[.SD, c(list(hh_type),list(hh_type_fm),list(alone),
-                                  list(family),list(geoid)), on = .(bgHH_aet_match_id)]]
+                                  list(family)), on = .(bgHH_aet_match_id)]] #,list(geoid)
 bgHH_type[is.na(age_eth_matched),("age_eth_matched"):=
                  bgHH_age_eth[.SD, list(HvL), on = .(bgHH_aet_match_id)]]
 nrow(bgHH_age_eth)==nrow(bgHH_age_eth[!is.na(hh_type)])
 nrow(bgHH_age_eth[is.na(hh_type)])==0 
 #have to make sure bgHH_dec geoids are respected in end - family from this side is still imperfect...
-test_geoid_dec_age <- table(bgHH_dec[HvL==TRUE,geoid],
-                            bgHH_dec[HvL==TRUE,family]
-                            )-
+test <- table(bgHH_dec[HvL==TRUE,geoid],
+              bgHH_dec[HvL==TRUE,family]
+              )-
   table(bgHH_age_eth[,geoid],
         bgHH_age_eth[,family]
         )
-length(test_geoid_dec_age[test_geoid_dec_age>0]) / length(test_geoid_dec_age) #43%
-length(test_geoid_dec_age[test_geoid_dec_age>7]) / length(test_geoid_dec_age) #277 / 5%
-#have to decide how to characterize test on subtraction, if you move geoid over on the tract match.... not sure what it misses but seems to get pretty close
+length(test[test>0]) / length(test) #42%
+length(test[test>7]) / length(test) #4.5%
+#have to decide how to characterize test on subtraction
 #match bgHH_type1 to bgHH_age_eth, moving type and family to eth, but sampling on .N (not seq.int)
-test_tract_dec_age <- table(bgHH_dec[HvL==TRUE,tract],
-                            bgHH_dec[HvL==TRUE,family]
-                            )-
+test <- table(bgHH_dec[HvL==TRUE,tract],
+              bgHH_dec[HvL==TRUE,rent_own],
+              bgHH_dec[HvL==TRUE,family]
+              )-
   table(bgHH_age_eth[,tract],
+        bgHH_age_eth[,rent_own],
         bgHH_age_eth[,family]
         )
 #it still has quite a few mismatches - need to think through what happened.
-length(test_tract_dec_age[test_tract_dec_age>0]) / length(test_tract_dec_age) #33%
-length(test_tract_dec_age[test_tract_dec_age>7]) / length(test_tract_dec_age) #120 / 5%
+length(test[test>0]) / length(test) #33%
+length(test[test>7]) / length(test) #120 / 5%
 
 #ground reference from doing it without doing the tract part first:
 #  table(bgHH_dec[HvL==TRUE,family])
@@ -581,11 +645,11 @@ length(test_tract_dec_age[test_tract_dec_age>7]) / length(test_tract_dec_age) #1
 #              426621               167061 
 #table(bgHH_age_eth[,family])
 #   Family households Nonfamily households 
-#              465356               128326 
+#              465514               128168  
 #which is a final difference of:
 #table(bgHH_dec[HvL==TRUE,family])-table(bgHH_age_eth[,family])
-#Family households Nonfamily households 
- #               -2496                 2496 
+#Family households        Nonfamily households 
+ #               -2654                 2654 
 #and
 #table(bgHH_dec[HvL==TRUE,hh_type])
 #
@@ -620,31 +684,79 @@ Try the same with race
 ```{r join bgHH_age_race to size, type, and dec}
 #then do the match
 #move the HvL race combinations from _dec back to age (and size) eth
-bgHH_dec[,("bgHH_dre_match_id"):=
-                    paste0(tract,family,hh_type,HvL,as.character(100000+sample(1:.N))),
-                  by=.(tract,family,hh_type,HvL)]
-bgHH_age_eth[,("bgHH_dre_match_id"):=
-                    paste0(tract,family,hh_type,HvL,as.character(100000+sample(1:.N))),
-                  by=.(tract,family,hh_type,HvL)]
-bgHH_age_eth[,c("race","geoid"):=
-                 bgHH_dec[.SD, c(list(race),list(geoid)), on = .(bgHH_dre_match_id)]]
+bgHH_dec[,("bgHH_dret_match_id"):=
+                    paste0(geoid,family,hh_type,HvL,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,hh_type,HvL)]
+bgHH_age_eth[,("bgHH_dret_match_id"):=
+                    paste0(geoid,family,hh_type,HvL,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,hh_type,HvL)]
+bgHH_age_eth[,("race"):=
+                 bgHH_dec[.SD, list(race), on = .(bgHH_dret_match_id)]]
 bgHH_dec[,("matched_age_eth_race"):=
+                 bgHH_age_eth[.SD, list(race), on = .(bgHH_dret_match_id)]]
+nrow(bgHH_age_eth[is.na(race)]) #31,342
+#let's see if taking out hh_type can help the match, since the five categories are matched in family already
+#table(bgHH_age_eth[is.na(race),family],bgHH_age_eth[is.na(race),hh_type])
+#                      
+#                       Female householder, no spouse present Householder living alone Householder not living alone
+#  Family households                                    15959                        0                            0
+#  Nonfamily households                                     0                     1722                         2554
+#                      
+#                       Male householder, no spouse present Married couple family
+#  Family households                                   3791                  7226
+#  Nonfamily households                                   0                     0
+
+bgHH_dec[is.na(matched_age_eth_race),("bgHH_dre_match_id"):=
+                    paste0(geoid,family,HvL,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,HvL)]
+bgHH_age_eth[is.na(race),("bgHH_dre_match_id"):=
+                    paste0(geoid,family,HvL,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,HvL)]
+bgHH_age_eth[is.na(race),c("race","hh_type"):=
+                 bgHH_dec[.SD, c(list(race),list(hh_type)), on = .(bgHH_dre_match_id)]]
+bgHH_dec[is.na(matched_age_eth_race),("matched_age_eth_race"):=
                  bgHH_age_eth[.SD, list(race), on = .(bgHH_dre_match_id)]]
-nrow(bgHH_age_eth[is.na(race)]) #31158
+nrow(bgHH_age_eth[is.na(race)]) #9,026 / 1.5%
 nrow(bgHH_dec[!is.na(matched_age_eth_race)])==nrow(bgHH_age_eth[!is.na(race)])
 test <- table(
-  bgHH_age_eth[,tract],
+  bgHH_age_eth[,geoid],
   bgHH_age_eth[,HvL],
   bgHH_age_eth[,hh_type],
   bgHH_age_eth[,family]
   )==
-  table(bgHH_dec[HvL==TRUE,tract],
+  table(bgHH_dec[HvL==TRUE,geoid],
         bgHH_dec[HvL==TRUE,HvL],
         bgHH_dec[HvL==TRUE,hh_type],
         bgHH_dec[HvL==TRUE,family]
         )
-length(test[test==FALSE]) #4607
-#get rest (31k) after matching on race in other ways...
+length(test[test==FALSE]) #3027  /length(test) = .107 -89% of matches at geoid level work
+
+#pick up last little bit, 1.5% so that it respects _dec_eth and _age_eth
+bgHH_dec[is.na(matched_age_eth_race),("bgHH_dref_match_id"):=
+                    paste0(geoid,HvL,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL)]
+bgHH_age_eth[is.na(race),("bgHH_dref_match_id"):=
+                    paste0(geoid,HvL,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL)]
+bgHH_age_eth[is.na(race),c("race","hh_type","family"):=
+                 bgHH_dec[.SD, c(list(race),list(hh_type),list(family)), on = .(bgHH_dref_match_id)]]
+bgHH_dec[is.na(matched_age_eth_race),("matched_age_eth_race"):=
+                 bgHH_age_eth[.SD, list(race), on = .(bgHH_dref_match_id)]]
+nrow(bgHH_age_eth[is.na(race)])==0
+nrow(bgHH_dec[!is.na(matched_age_eth_race)])==nrow(bgHH_age_eth[!is.na(race)])
+nrow(bgHH_age_eth[is.na(race)])==nrow(bgHH_age_eth[is.na(hh_type)]) #that is, we're just missing ones from earlier merges...
+test <- table(
+  bgHH_age_eth[,geoid],
+  bgHH_age_eth[,HvL],
+  bgHH_age_eth[,hh_type],
+  bgHH_age_eth[,family]
+  )==
+  table(bgHH_dec[HvL==TRUE,geoid],
+        bgHH_dec[HvL==TRUE,HvL],
+        bgHH_dec[HvL==TRUE,hh_type],
+        bgHH_dec[HvL==TRUE,family]
+        )
+length(test[test==FALSE])==0
 
 #get age_race matches with age_eth (dec)
 bgHH_age_race[,("bgHH_are_match_id"):=
@@ -656,6 +768,7 @@ bgHH_age_eth[,("bgHH_are_match_id"):=
 bgHH_age_race[,c("HvL","hh_type","hh_type_fm","alone","family","hh_size"):=
                  bgHH_age_eth[.SD, c(list(HvL),list(hh_type),list(hh_type_fm),list(alone),
                                      list(family),list(hh_size)), on = .(bgHH_are_match_id)]]
+nrow(bgHH_age_eth) - nrow(bgHH_age_race[!is.na(HvL)]) #72,204 / 12%
 #we have been given the number of single people households with a senior present - which gives us some ages
 #get all the way back up to bgHH_size_race in same way, so we're triangulating
 bgHH_size_race[,("bgHH_asre_match_id"):=
@@ -666,9 +779,8 @@ bgHH_age_eth[,("bgHH_asre_match_id"):=
                   by=.(tract,race,rent_own,family,hh_size)]
 bgHH_size_race[,c("HvL","hh_type","hh_type_fm","alone"):=
                  bgHH_age_eth[.SD, c(list(HvL),list(hh_type),list(hh_type_fm),list(alone)), on = .(bgHH_asre_match_id)]]
-alone?
-#START HERE (after double check this block, above) _ SHOULD WE DO is.na(HvL?)
-#first add hh_size, since the one-person family will help matches on type
+
+#UGH below
 bgHH_age_race[,("bgHH_ars_match_id"):=
                     paste0(geoid,race,HvL,rent_own,as.character(100000+sample(1:.N))),
                   by=.(geoid,race,HvL,rent_own)]
@@ -711,9 +823,9 @@ bgHH_age_eth[is.na(hh_type),("bgHH_aet_match_id"):=
 bgHH_type[is.na(age_eth_matched),("bgHH_aet_match_id"):=
                     paste0(tract,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
                   by=.(tract,hh_age_range_3,rent_own)]
-bgHH_age_eth[is.na(hh_type),c("hh_type","hh_type_fm","alone","family","geoid"):= # - maybe play with that later - lots of moving parts
+bgHH_age_eth[is.na(hh_type),c("hh_type","hh_type_fm","alone","family"):= # ,"geoid"- maybe play with that later - lots of moving parts
                  bgHH_type[.SD, c(list(hh_type),list(hh_type_fm),list(alone),
-                                  list(family),list(geoid)), on = .(bgHH_aet_match_id)]]
+                                  list(family)), on = .(bgHH_aet_match_id)]] #,list(geoid)
 bgHH_type[is.na(age_eth_matched),("age_eth_matched"):=
                  bgHH_age_eth[.SD, list(HvL), on = .(bgHH_aet_match_id)]]
 nrow(bgHH_age_eth)==nrow(bgHH_age_eth[!is.na(hh_type)])
