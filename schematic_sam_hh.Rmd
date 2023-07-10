@@ -28,6 +28,7 @@ library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
+#maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" Dan at AREB219
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
