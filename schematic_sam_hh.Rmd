@@ -642,7 +642,7 @@ nrow(bgHH_age_eth[is.na(hh_type)]) #176 left! - do the final match after race...
 bgHH_type[,("HvL_ae"):=if_else(is.na(HvL_ae),HvL,HvL_ae)]
 bgHH_type[,("hh_age_range_3_ae"):=if_else(is.na(hh_age_range_3_ae),hh_age_range_3,hh_age_range_3_ae)]
 #family from this side is still imperfect...
-#could make the HvL_ae move over the value of HvL that came from dec on type
+#could make the HvL_ae move over the value of HvL that came from dec on type? Or just move straight from _dec... need to test
 ```
 
 ground reference from doing it without doing the tract part first:
@@ -704,7 +704,7 @@ bgHH_age_eth[,("race"):=
                  bgHH_dec[.SD, list(race), on = .(bgHH_dret_match_id)]]
 bgHH_dec[,("matched_age_eth_race"):=
                  bgHH_age_eth[.SD, list(race), on = .(bgHH_dret_match_id)]]
-nrow(bgHH_age_eth[is.na(race)]) #41875 / 93% matched on all
+nrow(bgHH_age_eth[is.na(race)]) #593682 / 93% matched on all
 
 #try without rent_own, hh_age_range_3, and hh_type since they came from type without HvL 
 bgHH_dec[is.na(matched_age_eth_race),("bgHH_dre_match_id"):=
