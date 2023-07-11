@@ -26,9 +26,9 @@ library(dplyr)
 library(stringr)
 library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
-maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+#maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
-#maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" Dan at AREB219
+maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan at AREB219
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
@@ -589,6 +589,9 @@ bgHH_type[alone=="Living alone" & is.na(age_eth_matched),("HvL"):=ifelse(HvL==TR
 
 #one person households with HvL_ae coming from age, potentially overriding from dec - 
 #if put them on here, it causes older values to go NA
+
+
+#START HERE!!! - do we want to change it so that HvL is in first two iterations for matching?? I think yes, but can't remember what I did...
 bgHH_age_eth[hh_size=="1-person household" & is.na(hh_type),("bgHH_aet2_match_id"):=
                     paste0(geoid,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
                   by=.(geoid,hh_age_range_3,rent_own)]
@@ -609,8 +612,8 @@ bgHH_type[alone!="Living alone",("bgHH_aet_match_id"):=
                   by=.(geoid,HvL,hh_age_range_3,rent_own,family)]
 bgHH_age_eth[hh_size!="1-person household",c("hh_type","hh_type_fm","alone"):=
                  bgHH_type[.SD, c(list(hh_type),list(hh_type_fm),list(alone)), on = .(bgHH_aet_match_id)]]
-bgHH_type[alone!="Living alone",c("age_eth_matched"):=
-                 bgHH_age_eth[.SD, list(HvL), on = .(bgHH_aet_match_id)]]
+bgHH_type[alone!="Living alone",c("age_eth_matched","HvL_ae"):=
+                 bgHH_age_eth[.SD, c(list(HvL),list(HvL)), on = .(bgHH_aet_match_id)]]
 nrow(bgHH_age_eth[is.na(hh_type)]) #58466
 #then without HvL (could compare with doing it without hh_age_range_3)
 bgHH_age_eth[is.na(hh_type),("bgHH_aet_match_id"):=
@@ -704,7 +707,7 @@ bgHH_age_eth[,("race"):=
                  bgHH_dec[.SD, list(race), on = .(bgHH_dret_match_id)]]
 bgHH_dec[,("matched_age_eth_race"):=
                  bgHH_age_eth[.SD, list(race), on = .(bgHH_dret_match_id)]]
-nrow(bgHH_age_eth[is.na(race)]) #593682 / 93% matched on all
+nrow(bgHH_age_eth[is.na(race)]) #75051 / 13% not matched
 
 #try without rent_own, hh_age_range_3, and hh_type since they came from type without HvL 
 bgHH_dec[is.na(matched_age_eth_race),("bgHH_dre_match_id"):=
@@ -756,7 +759,7 @@ test <- table(
 length(test[test==FALSE]) == 0
 
 #get age_race matches with age_eth (dec)
-#put tr family from size and bg hh_size onto bg_age_race, then do matching by subtraction
+#put tr family from size and bg hh_size onto bg_age_race, then do matching by subtraction of factors
 bgHH_size_race[,("bgHH_asrr_match_id"):=
                     paste0(geoid,race,rent_own,as.character(100000+sample(1:.N))),
                   by=.(geoid,race,rent_own)]
@@ -797,7 +800,7 @@ bgHH_age_eth[is.na(matched_eth_race),c("matched_eth_race","family_ar",
                                on = .(bgHH_aref_match_id)]]
 nrow(bgHH_age_eth) - nrow(bgHH_age_race[!is.na(HvL)]) #36879 / 6%
 
-#hh_age_range_3 could be wrong in match coming from dec - let it not match, but don't change on age_rac
+#hh_age_range_3 could be wrong in match coming from dec - let it not match, but don't change on age_race
 bgHH_age_race[is.na(HvL),("bgHH_ref_match_id"):=
                     paste0(geoid,race,rent_own,as.character(100000+sample(1:.N))),
                   by=.(geoid,race,rent_own)]
@@ -835,7 +838,8 @@ bgHH_age_eth[,("rent_own_ar"):=if_else(is.na(rent_own_ar),rent_own,rent_own_ar)]
 bgHH_age_eth[,("hh_age_range_3_ar"):=if_else(is.na(hh_age_range_3_ar),hh_age_range_3,hh_age_range_3_ar)] 
 bgHH_age_eth[,("family_ar"):=if_else(is.na(family_ar),family,family_ar)]
 bgHH_age_eth[,("hh_size_ar"):=if_else(is.na(hh_size_ar),hh_size,hh_size_ar)] #not to move to dec...
-#TEST WITH HH_TYPE ON MATCH, THEN MOVE IT IF NEEDED!
+
+#move the changed values on age_eth back to _dec before matching on race
 bgHH_dec[,("bgHH_dret2_match_id"):=
                     paste0(geoid,race,hh_type,HvL,as.character(100000+sample(1:.N))),
                   by=.(geoid,race,hh_type,HvL)]
@@ -848,9 +852,9 @@ bgHH_dec[,c("matched_eth_race","hh_age_range_3_ar","rent_own_ar","family_ar"):=
                  bgHH_age_eth[.SD, c(list(race),list(hh_age_range_3_ae),
                                      list(rent_own_ar),list(family_ar)), 
                               on = .(bgHH_dret2_match_id)]]
-nrow(bgHH_dec[is.na(family_ar)])
+nrow(bgHH_dec[!is.na(family_ar)])==nrow(bgHH_age_eth)
 
-#move type to age_race - MAY NEED TO RETHINK WHAT MATCHES HERE - FOLLOW THE ETH MODEL??
+#move type to age_race 
 bgHH_age_race[is.na(HvL),("bgHH_tare_match_id"):=
                     paste0(geoid,race,rent_own,family,hh_age_range_3,as.character(100000+sample(1:.N))),
                   by=.(geoid,race,rent_own,family,hh_age_range_3)]
