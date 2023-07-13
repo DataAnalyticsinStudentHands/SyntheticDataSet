@@ -1178,12 +1178,35 @@ test <- table(
         bgHH_dec[,hh_type_fm],
         bgHH_dec[,alone]
         )
-length(test[test>5]) / length(test) #.021%
-
+length(test[test>5]) / length(test) #.020% - really, should be about age_range_3 matching...
+#go through the older relationships and see what's broken
+test <- table(
+  bgHH_size_race[,geoid],
+  bgHH_size_race[,race],
+  bgHH_size_race[,hh_size],
+  bgHH_size_race[,rent_own]
+  )==
+  table(bgHH_dec[,geoid],
+        bgHH_dec[,race],
+        bgHH_dec[,hh_size],
+        bgHH_dec[,rent_own_r] #compare with rent_own - which is way off!
+        )
+length(test[test==FALSE])
+test <- table(
+  bgHH_size_eth[,geoid],
+  bgHH_size_eth[,hh_size],
+  bgHH_size_eth[,family]
+  )==
+  table(bgHH_dec[HvL==TRUE,geoid],
+        bgHH_dec[HvL==TRUE,hh_size],
+        bgHH_dec[HvL==TRUE,family_ar] #UGH!!!!!!
+        )
+length(test[test==FALSE])
 
 ```
 
 #need to do lots of tests and then save just like schematic - 
+new files for children and for group quarters calculations? then relationships puts you back to whole pop.
 
 #some tests
 ```{r checking for best fit}
