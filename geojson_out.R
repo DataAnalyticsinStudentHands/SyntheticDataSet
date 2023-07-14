@@ -121,6 +121,16 @@ tracts4cd116unlisted <- rapply(tracts4cd116,function(x) ifelse(length(x)==0,9999
 tracts4cd116unlisted <- unlist(tracts4cd116unlisted)
 tractsDT$Congress_district=texas_cd116DT$NAMELSAD[tracts4cd116unlisted]
 
+#
+superneighborhoods <- st_read(paste0(houstondatadir, "2022/HOUSTON_LIMITS_BOUNDARIES_PACKAGE/HOUSTON_LIMITS_BOUNDARIES_PACKAGE.shp"))
+#2017 had different title, but same geometry
+#superneighborhoods <- st_read(paste0(houstondatadir, "2017/COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
+superneighborhoods <- st_transform(superneighborhoods, st_crs(censustracts)) #HCAD is renamed from sf_HCAD in this run - can change
+super_within <- st_within(tractsDT$centroid, superneighborhoods)
+super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+super_within_unlist <- unlist(super_within_unlist)
+tractsDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
+
 vintage <- "2021"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
 tract_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 

@@ -1149,6 +1149,7 @@ bgHH_age_race[is.na(matched_type_age_race),("matched_type_age_race"):=
 nrow(bgHH_dec[!is.na(hh_size)]) == nrow(bgHH_dec)
 
 #look at tables for hh_age_range_3_r and rent_own_r, too
+#need to go through originals - race/eth/age/type (type_fm and alone)/rent_own/family/size
 test <- table(
   bgHH_age_race[,geoid],
   bgHH_age_race[,race],
@@ -1193,12 +1194,12 @@ test <- table(
         )
 length(test[test==FALSE])
 test <- table(
-  bgHH_size_eth[,geoid],
-  bgHH_size_eth[,hh_size],
+  #bgHH_size_eth[,geoid],
+  #bgHH_size_eth[,hh_size],
   bgHH_size_eth[,family]
   )==
-  table(bgHH_dec[HvL==TRUE,geoid],
-        bgHH_dec[HvL==TRUE,hh_size],
+  table(#bgHH_dec[HvL==TRUE,geoid],
+        #bgHH_dec[HvL==TRUE,hh_size],
         bgHH_dec[HvL==TRUE,family_ar] #UGH!!!!!!
         )
 length(test[test==FALSE])
