@@ -393,6 +393,198 @@ length(test[test==FALSE])==0
 #do a few more of the tests
 rm(trHH_size)
 rm(trHH_size_data)
+```
+
+Ok - think - what would it mean to put these in the right order so that the matches worked, and then you could draw down to a single answer...
+
+Each row of bg has a race and a size that matches with the tr
+the only thing missing is family - which only has two ways to go
+If we expand bg x 2 for family / non-family, then also expand _tr x2
+join gives all possible combinations - and should be smaller than bgx2
+join with _dec should then get back to length of bg
+
+```{r joining after expand for simple cartesian example}
+#create possible matches by cartesian products
+bgHH_size_eth[,("blockID"):=substr(geoid,12,12)]
+bgHH_size_eth[,("maxblocks"):=max(as.numeric(blockID)),by=.(tract)]
+cart_bgHH_size_eth_family <- bgHH_size_eth[rep(1:.N,1)][,c("family","indx"):=
+                                                   c(list("Family households"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_bgHH_size_eth_nonfamily <- bgHH_size_eth[rep(1:.N,1)][,c("family","indx"):=
+                                                   c(list("Nonfamily households"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_HvL_bgHH_size <- rbindlist(list(cart_bgHH_size_eth_family,cart_bgHH_size_eth_nonfamily))
+cart_trHH_size_eth <- cart_HvL_bgHH_size[rep(1:.N,maxblocks)][,("indx"):=
+                                                   list(1:.N),
+                                                 by=.(geoid,hh_size)]
+trHH_size_eth_maxblocks <- trHH_size_eth[rep(1:.N,6)] #do for all possible geoids / 6 is max number of blocks
+cart_trHH_size_eth[,("trbgHH_sizeHvL_match_id"):=
+                    paste0(tract,HvL,family,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,family,hh_size)]
+trHH_size_eth_maxblocks[,("trbgHH_sizeHvL_match_id"):=
+                    paste0(tract,HvL,family,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,family,hh_size)]
+trHH_size_eth_maxblocks[,("bg_size_match"):=
+                 cart_trHH_size_eth[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
+cart_trHH_size_eth[,("bg_size_match"):=
+                 trHH_size_eth_maxblocks[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
+nrow(cart_trHH_size_eth[!is.na(bg_size_match)])
+#could do this with trHH_size_eth
+cart_trHH_size_eth[!is.na(bg_size_match),("trbgHH_sizeHvL1_match_id"):=
+                    paste0(tract,family,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,family,hh_size)]
+trHH_size_eth[,("trbgHH_sizeHvL1_match_id"):=
+                    paste0(tract,family,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,family,hh_size)]
+cart_trHH_size_eth[!is.na(bg_size_match),("bg_size_match1"):=
+                 trHH_size_eth[.SD, list(hh_size), on = .(trbgHH_sizeHvL1_match_id)]]
+trHH_size_eth[,c("geoid","rent_own"):=
+                 cart_trHH_size_eth[.SD, c(list(geoid),list(rent_own)), on = .(trbgHH_sizeHvL1_match_id)]]
+nrow(trHH_size_eth[is.na(geoid)])
+#test <- (table(bgHH_size_eth[,geoid])-table(trHH_size_eth[,geoid]))/table(trHH_size_eth[,geoid])
+#second time through, had different total number of geoids, so couldn't run
+#> length(test[test<.00001])
+#[1] 1526
+#> length(test)
+#[1] 2824
+#can we correct from _dec now? (race can use type, with both family and rent_own)
+trHH_size_eth[,("trbgHH_decHvL1_match_id"):=
+                    paste0(geoid,HvL,family,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,family)]
+bgHH_dec[,("trbgHH_decHvL1_match_id"):=
+                    paste0(geoid,HvL,family,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,family)]
+bgHH_dec[,("trbg_dec_match"):=
+                 trHH_size_eth[.SD, list(hh_size), on = .(trbgHH_decHvL1_match_id)]]
+trHH_size_eth[,("geoid_dec"):=
+                 bgHH_dec[.SD, list(geoid), on = .(trbgHH_decHvL1_match_id)]]
+nrow(trHH_size_eth[is.na(geoid_dec)]) #14360
+
+#and at tract level
+trHH_size_eth[is.na(geoid_dec),("trbgHH_decHvL2_match_id"):=
+                    paste0(tract,HvL,family,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,family)]
+bgHH_dec[is.na(trbg_dec_match),("trbgHH_decHvL2_match_id"):=
+                    paste0(tract,HvL,family,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,family)]
+bgHH_dec[is.na(trbg_dec_match),("trbg_dec_match"):=
+                 trHH_size_eth[.SD, list(hh_size), on = .(trbgHH_decHvL2_match_id)]]
+trHH_size_eth[is.na(geoid_dec),("geoid_dec"):=
+                 bgHH_dec[.SD, list(geoid), on = .(trbgHH_decHvL2_match_id)]]
+nrow(trHH_size_eth[is.na(geoid_dec)])
+
+test <- table(trHH_size_eth[,tract],
+              trHH_size_eth[,geoid_dec],
+              trHH_size_eth[,HvL]
+              )==
+        table(bgHH_size_eth[,tract],
+              bgHH_size_eth[,geoid],
+              bgHH_size_eth[,HvL]
+              )
+length(test[test==FALSE])==0
+#now back down to bgHH_size_eth
+trHH_size_eth[,("trbgHH_size_match_id"):=
+                    paste0(geoid_dec,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid_dec,HvL,rent_own,hh_size)]
+bgHH_size_eth[,("trbgHH_size_match_id"):=
+                    paste0(geoid,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,rent_own,hh_size)]
+bgHH_size_eth[,("family"):=
+                 trHH_size_eth[.SD, list(family), on = .(trbgHH_size_match_id)]]
+trHH_size_eth[,("matched_bg"):=
+                 bgHH_size_eth[.SD, list(geoid), on = .(trbgHH_size_match_id)]]
+nrow(bgHH_size_eth[is.na(family)]) #32,387
+#and again, but using rent_own from bg as ground
+trHH_size_eth[is.na(matched_bg),("trbgHH_size1_match_id"):=
+                    paste0(geoid_dec,HvL,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid_dec,HvL,hh_size)]
+bgHH_size_eth[is.na(family),("trbgHH_size1_match_id"):=
+                    paste0(geoid,HvL,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,hh_size)]
+bgHH_size_eth[is.na(family),("family"):=
+                 trHH_size_eth[.SD, list(family), on = .(trbgHH_size1_match_id)]]
+trHH_size_eth[is.na(matched_bg),("matched_bg"):=
+                 bgHH_size_eth[.SD, list(geoid), on = .(trbgHH_size1_match_id)]]
+nrow(bgHH_size_eth[is.na(family)]) #2124
+#and then on tract
+trHH_size_eth[is.na(matched_bg),("trbgHH_size2_match_id"):=
+                    paste0(tract,HvL,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,hh_size)]
+bgHH_size_eth[is.na(family),("trbgHH_size2_match_id"):=
+                    paste0(tract,HvL,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,hh_size)]
+bgHH_size_eth[is.na(family),("family"):=
+                 trHH_size_eth[.SD, list(family), on = .(trbgHH_size2_match_id)]]
+trHH_size_eth[is.na(matched_bg),("matched_bg"):=
+                 bgHH_size_eth[.SD, list(geoid), on = .(trbgHH_size2_match_id)]]
+nrow(bgHH_size_eth[is.na(family)]) == 0
+test <- table(bgHH_dec[HvL==TRUE,geoid],
+              bgHH_dec[HvL==TRUE,family],
+              bgHH_dec[HvL==TRUE,HvL]
+              )-
+        table(bgHH_size_eth[,geoid],
+              bgHH_size_eth[,family],
+              bgHH_size_eth[,HvL]
+              )
+length(test[test==FALSE])==0
+
+
+
+cart_HvL_bgHH_size_A <- cart_HvL_bgHH_size[rep(1:.N,1)][,c("race","raceindx"):=
+                                                   c(list("A"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_HvL_bgHH_size_B <- cart_HvL_bgHH_size[rep(1:.N,1)][,c("race","raceindx"):=
+                                                   c(list("B"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_HvL_bgHH_size_C <- cart_HvL_bgHH_size[rep(1:.N,1)][,c("race","raceindx"):=
+                                                   c(list("C"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_HvL_bgHH_size_D <- cart_HvL_bgHH_size[rep(1:.N,1)][,c("race","raceindx"):=
+                                                   c(list("D"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_HvL_bgHH_size_E <- cart_HvL_bgHH_size[rep(1:.N,1)][,c("race","raceindx"):=
+                                                   c(list("E"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_HvL_bgHH_size_F <- cart_HvL_bgHH_size[rep(1:.N,1)][,c("race","raceindx"):=
+                                                   c(list("F"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_HvL_bgHH_size_G <- cart_HvL_bgHH_size[rep(1:.N,1)][,c("race","raceindx"):=
+                                                   c(list("G"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_HvL_bgHH_size_race <- rbindlist(list(cart_HvL_bgHH_size_A,cart_HvL_bgHH_size_B,
+                                          cart_HvL_bgHH_size_C,cart_HvL_bgHH_size_D,
+                                          cart_HvL_bgHH_size_E,cart_HvL_bgHH_size_F,
+                                          cart_HvL_bgHH_size_G))
+#do trHH x max number of geoids in a tract, since we don't know which it falls into - have to make sure both sides are large enough
+
+
+
+
+#match cart_trHH with cart_bgHH? so you still have the extra matches - but should be back down somewhat in size
+bgHH_dec[,("trbgHH_ds_match_id"):=
+                    paste0(tract,HvL,family,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,family)]
+cart_trHH_size_eth[,("trbgHH_ds_match_id"):=
+                    paste0(tract,HvL,family,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,family)]
+bgHH_dec[,("hh_size_match"):=
+                 trHH_size_eth[.SD, list(hh_size), on = .(trbgHH_ds_match_id)]]
+trHH_size_eth[,("geoid"):=
+                 bgHH_dec[.SD, list(geoid), on = .(trbgHH_ds_match_id)]]
+nrow(trHH_size_eth[is.na(geoid)])==0
+
+#match this with _dec on race x HvL x family x rent_own - should be back to right size - and can put size right on _dec??
+#how to test that some of the ones weren't accidentally wrong matches??
+```
+
+
+
+and then number the geoid + the same .N in the paste,
+eth family from dec is also a limit - it reduces to that limit...
+as it counts down from the .N for that match...
+
+
+```{r old attempts to join for comparison}
 #add geoid to trHH_size_eth from dec
 trHH_size_eth[,("trbgHH_ds_match_id"):=
                     paste0(tract,HvL,family,as.character(100000+sample(1:.N))),
@@ -499,6 +691,16 @@ test <- table(trHH_size_race[,tract],
               bgHH_size_race[,race]
               )
 length(test[test==FALSE])==0
+
+test <- table(bgHH_dec[,tract],
+              bgHH_dec[,race],
+              bgHH_dec[,family]
+              )==
+        table(trHH_size_race[,tract],
+              trHH_size_race[,race],
+              trHH_size_race[,family]
+              )
+length(test[test==FALSE])
 
 test <- table(bgHH_dec[,geoid],
               bgHH_dec[,race],

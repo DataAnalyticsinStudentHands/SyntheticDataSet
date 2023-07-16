@@ -245,7 +245,7 @@ own_rent_hh_type_census <- censusData_byGroupName(censusdir, vintage, state, cen
                        block="tract",api_type="acs/acs5",path_suff="est.csv")
 own_rentDT <- as.data.table(own_rent_hh_type_census)
 own_rent_hh <- own_rentDT %>%
-  pivot_longer(4:ncol(own_rentDT),names_to = "TRACTCE", values_to = "households")
+  pivot_longer(4:ncol(own_rentDT),names_to = "GEOID", values_to = "households")
 own_rent_hh <- as.data.table(own_rent_hh)
 total_hh_occupied <- own_rent_hh[name=="B25011_001E",4:5]
 tracts_demog <- tracts_demog[total_hh_occupied, on="GEOID"]
@@ -624,7 +624,7 @@ write_rds(chw_stories_kepler,paste0(censusdir,vintage,"/chw_stories_kepler2_2021
 tracts_demog[,("centroid"):=NULL]
 st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+st_write(tracts_demog,"~/Downloads/Harris_superneighborhood_tracts_2021_on_7_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_4_3_23"))
 rank_demogs <- tracts_demog[""]
 
