@@ -403,6 +403,8 @@ If we expand bg x 2 for family / non-family, then also expand _tr x2
 join gives all possible combinations - and should be smaller than bgx2
 join with _dec should then get back to length of bg
 
+can we move the _dec match earlier, while still having others expanded, and use it for right number of geoids??
+
 ```{r joining after expand for simple cartesian example}
 #create possible matches by cartesian products
 bgHH_size_eth[,("blockID"):=substr(geoid,12,12)]
@@ -429,7 +431,7 @@ trHH_size_eth_maxblocks[,("bg_size_match"):=
 cart_trHH_size_eth[,("bg_size_match"):=
                  trHH_size_eth_maxblocks[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
 nrow(cart_trHH_size_eth[!is.na(bg_size_match)])
-#could do this with trHH_size_eth
+#could do this with trHH_size_eth 
 cart_trHH_size_eth[!is.na(bg_size_match),("trbgHH_sizeHvL1_match_id"):=
                     paste0(tract,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(tract,family,hh_size)]
@@ -447,7 +449,8 @@ nrow(trHH_size_eth[is.na(geoid)])
 #[1] 1526
 #> length(test)
 #[1] 2824
-#can we correct from _dec now? (race can use type, with both family and rent_own)
+#can we correct from _dec now? #can we avoid tract level
+#if we do the cart expansion on geoids and rent_own first 
 trHH_size_eth[,("trbgHH_decHvL1_match_id"):=
                     paste0(geoid,HvL,family,as.character(100000+sample(1:.N))),
                   by=.(geoid,HvL,family)]
@@ -460,6 +463,8 @@ trHH_size_eth[,("geoid_dec"):=
                  bgHH_dec[.SD, list(geoid), on = .(trbgHH_decHvL1_match_id)]]
 nrow(trHH_size_eth[is.na(geoid_dec)]) #14360
 
+
+#can we avoid tract level
 #and at tract level
 trHH_size_eth[is.na(geoid_dec),("trbgHH_decHvL2_match_id"):=
                     paste0(tract,HvL,family,as.character(100000+sample(1:.N))),
@@ -518,11 +523,11 @@ bgHH_size_eth[is.na(family),("family"):=
 trHH_size_eth[is.na(matched_bg),("matched_bg"):=
                  bgHH_size_eth[.SD, list(geoid), on = .(trbgHH_size2_match_id)]]
 nrow(bgHH_size_eth[is.na(family)]) == 0
-test <- table(bgHH_dec[HvL==TRUE,geoid],
+test <- table(bgHH_dec[HvL==TRUE,tract], #geoid gives 4488 FALSE
               bgHH_dec[HvL==TRUE,family],
               bgHH_dec[HvL==TRUE,HvL]
-              )-
-        table(bgHH_size_eth[,geoid],
+              )==
+        table(bgHH_size_eth[,tract],
               bgHH_size_eth[,family],
               bgHH_size_eth[,HvL]
               )
