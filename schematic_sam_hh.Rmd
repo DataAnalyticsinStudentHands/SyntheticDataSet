@@ -28,7 +28,7 @@ library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
-#maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan at AREB219
+#maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
@@ -65,7 +65,7 @@ The one with household type, race and ethnicity will serve as our base, and so w
 bgHH_data <- as.data.table(bg_hh_type_race_eth_data_from_census)
 bgHH_data[,6:ncol(bgHH_data)] <- 
   bgHH_data[,lapply(.SD[,6:ncol(bgHH_data)], as.numeric)]
-bgHH_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
+bgHH_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL] 
 rm(bg_hh_type_race_eth_data_from_census)
 
 #feed to test.R - doesn't work for totals because of how ethnicity is counted. So just make sure pop totals work
@@ -118,7 +118,6 @@ bgHH_dec <- bgHH_data %>%
   filter(number_sams > 0, !is.na(hh_type) & str_detect(race_description,"HISPANIC") & re_code != "H") %>% 
   select(-c(name,label,concept)) %>%
   uncount(number_sams,.id = "hh_type_race_id")
-nrow(bgHH_dec)==sum(pop_totals_hh[,], na.rm = TRUE)  
 bgHH_dec <- as.data.table(bgHH_dec)
 rm(bgHH_data)
 rm(pop_totals_hh)
@@ -331,7 +330,9 @@ length(test[test==FALSE])==0
 #do a few more of the tests
 rm(bgHH_size)
 rm(bgHH_size_data)
-
+```
+Now do same for tract level and bring together
+```{r pull in for tract size and family data}
 tr_hh_size_family_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT7", county_num = "*",
@@ -405,7 +406,7 @@ join with _dec should then get back to length of bg
 
 can we move the _dec match earlier, while still having others expanded, and use it for right number of geoids??
 
-```{r joining after expand for simple cartesian example}
+```{r joining tract and block group size after expand for simple cartesian example}
 #create possible matches by cartesian products
 bgHH_size_eth[,("blockID"):=substr(geoid,12,12)]
 bgHH_size_eth[,("maxblocks"):=max(as.numeric(blockID)),by=.(tract)]
@@ -419,19 +420,68 @@ cart_HvL_bgHH_size <- rbindlist(list(cart_bgHH_size_eth_family,cart_bgHH_size_et
 cart_trHH_size_eth <- cart_HvL_bgHH_size[rep(1:.N,maxblocks)][,("indx"):=
                                                    list(1:.N),
                                                  by=.(geoid,hh_size)]
-trHH_size_eth_maxblocks <- trHH_size_eth[rep(1:.N,6)] #do for all possible geoids / 6 is max number of blocks
+#should be faster way to get value on each; not sure
+trHH_size_eth[,("id4rep"):=paste0(tract,tr_hh_age_eth_id,hh_size,family)]
+trHH_size_eth_maxblocks <- trHH_size_eth[rep(1:.N,max(bgHH_size_eth[,maxblocks]))]
+trHH_size_eth_maxblocks[,("geoid"):=paste0(tract,1:.N),by=.(id4rep)] #do for all possible geoids / 6 is max number of blocks
+
 cart_trHH_size_eth[,("trbgHH_sizeHvL_match_id"):=
-                    paste0(tract,HvL,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(tract,HvL,family,hh_size)]
+                    paste0(geoid,HvL,family,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,family,hh_size)]
 trHH_size_eth_maxblocks[,("trbgHH_sizeHvL_match_id"):=
-                    paste0(tract,HvL,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(tract,HvL,family,hh_size)]
+                    paste0(geoid,HvL,family,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,family,hh_size)]
 trHH_size_eth_maxblocks[,("bg_size_match"):=
                  cart_trHH_size_eth[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
 cart_trHH_size_eth[,("bg_size_match"):=
                  trHH_size_eth_maxblocks[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
 nrow(cart_trHH_size_eth[!is.na(bg_size_match)])
-#could do this with trHH_size_eth 
+length(unique(trHH_size_eth_maxblocks[!is.na(bg_size_match),id4rep]))==nrow(trHH_size_eth)
+#do without cartesian expansion for rent_own
+#get just the uniques that also have bg_size_match
+#can use this to show that just reducing to unique doesn't get right subset
+#match_eth_size <- trHH_size_eth_maxblocks[!is.na(bg_size_match)&!duplicated(id4rep)]
+#reduce to then add rent_own
+hh_eth_size_reduced <- trHH_size_eth_maxblocks[!is.na(bg_size_match)]
+cart_size_eth_rent <- hh_eth_size_reduced[rep(1:.N,1)][,c("rent_own","indx"):=
+                                                   c(list("Renter occupied"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_size_eth_own <- hh_eth_size_reduced[rep(1:.N,1)][,c("rent_own","indx"):=
+                                                   c(list("Owner occupied"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_size_eth_or <- rbindlist(list(cart_size_eth_rent,cart_size_eth_own))
+
+cart_size_eth_or[,("bgHH_sizeHvL_match_id"):=
+                    paste0(geoid,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,rent_own,hh_size)]
+bgHH_size_eth[,("bgHH_sizeHvL_match_id"):=
+                    paste0(geoid,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,rent_own,hh_size)]
+cart_size_eth_or[,("size_match"):=
+                 bgHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_match_id)]]
+bgHH_size_eth[,c("size_match","family"):=
+                 cart_size_eth_or[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizeHvL_match_id)]]
+nrow(bgHH_size_eth[is.na(size_match)])
+#test
+test <- table(bgHH_size_eth[,tract],
+              #bgHH_size_eth[,geoid],
+              #bgHH_size_eth[,rent_own],
+              bgHH_size_eth[,family],
+              bgHH_size_eth[,hh_size],
+              bgHH_size_eth[,HvL]
+              )==
+        table(trHH_size_eth[,tract],
+              #trHH_size_eth[,geoid],
+              #trHH_size_eth[,rent_own],
+              trHH_size_eth[,family],
+              trHH_size_eth[,hh_size],
+              trHH_size_eth[,HvL]
+              )
+length(test[test==FALSE])==0 
+#NEED TO DRAW!!! NOT SURE WHAT I"M DOING WRONG
+
+
+#constrain with trHH_size_eth 
 cart_trHH_size_eth[!is.na(bg_size_match),("trbgHH_sizeHvL1_match_id"):=
                     paste0(tract,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(tract,family,hh_size)]
@@ -445,7 +495,7 @@ trHH_size_eth[,c("geoid","rent_own"):=
 nrow(trHH_size_eth[is.na(geoid)])
 #test <- (table(bgHH_size_eth[,geoid])-table(trHH_size_eth[,geoid]))/table(trHH_size_eth[,geoid])
 #second time through, had different total number of geoids, so couldn't run
-#> length(test[test<.00001])
+#> length(test[test<.00001])/length(test)
 #[1] 1526
 #> length(test)
 #[1] 2824
@@ -464,6 +514,8 @@ trHH_size_eth[,("geoid_dec"):=
 nrow(trHH_size_eth[is.na(geoid_dec)]) #14360
 
 
+
+#and don't forget that we have some things that will help match by age for hh_size (like seniors living with...)
 #can we avoid tract level
 #and at tract level
 trHH_size_eth[is.na(geoid_dec),("trbgHH_decHvL2_match_id"):=
