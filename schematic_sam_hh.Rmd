@@ -265,7 +265,7 @@ rm(bgHH_type_data)
 ```
 
 #get hh size
-```{r get hh size data}
+```{r get block group household size data}
 #4 
 bg_hh_size_tenure_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -332,7 +332,7 @@ rm(bgHH_size)
 rm(bgHH_size_data)
 ```
 Now do same for tract level and bring together
-```{r pull in for tract size and family data}
+```{r pull in for tract race, ethnicity, size and family data}
 tr_hh_size_family_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT7", county_num = "*",
@@ -406,7 +406,7 @@ join with _dec should then get back to length of bg
 
 can we move the _dec match earlier, while still having others expanded, and use it for right number of geoids??
 
-```{r joining tract and block group size after expand for simple cartesian example}
+```{r joining tract and block group hh_size after expand for simple cartesian example}
 #create possible matches by cartesian products
 bgHH_size_eth[,("blockID"):=substr(geoid,12,12)]
 bgHH_size_eth[,("maxblocks"):=max(as.numeric(blockID)),by=.(tract)]
@@ -417,11 +417,17 @@ cart_bgHH_size_eth_nonfamily <- bgHH_size_eth[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Nonfamily households"),list(1:.N)),
                                                  by=.(geoid,hh_size)]
 cart_HvL_bgHH_size <- rbindlist(list(cart_bgHH_size_eth_family,cart_bgHH_size_eth_nonfamily))
+#now take the expansion by family/non-family, and put them in all possible block_group combinations
 cart_trHH_size_eth <- cart_HvL_bgHH_size[rep(1:.N,maxblocks)][,("indx"):=
                                                    list(1:.N),
-                                                 by=.(geoid,hh_size)]
-#should be faster way to get value on each; not sure
-trHH_size_eth[,("id4rep"):=paste0(tract,tr_hh_age_eth_id,hh_size,family)]
+                                                 by=.(geoid,hh_size)] 
+#should be faster way to get a unique value on each; not sure
+trHH_size_eth[,("id4rep"):=paste0(tract,hh_size,family,tr_hh_age_eth_id)]
+#put maxblocks from bg to tr
+bg_max_blocks <- bgHH_size_eth[,c("tract","maxblocks")]
+bg_max_blocks[,("rownumber"):=1:.N,by=.(tract)]
+trHH_size_eth[,("rownumber"):=1:.N,by=.(tract)]
+trHH_size_eth <- bg_max_blocks[trHH_size_eth,on=.(tract,rownumber)]
 trHH_size_eth_maxblocks <- trHH_size_eth[rep(1:.N,max(bgHH_size_eth[,maxblocks]))]
 trHH_size_eth_maxblocks[,("geoid"):=paste0(tract,1:.N),by=.(id4rep)] #do for all possible geoids / 6 is max number of blocks
 
@@ -436,6 +442,7 @@ trHH_size_eth_maxblocks[,("bg_size_match"):=
 cart_trHH_size_eth[,("bg_size_match"):=
                  trHH_size_eth_maxblocks[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
 nrow(cart_trHH_size_eth[!is.na(bg_size_match)])
+#see if we have right number, although we don't know which of the duplicated id4reps is the right match...
 length(unique(trHH_size_eth_maxblocks[!is.na(bg_size_match),id4rep]))==nrow(trHH_size_eth)
 #do without cartesian expansion for rent_own
 #get just the uniques that also have bg_size_match
@@ -450,26 +457,39 @@ cart_size_eth_own <- hh_eth_size_reduced[rep(1:.N,1)][,c("rent_own","indx"):=
                                                    c(list("Owner occupied"),list(1:.N)),
                                                  by=.(geoid,hh_size)]
 cart_size_eth_or <- rbindlist(list(cart_size_eth_rent,cart_size_eth_own))
-
+#then make bgHH_size_eth bigger by family, non-family, then intersect, then get rid of duplicates??
+cart_size_eth_fam <- bgHH_size_eth[rep(1:.N,1)][,c("family","indx"):=
+                                                   c(list("Family households"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_size_eth_nonfam <- bgHH_size_eth[rep(1:.N,1)][,c("family","indx"):=
+                                                   c(list("Nonfamily households"),list(1:.N)),
+                                                 by=.(geoid,hh_size)]
+cart_size_eth_fnf <- rbindlist(list(cart_size_eth_fam,cart_size_eth_nonfam))
+#then join
 cart_size_eth_or[,("bgHH_sizeHvL_match_id"):=
-                    paste0(geoid,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(geoid,HvL,rent_own,hh_size)]
-bgHH_size_eth[,("bgHH_sizeHvL_match_id"):=
-                    paste0(geoid,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(geoid,HvL,rent_own,hh_size)]
+                    paste0(geoid,HvL,family,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,family,rent_own,hh_size)]
+cart_size_eth_fnf[,("bgHH_sizeHvL_match_id"):=
+                    paste0(geoid,HvL,family,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,family,rent_own,hh_size)]
 cart_size_eth_or[,("size_match"):=
-                 bgHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_match_id)]]
-bgHH_size_eth[,c("size_match","family"):=
-                 cart_size_eth_or[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizeHvL_match_id)]]
-nrow(bgHH_size_eth[is.na(size_match)])
+                 cart_size_eth_fnf[.SD, list(hh_size), on = .(bgHH_sizeHvL_match_id)]]
+cart_size_eth_fnf[,("size_match"):=
+                 cart_size_eth_or[.SD, list(hh_size), on = .(bgHH_sizeHvL_match_id)]]
+nrow(cart_size_eth_fnf[!is.na(size_match)])
+nrow(cart_size_eth_or[!duplicated(id4rep)])==nrow(bgHH_size_eth)
+#then reduce to dedup on id4rep - but how get right ones...
+bgHH_size_eth_test <- cart_size_eth_or[!is.na(size_match)]
+bgHH_size_eth_test <- bgHH_size_eth_test[!duplicated(id4rep)]
+#ONLY 443669!!!! perhaps the hh_size by geoid variation????
 #test
-test <- table(bgHH_size_eth[,tract],
-              #bgHH_size_eth[,geoid],
-              #bgHH_size_eth[,rent_own],
-              bgHH_size_eth[,family],
-              bgHH_size_eth[,hh_size],
-              bgHH_size_eth[,HvL]
-              )==
+test <- table(bgHH_size_eth_test[,tract],
+              #bgHH_size_eth_test[,geoid],
+              #bgHH_size_eth_test[,rent_own],
+              bgHH_size_eth_test[,family],
+              bgHH_size_eth_test[,hh_size],
+              bgHH_size_eth_test[,HvL]
+              )-
         table(trHH_size_eth[,tract],
               #trHH_size_eth[,geoid],
               #trHH_size_eth[,rent_own],
@@ -477,8 +497,51 @@ test <- table(bgHH_size_eth[,tract],
               trHH_size_eth[,hh_size],
               trHH_size_eth[,HvL]
               )
-length(test[test==FALSE])==0 
-#NEED TO DRAW!!! NOT SURE WHAT I"M DOING WRONG
+length(test[test<0])==0 
+#so all correct matches are in bgHH_size_eth_test - how to get them out???
+#should we use _dec??? family x HvL x geoid - no, because correct family is in the id4rep
+#use bgHH_age_eth, since it has correct rent_own (but not moving anything yet!)
+#doesn't work!!! Do I have to expand it by family / non-family??
+
+
+
+
+
+
+###UGHH
+bgHH_size_eth_test[,("bgHH_sizeHvL_match_id"):=
+                    paste0(geoid,HvL,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,rent_own)]
+bgHH_age_eth[,("bgHH_sizeHvL_match_id"):=
+                    paste0(geoid,HvL,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,rent_own)]
+bgHH_size_eth_test[,("age_match"):=
+                 bgHH_age_eth[.SD, list(rent_own), on = .(bgHH_sizeHvL_match_id)]]
+bgHH_age_eth[,("age_match"):=
+                 bgHH_size_eth_test[.SD, list(rent_own), on = .(bgHH_sizeHvL_match_id)]]
+nrow(bgHH_age_eth[is.na(age_match)])==0
+nrow(bgHH_size_eth_test[!is.na(age_match)])
+bgHH_size_eth_test1 <- bgHH_size_eth_test[!is.na(age_match)]
+test <- table(bgHH_size_eth_test1[,tract],
+              #bgHH_size_eth_test1[,geoid],
+              #bgHH_size_eth_test1[,rent_own],
+              bgHH_size_eth_test1[,family],
+              #bgHH_size_eth_test1[,hh_size],
+              bgHH_size_eth_test1[,HvL]
+              )-
+        table(trHH_size_eth[,tract],
+              #trHH_size_eth[,geoid],
+              #trHH_size_eth[,rent_own],
+              trHH_size_eth[,family],
+              #trHH_size_eth[,hh_size],
+              trHH_size_eth[,HvL]
+              )
+length(test[test<0])==0 
+
+
+
+
+#START HERE!!
 
 
 #constrain with trHH_size_eth 
