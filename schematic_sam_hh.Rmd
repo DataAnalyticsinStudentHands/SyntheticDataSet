@@ -26,9 +26,9 @@ library(dplyr)
 library(stringr)
 library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
-maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+#maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
-#maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
+maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
@@ -428,9 +428,10 @@ bg_max_blocks <- bgHH_size_eth[,c("tract","maxblocks")]
 bg_max_blocks[,("rownumber"):=1:.N,by=.(tract)]
 trHH_size_eth[,("rownumber"):=1:.N,by=.(tract)]
 trHH_size_eth <- bg_max_blocks[trHH_size_eth,on=.(tract,rownumber)]
+#now expand and make possible geoids
 trHH_size_eth_maxblocks <- trHH_size_eth[rep(1:.N,max(bgHH_size_eth[,maxblocks]))]
 trHH_size_eth_maxblocks[,("geoid"):=paste0(tract,1:.N),by=.(id4rep)] #do for all possible geoids / 6 is max number of blocks
-
+#match to reduce for sake of expand with rent_own
 cart_trHH_size_eth[,("trbgHH_sizeHvL_match_id"):=
                     paste0(geoid,HvL,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(geoid,HvL,family,hh_size)]
@@ -448,11 +449,11 @@ length(unique(trHH_size_eth_maxblocks[!is.na(bg_size_match),id4rep]))==nrow(trHH
 #can use this to show that just reducing to unique doesn't get right subset
 #match_eth_size <- trHH_size_eth_maxblocks[!is.na(bg_size_match)&!duplicated(id4rep)] #519420 - 
 #reduce then add rent_own
-hh_eth_size_reduced <- trHH_size_eth_maxblocks[!is.na(bg_size_match)]
-cart_size_eth_rent <- hh_eth_size_reduced[rep(1:.N,1)][,c("rent_own","indx"):=
+match_eth_size <- trHH_size_eth_maxblocks[!is.na(bg_size_match)]
+cart_size_eth_rent <- match_eth_size[rep(1:.N,1)][,c("rent_own","indx"):=
                                                    c(list("Renter occupied"),list(1:.N)),
                                                  by=.(geoid,hh_size)]
-cart_size_eth_own <- hh_eth_size_reduced[rep(1:.N,1)][,c("rent_own","indx"):=
+cart_size_eth_own <- match_eth_size[rep(1:.N,1)][,c("rent_own","indx"):=
                                                    c(list("Owner occupied"),list(1:.N)),
                                                  by=.(geoid,hh_size)]
 cart_size_eth_or <- rbindlist(list(cart_size_eth_rent,cart_size_eth_own))
@@ -478,17 +479,17 @@ cart_size_eth_fnf[,("size_match"):=
 nrow(cart_size_eth_fnf[!is.na(size_match)])
 nrow(cart_size_eth_or[!duplicated(id4rep)])==nrow(bgHH_size_eth)
 #try going to trHH_size_eth with geoid and rent_own
-cart_size_eth_fnf[!is.na(size_match),("bgHH_sizeHvL_match0_id"):=
+cart_size_eth_or[!is.na(size_match),("bgHH_sizeHvL_match0_id"):=
                     paste0(tract,HvL,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(tract,HvL,family,hh_size)]
 trHH_size_eth[,("bgHH_sizeHvL_match0_id"):=
                     paste0(tract,HvL,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(tract,HvL,family,hh_size)]
-cart_size_eth_fnf[!is.na(size_match),("size_match0"):=
+cart_size_eth_or[!is.na(size_match),("size_match0"):=
                  trHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_match0_id)]]
 trHH_size_eth[,c("size_match0","geoid","rent_own"):=
-                 cart_size_eth_fnf[.SD, c(list(hh_size),list(geoid),list(rent_own)), on = .(bgHH_sizeHvL_match0_id)]]
-nrow(trHH_size_eth[is.na(size_match0)])
+                 cart_size_eth_or[.SD, c(list(hh_size),list(geoid),list(rent_own)), on = .(bgHH_sizeHvL_match0_id)]]
+nrow(trHH_size_eth[is.na(size_match0)])==0 #need to check for race
 test <- table(trHH_size_eth[,geoid], # 20% have right number in geoids
               trHH_size_eth[,rent_own]
               )-
@@ -496,30 +497,32 @@ test <- table(trHH_size_eth[,geoid], # 20% have right number in geoids
               bgHH_size_eth[,rent_own]
               )
 1-length(test[test>5])/length(test) #96% within 5 families on rent_own
+1-length(test[test>15])/length(test) #99.91% within 15 families on rent_own (avg #hh/geoid is 562)
 #so, maybe, from here - match tr with bg, moving family down on the ones that match perfectly at geoid, then for the ones at tract...
 bgHH_size_eth[,("bgHH_sizeHvL_matchf_id"):=
-                    paste0(geoid,HvL,rent_own,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(geoid,HvL,rent_own,family,hh_size)]
+                    paste0(geoid,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,rent_own,hh_size)]
 trHH_size_eth[,("bgHH_sizeHvL_matchf_id"):=
-                    paste0(geoid,HvL,rent_own,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(geoid,HvL,rent_own,family,hh_size)]
-bgHH_size_eth[,("size_matchf"):=
-                 trHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_matchf_id)]]
+                    paste0(geoid,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,rent_own,hh_size)]
+bgHH_size_eth[,c("size_matchf","family"):=
+                 trHH_size_eth[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizeHvL_matchf_id)]]
 trHH_size_eth[,c("size_matchf"):=
                  bgHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_matchf_id)]]
-nrow(trHH_size_eth[is.na(size_matchf)]) #43649 -i.e., almost 93% match...
+nrow(trHH_size_eth[is.na(size_matchf)]) #8743 -i.e., almost 98.5% match...
+#get further matches from cart_size_eth_or, in order to keep family/hh_size/matches...
 #then by tract
 bgHH_size_eth[is.na(size_matchf),("bgHH_sizeHvL_matchf1_id"):=
-                    paste0(tract,HvL,rent_own,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(tract,HvL,rent_own,family,hh_size)]
+                    paste0(tract,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,rent_own,hh_size)]
 trHH_size_eth[is.na(size_matchf),("bgHH_sizeHvL_matchf1_id"):=
-                    paste0(tract,HvL,rent_own,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(tract,HvL,rent_own,family,hh_size)]
-bgHH_size_eth[is.na(size_matchf),("size_matchf"):=
-                 trHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_matchf1_id)]]
+                    paste0(tract,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,HvL,rent_own,hh_size)]
+bgHH_size_eth[is.na(size_matchf),c("size_matchf","family"):=
+                 trHH_size_eth[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizeHvL_matchf1_id)]]
 trHH_size_eth[is.na(size_matchf),c("size_matchf"):=
                  bgHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_matchf1_id)]]
-nrow(trHH_size_eth[is.na(size_matchf)]) #42677 - not much added... less than 1% improvement
+nrow(trHH_size_eth[is.na(size_matchf)]) #4592 - not much added... more than half remaining
 #get family from tract level, just on HvL and hh_size
 bgHH_size_eth[is.na(size_matchf),("bgHH_sizeHvL_matchf2_id"):=
                     paste0(tract,HvL,hh_size,as.character(100000+sample(1:.N))),
@@ -545,29 +548,37 @@ test <- table(bgHH_size_eth[,geoid],
         table(bgHH_dec[HvL==TRUE,geoid],
               bgHH_dec[HvL==TRUE,family]
               )
-length(test[test==0])/length(test) == 1
+length(test[test==0])/length(test) #14%
+length(test[test<5])/length(test) #87%
+length(test[test<25])/length(test) #99.9%
 #at tract levels, family will match - at geoid, should allow family from _dec to rule the day
+test <- table(bgHH_size_eth[,tract],
+              bgHH_size_eth[,family]
+              )- #subracting
+        table(bgHH_dec[HvL==TRUE,tract],
+              bgHH_dec[HvL==TRUE,family]
+              )
+length(test[test==0])/length(test) == 1
 ```
 
 
 ```{r joining tract and block group hh_size_race after expand for simple cartesian example}
 #create possible matches by cartesian products
-#MAYBE EXPAND BY ALL racES!!! Just not sure!!!
 bgHH_size_race[,("blockID"):=substr(geoid,12,12)]
 bgHH_size_race[,("maxblocks"):=max(as.numeric(blockID)),by=.(tract)]
 cart_bgHH_size_race_family <- bgHH_size_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Family households"),list(1:.N)),
-                                                 by=.(geoid,hh_size)]
+                                                 by=.(geoid,race,hh_size)] #adding race doesn't seem to matter in the rep...
 cart_bgHH_size_race_nonfamily <- bgHH_size_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Nonfamily households"),list(1:.N)),
-                                                 by=.(geoid,hh_size)]
+                                                 by=.(geoid,race,hh_size)]
 cart_race_bgHH_size <- rbindlist(list(cart_bgHH_size_race_family,cart_bgHH_size_race_nonfamily))
 #now take the expansion by family/non-family, and put them in all possible block_group combinations
 cart_trHH_size_race <- cart_race_bgHH_size[rep(1:.N,maxblocks)][,("indx"):=
                                                    list(1:.N),
-                                                 by=.(geoid,hh_size)] 
+                                                 by=.(geoid,race,hh_size)] 
 #should be faster way to get a unique value on each; not sure
-trHH_size_race[,("id4rep"):=paste0(tract,hh_size,family,tr_hh_size_race_id)]
+trHH_size_race[,("id4rep"):=paste0(tract,race,hh_size,family,tr_hh_size_race_id)]
 #put maxblocks from bg to tr
 bg_max_blocks <- bgHH_size_race[,c("tract","maxblocks")]
 bg_max_blocks[,("rownumber"):=1:.N,by=.(tract)]
@@ -586,26 +597,26 @@ trHH_size_race_maxblocks[,("bg_size_match"):=
                  cart_trHH_size_race[.SD, list(hh_size), on = .(trbgHH_sizerace_match_id)]]
 cart_trHH_size_race[,("bg_size_match"):=
                  trHH_size_race_maxblocks[.SD, list(hh_size), on = .(trbgHH_sizerace_match_id)]]
-nrow(cart_trHH_size_race[!is.na(bg_size_match)])
-#see if we have right number, although we don't know which of the duplicated id4reps is the right match...
-length(unique(trHH_size_race_maxblocks[!is.na(bg_size_match),id4rep])) #893657
+nrow(cart_trHH_size_race[!is.na(bg_size_match)]) #3928088
+#see if we have right number, although we don't know which of the duplicated id4reps is the right match... - we lost some here!!!
+length(unique(trHH_size_race_maxblocks[!is.na(bg_size_match),id4rep])) == nrow(trHH_size_race)
 
 #reduce then add rent_own
 hh_race_size_reduced <- trHH_size_race_maxblocks[!is.na(bg_size_match)]
 cart_size_race_rent <- hh_race_size_reduced[rep(1:.N,1)][,c("rent_own","indx"):=
                                                    c(list("Renter occupied"),list(1:.N)),
-                                                 by=.(geoid,hh_size)]
+                                                 by=.(geoid,race,hh_size)]
 cart_size_race_own <- hh_race_size_reduced[rep(1:.N,1)][,c("rent_own","indx"):=
                                                    c(list("Owner occupied"),list(1:.N)),
-                                                 by=.(geoid,hh_size)]
+                                                 by=.(geoid,race,hh_size)]
 cart_size_race_or <- rbindlist(list(cart_size_race_rent,cart_size_race_own))
 #then make bgHH_size_race bigger by family, non-family, then intersect, then get rid of duplicates??
 cart_size_race_fam <- bgHH_size_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Family households"),list(1:.N)),
-                                                 by=.(geoid,hh_size)]
+                                                 by=.(geoid,race,hh_size)]
 cart_size_race_nonfam <- bgHH_size_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Nonfamily households"),list(1:.N)),
-                                                 by=.(geoid,hh_size)]
+                                                 by=.(geoid,race,hh_size)]
 cart_size_race_fnf <- rbindlist(list(cart_size_race_fam,cart_size_race_nonfam))
 #then join
 cart_size_race_or[,("bgHH_sizerace_match_id"):=
@@ -618,51 +629,53 @@ cart_size_race_or[,("size_match"):=
                  cart_size_race_fnf[.SD, list(hh_size), on = .(bgHH_sizerace_match_id)]]
 cart_size_race_fnf[,("size_match"):=
                  cart_size_race_or[.SD, list(hh_size), on = .(bgHH_sizerace_match_id)]]
-nrow(cart_size_race_fnf[!is.na(size_match)])
-nrow(cart_size_race_or[!duplicated(id4rep)]). #893657
+nrow(cart_size_race_fnf[!is.na(size_match)]) #2031743
+nrow(cart_size_race_or[!duplicated(id4rep)]) == nrow(bgHH_size_race)
 #try going to trHH_size_eth with geoid and rent_own
-cart_size_race_fnf[!is.na(size_match),("bgHH_sizerace_match0_id"):=
+cart_size_race_or[!is.na(size_match),("bgHH_sizerace_match0_id"):=
                     paste0(tract,race,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(tract,race,family,hh_size)]
 trHH_size_race[,("bgHH_sizerace_match0_id"):=
                     paste0(tract,race,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(tract,race,family,hh_size)]
-cart_size_race_fnf[!is.na(size_match),("size_match0"):=
+cart_size_race_or[!is.na(size_match),("size_match0"):=
                  trHH_size_race[.SD, list(hh_size), on = .(bgHH_sizerace_match0_id)]]
 trHH_size_race[,c("size_match0","geoid","rent_own"):=
-                 cart_size_race_fnf[.SD, c(list(hh_size),list(geoid),list(rent_own)), on = .(bgHH_sizerace_match0_id)]]
-nrow(trHH_size_race[is.na(size_match0)]) / nrow(trHH_size_race)
-test <- table(trHH_size_race[,geoid], # 20% have right number in geoids
+                 cart_size_race_or[.SD, c(list(hh_size),list(geoid),list(rent_own)), on = .(bgHH_sizerace_match0_id)]]
+nrow(trHH_size_race[is.na(size_match0)]) == 0
+
+
+test <- table(trHH_size_race[,geoid], # ~20% have right number in geoids
               trHH_size_race[,rent_own]
               )-
         table(bgHH_size_race[,geoid],
               bgHH_size_race[,rent_own]
               )
-1-length(test[test>5])/length(test) #96% within 5 families on rent_own
-#so, maybe, from here - match tr with bg, moving family down on the ones that match perfectly at geoid, then for the ones at tract...
+1-length(test[test>5])/length(test) #83% within 5 families on rent_own
+#so, maybe, from here - match tr with bg at geoid, then for the ones at tract...
 bgHH_size_race[,("bgHH_sizerace_matchf_id"):=
-                    paste0(geoid,race,rent_own,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(geoid,race,rent_own,family,hh_size)]
+                    paste0(geoid,race,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,rent_own,hh_size)]
 trHH_size_race[,("bgHH_sizerace_matchf_id"):=
-                    paste0(geoid,race,rent_own,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(geoid,race,rent_own,family,hh_size)]
-bgHH_size_race[,("size_matchf"):=
-                 trHH_size_race[.SD, list(hh_size), on = .(bgHH_sizerace_matchf_id)]]
+                    paste0(geoid,race,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,rent_own,hh_size)]
+bgHH_size_race[,c("size_matchf","family"):=
+                 trHH_size_race[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizerace_matchf_id)]]
 trHH_size_race[,c("size_matchf"):=
                  bgHH_size_race[.SD, list(hh_size), on = .(bgHH_sizerace_matchf_id)]]
-nrow(trHH_size_race[is.na(size_matchf)]) #43649 -i.e., almost 93% match...
+nrow(trHH_size_race[is.na(size_matchf)]) #27247 -i.e., almost 98.4% match...
 #then by tract
 bgHH_size_race[is.na(size_matchf),("bgHH_sizerace_matchf1_id"):=
-                    paste0(tract,race,rent_own,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(tract,race,rent_own,family,hh_size)]
+                    paste0(tract,race,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,race,rent_own,hh_size)]
 trHH_size_race[is.na(size_matchf),("bgHH_sizerace_matchf1_id"):=
-                    paste0(tract,race,rent_own,family,hh_size,as.character(100000+sample(1:.N))),
-                  by=.(tract,race,rent_own,family,hh_size)]
-bgHH_size_race[is.na(size_matchf),("size_matchf"):=
-                 trHH_size_race[.SD, list(hh_size), on = .(bgHH_sizerace_matchf1_id)]]
+                    paste0(tract,race,rent_own,hh_size,as.character(100000+sample(1:.N))),
+                  by=.(tract,race,rent_own,hh_size)]
+bgHH_size_race[is.na(size_matchf),c("size_matchf","family"):=
+                 trHH_size_race[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizerace_matchf1_id)]]
 trHH_size_race[is.na(size_matchf),c("size_matchf"):=
                  bgHH_size_race[.SD, list(hh_size), on = .(bgHH_sizerace_matchf1_id)]]
-nrow(trHH_size_race[is.na(size_matchf)]) #42677 - not much added... less than 1% improvement
+nrow(trHH_size_race[is.na(size_matchf)]) #14471 - about half remaining
 #get family from tract level, just on race and hh_size
 bgHH_size_race[is.na(size_matchf),("bgHH_sizerace_matchf2_id"):=
                     paste0(tract,race,hh_size,as.character(100000+sample(1:.N))),
@@ -673,8 +686,8 @@ trHH_size_race[is.na(size_matchf),("bgHH_sizerace_matchf2_id"):=
 bgHH_size_race[is.na(size_matchf),c("size_matchf","family"):=
                  trHH_size_race[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizerace_matchf2_id)]]
 trHH_size_eth[is.na(size_matchf),c("size_matchf"):=
-                 bgHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizerace_matchf2_id)]]
-nrow(trHH_size_race[is.na(size_matchf)]) == 0 
+                 bgHH_size_race[.SD, list(hh_size), on = .(bgHH_sizerace_matchf2_id)]]
+nrow(bgHH_size_race[is.na(size_matchf)]) == 0 
 test <- table(bgHH_size_race[,tract],
               bgHH_size_race[,family]
               )- #subracting
@@ -688,7 +701,7 @@ test <- table(bgHH_size_race[,geoid],
         table(bgHH_dec[,geoid],
               bgHH_dec[,family]
               )
-length(test[test==0])/length(test) == 1
+length(test[test==0])/length(test) #7% exact match - need _dec to be the ground truth for family
 #at tract levels, family will match - at geoid, should allow family from _dec to rule the day
 ```
 
