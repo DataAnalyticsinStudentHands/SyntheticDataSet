@@ -26,9 +26,9 @@ library(dplyr)
 library(stringr)
 library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
-#maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
-maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
+#maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
@@ -883,7 +883,7 @@ test <- table(bgHH_size_race[,tract],
               trHH_size_race[,hh_size],
               trHH_size_race[,family]
               )
-length(test[test==0])/length(test) == 1
+length(test[test==0])/length(test) == 1 #i.e., perfect at tract level
 test <- table(bgHH_size_race[,geoid],
               bgHH_size_race[,family]
               )- #subracting
@@ -929,10 +929,10 @@ NEED TO ANSWER: should we be doing the cartesian trick on any of these??? Diagra
 #could just expand bgHH_age_eth to have family_non, then match with bgHH_size_eth, as below, with only the matching ones kept...
 cart_age_eth_fam <- bgHH_age_eth[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Family households"),list(1:.N)),
-                                                 by=.(geoid,hh_size)] #don't forget to add race in when doing second iteration; may want to get matches from _dec first...
+                                                 by=.(geoid,hh_age_range_3)] #don't forget to add race in when doing second iteration, although not sure it changes anything...
 cart_age_eth_nonfam <- bgHH_age_eth[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Nonfamily households"),list(1:.N)),
-                                                 by=.(geoid,hh_size)]
+                                                 by=.(geoid,hh_age_range_3)]
 cart_age_eth_fnf <- rbindlist(list(cart_age_eth_fam,cart_age_eth_nonfam))
 cart_age_eth_fnf[,("bgHH_aes_match_id"):=
                     paste0(geoid,HvL,family,rent_own,as.character(100000+sample(1:.N))),
@@ -950,8 +950,40 @@ bgHH_age_eth1 <- cart_age_eth_fnf[!is.na(matched_age)]
 #and do some tests! 
 
 
-#if those work, _dec to age_eth should also give the races on _eth, and give ground truth for family distributions by geoid (tract should work)
+#and same for race
+cart_age_eth_fam <- bgHH_age_eth[rep(1:.N,1)][,c("family","indx"):=
+                                                   c(list("Family households"),list(1:.N)),
+                                                 by=.(geoid,hh_age_range_3)] #don't forget to add race in when doing second iteration, although not sure it changes anything...
+cart_age_eth_nonfam <- bgHH_age_eth[rep(1:.N,1)][,c("family","indx"):=
+                                                   c(list("Nonfamily households"),list(1:.N)),
+                                                 by=.(geoid,hh_age_range_3)]
+cart_age_eth_fnf <- rbindlist(list(cart_age_eth_fam,cart_age_eth_nonfam))
+cart_age_eth_fnf[,("bgHH_aes_match_id"):=
+                    paste0(geoid,HvL,family,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,family,rent_own)]
+bgHH_size_eth[,("bgHH_aes_match_id"):=
+                    paste0(geoid,HvL,family,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,HvL,family,rent_own)]
+#remember that family distribution on _dec needs to be final by geoid...
+cart_age_eth_fnf[,c("hh_size","matched_age"):=
+                 bgHH_size_eth[.SD, c(list(hh_size),list(family)), on = .(bgHH_aes_match_id)]]
+nrow(cart_age_eth_fnf[!is.na(hh_size)])==nrow(bgHH_size_eth) 
+nrow(cart_age_eth_fnf[!is.na(matched_age)])==nrow(bgHH_size_eth)
+#if it works
+bgHH_age_eth1 <- cart_age_eth_fnf[!is.na(matched_age)]
 
+#and some tests
+
+#and then put eth and race together just on those matches.... (can compare with a statistical approach)
+
+
+#then add to bgHH_dec, with the alone, and senior stuff working, then test against bgHH_type without the race/eth, for the totals
+
+```
+
+
+
+```{r older attempts at aes}
 
 
 
@@ -967,6 +999,9 @@ bgHH_age_eth[,c("hh_size","family"):=
                  bgHH_size_eth[.SD, c(list(hh_size),list(family)), on = .(bgHH_aes_match_id)]]
 nrow(bgHH_age_eth[is.na(hh_size)])==0 
 nrow(bgHH_age_eth[is.na(family)])==0
+
+
+
 #move HvL and race from _dec to type, based on family and type, and rent_own to dec
 bgHH_type[,("bgHH_ad_match_id"):=
                     paste0(geoid,hh_type,family,as.character(100000+sample(1:.N))),
