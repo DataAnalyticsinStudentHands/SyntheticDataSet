@@ -374,7 +374,32 @@ trHH_typesr <- as.data.table(trHH_typesr)
 trHH_eth_typesr <- trHH_typesr[re_code %in% c("H","I")]
 trHH_race_typesr <- trHH_typesr[re_code %in% race_codes]
 
-#do just race, first, then get matches from _dec??
+#now match the _eth on all the colnames that are in both trHH_race_typesr and trHH_eth_typesr
+#first for re_code=="I", then for "H"
+trHH_eth_typesr[,("HvL"):=ifelse(re_code=="H",TRUE,FALSE)]
+trHH_race_typesr[re_code=="A",("trbgHH_typesre_match_id"):=
+                    paste0(tract,alone,sex,as.character(100000+sample(1:.N))),
+                  by=.(tract,alone,sex)]
+trHH_eth_typesr[re_code=="I",("trbgHH_typesre_match_id"):=
+                    paste0(tract,alone,sex,as.character(100000+sample(1:.N))),
+                  by=.(gtract,alone,sex)]
+trHH_race_typesr[re_code=="A",("HvL"):=
+                 trHH_eth_typesr[.SD, list(HvL), on = .(trbgHH_typesre_match_id)]]
+trHH_eth_typesr[re_code=="I",("tr_typesr_match"):=
+                 trHH_race_typesr[.SD, list(hh), on = .(trbgHH_typesre_match_id)]]
+nrow(trHH_race_typesr[!is.na(HvL)]) 
+#then H
+trHH_race_typesr[is.na(HvL),("trbgHH_typesre1_match_id"):=
+                    paste0(tract,alone,sex,as.character(100000+sample(1:.N))),
+                  by=.(tract,alone,sex)]
+trHH_eth_typesr[is.na(tr_typesr_match),("trbgHH_typesre1_match_id"):=
+                    paste0(tract,alone,sex,as.character(100000+sample(1:.N))),
+                  by=.(gtract,alone,sex)]
+trHH_race_typesr[is.na(HvL),("HvL"):=
+                 trHH_eth_typesr[.SD, list(HvL), on = .(trbgHH_typesre1_match_id)]]
+trHH_eth_typesr[tr_typesr_match,("tr_typesr_match"):=
+                 trHH_race_typesr[.SD, list(hh), on = .(trbgHH_typesre1_match_id)]]
+nrow(trHH_race_typesr[!is.na(HvL)]) 
 #join tract and block group
 trHH_race_typesr[,("trbgHH_typesr_match_id"):=
                     paste0(tract,sex,alone,hh_age_range_3,as.character(100000+sample(1:.N))),
@@ -384,8 +409,9 @@ bgHH_type[,("trbgHH_typesr_match_id"):=
                   by=.(tract,sex,alone,hh_age_range_3)]
 trHH_race_typesr[,("tr_typesr_match"):=
                  bgHH_type[.SD, list(family), on = .(trbgHH_typesr_match_id)]]
-bgHH_type[,c("re_code","sex_sr","alone_sr"):=
-                 trHH_race_typesr[.SD, c(list(re_code),list(sex),list(alone)), on = .(trbgHH_typesr_match_id)]]
+bgHH_type[,c("re_code","HvL","sex_sr","alone_sr"):=
+                 trHH_race_typesr[.SD, c(list(re_code),list(HvL),
+                                         list(sex),list(alone)), on = .(trbgHH_typesr_match_id)]]
 nrow(bgHH_type[!is.na(re_code)]) #125292
 #have about 3,500 not matching on sex, because bgHH_type has more "Not known" - will replace with sex as available, with sex_sr to compare
 trHH_race_typesr[is.na(tr_typesr_match),("trbgHH_typesr1_match_id"):=
@@ -396,8 +422,8 @@ bgHH_type[is.na(re_code),("trbgHH_typesr1_match_id"):=
                   by=.(tract,alone,hh_age_range_3)]
 trHH_race_typesr[is.na(tr_typesr_match),("tr_typesr_match"):=
                  bgHH_type[.SD, list(family), on = .(trbgHH_typesr1_match_id)]]
-bgHH_type[is.na(re_code),c("re_code","sex_sr","alone_sr"):=
-                 trHH_race_typesr[.SD, c(list(re_code),list(sex),list(alone)), on = .(trbgHH_typesr1_match_id)]]
+bgHH_type[is.na(re_code),c("re_code","HvL","sex_sr","alone_sr"):=
+                 trHH_race_typesr[.SD, c(list(re_code),list(HvL),list(sex),list(alone)), on = .(trbgHH_typesr1_match_id)]]
 nrow(bgHH_type[!is.na(re_code)])
 #now have 311094 matched out of 324061 (96%)
 trHH_race_typesr[is.na(tr_typesr_match),("trbgHH_typesr2_match_id"):=
@@ -408,25 +434,15 @@ bgHH_type[is.na(re_code),("trbgHH_typesr2_match_id"):=
                   by=.(tract,hh_age_range_3)]
 trHH_race_typesr[is.na(tr_typesr_match),("tr_typesr_match"):=
                  bgHH_type[.SD, list(family), on = .(trbgHH_typesr2_match_id)]]
-bgHH_type[is.na(re_code),c("re_code","sex_sr","alone_sr"):=
-                 trHH_race_typesr[.SD, c(list(re_code),list(sex),list(alone)), on = .(trbgHH_typesr2_match_id)]]
+bgHH_type[is.na(re_code),c("re_code","HvL","sex_sr","alone_sr"):=
+                 trHH_race_typesr[.SD, c(list(re_code),list(HvL),list(sex),list(alone)), on = .(trbgHH_typesr2_match_id)]]
 
 nrow(bgHH_type[!is.na(re_code)]) 
 nrow(trHH_race_typesr)
 nrow(bgHH_type[hh_age_range_3=="Householder 65 years and over" & is.na(re_code)]) #8694 - seems like they must be in different tracts!!
 
-#since they don't line up exactly, let's treat _dec as the ground truth on this
-bgHH_dec[,("trbgHH_typesre_match_id"):=
-                    paste0(geoid,family,hh_type,race,as.character(100000+sample(1:.N))),
-                  by=.(geoid,family,hh_type,race)]
-bgHH_type[,("trbgHH_typesre_match_id"):=
-                    paste0(geoid,family,hh_type,re_code,as.character(100000+sample(1:.N))),
-                  by=.(geoid,family,hh_type,re_code)]
-bgHH_dec[,("tr_typesr_match"):=
-                 bgHH_type[.SD, list(hh_type), on = .(trbgHH_typesre_match_id)]]
-bgHH_type[,("HvL"):=
-                 bgHH_dec[.SD, list(HvL), on = .(trbgHH_typesre_match_id)]]
-nrow(bgHH_type[!is.na(HvL)]) #310474 ???? should be 233144 tops...
+#then put on _dec, starting with matches from this on race/eth for sr - then the rest...
+#cartesian strategy for _dec??
 
 
 
