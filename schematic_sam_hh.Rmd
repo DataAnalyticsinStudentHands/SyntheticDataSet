@@ -791,6 +791,20 @@ test <- table(bgHH_size_eth[,tract],
               bgHH_dec[HvL==TRUE,family]
               )
 length(test[test==0])/length(test) == 1
+#and add HvL
+bgHH_size_race[order(match(race,c("F","G","C","E","B","D","A"))),
+                 ("bgHH_size_er_match_id"):=
+                    paste0(geoid,rent_own,family,hh_size,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,rent_own,family,hh_size)]
+bgHH_size_eth[,("bgHH_size_er_match_id"):=
+                    paste0(geoid,rent_own,family,hh_size,as.character(100000+seq.int(1:.N))),
+                  by=.(geoid,rent_own,family,hh_size)]
+bgHH_size_race[,("HvL"):=
+                 bgHH_size_eth[.SD, list(HvL), on = .(bgHH_size_er_match_id)]]
+bgHH_size_eth[,("re_code"):=
+                 bgHH_size_race[.SD, list(race), on = .(bgHH_size_er_match_id)]]
+nrow(bgHH_size_eth[is.na(re_code)]) #2560 left - _dec will be final
+bgHH_size_race[is.na(HvL),("HvL"):=FALSE]
 ```
 
 
@@ -998,26 +1012,82 @@ bgHH_type[,c("race","HvL"):=
 cart_age_race[,c("hh_type","matched_age"):=
                  bgHH_type[.SD, c(list(hh_type),list(family)), on = .(bgHH_art_match_id)]]
 
-nrow(bgHH_type[hh_age_range_3=="Householder 65 years and over"]) - nrow(cart_age_race[!is.na(hh_type)]) #31037
-#then do again for rest
-cart_age_race[is.na(hh_type),("bgHH_art_match_id"):=
+nrow(bgHH_type[hh_age_range_3=="Householder 65 years and over"]) - nrow(cart_age_race[!is.na(hh_type)]) #50k
+#then do again for rest - if not using these for final race, pull from _dec and don't waste time going to full set
+cart_age_race[is.na(hh_type),("bgHH_art1_match_id"):=
                     paste0(geoid,family,rent_own,hh_age_range,as.character(100000+sample(1:.N))),
                   by=.(geoid,family,rent_own,hh_age_range)]
-bgHH_type[is.na(race),("bgHH_art_match_id"):=
+bgHH_type[is.na(race),("bgHH_art1_match_id"):=
                     paste0(geoid,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
                   by=.(geoid,family,rent_own,hh_age_range_9)]
 #remember that family distribution on _dec needs to be final by geoid...
 bgHH_type[is.na(race),c("race","HvL"):=
-                 cart_age_race[.SD, c(list(race),list(HvL)), on = .(bgHH_art_match_id)]]
+                 cart_age_race[.SD, c(list(race),list(HvL)), on = .(bgHH_art1_match_id)]]
 cart_age_race[is.na(hh_type),c("hh_type","matched_age"):=
-                 bgHH_type[.SD, c(list(hh_type),list(family)), on = .(bgHH_art_match_id)]]
+                 bgHH_type[.SD, c(list(hh_type),list(family)), on = .(bgHH_art1_match_id)]]
 nrow(cart_age_race[!is.na(hh_type)])
-nrow(bgHH_type[is.na(race)]) 
-
+nrow(bgHH_type[is.na(race)]) #6325
+#get last matches at tract level, since family may not match at geoid
+#cart_age_race[is.na(hh_type),("bgHH_art2_match_id"):=
+#                    paste0(tract,family,rent_own,hh_age_range,as.character(100000+sample(1:.N))),
+#                  by=.(tract,family,rent_own,hh_age_range)]
+#bgHH_type[is.na(race),("bgHH_art2_match_id"):=
+#                    paste0(tract,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
+#                  by=.(tract,family,rent_own,hh_age_range_9)]
+#bgHH_type[is.na(race),c("race","HvL"):=
+#                 cart_age_race[.SD, c(list(race),list(HvL)), on = .(bgHH_art2_match_id)]]
+#cart_age_race[is.na(hh_type),c("hh_type","matched_age"):=
+#                 bgHH_type[.SD, c(list(hh_type),list(family)), on = .(bgHH_art2_match_id)]]
+#nrow(cart_age_race[!is.na(hh_type)])
+#nrow(bgHH_type[is.na(race)]) / nrow(bgHH_type) #1326 - .08%
+##then to get the final ones
+#cart_age_race[is.na(hh_type),("bgHH_art3_match_id"):=
+#                    paste0(tract,hh_age_range,as.character(100000+sample(1:.N))),
+#                  by=.(tract,hh_age_range)]
+#bgHH_type[is.na(race),("bgHH_art3_match_id"):=
+#                    paste0(tract,hh_age_range_9,as.character(100000+sample(1:.N))),
+#                  by=.(tract,hh_age_range_9)]
+#bgHH_type[is.na(race),c("race","HvL"):=
+#                 cart_age_race[.SD, c(list(race),list(HvL)), on = .(bgHH_art3_match_id)]]
+#cart_age_race[is.na(hh_type),c("hh_type","matched_age"):=
+#                 bgHH_type[.SD, c(list(hh_type),list(family)), on = .(bgHH_art3_match_id)]]
+#nrow(cart_age_race[!is.na(hh_type)])
+#nrow(bgHH_type[is.na(race)]) == 0
 #some tests
+#NOT TOO FAR OFF, BUT NEED TO HAVE _DEC BE THE FINAL IN ANY CASE, SO DON'T NEED THIS 
+#> table(bgHH_type[,race])
+#
+#     A      B      C      D      E      F      G 
+#708064 349595  15816 117625   1114 256310 244206 
+#> table(bgHH_age_race[,race])
+#
+#     A      B      C      D      E      F      G 
+#699864 351342  16450 120083   1158 258206 245627 
 #type to dec ; size to dec??
 ```
 
+```{r add _size to _type}
+bgHH_size_race[,("bgHH_st_match_id"):=
+                    paste0(geoid,race,HvL,family,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,HvL,family,rent_own)]
+bgHH_type[,("bgHH_st_match_id"):=
+                    paste0(geoid,re_code,HvL,family,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,re_code,HvL,family,rent_own)]
+bgHH_type[,("hh_size"):=
+                 bgHH_size_race[.SD, list(hh_size), on = .(bgHH_st_match_id)]]
+bgHH_size_race[,c("hh_type","matched_size"):=
+                 bgHH_type[.SD, c(list(hh_type),list(family)), on = .(bgHH_st_match_id)]]
+nrow(bgHH_type[is.na(hh_size)])
+#UGH - really need to think about what we're doing wrong...
+#> nrow(bgHH_type[is.na(hh_size)])
+#[1] 1408634
+#> nrow(bgHH_type[!is.na(hh_size)])
+#[1] 284096
+```
+
+```{r add _type to _dec}
+
+```
 
 
 
