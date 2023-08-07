@@ -59,7 +59,7 @@ bg_hh_type_race_eth_data_from_census <-
 ```
 
 The households have data associated with them, and each household will have an id. The head of household is given extra tables, although there are reasons to think hard about the various ways in which head of household is designated and only recently has the census allowed for female head of household when a male is present.
-The one with household type, race and ethnicity will serve as our base, and so we'll call it bgHH. 
+The one with household type, race and ethnicity will serve as our base, and so we'll call it bgHH_dec. (decennial) 
 
 ```{r set up bgHH from bg_hh_type_race_eth_data_from_census}
 bgHH_data <- as.data.table(bg_hh_type_race_eth_data_from_census)
@@ -146,24 +146,24 @@ bgHH_age <- bgHH_age_data %>%
   pivot_longer(4:ncol(bgHH_age_data),names_to = "geoid", values_to = "number_sams",
                names_transform = list(geoid=as.character)) %>%
   filter(str_detect(geoid,"48_201")) %>% #for test, only Harris
-  separate(label, c("rent_own","hh_age_range"), sep = ":!!", remove = F, convert = FALSE) %>%
+  separate(label, c("rent_own","hh_age_range_9"), sep = ":!!", remove = F, convert = FALSE) %>%
   mutate(
     geoid = str_remove_all(geoid,"_"),
     tract = substr(geoid,1,11),
     race = substr(name,4,4),
     race_description_tenure = str_replace(concept,"TENURE BY AGE OF HOUSEHOLDER \\(",""),
     race_description_tenure = str_replace(race_description_tenure,"\\)",""),
-    hh_age_range_3 = case_when(hh_age_range=="Householder 15 to 24 years" | 
-                                 hh_age_range=="Householder 25 to 34 years" ~ "Householder 15 to 34 years",
-                               hh_age_range=="Householder 35 to 44 years" | 
-                                 hh_age_range=="Householder 45 to 54 years" |
-                                 hh_age_range=="Householder 55 to 59 years" |
-                                 hh_age_range=="Householder 60 to 64 years" ~ "Householder 35 to 64 years",
-                               hh_age_range=="Householder 65 to 74 years" | 
-                                 hh_age_range=="Householder 75 to 84 years" |
-                                 hh_age_range=="Householder 85 years and over" ~ "Householder 65 years and over")
+    hh_age_range_3 = case_when(hh_age_range_9=="Householder 15 to 24 years" | 
+                                 hh_age_range_9=="Householder 25 to 34 years" ~ "Householder 15 to 34 years",
+                               hh_age_range_9=="Householder 35 to 44 years" | 
+                                 hh_age_range_9=="Householder 45 to 54 years" |
+                                 hh_age_range_9=="Householder 55 to 59 years" |
+                                 hh_age_range_9=="Householder 60 to 64 years" ~ "Householder 35 to 64 years",
+                               hh_age_range_9=="Householder 65 to 74 years" | 
+                                 hh_age_range_9=="Householder 75 to 84 years" |
+                                 hh_age_range_9=="Householder 85 years and over" ~ "Householder 65 years and over")
     ) %>%
-  filter(number_sams > 0, !is.na(hh_age_range)) %>% 
+  filter(number_sams > 0, !is.na(hh_age_range_9)) %>% 
   select(-c(name,label,concept)) 
 
 race_codes <- c("A","B","C","D","E","F","G")
@@ -199,6 +199,7 @@ length(test[test==FALSE])==0
 rm(bgHH_age_data)
 rm(bgHH_age)
 ```
+
 
 #add type and tenure by race and ethnicity
 ```{r create hh type and tenure data}
@@ -404,7 +405,7 @@ trHH_race_typesr[re_code=="A" & is.na(HvL),("HvL"):=
 trHH_eth_typesr[re_code=="H" & is.na(tr_typesr_match),("tr_typesr_match"):=
                  trHH_race_typesr[.SD, list(hh), on = .(trbgHH_typesre1_match_id)]]
 nrow(trHH_race_typesr[!is.na(HvL)]) == nrow(trHH_race_typesr[re_code=="A"])
-#then H - the table for bgHH_dec will be our ground, although it doesn't have age
+#then H - later, the table for bgHH_dec will be our ground, although it doesn't have age
 trHH_race_typesr[order(match(re_code,c("F","G","C","E","B","D","A"))),
                  ("trbgHH_typesre2_match_id"):=
                     paste0(tract,alone,sex,as.character(100000+seq.int(1:.N))),
@@ -999,22 +1000,22 @@ Trying to think about what it means to iterate through construction / compositio
 #could just expand bgHH_age_eth to have family_non, then match with bgHH_size_eth, as below, with only the matching ones kept...
 cart_age_race_fam <- bgHH_age_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Family households"),list(1:.N)),
-                                                 by=.(geoid,race,hh_age_range)] 
+                                                 by=.(geoid,race,hh_age_range_9)] 
 cart_age_race_nonfam <- bgHH_age_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Nonfamily households"),list(1:.N)),
-                                                 by=.(geoid,race,hh_age_range)]
+                                                 by=.(geoid,race,hh_age_range_9)]
 cart_age_race_fnf <- rbindlist(list(cart_age_race_fam,cart_age_race_nonfam))
 #and for HvL
 cart_age_race_HvL <- cart_age_race_fnf[rep(1:.N,1)][,c("HvL","indx"):=
                                                    c(list(TRUE),list(1:.N)),
-                                                 by=.(geoid,race,hh_age_range)] 
+                                                 by=.(geoid,race,hh_age_range_9)] 
 cart_age_race_nonHvL <- cart_age_race_fnf[rep(1:.N,1)][,c("HvL","indx"):=
                                                    c(list(FALSE),list(1:.N)),
-                                                 by=.(geoid,race,hh_age_range)]
+                                                 by=.(geoid,race,hh_age_range_9)]
 cart_age_race <- rbindlist(list(cart_age_race_HvL,cart_age_race_nonHvL))
 cart_age_race[,("bgHH_art_match_id"):=
-                    paste0(geoid,race,HvL,family,rent_own,hh_age_range,as.character(100000+sample(1:.N))),
-                  by=.(geoid,race,HvL,family,rent_own,hh_age_range)]
+                    paste0(geoid,race,HvL,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,HvL,family,rent_own,hh_age_range_9)]
 bgHH_type[,("bgHH_art_match_id"):=
                     paste0(geoid,re_code,HvL,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
                   by=.(geoid,re_code,HvL,family,rent_own,hh_age_range_9)]
@@ -1026,8 +1027,8 @@ cart_age_race[,c("hh_type","matched_age"):=
 nrow(bgHH_type[hh_age_range_3=="Householder 65 years and over"]) - nrow(cart_age_race[!is.na(hh_type)]) #50k
 #then do again for rest - if not using these for final race, pull from _dec and don't waste time going to full set
 cart_age_race[is.na(hh_type),("bgHH_art1_match_id"):=
-                    paste0(geoid,family,rent_own,hh_age_range,as.character(100000+sample(1:.N))),
-                  by=.(geoid,family,rent_own,hh_age_range)]
+                    paste0(geoid,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,rent_own,hh_age_range_9)]
 bgHH_type[is.na(race),("bgHH_art1_match_id"):=
                     paste0(geoid,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
                   by=.(geoid,family,rent_own,hh_age_range_9)]
@@ -1080,10 +1081,12 @@ rm(list=ls(pattern='^cart'))
 
 What am I thinking??? age_race before _size? or add age and size together...would the Cartesian work better for them??
 
+
+
 ```{r add _age race and eth to _type}
 bgHH_age_race[,("bgHH_at_match_id"):=
-                    paste0(geoid,race,hh_age_range,rent_own,as.character(100000+sample(1:.N))),
-                  by=.(geoid,race,hh_age_range,rent_own)]
+                    paste0(geoid,race,hh_age_range_9,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,hh_age_range_9,rent_own)]
 bgHH_type[,("bgHH_at_match_id"):=
                     paste0(geoid,re_code,hh_age_range_9,rent_own,as.character(100000+sample(1:.N))),
                   by=.(geoid,re_code,hh_age_range_9,rent_own)]
@@ -1097,8 +1100,8 @@ bgHH_age_race[,c("hh_type","hh_type_fm","alone","sex"):=
 nrow(bgHH_type[is.na(race)])-nrow(bgHH_type[is.na(re_code)]) #27891
 #re_code and HvL only for seniors, and all but 28k matched, so remove
 bgHH_age_race[is.na(hh_type),("bgHH_at_match1_id"):=
-                    paste0(geoid,hh_age_range,rent_own,as.character(100000+sample(1:.N))),
-                  by=.(geoid,hh_age_range,rent_own)]
+                    paste0(geoid,hh_age_range_9,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_age_range_9,rent_own)]
 bgHH_type[is.na(race),("bgHH_at_match1_id"):=
                     paste0(geoid,hh_age_range_9,rent_own,as.character(100000+sample(1:.N))),
                   by=.(geoid,hh_age_range_9,rent_own)]
