@@ -267,79 +267,6 @@ length(test[test==FALSE])==0
 rm(bgHH_type_data)
 ```
 
-```{r add details on age data from tract level}
-#add specifics from tract level by age
-tr_hh_type_age_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "PCT3",county_num = "*",
-                         block="tract",api_type="dec/dhc",path_suff="est.csv")
-trHH_type_data <- as.data.table(tr_hh_type_age_data_from_census)
-trHH_type_data[,6:ncol(trHH_type_data)] <- 
-  trHH_type_data[,lapply(.SD[,6:ncol(trHH_type_data)], as.numeric)]
-trHH_type_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
-rm(tr_hh_type_age_data_from_census)
-
-#make long
-trHH_type <- trHH_type_data %>%
-  filter(label!=" !!Total:") %>%
-  mutate(label=str_remove(label,"!!Total:!!"),
-         label=str_remove(label,"!!Total:")) %>%
-  pivot_longer(4:ncol(trHH_type_data),names_to = "tract", values_to = "number_sams",
-               names_transform = list(tract=as.character)) %>%
-  filter(str_detect(tract,"48201")) %>% #for test, only Harris
-  separate(label, c("family","hh_age_range_9"), sep = ":!!", remove = F, convert = FALSE) %>%
-  mutate(
-    hh_age_range_3 = case_when(hh_age_range_9=="Householder 15 to 24 years" ~ "Householder 15 to 34 years",
-                               hh_age_range_9=="Householder 25 to 34 years" ~ "Householder 15 to 34 years",
-                               hh_age_range_9=="Householder 35 to 44 years" ~ "Householder 35 to 64 years",
-                               hh_age_range_9=="Householder 45 to 54 years" ~ "Householder 35 to 64 years",
-                               hh_age_range_9=="Householder 55 to 59 years" ~ "Householder 35 to 64 years",
-                               hh_age_range_9=="Householder 60 to 64 years" ~ "Householder 35 to 64 years",
-                               hh_age_range_9=="Householder 65 to 74 years" ~ "Householder 65 years and over",
-                               hh_age_range_9=="Householder 75 to 84 years" ~ "Householder 65 years and over",
-                               hh_age_range_9=="Householder 85 years and over" ~ "Householder 65 years and over")
-    ) %>%
-  filter(number_sams > 0, !is.na(hh_age_range_9)) %>% 
-  select(-c(name,label,concept)) %>%
-  uncount(number_sams,.id = "hh_tr_type_age_id")
-nrow(bgHH_dec)==nrow(trHH_type)
-trHH_type <- as.data.table(trHH_type)
-
-#join tract and block group
-trHH_type[,("trbgHH_type_match_id"):=
-                    paste0(tract,family,hh_age_range_3,as.character(100000+sample(1:.N))),
-                  by=.(tract,family,hh_age_range_3)]
-bgHH_type[,("trbgHH_type_match_id"):=
-                    paste0(tract,family,hh_age_range_3,as.character(100000+sample(1:.N))),
-                  by=.(tract,family,hh_age_range_3)]
-trHH_type[,("tr_type_match"):=
-                 bgHH_type[.SD, list(family), on = .(trbgHH_type_match_id)]]
-bgHH_type[,c("tr_type_match","hh_age_range_9"):=
-                 trHH_type[.SD, c(list(family),list(hh_age_range_9)), on = .(trbgHH_type_match_id)]]
-nrow(bgHH_type[is.na(hh_age_range_9)]) #2031743
-
-test <- table(bgHH_age_race[,geoid],
-              bgHH_age_race[,hh_age_range_3],
-              bgHH_age_race[,rent_own]
-              )==
-        table(bgHH_type[,geoid],
-              bgHH_type[,hh_age_range_3],
-              bgHH_type[,rent_own]
-              )
-length(test[test==FALSE])==0
-test <- table(bgHH_dec[,geoid],
-              bgHH_dec[,family],
-              bgHH_dec[,hh_type]
-              )==
-        table(bgHH_type[,geoid],
-              bgHH_type[,family],
-              bgHH_type[,hh_type]
-              )
-length(test[test==FALSE])==0
-rm(trHH_type_data)
-rm(trHH_type)
-```
-
 
 ```{r add type, sex, eth and race for seniors}
 #from PCT9 HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER
@@ -417,7 +344,7 @@ trHH_race_typesr[is.na(HvL),("HvL"):=
                  trHH_eth_typesr[.SD, list(HvL), on = .(trbgHH_typesre2_match_id)]]
 trHH_eth_typesr[is.na(tr_typesr_match),("tr_typesr_match"):=
                  trHH_race_typesr[.SD, list(hh), on = .(trbgHH_typesre2_match_id)]]
-nrow(trHH_race_typesr[!is.na(HvL)]) - nrow(trHH_eth_typesr)
+nrow(trHH_race_typesr[!is.na(HvL)]) == nrow(trHH_eth_typesr)
 trHH_race_typesr[,("HvL"):=ifelse(is.na(HvL),FALSE,HvL)]
 #for comparison's sake, although that's without doing by age of hh:
 #B and C have fewer HvL than they should, but they are likely to be affected by age so can't use _dec alone...
@@ -478,7 +405,7 @@ trHH_race_typesr[,("tr_typesr_match"):=
 bgHH_type[,c("re_code","HvL","sex_sr","alone_sr"):=
                  trHH_race_typesr[.SD, c(list(re_code),list(HvL),
                                          list(sex),list(alone)), on = .(trbgHH_typesr_match_id)]]
-nrow(bgHH_type[!is.na(re_code)]) #125292
+nrow(bgHH_type[!is.na(re_code)]) #125292 - interesting it's exact same...
 #the mismatch on sex, because of way it was deduced from hh_type, means we only get half the match
 trHH_race_typesr[is.na(tr_typesr_match),("trbgHH_typesr1_match_id"):=
                     paste0(tract,alone,hh_age_range_3,as.character(100000+sample(1:.N))),
@@ -496,10 +423,7 @@ nrow(bgHH_type[hh_age_range_3=="Householder 65 years and over"])-nrow(bgHH_type[
 nrow(trHH_race_typesr[is.na(tr_typesr_match)]) #12967 ~1.5% not matching... bgHH_type seems better fit for ground truth
 #think about right tests
 #maybe something that points to how much undecided there is in each space...
-rm(trHH_typesr_data)
-rm(trHH_typesr)
-rm(trHH_eth_typesr)
-rm(trHH_race_typesr)
+rm(list=ls(pattern='^trHH'))
 ```
 
 #get hh size
@@ -635,6 +559,7 @@ rm(trHH_size_data)
 ```
 
 Ok - think - what would it mean to put these in the right order so that the matches worked, and then you could draw down to a single answer...
+What we know is that if the count is the limit and the geoid is really just a limit in that sense (although we still have to think about what it means to have adjunctive force) then we can assign numbers in other ways, too. Assigning to each person up to that count is part of the point, so it should be possible to track that number...
 
 Each row of bg has a race and a size that matches with the tr
 the only thing missing is family - which only has two ways to go
@@ -646,6 +571,7 @@ can we move the _dec match earlier, while still having others expanded, and use 
 
 ```{r joining tract and block group hh_size_eth after expand for simple cartesian example}
 #create possible matches by cartesian products
+#i.e., for each row, create a matching row for each combination by family/non-family and block-group
 bgHH_size_eth[,("blockID"):=substr(geoid,12,12)]
 bgHH_size_eth[,("maxblocks"):=max(as.numeric(blockID)),by=.(tract)]
 cart_bgHH_size_eth_family <- bgHH_size_eth[rep(1:.N,1)][,c("family","indx"):=
@@ -654,41 +580,50 @@ cart_bgHH_size_eth_family <- bgHH_size_eth[rep(1:.N,1)][,c("family","indx"):=
 cart_bgHH_size_eth_nonfamily <- bgHH_size_eth[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Nonfamily households"),list(1:.N)),
                                                  by=.(geoid,hh_size)]
-cart_HvL_bgHH_size <- rbindlist(list(cart_bgHH_size_eth_family,cart_bgHH_size_eth_nonfamily))
-#now take the expansion by family/non-family, and put them in all possible block_group combinations
-cart_trHH_size_eth <- cart_HvL_bgHH_size[rep(1:.N,maxblocks)][,("indx"):=
-                                                   list(1:.N),
-                                                 by=.(geoid,hh_size)] 
+cart_trHH_size_eth <- rbindlist(list(cart_bgHH_size_eth_family,cart_bgHH_size_eth_nonfamily))
+#now take the expansion by family/non-family, and multiply them in all possible block_group combinations
+#TRY WITHOUT - gets same result...
+#cart_trHH_size_eth <- cart_HvL_bgHH_size[rep(1:.N,blockID)][,("indx"):=
+#                                                   list(1:.N),
+#                                                 by=.(geoid,hh_size)] 
 #should be faster way to get a unique value on each; not sure
+#doesn't quite work - need to get the repetition after the expansion - do it once for maxblocks, and then expand bg and merge for geoid?
 trHH_size_eth[,("id4rep"):=paste0(tract,hh_size,family,tr_hh_age_eth_id)]
 #put maxblocks from bg to tr
-bg_max_blocks <- bgHH_size_eth[,c("tract","maxblocks")]
+trHH_size_eth <- trHH_size_eth[order(tract,hh_size)] #by race for race
+bgHH_size_eth <- bgHH_size_eth[order(tract,hh_size)]
+bg_max_blocks <- bgHH_size_eth[,c("geoid","tract","maxblocks")]
 bg_max_blocks[,("rownumber"):=1:.N,by=.(tract)]
 trHH_size_eth[,("rownumber"):=1:.N,by=.(tract)]
 trHH_size_eth <- bg_max_blocks[trHH_size_eth,on=.(tract,rownumber)]
-rm(bg_max_blocks)
+
 #now expand and make possible geoids
-trHH_size_eth_maxblocks <- trHH_size_eth[rep(1:.N,max(bgHH_size_eth[,maxblocks]))]
-trHH_size_eth_maxblocks[,("geoid"):=paste0(tract,1:.N),by=.(id4rep)] #do for all possible geoids / 6 is max number of blocks
-#match to reduce for sake of expand with rent_own
+trHH_size_eth_maxblocks <- trHH_size_eth[rep(1:.N,maxblocks)]#do for all possible geoids / 6 is max number of blocks
+bgHH_size_eth_maxblocks <- bgHH_size_eth[rep(1:.N,maxblocks)]
+trHH_size_eth_maxblocks[,("rowsizenumber"):=paste0(tract,hh_size,1:.N),by=.(tract,hh_size)]
+bgHH_size_eth_maxblocks[,("rowsizenumber"):=paste0(tract,hh_size,1:.N),by=.(tract,hh_size)]
+bgHH_size_eth_geoids <- bgHH_size_eth_maxblocks[,c("tract","geoid","rowsizenumber")]
+
+trHH_size_eth_max <- bgHH_size_eth_geoids[trHH_size_eth_maxblocks,on=.(tract,rowsizenumber)]
+#trHH_size_eth_maxblocks[,("geoid"):=paste0(tract,rep(1:maxblocks,length.out=.N)),by=.(tract)] 
+#test
+length(unique(trHH_size_eth_max[,geoid]))==length(unique(bgHH_size_eth[,geoid]))
+#rm(bg_max_blocks)
 cart_trHH_size_eth[,("trbgHH_sizeHvL_match_id"):=
                     paste0(geoid,HvL,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(geoid,HvL,family,hh_size)]
-trHH_size_eth_maxblocks[,("trbgHH_sizeHvL_match_id"):=
+trHH_size_eth_max[,("trbgHH_sizeHvL_match_id"):=
                     paste0(geoid,HvL,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(geoid,HvL,family,hh_size)]
-trHH_size_eth_maxblocks[,("bg_size_match"):=
+trHH_size_eth_max[,("bg_size_match"):=
                  cart_trHH_size_eth[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
 cart_trHH_size_eth[,("bg_size_match"):=
-                 trHH_size_eth_maxblocks[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
-nrow(cart_trHH_size_eth[!is.na(bg_size_match)])
+                 trHH_size_eth_max[.SD, list(hh_size), on = .(trbgHH_sizeHvL_match_id)]]
+nrow(cart_trHH_size_eth[!is.na(bg_size_match)]) #657727
 #see if we have right number, although we don't know which of the duplicated id4reps is the right match...
-length(unique(trHH_size_eth_maxblocks[!is.na(bg_size_match),id4rep]))==nrow(trHH_size_eth)
-
-#can use this to show that just reducing to unique doesn't get right subset
-#trHH_match_eth_size <- trHH_size_eth_maxblocks[!is.na(bg_size_match)&!duplicated(id4rep)] #519420 - 
+length(unique(trHH_size_eth_max[!is.na(bg_size_match),id4rep]))#452154 ==nrow(trHH_size_eth) 593682
 #reduce then add rent_own
-trHH_match_eth_size <- trHH_size_eth_maxblocks[!is.na(bg_size_match)]
+trHH_match_eth_size <- trHH_size_eth_max[!is.na(bg_size_match)]
 cart_size_eth_rent <- trHH_match_eth_size[rep(1:.N,1)][,c("rent_own","indx"):=
                                                    c(list("Renter occupied"),list(1:.N)),
                                                  by=.(geoid,hh_size)]
@@ -715,8 +650,9 @@ cart_size_eth_or[,("size_match"):=
                  cart_size_eth_fnf[.SD, list(hh_size), on = .(bgHH_sizeHvL_match_id)]]
 cart_size_eth_fnf[,("size_match"):=
                  cart_size_eth_or[.SD, list(hh_size), on = .(bgHH_sizeHvL_match_id)]]
-nrow(cart_size_eth_fnf[!is.na(size_match)])
-nrow(cart_size_eth_or[!duplicated(id4rep)])==nrow(bgHH_size_eth)
+nrow(cart_size_eth_fnf[!is.na(size_match)]) #678167
+nrow(cart_size_eth_or[!is.na(size_match)])
+nrow(cart_size_eth_or[!duplicated(id4rep)]) #452154.  ==nrow(bgHH_size_eth)
 #try going to trHH_size_eth with geoid and rent_own
 cart_size_eth_or[!is.na(size_match),("bgHH_sizeHvL_match0_id"):=
                     paste0(tract,HvL,family,hh_size,as.character(100000+sample(1:.N))),
@@ -748,8 +684,7 @@ bgHH_size_eth[,c("size_matchf","family"):=
                  trHH_size_eth[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizeHvL_matchf_id)]]
 trHH_size_eth[,c("size_matchf"):=
                  bgHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_matchf_id)]]
-nrow(trHH_size_eth[is.na(size_matchf)]) #8743 -i.e., almost 98.5% match...
-#get further matches from cart_size_eth_or, in order to keep family/hh_size/matches...
+nrow(trHH_size_eth[is.na(size_matchf)]) #14555 -i.e., almost 97.5% match...
 #then by tract
 bgHH_size_eth[is.na(size_matchf),("bgHH_sizeHvL_matchf1_id"):=
                     paste0(tract,HvL,rent_own,hh_size,as.character(100000+sample(1:.N))),
@@ -761,7 +696,7 @@ bgHH_size_eth[is.na(size_matchf),c("size_matchf","family"):=
                  trHH_size_eth[.SD, c(list(hh_size),list(family)), on = .(bgHH_sizeHvL_matchf1_id)]]
 trHH_size_eth[is.na(size_matchf),c("size_matchf"):=
                  bgHH_size_eth[.SD, list(hh_size), on = .(bgHH_sizeHvL_matchf1_id)]]
-nrow(trHH_size_eth[is.na(size_matchf)]) #4592 - not much added... more than half remaining
+nrow(trHH_size_eth[is.na(size_matchf)]) #4847 - not much added... more than half remaining
 #get family from tract level, just on HvL and hh_size
 bgHH_size_eth[is.na(size_matchf),("bgHH_sizeHvL_matchf2_id"):=
                     paste0(tract,HvL,hh_size,as.character(100000+sample(1:.N))),
@@ -787,20 +722,24 @@ test <- table(bgHH_size_eth[,geoid],
         table(bgHH_dec[HvL==TRUE,geoid],
               bgHH_dec[HvL==TRUE,family]
               )
-length(test[test==0])/length(test) #14%
-length(test[test<5])/length(test) #87%
-length(test[test<25])/length(test) #99.9%
+length(test[test==0])/length(test) #10% of geoids are perfect matches
+length(test[test<5])/length(test) #72.5% 
+length(test[test<25])/length(test) #98%
+mean(test[test>0]) #8.35
+mean(table(bgHH_size_eth[,geoid],
+              bgHH_size_eth[,family]
+              )) #105.1
 #at tract levels, family will match - at geoid, should allow family from _dec to rule the day
 test <- table(bgHH_size_eth[,tract],
               bgHH_size_eth[,family]
-              )- #subracting
+              )==
         table(bgHH_dec[HvL==TRUE,tract],
               bgHH_dec[HvL==TRUE,family]
               )
-length(test[test==0])/length(test) == 1
+length(test[test==0]) == 0
 
 ```
-
+What the fuck with the geoids??
 
 ```{r joining tract and block group hh_size_race after expand for simple cartesian example}
 #create possible matches by cartesian products
@@ -812,12 +751,9 @@ cart_bgHH_size_race_family <- bgHH_size_race[rep(1:.N,1)][,c("family","indx"):=
 cart_bgHH_size_race_nonfamily <- bgHH_size_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Nonfamily households"),list(1:.N)),
                                                  by=.(geoid,race,hh_size)]
-cart_race_bgHH_size <- rbindlist(list(cart_bgHH_size_race_family,cart_bgHH_size_race_nonfamily))
+cart_trHH_size_race <- rbindlist(list(cart_bgHH_size_race_family,cart_bgHH_size_race_nonfamily))
 #now take the expansion by family/non-family, and put them in all possible block_group combinations
-cart_trHH_size_race <- cart_race_bgHH_size[rep(1:.N,maxblocks)][,("indx"):=
-                                                   list(1:.N),
-                                                 by=.(geoid,race,hh_size)] 
-#should be faster way to get a unique value on each; not sure
+
 trHH_size_race[,("id4rep"):=paste0(tract,race,hh_size,family,tr_hh_size_race_id)]
 #put maxblocks from bg to tr
 bg_max_blocks <- bgHH_size_race[,c("tract","maxblocks")]
@@ -827,23 +763,32 @@ trHH_size_race <- bg_max_blocks[trHH_size_race,on=.(tract,rownumber)]
 trHH_size_race_maxblocks <- trHH_size_race[rep(1:.N,max(bgHH_size_race[,maxblocks]))]
 trHH_size_race_maxblocks[,("geoid"):=paste0(tract,1:.N),by=.(id4rep)] #do for all possible geoids / 6 is max number of blocks
 rm(bg_max_blocks)
+trHH_size_race_maxblocks <- trHH_size_race[rep(1:.N,maxblocks)]#do for all possible geoids / 6 is max number of blocks
+bgHH_size_race_maxblocks <- bgHH_size_race[rep(1:.N,maxblocks)]
+trHH_size_race_maxblocks[,("rowsizenumber"):=paste0(tract,hh_size,1:.N),by=.(tract,hh_size)]
+bgHH_size_race_maxblocks[,("rowsizenumber"):=paste0(tract,hh_size,1:.N),by=.(tract,hh_size)]
+bgHH_size_race_geoids <- bgHH_size_eth_maxblocks[,c("tract","rowsizenumber","geoid")]
+
+trHH_size_race_max <- bgHH_size_race_geoids[trHH_size_race_maxblocks,on=.(tract,rowsizenumber)]
+#test
+length(unique(trHH_size_race_max[,geoid]))==length(unique(bgHH_size_race[,geoid])) #missing one geoid???
 
 cart_trHH_size_race[,("trbgHH_sizerace_match_id"):=
                     paste0(geoid,race,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(geoid,race,family,hh_size)]
-trHH_size_race_maxblocks[,("trbgHH_sizerace_match_id"):=
+trHH_size_race_max[,("trbgHH_sizerace_match_id"):=
                     paste0(geoid,race,family,hh_size,as.character(100000+sample(1:.N))),
                   by=.(geoid,race,family,hh_size)]
-trHH_size_race_maxblocks[,("bg_size_match"):=
+trHH_size_race_max[,("bg_size_match"):=
                  cart_trHH_size_race[.SD, list(hh_size), on = .(trbgHH_sizerace_match_id)]]
 cart_trHH_size_race[,("bg_size_match"):=
-                 trHH_size_race_maxblocks[.SD, list(hh_size), on = .(trbgHH_sizerace_match_id)]]
-nrow(cart_trHH_size_race[!is.na(bg_size_match)]) #3928088
+                 trHH_size_race_max[.SD, list(hh_size), on = .(trbgHH_sizerace_match_id)]]
+nrow(cart_trHH_size_race[!is.na(bg_size_match)]) #671729
 #see if we have right number, although we don't know which of the duplicated id4reps is the right match... - we lost some here!!!
-length(unique(trHH_size_race_maxblocks[!is.na(bg_size_match),id4rep])) == nrow(trHH_size_race)
+length(unique(trHH_size_race_max[!is.na(bg_size_match),id4rep]))#409064  == nrow(trHH_size_race)
 
 #reduce then add rent_own
-trHH_race_size_reduced <- trHH_size_race_maxblocks[!is.na(bg_size_match)]
+trHH_race_size_reduced <- trHH_size_race_max[!is.na(bg_size_match)]
 cart_size_race_rent <- trHH_race_size_reduced[rep(1:.N,1)][,c("rent_own","indx"):=
                                                    c(list("Renter occupied"),list(1:.N)),
                                                  by=.(geoid,race,hh_size)]
@@ -870,8 +815,8 @@ cart_size_race_or[,("size_match"):=
                  cart_size_race_fnf[.SD, list(hh_size), on = .(bgHH_sizerace_match_id)]]
 cart_size_race_fnf[,("size_match"):=
                  cart_size_race_or[.SD, list(hh_size), on = .(bgHH_sizerace_match_id)]]
-nrow(cart_size_race_fnf[!is.na(size_match)]) #2031743
-nrow(cart_size_race_or[!duplicated(id4rep)]) == nrow(bgHH_size_race)
+nrow(cart_size_race_fnf[!is.na(size_match)]) #750305
+nrow(cart_size_race_or[!duplicated(id4rep)]) #409064 == nrow(bgHH_size_race)
 #try going to trHH_size_eth with geoid and rent_own
 cart_size_race_or[!is.na(size_match),("bgHH_sizerace_match0_id"):=
                     paste0(tract,race,family,hh_size,as.character(100000+sample(1:.N))),
@@ -1000,25 +945,25 @@ Trying to think about what it means to iterate through construction / compositio
 #could just expand bgHH_age_eth to have family_non, then match with bgHH_size_eth, as below, with only the matching ones kept...
 cart_age_race_fam <- bgHH_age_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Family households"),list(1:.N)),
-                                                 by=.(geoid,race,hh_age_range_9)] 
+                                                 by=.(geoid,race,hh_age_range_3)] 
 cart_age_race_nonfam <- bgHH_age_race[rep(1:.N,1)][,c("family","indx"):=
                                                    c(list("Nonfamily households"),list(1:.N)),
-                                                 by=.(geoid,race,hh_age_range_9)]
+                                                 by=.(geoid,race,hh_age_range_3)]
 cart_age_race_fnf <- rbindlist(list(cart_age_race_fam,cart_age_race_nonfam))
 #and for HvL
 cart_age_race_HvL <- cart_age_race_fnf[rep(1:.N,1)][,c("HvL","indx"):=
                                                    c(list(TRUE),list(1:.N)),
-                                                 by=.(geoid,race,hh_age_range_9)] 
+                                                 by=.(geoid,race,hh_age_range_3)] 
 cart_age_race_nonHvL <- cart_age_race_fnf[rep(1:.N,1)][,c("HvL","indx"):=
                                                    c(list(FALSE),list(1:.N)),
-                                                 by=.(geoid,race,hh_age_range_9)]
+                                                 by=.(geoid,race,hh_age_range_3)]
 cart_age_race <- rbindlist(list(cart_age_race_HvL,cart_age_race_nonHvL))
 cart_age_race[,("bgHH_art_match_id"):=
-                    paste0(geoid,race,HvL,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
-                  by=.(geoid,race,HvL,family,rent_own,hh_age_range_9)]
+                    paste0(geoid,race,HvL,family,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,HvL,family,rent_own,hh_age_range_3)]
 bgHH_type[,("bgHH_art_match_id"):=
-                    paste0(geoid,re_code,HvL,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
-                  by=.(geoid,re_code,HvL,family,rent_own,hh_age_range_9)]
+                    paste0(geoid,re_code,HvL,family,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,re_code,HvL,family,rent_own,hh_age_range_3)]
 bgHH_type[,c("race","HvL"):=
                  cart_age_race[.SD, c(list(race),list(HvL)), on = .(bgHH_art_match_id)]]
 cart_age_race[,c("hh_type","matched_age"):=
@@ -1027,11 +972,11 @@ cart_age_race[,c("hh_type","matched_age"):=
 nrow(bgHH_type[hh_age_range_3=="Householder 65 years and over"]) - nrow(cart_age_race[!is.na(hh_type)]) #50k
 #then do again for rest - if not using these for final race, pull from _dec and don't waste time going to full set
 cart_age_race[is.na(hh_type),("bgHH_art1_match_id"):=
-                    paste0(geoid,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
-                  by=.(geoid,family,rent_own,hh_age_range_9)]
+                    paste0(geoid,family,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,rent_own,hh_age_range_3)]
 bgHH_type[is.na(race),("bgHH_art1_match_id"):=
-                    paste0(geoid,family,rent_own,hh_age_range_9,as.character(100000+sample(1:.N))),
-                  by=.(geoid,family,rent_own,hh_age_range_9)]
+                    paste0(geoid,family,rent_own,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,family,rent_own,hh_age_range_3)]
 #remember that family distribution on _dec needs to be final by geoid...
 bgHH_type[is.na(race),c("race","HvL"):=
                  cart_age_race[.SD, c(list(race),list(HvL)), on = .(bgHH_art1_match_id)]]
@@ -1085,11 +1030,11 @@ What am I thinking??? age_race before _size? or add age and size together...woul
 
 ```{r add _age race and eth to _type}
 bgHH_age_race[,("bgHH_at_match_id"):=
-                    paste0(geoid,race,hh_age_range_9,rent_own,as.character(100000+sample(1:.N))),
-                  by=.(geoid,race,hh_age_range_9,rent_own)]
+                    paste0(geoid,race,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,race,hh_age_range_3,rent_own)]
 bgHH_type[,("bgHH_at_match_id"):=
-                    paste0(geoid,re_code,hh_age_range_9,rent_own,as.character(100000+sample(1:.N))),
-                  by=.(geoid,re_code,hh_age_range_9,rent_own)]
+                    paste0(geoid,re_code,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,re_code,hh_age_range_3,rent_own)]
 #sex_sr, alone_sr info is all given in crosstabs with age
 bgHH_type[,("race"):=
                  bgHH_age_race[.SD, list(race), on = .(bgHH_at_match_id)]]
@@ -1100,11 +1045,11 @@ bgHH_age_race[,c("hh_type","hh_type_fm","alone","sex"):=
 nrow(bgHH_type[is.na(race)])-nrow(bgHH_type[is.na(re_code)]) #27891
 #re_code and HvL only for seniors, and all but 28k matched, so remove
 bgHH_age_race[is.na(hh_type),("bgHH_at_match1_id"):=
-                    paste0(geoid,hh_age_range_9,rent_own,as.character(100000+sample(1:.N))),
-                  by=.(geoid,hh_age_range_9,rent_own)]
+                    paste0(geoid,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_age_range_3,rent_own)]
 bgHH_type[is.na(race),("bgHH_at_match1_id"):=
-                    paste0(geoid,hh_age_range_9,rent_own,as.character(100000+sample(1:.N))),
-                  by=.(geoid,hh_age_range_9,rent_own)]
+                    paste0(geoid,hh_age_range_3,rent_own,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_age_range_3,rent_own)]
 bgHH_type[is.na(race),("race"):=
                  bgHH_age_race[.SD, list(race), on = .(bgHH_at_match1_id)]]
 bgHH_age_race[is.na(hh_type),c("hh_type","hh_type_fm","alone","sex"):=
