@@ -1,5 +1,5 @@
 ---
-title: "Making Sam Block_Group Households"
+title: "Schematic Sam Block_Group Households"
 author: "Dan Price"
 date: "`r Sys.Date()`"
 output:
@@ -43,7 +43,6 @@ Sam_seed = 135
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 
-#need to think through the  part of the naming throughout...
 ```
 residence rules for 2020: https://www.census.gov/programs-surveys/decennial-census/decade/2020/about/residence-rule.html
 military: https://www.census.gov/library/fact-sheets/2020/dec/2020-how-we-count-military.html
@@ -52,25 +51,36 @@ variables: https://api.census.gov/data/2020/dec/dhc/variables.html
 
 #some tests
 ```{r checking for best fit}
-bg_gq_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "P5",county_num = county,
-                         block="block_group",api_type="dec/pl",path_suff="est.csv")
-bg_gq_data <- as.data.table(bg_gq_data_from_census)
-bg_gq_data[,4:ncol(bg_gq_data)] <- 
-  bg_gq_data[,lapply(.SD[,4:ncol(bg_gq_data)], as.numeric)]
-rm(bg_gq_data_from_census)
-
-#PCT12 and 13 give sex by age by race/eth in hh and total, so could deduce group quarters but at tract level; could get something, but seems small advances
-
+#P18: GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
 bg_gq_age_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P18",county_num = "*",
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
 
+#PCT18 GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE (by race/eth)
+tr_gq_race_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "PCT18",county_num = "*",
+                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+
+#PCT19 GROUP QUARTERS POPULATION BY SEX BY AGE BY GROUP QUARTERS TYPE
+tr_gq_sex_age_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "PCT19",county_num = "*",
+                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+
 #group quarters codes: https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/demographic-and-housing-characteristics-file-and-demographic-profile/2020census-demographic-and-housing-characteristics-file-and-demographic-profile-techdoc.pdf
 #https://www.census.gov/programs-surveys/decennial-census/decade/2020/planning-management/count/service-based-enumeration.html
 #https://www.census.gov/programs-surveys/decennial-census/decade/2020/planning-management/plan/memo-series/2020-memo-2021_08.html
+
+#all show up blank, presumably need special access for small numbers - tried tract and block_group, but not larger - could look for city
+#PC01 	GROUP QUARTERS POPULATION BY SEX BY AGE
+#PC010 (is it subset?) GROUP QUARTERS POPULATION IN OTHER NONINSTITUTIONAL FACILITIES BY SEX BY AGE
+#PC02 GROUP QUARTERS POPULATION IN INSTITUTIONAL FACILITIES BY SEX BY AGE
+#PC03 GROUP QUARTERS POPULATION IN CORRECTIONAL FACILITIES FOR ADULTS BY SEX BY AGE
+#PC04 GROUP QUARTERS POPULATION IN JUVENILE FACILITIES BY SEX BY AGE
+#PC05 GROUP QUARTERS POPULATION IN NURSING FACILITIES/SKILLED-NURSING FACILITIES BY SEX BY AGE
+#PC06 	GROUP QUARTERS POPULATION IN OTHER INSTITUTIONAL FACILITIES BY SEX BY AGE
 
 #and PCT8 RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
 #5 - only for families; bg_hh_family_children_data_from_census just gives numbers for non-families...
@@ -543,7 +553,7 @@ rm(tr_re_group_quarters_type_data)
 ```
 
 PCT21 is tract level group quarters, with sex by age. It would be nice for our construction to have the relations by sex, age, and race, ethnicity in the same table, but the Census Bureau decided to mask that information. The protection of privacy for the individuals should be balanced with the need to understand potential patterns across categories, but there are a number of places that such analysis could happen. There are, additionally, many ways in which the population characteristics are available, including many data tables not controlled by the Census Bureau that have very detailed information. The problem of privacy is quickly transforming, and there is no clear long-term solution that addresses all goals. In this case, we don't have a direct path to having a better block group distribution by race and ethnicity through the group quarters. The only directly given information is sex and age_3 ("Under 18," "18 to 64," and "65 and over") at the block group and race and ethnicity at the tract level. Let's see if we can still get some hints by triangulation, though
-
+LOOKS LIKE THIS AND OTHER GQ THINGS WERE DROPPED IN 2020
 ```{r group quarters to add tract sex age}
 group_quarters_tract_sex_age_data_from_census <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
