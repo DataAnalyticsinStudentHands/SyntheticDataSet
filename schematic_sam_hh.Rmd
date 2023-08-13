@@ -270,7 +270,27 @@ bg_hh_family_children_data_from_census <-
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P21",county_num = "*",
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
-
+bgHH_fam_kids_data <- as.data.table(bg_hh_family_children_data_from_census)
+bgHH_fam_kids_data[,6:ncol(bgHH_fam_kids_data)] <- 
+  bgHH_fam_kids_data[,lapply(.SD[,6:ncol(bgHH_fam_kids_data)], as.numeric)]
+bgHH_fam_kids_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
+rm(bg_hh_family_children_data_from_census)
+bgHH_fam_kids <- bgHH_fam_kids_data %>%
+  pivot_longer(4:ncol(bgHH_fam_kids_data),names_to = "geoid", values_to = "number_sams") %>% 
+  filter(label != "!!Total:") %>% 
+  mutate(label = str_remove_all(label,":"),
+         label = str_remove_all(label,"!!Total!!")) %>%
+  separate(label, c("all_kids","family"), sep = "!!", remove = F, convert = FALSE) %>%
+  mutate(
+    geoid = str_remove_all(geoid,"_"),
+    tract = substr(geoid,1,11),
+    family = ifelse(family=="Family Households","Family households",family)
+         ) %>%
+  filter(!is.na(family) & str_detect(tract,"48201")) %>%
+  uncount(number_sams,.id = "bgHH_fam_kids_id")
+bgHH_fam_kids <- as.data.table(bgHH_fam_kids)
+table(bgHH_fam_kids[,family],bgHH_fam_kids[,all_kids])
+rm(bgHH_fam_kids_data)
 
 #6 TENURE BY PRESENCE AND AGE OF OWN CHILDREN
 tr_hh_own_children_tenure_data_from_census <- 
