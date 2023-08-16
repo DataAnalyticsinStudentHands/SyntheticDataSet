@@ -289,6 +289,7 @@ bgHH_fam_kids <- bgHH_fam_kids_data %>%
   filter(!is.na(family) & str_detect(tract,"48201")) %>%
   uncount(number_sams,.id = "bgHH_fam_kids_id")
 bgHH_fam_kids <- as.data.table(bgHH_fam_kids)
+#there are only 4,156 Nonfamily households with kids - need to match with Fosters, and others?
 table(bgHH_fam_kids[,family],bgHH_fam_kids[,all_kids])
 rm(bgHH_fam_kids_data)
 
