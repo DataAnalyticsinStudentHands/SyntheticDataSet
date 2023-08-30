@@ -229,7 +229,57 @@ bgGQ[,("HvL"):=ifelse(is.na(HvL),FALSE,HvL)]
 rm(list=ls(pattern = "tr"))
 ```
 
-PLAN - pull in bg population - assign group quarters to folks (with some idea they may switch toward end) - pull in hh_dec and assign them to _dec. 
+```{r add more specifics to age by gq_type}
+#this approach makes too many people at 105!!!! - maybe get some probabilities from bgSARE distribution??
+#could fix it by matching on order when moving over, instead of on age exactly.... not sure...
+
+#https://charts.hctx.net/jailpop/App/JailPopCurrent for weights
+incarceration_distribution_18_64 <- c(rep(18,258-nrow(bgGQ[beg_age_gq==0 & 
+                                  gq_type=="Correctional facilities for adults (101-106)"])), #258 are either 17 or 18, and we don't want any 17s in this group
+                               c(sample(19:25,1763,replace = TRUE,
+                                        prob = c(.06,.09,.12,.14,.18,.2,.21))),
+                               c(sample(26:35,3184,replace = TRUE,
+                                        prob = c(.09,.095,.105,.11,.11,.105,.1,.1,.095,.09))),
+                               c(sample(36:45,2478,replace = TRUE,
+                                        prob = c(.12,.115,.11,.105,.1,.1,.095,.09,.085,.08))),
+                               c(sample(46:55,1117,replace = TRUE,
+                                        prob = c(.12,.115,.11,.105,.1,.1,.095,.09,.085,.08))),
+                               c(sample(56:64,550,replace = TRUE,
+                                        prob = c(.15,.15,.13,.12,.11,.1,.09,.08,.07))) #making 31 people 65
+                               )
+incarceration_weights_18_64 <- table(incarceration_distribution_18_64)/sum(incarceration_distribution_18_64)
+bgGQ[,("age"):=fcase(beg_age_gq==0 & gq_type=="College/University student housing (501)",as.integer(17),
+                     beg_age_gq!=0 & gq_type=="College/University student housing (501)",
+                        sample(18:24,.N,replace = TRUE,prob = c(.1,.3,.2,.2,.1,.08,.02)),
+                     beg_age_gq==0 & gq_type=="Correctional facilities for adults (101-106)",as.integer(17),
+                     beg_age_gq==18 & gq_type=="Correctional facilities for adults (101-106)",
+                        sample(18:64,.N,replace = TRUE,prob = c(incarceration_weights_18_64)), 
+                     beg_age_gq==65 & gq_type=="Correctional facilities for adults (101-106)",
+                        sample(65:75,.N,replace = TRUE,prob = c(.18,.17,.15,.12,.1,.09,.07,.05,.03,.025,.015)),
+                     #https://www.prisonpolicy.org/reports/youth2019.html#:~:text=Of%20the%2043%2C000%20youth%20in,while%20white%20youth%20are%20underrepresented.
+                     beg_age_gq==0 & gq_type=="Juvenile facilities (201-203)",
+                        sample(12:17,.N,replace = TRUE,prob = c(.01,.03,.06,.2,.3,.4)),
+                     beg_age_gq!=0 & gq_type=="Juvenile facilities (201-203)",as.integer(18),
+                     beg_age_gq!=0 & gq_type=="Nursing facilities/Skilled-nursing facilities (301)",
+                        sample(51:105,.N,replace = TRUE,prob = c(rep(.002,15),rep(.02,30),rep(.005,10))),
+                     beg_age_gq==0 & str_detect(gq_type,"institutional"),
+                        sample(12:17,.N,replace = TRUE,prob = c(.01,.03,.06,.2,.3,.4)),
+                     beg_age_gq!=0 & str_detect(gq_type,"institutional"),
+                        sample(18:105,.N,replace = TRUE,prob = c(rep(.025,48),rep(.02,30),rep(.005,10))),
+                     default = as.integer(999)
+                     )]
+nrow(bgGQ[age==999])==0
+```
+
+
+```{r take bgSARE and decide who is group quarters and who is in households}
+bgSARE <- read_rds(paste0(censusdir,vintage,"/working/bgSARE.RDS"))
+#for Harris only
+bgSARE <- bgSARE[str_starts(geoid,"48201")]
+
+```
+
+PLAN - pull in bg population - assign group quarters to folks (with some idea they may switch toward end) - pull in hh_dec and assign the bg population to _dec. 
 assign two or more race children to parents, etc.
 use hh_size, largest to smallest, along with own_kids to figure out which households have no kids
 that should create a size of hh not counting kids, that let's us assign couples with no kids to two-hh, etc.
@@ -356,6 +406,13 @@ tr_hh_couples_data_from_census <-
 #
 
 ```
+```{r get bgSARE for matching}
+
+if (file.exists(paste0(censusdir,vintage,"/working/bgSARE.RDS"))){
+  readRDS(paste0(censusdir,vintage,"/working/bgSARE.RDS"))
+}
+```
+
 
 ```{r relationship files}
 bg_hh_type_relation_data_from_census <-  #seems to have all the categories of PCT17, but not race/ethnicity; type is just inHH or gq
