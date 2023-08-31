@@ -353,12 +353,12 @@ bgSARE[,("household"):=ifelse(is.na(institutionalized),"In household","In group 
 bgSARE[,c("bgGQ_match_id","bgGQ_match1_id","bgGQ_match2_id","age4match"):=NULL]
 ```
 
-PLAN - pull in bg population - assign group quarters to folks (with some idea they may switch toward end) - pull in hh_dec and assign the bg population to _dec. 
-assign two or more race children to parents, etc.
-use hh_size, largest to smallest, along with own_kids to figure out which households have no kids
-that should create a size of hh not counting kids, that let's us assign couples with no kids to two-hh, etc.
-then distribute the rest
-
+```{r pull in hh_dec and assign the bg population to _dec.}  
+#assign two or more race children to parents, etc.
+#use hh_size, largest to smallest, along with own_kids to figure out which households have no kids
+#that should create a size of hh not counting kids, that let's us assign couples with no kids to two-hh, etc.
+#then distribute the rest
+```
 
 ```{r other future joins}
 #and PCT8 RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
