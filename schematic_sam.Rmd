@@ -57,6 +57,13 @@ https://www.census.gov/programs-surveys/decennial-census/decade/2020/about/resid
 data table guides provided by census: (also downloaded under censusdir/2020) https://www2.census.gov/programs-surveys/decennial/2020/program-management/data-table-guide-dhc-dp.xlsx
 and: https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/demographic-and-housing-characteristics-file-and-demographic-profile/2020census-demographic-and-housing-characteristics-file-and-demographic-profile-techdoc.pdf
 [note noninstitutional group quarters and new defs for college housing]
+
+https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/demographic-and-housing-characteristics-file-and-demographic-profile/2020census-demographic-and-housing-characteristics-file-and-demographic-profile-techdoc.pdf
+is extensive and includes 4-2 discussion of invariants and privacy-loss budget relative to differential privacy noise. We are not trying to pierce the veil of differential privacy, but to make the sense of deliberately constructed data questions come to the fore.
+"The total population for each state is held invariant—
+used exactly as enumerated and with no noise added. Similarly, the total number of housing units
+in each census block and the number and major type of each occupied group quarters facility in
+each census block are also held invariant."
 #Plan 
 Cut out the discussion
 

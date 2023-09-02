@@ -711,7 +711,7 @@ trHH_size_eth[is.na(size_matchf),c("size_matchf"):=
 nrow(trHH_size_eth[is.na(size_matchf)]) == 0 
 test <- table(bgHH_size_eth[,tract],
               bgHH_size_eth[,family]
-              )- #subracting
+              )- #subtracting
         table(trHH_size_eth[,tract],
               trHH_size_eth[,family]
               )
@@ -1056,6 +1056,8 @@ bgHH_age_race[is.na(HvL_age),("HvL_age"):=
 nrow(bgHH_age_race[!is.na(HvL_age)])/nrow(bgHH_age_eth) == 1
 ```
 
+
+NEED TO MAKE SURE THAT THE TYPE AND SIZE MATCH - ALONE = 1 PERSON, ETC.!!!! - SHOULD WE ADD OWN KIDS FIRST??? PROBABLY!!!!
 ```{r add _age race and HvL and hh_size to _type}
 bgHH_age_race[,("bgHH_at_match_id"):=
                     paste0(geoid,race,hh_age_range_3,family,rent_own,as.character(100000+sample(1:.N))),
