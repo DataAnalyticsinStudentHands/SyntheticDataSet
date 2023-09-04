@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Preliminaries -- very broad
 https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html for options on the knit - results="hide"; echo=FALSE; include=FALSE, etc.
 
+
 ```{r prelims}
 source('BaseScripts/Census_Data.R') #move out of BaseScripts?
 source('tests.R')
@@ -26,9 +27,9 @@ library(dplyr)
 library(stringr)
 library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
-#maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
-maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
+#maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
@@ -58,7 +59,7 @@ bg_hh_type_race_eth_data_from_census <-
                          path_suff="est.csv")
 ```
 
-The households have data associated with them, and each household will have an id. The head of household is given extra tables, although there are reasons to think hard about the various ways in which head of household is designated and only recently has the census allowed for female head of household when a male is present.
+The households have data associated with them, and each household will have an id. The head of household is given extra tables, although there are reasons to think hard about the various ways in which head of household is designated and only recently has the census allowed for female head of household when a male is present. Vast majority are assumed to be male, if present.
 The one with household type, race and ethnicity will serve as our base, and so we'll call it bgHH_dec. (decennial) 
 
 ```{r set up bgHH from bg_hh_type_race_eth_data_from_census}
@@ -266,7 +267,244 @@ test <- table(bgHH_dec[,geoid],
 length(test[test==FALSE])==0
 rm(bgHH_type_data)
 ```
+```{r add type and own kids}
+#and PCT8 RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
+#5 - only for families; bg_hh_family_children_data_from_census just gives numbers for non-families...
+bg_hh_own_children_type_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "P20",county_num = "*",
+                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
+bgHH_own_kids_type_data <- as.data.table(bg_hh_own_children_type_data_from_census)
+bgHH_own_kids_type_data[,6:ncol(bgHH_own_kids_type_data)] <- 
+  bgHH_own_kids_type_data[,lapply(.SD[,6:ncol(bgHH_own_kids_type_data)], as.numeric)]
+bgHH_own_kids_type_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
+rm(bg_hh_own_children_type_data_from_census)
 
+bgHH_own_kids_type <- bgHH_own_kids_type_data %>%
+  pivot_longer(4:ncol(bgHH_own_kids_type_data),names_to = "geoid", values_to = "number_sams") %>% 
+  mutate(geoid = str_remove_all(geoid,"_"),
+         tract = substr(geoid,1,11),
+         label = str_remove_all(label,":"),
+         label = str_remove_all(label,"!!Total!!")) %>%
+  separate(label, c("hh_description","own_kids","hh_age_range"), sep = "!!", remove = F, convert = FALSE) %>%
+  #match hh_type as much as possible - have to distribute cohabiting couples, some family, some not
+  mutate(
+    hh_age_range_3 = if_else(hh_age_range=="65 years and over","Householder 65 years and over","Not known"),
+    hh_type = case_when((hh_description=="Married couple household") ~ "Married couple household",
+                             (str_detect(hh_description,"spouse") & own_kids=="Living alone") ~ 
+                               "Householder living alone",
+                             (str_detect(hh_description,"spouse") & 
+                                own_kids=="No relatives present") ~ 
+                               "Householder not living alone", 
+                             (hh_description=="Female householder, no spouse or partner present" &
+                                own_kids!="Living alone") ~ 
+                               "Female householder, no spouse present",
+                             (hh_description=="Male householder, no spouse or partner present" &
+                                own_kids!="Living alone") ~ 
+                               "Male householder, no spouse present",
+                             TRUE ~ "Cohabiting couple household"
+                             ),
+    family = case_when((str_starts(hh_type,"Householder")) ~ "Nonfamily households",
+                       (hh_type=="Cohabiting couple household") ~ "Not known",
+                       TRUE ~ "Family households"
+                        ),
+    #to be refined with couples, given some same gender couples
+    sex = case_when((str_starts(hh_description,"Male")) ~ "Male",
+                    (str_starts(hh_description,"Female")) ~ "Female",
+                    (str_starts(hh_description,"Cohabiting")) ~ "Cohabiting",
+                    TRUE ~ "Married"
+                    )
+    )%>%
+  filter(!is.na(own_kids) & str_detect(tract,"48201") & label != "!!Total") %>%
+  uncount(number_sams,.id = "bgHH_own_kids_id")
+#checked on just total for hh, no spouse or partner, and get same - mystery how to match with hh_type  
+bgHH_own_kids_type <- as.data.table(bgHH_own_kids_type)
+bgHH_over_65 <- bgHH_own_kids_type[!is.na(hh_age_range)]
+bgHH_own_kids_type <- bgHH_own_kids_type[is.na(hh_age_range)]
+#reattach over_65 - with sr, below, narrowing down on who is alone
+bgHH_over_65[,("over65_match_id"):=
+                    paste0(geoid,hh_description,own_kids,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_description,own_kids)]
+bgHH_own_kids_type[,("over65_match_id"):=
+                    paste0(geoid,hh_description,own_kids,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_description,own_kids)]
+bgHH_own_kids_type[,("hh_age_range_3"):=
+                 bgHH_over_65[.SD, list(hh_age_range_3), on = .(over65_match_id)]]
+bgHH_over_65[,("typesr_match"):=
+                 bgHH_own_kids_type[.SD, list(own_kids), on = .(over65_match_id)]]
+table(bgHH_own_kids_type[,hh_age_range_3])==table(bgHH_over_65[,hh_age_range_3])
+rm(bgHH_over_65)
+rm(bgHH_own_kids_type_data)
+```
+
+```{r add couples data from tract, but need to join with others for rent_own}
+#PCT15 is coupled households, including same sex; may be redundant with relationships
+tr_hh_couples_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "PCT15",county_num = "*",
+                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+tr_hh_couples_data <- as.data.table(tr_hh_couples_data_from_census)
+tr_hh_couples_data[,6:ncol(tr_hh_couples_data)] <- 
+  tr_hh_couples_data[,lapply(.SD[,6:ncol(tr_hh_couples_data)], as.numeric)]
+tr_hh_couples_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
+rm(tr_hh_couples_data_from_census)
+
+#change to couples: (and think about right way to add to geoid - should we be carting it?)
+tr_hh_couples <- tr_hh_couples_data %>%
+  pivot_longer(4:ncol(tr_hh_couples_data),names_to = "tract", values_to = "number_sams") %>% 
+  mutate(tract = str_remove_all(tract,"_"),
+         label = str_remove_all(label,":"),
+         label = str_remove_all(label,"!!Total!!")) %>%
+  separate(label, c("hh_couple_type","couple","couple_gender"), sep = "!!", remove = F, convert = FALSE) %>%
+  #match hh_type as much as possible - made hh_type b/c different naming conventions on hh_couple_type
+  mutate( 
+    hh_type = if_else(str_detect(couple,"unmarried"),"Cohabiting couple household","Married couple household"),
+    couple_gender = case_when((couple=="Opposite-sex unmarried partner household") ~ "Male-female unmarried partner household",
+                              (couple=="Opposite-sex married couple household") ~ "Male-female married couple household",
+                              TRUE ~ couple_gender),
+    sex = case_when((str_starts(couple_gender,"Female")) ~ "Female",
+                    TRUE ~ "Male"),
+    sex_couple = case_when((str_detect(couple_gender,"-female")) ~ "Female",
+                           TRUE ~ "Male")
+                             ) %>%
+  filter(!is.na(couple_gender) & str_detect(tract,"48201") & label != "!!Total") %>%
+  uncount(number_sams,.id = "trHH_couple_id")
+#checked on just total for hh, no spouse or partner, and get same - mystery how to match with hh_type  
+trHH_couples <- as.data.table(tr_hh_couples)
+table(trHH_couples[,couple_gender],trHH_couples[,sex],trHH_couples[,sex_couple])
+#add to own_kids_type - only thing we know is tract and hh_type - no triangulation from other files
+trHH_couples[,("couples_match_id"):=
+                    paste0(tract,hh_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,hh_type)]
+bgHH_own_kids_type[,("couples_match_id"):=
+                    paste0(tract,hh_type,as.character(100000+sample(1:.N))),
+                  by=.(tract,hh_type)]
+bgHH_own_kids_type[,c("couple","couple_gender","sex","sex_couple"):=
+                 trHH_couples[.SD, c(list(couple),list(couple_gender),
+                                     list(sex),list(sex_couple)),
+                              on = .(couples_match_id)]]
+trHH_couples[,("type_couple_match"):=
+                 bgHH_own_kids_type[.SD, list(own_kids), on = .(couples_match_id)]]
+nrow(trHH_couples[is.na(type_couple_match)])==0
+table(bgHH_own_kids_type[,couple])==table(trHH_couples[,couple])
+rm(tr_hh_couples_data)
+rm(tr_hh_couples)
+rm(trHH_couples)
+```
+
+```{r add own kids and all kids together by rent_own}
+#TENURE BY PRESENCE AND AGE OF OWN CHILDREN
+tr_hh_own_children_tenure_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "HCT2",county_num = "*",
+                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+trHH_own_kids_tenure_data <- as.data.table(tr_hh_own_children_tenure_data_from_census)
+trHH_own_kids_tenure_data[,6:ncol(trHH_own_kids_tenure_data)] <- 
+  trHH_own_kids_tenure_data[,lapply(.SD[,6:ncol(trHH_own_kids_tenure_data)], as.numeric)]
+trHH_own_kids_tenure_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
+rm(tr_hh_own_children_tenure_data_from_census)
+
+trHH_own_kids_tenure <- trHH_own_kids_tenure_data %>%
+  pivot_longer(4:ncol(trHH_own_kids_tenure_data),names_to = "tract", values_to = "number_sams") %>% 
+  filter(label != "!!Total:") %>% 
+  mutate(label = str_remove_all(label,":"),
+         label = str_remove_all(label,"!!Total!!")) %>%
+  separate(label, c("rent_own","own_kids","kids_age"), sep = "!!", remove = F, convert = FALSE) %>%
+  mutate(kids_age = ifelse(own_kids=="No own children under 18 years", "No children under 18 years", kids_age)
+         ) %>%
+  filter(!is.na(kids_age) & str_detect(tract,"48201")) %>%
+  uncount(number_sams,.id = "trHH_own_kids_tenure_id")
+trHH_own_kids_tenure <- as.data.table(trHH_own_kids_tenure)
+rm(trHH_own_kids_tenure_data)
+
+#TENURE BY PRESENCE AND AGE OF CHILDREN UNDER 18 YEARS BY HOUSEHOLD TYPE (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
+tr_hh_tenure_children_data_from_census <- 
+  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                         groupname = "HCT3",county_num = "*",
+                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+trHH_all_kids_tenure_data <- as.data.table(tr_hh_tenure_children_data_from_census)
+trHH_all_kids_tenure_data[,6:ncol(trHH_all_kids_tenure_data)] <- 
+  trHH_all_kids_tenure_data[,lapply(.SD[,6:ncol(trHH_all_kids_tenure_data)], as.numeric)]
+trHH_all_kids_tenure_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
+rm(tr_hh_tenure_children_data_from_census)
+
+trHH_all_kids_tenure <- trHH_all_kids_tenure_data %>%
+  pivot_longer(4:ncol(trHH_all_kids_tenure_data),names_to = "geoid", values_to = "number_sams") %>% 
+  filter(label != "!!Total:") %>% 
+  mutate(geoid = str_remove_all(geoid,"_"),
+         tract = substr(geoid,1,11),
+         label = str_remove_all(label,":"),
+         label = str_remove_all(label,"!!Total!!")) %>%
+  separate(label, c("rent_own","all_kids","kids_age"), sep = "!!", remove = F, convert = FALSE) %>%
+  mutate(kids_age = ifelse(all_kids=="No children under 18 years", "No children under 18 years", kids_age)
+         ) %>%
+  filter(!is.na(kids_age) & str_detect(tract,"48201")) %>%
+  uncount(number_sams,.id = "trHH_all_kids_tenure_id")
+trHH_all_kids_tenure <- as.data.table(trHH_all_kids_tenure)
+rm(trHH_all_kids_tenure_data)
+
+#put all_kids and own_kids together, by rent_own and kids_age
+trHH_own_kids_tenure[,("trHH_kids_match_id"):=
+                    paste0(tract,rent_own,kids_age,as.character(100000+sample(1:.N))),
+                  by=.(tract,rent_own,kids_age)]
+trHH_all_kids_tenure[,("trHH_kids_match_id"):=
+                    paste0(tract,rent_own,kids_age,as.character(100000+sample(1:.N))),
+                  by=.(tract,rent_own,kids_age)]
+trHH_all_kids_tenure[,("own_kids"):=
+                 trHH_own_kids_tenure[.SD, list(kids_age), on = .(trHH_kids_match_id)]]
+trHH_own_kids_tenure[,("kids_match"):=
+                 trHH_all_kids_tenure[.SD, list(kids_age), on = .(trHH_kids_match_id)]]
+nrow(trHH_own_kids_tenure[is.na(kids_match)]) #this is the "No own children" that are in All kids
+table(trHH_own_kids_tenure[,kids_age])-table(trHH_all_kids_tenure[,own_kids]) #about 200 didn't match (they must not have come from same modeled whole??)
+#get that last 200 by letting them move on rent_own and under age
+trHH_own_kids_tenure[,("own_kids"):=str_remove(own_kids,"own ")]
+trHH_own_kids_tenure[is.na(kids_match),("trHH_kids1_match_id"):=
+                    paste0(tract,own_kids,as.character(100000+sample(1:.N))),
+                  by=.(tract,own_kids)]
+trHH_all_kids_tenure[is.na(own_kids),("trHH_kids1_match_id"):=
+                    paste0(tract,all_kids,as.character(100000+sample(1:.N))),
+                  by=.(tract,all_kids)]
+trHH_all_kids_tenure[is.na(own_kids),("own_kids"):=
+                 trHH_own_kids_tenure[.SD, list(kids_age), on = .(trHH_kids1_match_id)]]
+trHH_own_kids_tenure[is.na(kids_match),("kids_match"):=
+                 trHH_all_kids_tenure[.SD, list(kids_age), on = .(trHH_kids1_match_id)]]
+table(trHH_own_kids_tenure[,kids_age])-table(trHH_all_kids_tenure[,own_kids]) #76080 are kids not living with hh parent
+trHH_all_kids_tenure[,("own_kids"):=if_else(is.na(own_kids),"With non-hh children under 18 years",own_kids)]
+rm(trHH_own_kids_tenure)
+```
+
+```{r get rent_own as much as possible from tr, etc}
+#Look at sam_hh
+#HOUSEHOLDS BY PRESENCE OF PEOPLE UNDER 18 YEARS, and whether in families or not
+#bg_hh_family_children_data_from_census <- 
+#  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+#                         groupname = "P21",county_num = "*",
+#                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
+#bgHH_fam_kids_data <- as.data.table(bg_hh_family_children_data_from_census)
+#bgHH_fam_kids_data[,6:ncol(bgHH_fam_kids_data)] <- 
+#  bgHH_fam_kids_data[,lapply(.SD[,6:ncol(bgHH_fam_kids_data)], as.numeric)]
+#bgHH_fam_kids_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
+#rm(bg_hh_family_children_data_from_census)
+#bgHH_fam_kids <- bgHH_fam_kids_data %>%
+#  pivot_longer(4:ncol(bgHH_fam_kids_data),names_to = "geoid", values_to = "number_sams") %>% 
+#  filter(label != "!!Total:") %>% 
+#  mutate(label = str_remove_all(label,":"),
+#         label = str_remove_all(label,"!!Total!!")) %>%
+#  separate(label, c("all_kids","family"), sep = "!!", remove = F, convert = FALSE) %>%
+#  mutate(
+#    geoid = str_remove_all(geoid,"_"),
+#    tract = substr(geoid,1,11),
+#    family = ifelse(family=="Family Households","Family households",family) #capitalization mistake
+#         ) %>%
+#  filter(!is.na(family) & str_detect(tract,"48201")) %>%
+#  uncount(number_sams,.id = "bgHH_fam_kids_id")
+#bgHH_fam_kids <- as.data.table(bgHH_fam_kids)
+##there are only 4,156 Nonfamily households with kids - need to match with Fosters, and others?
+#table(bgHH_fam_kids[,family],bgHH_fam_kids[,all_kids])
+#rm(bgHH_fam_kids_data)
+#add to bgHH_own_kids_type, should allocate family / non-family for cohabiting...
+#can't figure out whether the 4156 would be all in cohabiting households, or if they'd be in some other sort of non-family hh??
+```
 
 ```{r add type, sex, eth and race for seniors}
 #from PCT9 HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER
@@ -425,6 +663,36 @@ nrow(trHH_race_typesr[is.na(tr_typesr_match)]) #12967 ~1.5% not matching... bgHH
 #maybe something that points to how much undecided there is in each space...
 rm(list=ls(pattern='^trHH'))
 ```
+
+#add family and rent_own to bgHH_own_kids_type
+```{r add trHH_all_kids_tenure to bgHH_own_kids_type}
+#keep the "With non-hh children under 18" for own_kids separate - maybe add in pieces, to get "Alone" etc., separately...
+trHH_all_kids_tenure[,("kids_match"):=case_when((own_kids=="No children under 18 years") ~ 
+                                                  "No own children under 18",
+                                                (own_kids=="With non-hh children under 18 years") ~
+                                                  "With non-hh children under 18 years",
+                                                (str_detect(own_kids,"6") ~ "With own children under 18")
+                                                )]
+```
+
+
+NEED TO FIGURE OUT IF ALL THE OVER 65 IS ALREADY IN THE SRS STUFF, BUT WITHOUT RACE (AND SO NOT OF USE)
+
+```{r add all kids to type}
+#pick up all the own kids for over 65 
+bgHH_type[,("own_kids_type_match_id"):=
+                    paste0(geoid,hh_type,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_type,hh_age_range_3)]
+bgHH_own_kids_type[,("own_kids_type_match_id"):=
+                    paste0(geoid,hh_type,hh_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(geoid,hh_type,hh_age_range_3)]
+bgHH_own_kids_type[,("ok_type_match"):=
+                 bgHH_type[.SD, list(hh_age_range_3), on = .(own_kids_type_match_id)]]
+bgHH_type[,("typesr_match"):=
+                 bgHH_own_kids_type[.SD, list(own_kids), on = .(own_kids_type_match_id)]]
+#pick up the rest by hh_type, but without type = cohabitation from own kids
+```
+
 
 #get hh size
 ```{r get block group household size data}
@@ -1120,6 +1388,8 @@ nrow(bgHH_type[is.na(race)]) == 0
 nrow(bgHH_age_race[is.na(hh_type)]) == 0
 
 ```
+
+#something screwy about hh_size being added - didn't respect the alone!!!!
 Type should have everything, but _dec is ground truth for HvL - race - family - hh_type
 ```{r add to dec and check on matches}
 #should we put cart on dec for family?
