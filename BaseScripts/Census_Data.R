@@ -24,6 +24,9 @@ library(dplyr) #may not be using; need to check
 
 #tools
 valid_file_path <- function(censusdir,vintage,state,county,api_type,block,groupname,path_suff){
+  if (!file.exists(paste0(censusdir,vintage))){
+    dir.create(paste0(censusdir,vintage))
+  }
   folder_path <- paste0(censusdir,vintage,"/state_",state)
   if (file.exists(paste0(folder_path,"/downloaded"))){
     print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))

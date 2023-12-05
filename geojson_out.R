@@ -15,8 +15,9 @@ tractsDT[,("longitude"):=unlist(map(centroid,1))]
 tractsDT[,("latitude"):=unlist(map(centroid,2))]
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
-FIPS_vector <- c("201","157","167","039","071","291","339","473")
-tracts_8county <- tractsDT[COUNTYFP%in%FIPS_vector]
+#RGV: 061 Cameron County; 215 Hidalgo County; 427 Star County; 489 Willacy County
+FIPS_vector <- c("201","157","167","039","071","291","339","473","061","215","427","489")
+tracts_12county <- tractsDT[COUNTYFP%in%FIPS_vector]
 
 censusblocks <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_bg_500k/cb_", geo_vintage, "_", state, "_bg_500k.shp"))
 blocksDT <- as.data.table(censusblocks)
@@ -131,7 +132,7 @@ super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,99999
 super_within_unlist <- unlist(super_within_unlist)
 tractsDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
 
-vintage <- "2021"
+vintage <- "2022"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
 tract_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B01001",county_num = county,
@@ -347,6 +348,7 @@ tracts_demog[,("income_under_30k"):=as.integer(as.numeric(income_10k)+
                                                 as.numeric(income_10_15k)+
                                                  as.numeric(income_15_20k)+as.numeric(income_20_25k)+
                                                  as.numeric(income_25_30k)*100/as.numeric(households))] #income_10k,income_10_15k,income_15_20k,income_20_25k,income_25_30k
+tracts_demog[,("income_under_30k_pct"):=as.integer((as.numeric(income_under_30k)*100)/as.numeric(households))]
 #for ICEwnhinc
 #HH above $100k & White & Hispanic
 ICEwnhincome_100_125k <- income[name=="B19001H_014E",4:5]
@@ -585,6 +587,21 @@ tracts_demog <- tracts_demog[pub_transport, on="GEOID"]
 tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)*100)/as.numeric(households))]
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
+#Poverty B17101
+poverty <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                         groupname = "B17101",county_num = county,
+                                         block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+#health insurance and disability B18135
+insurance <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                  groupname = "B18135",county_num = county,
+                                  block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+#health insurance and age B27016
+insurance_age <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                    groupname = "B27001",county_num = county,
+                                    block="tract",api_type="acs/acs5",path_suff="est.csv")
+
 #CHW Stories
 chwstorydir = paste0(maindir,"CHW_stories") # CHW_stories_3_2023.csv
 chw_stories_csv <- paste0(chwstorydir,"/CHW_stories_3_2023.csv")
@@ -814,3 +831,17 @@ st_write(zip_BOL,"~/Downloads/zip_BOL.geojson",driver = "GeoJSON")
 
 
 #geojson_write(HarrisVax,geometry = "polygon", group = "group", file = "~/Downloads/harris_vax.geojson")
+
+#for totals for catchment area U54
+catch_total_pop <- sum(tracts_demog[,total_pop])
+catch_total_pop <- sum(as.numeric(tracts_demog[,total_pop]))
+catch_total_pop_latin <- sum(as.numeric(tracts_demog[,Latin_pop]))
+catch_total_pop_Black <- sum(as.numeric(tracts_demog[,Black_pop]))
+catch_total_pop_Asian <- sum(as.numeric(tracts_demog[,Asian_pop]))
+catch_total_households <- sum(as.numeric(tracts_demog[,households]))
+catch_total_renters <- sum(as.numeric(tracts_demog[,renters]))
+catch_total_median_income <- sum(as.numeric(tracts_demog[,median_income_total])*as.numeric(tracts_demog[,total_pop]))/catch_total_pop
+
+
+
+
