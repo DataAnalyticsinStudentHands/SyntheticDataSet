@@ -1389,7 +1389,8 @@ nrow(bgHH_age_race[is.na(hh_type)]) == 0
 
 ```
 
-#something screwy about hh_size being added - didn't respect the alone!!!!
+
+
 Type should have everything, but _dec is ground truth for HvL - race - family - hh_type
 ```{r add to dec and check on matches}
 #should we put cart on dec for family?
