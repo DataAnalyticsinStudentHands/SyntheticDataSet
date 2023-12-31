@@ -17,7 +17,7 @@ tractsDT[,("latitude"):=unlist(map(centroid,2))]
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
 #RGV: 061 Cameron County; 215 Hidalgo County; 427 Star County; 489 Willacy County
 FIPS_vector <- c("201","157","167","039","071","291","339","473","061","215","427","489")
-tracts_12county <- tractsDT[COUNTYFP%in%FIPS_vector]
+tractsDT <- tractsDT[COUNTYFP%in%FIPS_vector]
 
 censusblocks <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_bg_500k/cb_", geo_vintage, "_", state, "_bg_500k.shp"))
 blocksDT <- as.data.table(censusblocks)
@@ -132,7 +132,7 @@ super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,99999
 super_within_unlist <- unlist(super_within_unlist)
 tractsDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
 
-vintage <- "2022"
+vintage <- "2021"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
 tract_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B01001",county_num = county,
@@ -196,7 +196,7 @@ med_income <- place_born_med_income %>%
 median_income <- as.data.table(med_income)
 med_income_total <- median_income[name=="B06011_001E"]
 tracts_demog <- tracts_demog[med_income_total[,4:5],on="GEOID"]
-setnames(tracts_demog,"median_income","median_income_total")
+setnames(tracts_demog,"median_income","median_individual_income")
 med_income_fb <- median_income[name=="B06011_005E"]
 tracts_demog <- tracts_demog[med_income_fb[,4:5],on="GEOID"]
 setnames(tracts_demog,"median_income","median_income_fb")
@@ -272,11 +272,11 @@ setnames(renter_non_family_shared,"households","renter_non_family_shared")
 tracts_demog <- tracts_demog[renter_non_family_shared, on="GEOID"]
 tracts_demog[,("renter_non_family_shared_pct"):=as.integer((as.numeric(renter_non_family_shared)*100)/as.numeric(households))]
 
-#income B19001
-income_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+#income B19001 - HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 20xx INFLATION-ADJUSTED DOLLARS)
+hh_income_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                              groupname = "B19001",county_num = county,
                                              block="tract",api_type="acs/acs5",path_suff="est.csv")
-incomeDT <- as.data.table(income_from_census)
+incomeDT <- as.data.table(hh_income_from_census)
 income <- incomeDT %>%
   pivot_longer(4:ncol(incomeDT),names_to = "GEOID", values_to = "income")
 income <- as.data.table(income)
@@ -344,11 +344,15 @@ income_over_200k <- income[name=="B19001_017E",4:5]
 setnames(income_over_200k,"income","income_over_200k")
 tracts_demog <- tracts_demog[income_over_200k, on="GEOID"]
 tracts_demog[,("income_over_200k_pct"):=as.integer((as.numeric(income_over_200k)*100)/as.numeric(households))]
-tracts_demog[,("income_under_30k"):=as.integer(as.numeric(income_10k)+
+tracts_demog[,("income_under_20k"):=as.integer((as.numeric(income_10k)+
                                                 as.numeric(income_10_15k)+
+                                                 as.numeric(income_15_20k))*100/as.numeric(households))] #income_10k,income_10_15k,income_15_20k,income_20_25k,income_25_30k
+tracts_demog[,("hh_income_under_20k_pct"):=as.integer((as.numeric(income_under_20k)*100)/as.numeric(households))]
+tracts_demog[,("income_under_30k"):=as.integer((as.numeric(income_10k)+
+                                                 as.numeric(income_10_15k)+
                                                  as.numeric(income_15_20k)+as.numeric(income_20_25k)+
-                                                 as.numeric(income_25_30k)*100/as.numeric(households))] #income_10k,income_10_15k,income_15_20k,income_20_25k,income_25_30k
-tracts_demog[,("income_under_30k_pct"):=as.integer((as.numeric(income_under_30k)*100)/as.numeric(households))]
+                                                 as.numeric(income_25_30k))*100/as.numeric(households))] #income_10k,income_10_15k,income_15_20k,income_20_25k,income_25_30k
+tracts_demog[,("hh_income_under_30k_pct"):=as.integer((as.numeric(income_under_30k)*100)/as.numeric(households))]
 #for ICEwnhinc
 #HH above $100k & White & Hispanic
 ICEwnhincome_100_125k <- income[name=="B19001H_014E",4:5]
@@ -370,9 +374,9 @@ tracts_demog[,("ICEwnhincome_over_100k"):=as.numeric(ICEwnhincome_100_125k)+
                                                  as.numeric(ICEwnhincome_125_150k)+
                                                  as.numeric(ICEwnhincome_150_200k)+as.numeric(ICEwnhincome_over_200k)]
 #HH below $25k
-tracts_demog[,("income_under_25k"):=as.integer(as.numeric(income_10k)+
+tracts_demog[,("income_under_25k"):=as.integer((as.numeric(income_10k)+
                                                  as.numeric(income_10_15k)+
-                                                 as.numeric(income_15_20k)+as.numeric(income_20_25k)
+                                                 as.numeric(income_15_20k)+as.numeric(income_20_25k))
                                                  *100/as.numeric(households))]
 #HH below $25k & White not Hispanic
 ICEwnhincome_less_10k <- income[name=="B19001H_002E",4:5]
@@ -587,15 +591,39 @@ tracts_demog <- tracts_demog[pub_transport, on="GEOID"]
 tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)*100)/as.numeric(households))]
 tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
-#Poverty B17101
+#Poverty B17101 POVERTY STATUS IN THE PAST 12 MONTHS OF PEOPLE IN HOUSING UNITS
 poverty <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                          groupname = "B17101",county_num = county,
                                          block="tract",api_type="acs/acs5",path_suff="est.csv")
+povertyDT <- as.data.table(poverty)
+individuals_poverty <- povertyDT %>%
+  pivot_longer(4:ncol(povertyDT),names_to = "GEOID", values_to = "individuals_poverty")
+individuals_poverty <- as.data.table(individuals_poverty)
+individuals_poverty <- individuals_poverty[name=="B17101_002E",4:5]
+tracts_demog <- tracts_demog[individuals_poverty, on="GEOID"]
+tracts_demog[,("poverty_pct"):=as.integer((as.numeric(individuals_poverty)*100)/as.numeric(total_pop))]
 
-#health insurance and disability B18135
-insurance <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+#health insurance and disability B18135 AGE BY DISABILITY STATUS BY HEALTH INSURANCE COVERAGE STATUS
+#B18135_023E Estimate!!Total:!!19 to 64 years:!!No disability:!!No health insurance coverage
+#B18135_018E Estimate!!Total:!!19 to 64 years:!!With a disability:!!No health insurance coverage
+insurance_disability <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                   groupname = "B18135",county_num = county,
                                   block="tract",api_type="acs/acs5",path_suff="est.csv")
+insuranceDT <- as.data.table(insurance_disability)
+insurance_dis <- insuranceDT %>%
+  pivot_longer(4:ncol(insuranceDT),names_to = "GEOID", values_to = "number")
+insurance_dis <- as.data.table(insurance_dis)
+no_insurance_dis <- insurance_dis[name=="B18135_018E",4:5]
+setnames(no_insurance_dis,"number","not_insured_disabled")
+tracts_demog <- tracts_demog[no_insurance_dis, on="GEOID"]
+no_insurance_not_dis <- insurance_dis[name=="B18135_023E",4:5]
+setnames(no_insurance_not_dis,"number","not_insured_not_disabled")
+tracts_demog <- tracts_demog[no_insurance_not_dis, on="GEOID"]
+pop_19_64 <- insurance_dis[name=="B18135_013E",4:5]
+setnames(pop_19_64,"number","pop_19_64")
+tracts_demog <- tracts_demog[pop_19_64, on="GEOID"]
+tracts_demog[,("uninsured_19_64"):=as.numeric(not_insured_disabled)+as.numeric(not_insured_not_disabled)]
+tracts_demog[,("uninsured_19_64_pct"):=as.integer((as.numeric(uninsured_19_64)*100)/as.numeric(pop_19_64))]
 
 #health insurance and age B27016
 insurance_age <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
