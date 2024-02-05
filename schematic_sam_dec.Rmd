@@ -661,7 +661,7 @@ nrow(bgHH_type[hh_age_range_3=="Householder 65 years and over"])-nrow(bgHH_type[
 nrow(trHH_race_typesr[is.na(tr_typesr_match)]) #12967 ~1.5% not matching... bgHH_type seems better fit for ground truth
 #think about right tests
 #maybe something that points to how much undecided there is in each space...
-rm(list=ls(pattern='^trHH'))
+#rm(list=ls(pattern='^trHH'))
 ```
 
 #add family and rent_own to bgHH_own_kids_type

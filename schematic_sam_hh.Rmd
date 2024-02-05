@@ -27,7 +27,6 @@ library(stringr)
 library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
-#maindir = "~/Downloads/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
 #maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
@@ -348,11 +347,18 @@ bgSARE[,c("bgGQ_match_id","bgGQ_match1_id","bgGQ_match2_id","age4match"):=NULL]
 
 ```{r pull in hh_dec and assign the bg population to _dec.}  
 bgHH_dec <- read_rds(paste0(censusdir,vintage,"/working/bgHH_dec.RDS"))
+
 #assign two or more race children to parents, etc.
 #use hh_size, largest to smallest, along with own_kids to figure out which households have no kids
 #that should create a size of hh not counting kids, that let's us assign couples with no kids to two-hh, etc.
 #then distribute the rest
 ```
+
+
+
+
+
+
 
 ```{r other future joins}
 
