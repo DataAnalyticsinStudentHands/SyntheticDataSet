@@ -3,7 +3,12 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 library(stringr)
+
 #censusdir from workflow / census_key from expand_from scripts / source CensusData.R
+#quick and dirty for Carlos' redlining
+tracts_Houston <- read_json(paste0(maindir,"redlining/mappinginequality_houston.json"))
+library(readxl)
+redline_scores_2020 <- read_excel(paste0(maindir,"redlining/Historic Redlining Indicator 2020.xlsx"))
 
 #this depends on where your census dir is, but _tract_500k.shp and _faces and _bg, etc. are all downloaded from census, by year: 
 #https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html (I got these on 7/10/21 - 2020 was most recent; got 2021 on 7/18/2022)
