@@ -6,7 +6,7 @@ library(stringr)
 
 #censusdir from workflow / census_key from expand_from scripts / source CensusData.R
 #quick and dirty for Carlos' redlining
-tracts_Houston <- read_json(paste0(maindir,"redlining/mappinginequality_houston.json"))
+redlines_Houston <- read_json(paste0(maindir,"redlining/mappinginequality_houston.json")) #use as it's own layer
 library(readxl)
 redline_scores_2020 <- read_excel(paste0(maindir,"redlining/Historic Redlining Indicator 2020.xlsx"))
 
@@ -43,11 +43,11 @@ tracts4placesunlisted <- rapply(tracts4places,function(x) ifelse(length(x)==0,99
 tracts4placesunlisted <- unlist(tracts4placesunlisted)
 tractsDT$placename=placeDT$NAME[tracts4placesunlisted]
 #or
-placeDT <- st_transform(placeDT,st_crs(censusblocks))
-blocks4places <- st_within(censusblocks$centroid, placeDT)
+placeDT <- st_as_sf(placeDT)
+blocks4places <- st_within(blocksDT$centroid, placeDT)
 blocks4placesunlisted <- rapply(blocks4places,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 blocks4placesunlisted <- unlist(blocks4placesunlisted)
-censusblocks$placename=placeDT$NAME[blocks4placesunlisted]
+blocksDT$placename=placeDT$NAME[blocks4placesunlisted]
 
 #metro stat areas
 census_cbsa <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us_cbsa_500k/cb_", geo_vintage, "_us_cbsa_500k.shp"))
@@ -83,11 +83,10 @@ tracts4unsdunlisted <- rapply(tracts4unsd,function(x) ifelse(length(x)==0,999999
 tracts4unsdunlisted <- unlist(tracts4unsdunlisted)
 tractsDT$unsd=unsdDT$NAME[tracts4unsdunlisted]
 #or
-unsdDT <- st_transform(unsdDT,st_crs(censusblocks))
-blocks4unsd <- st_within(censusblocks$centroid, unsdDT)
+blocks4unsd <- st_within(blocksDT$centroid, unsdDT)
 blocks4unsdunlisted <- rapply(blocks4unsd,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 blocks4unsdunlisted <- unlist(blocks4unsdunlisted)
-censusblocks$school_district=unsdDT$NAME[blocks4unsdunlisted]
+blocksDT$school_district=unsdDT$NAME[blocks4unsdunlisted]
 
 #2020 voting districts - have to get right date
 censusvtd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_vtd_500k/cb_", geo_vintage, "_", state, "_vtd_500k.shp"))
@@ -111,11 +110,11 @@ tracts4zctasunlisted <- rapply(tracts4zctas,function(x) ifelse(length(x)==0,9999
 tracts4zctasunlisted <- unlist(tracts4zctasunlisted)
 tractsDT$zip=zctasDT$ZCTA5CE20[tracts4zctasunlisted]
 #or
-zctasDT <- st_transform(zctasDT,st_crs(censusblocks))
-blocks4zctas <- st_within(censusblocks$centroid, zctasDT)
+zctasDT <- st_transform(zctasDT,st_crs(blocksDT))
+blocks4zctas <- st_within(blocksDT$centroid, zctasDT)
 blocks4zctasunlisted <- rapply(blocks4zctas,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 blocks4zctasunlisted <- unlist(blocks4zctasunlisted)
-censusblocks$zip=zctasDT$ZCTA5CE20[blocks4zctasunlisted]
+blocksDT$zip=zctasDT$ZCTA5CE20[blocks4zctasunlisted]
 
 #congressional districts
 censuscd116 <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us", "_cd116_500k/cb_", geo_vintage, "_us", "_cd116_500k.shp"))
@@ -131,11 +130,15 @@ tractsDT$Congress_district=texas_cd116DT$NAMELSAD[tracts4cd116unlisted]
 superneighborhoods <- st_read(paste0(houstondatadir, "2022/HOUSTON_LIMITS_BOUNDARIES_PACKAGE/HOUSTON_LIMITS_BOUNDARIES_PACKAGE.shp"))
 #2017 had different title, but same geometry
 #superneighborhoods <- st_read(paste0(houstondatadir, "2017/COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
-superneighborhoods <- st_transform(superneighborhoods, st_crs(censustracts)) #HCAD is renamed from sf_HCAD in this run - can change
-super_within <- st_within(tractsDT$centroid, superneighborhoods)
+superneighborhoods <- st_transform(superneighborhoods, st_crs(censusblocks)) #HCAD is renamed from sf_HCAD in this run - can change
+super_within <- st_within(blocksDT$centroid, superneighborhoods)
 super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 super_within_unlist <- unlist(super_within_unlist)
-tractsDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
+blocksDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
+
+redline_scores_2020_DT <- as.data.table(redline_scores_2020)
+redline_scores_2020_DT[,("TRACTCE"):=GEOID20] #keeping both names, in case for matching
+redlines_geo <- redline_scores_2020_DT[blocksDT,on="TRACTCE"]
 
 vintage <- "2021"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
@@ -190,8 +193,8 @@ gini_DT$gini_index <- format(gini_DT$gini_index,scientific=FALSE)
 tracts_demog <- tracts_demog[gini_DT[,4:5],on="GEOID"]
 tracts_demog[,("gini_index"):=if_else(as.numeric(gini_index)<0,0,as.numeric(gini_index))]
 
-#when just adding for blocksblocksDT[,("TRACTGEOID"):=substr(GEOID,1,11)]
-censusblocks[,("TRACTCE"):=substr(GEOID,1,11)]
+#when just adding for blocks #blocksDT[,("TRACTGEOID"):=substr(GEOID,1,11)]
+blocksDT[,("TRACTCE"):=substr(GEOID,1,11)]
 #and names to TRACTCE, etc., but change back 
 place_born_med_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B06011",county_num = county,
@@ -227,6 +230,7 @@ med_family_income <- family_med_income %>%
 median_family_income <- as.data.table(med_family_income)
 med_fam_income_total <- median_family_income[name=="B19113_001E"]
 tracts_demog <- tracts_demog[med_fam_income_total[,4:5],on="GEOID"]
+tracts_demog[,("median_family_income"):=if_else(as.numeric(median_family_income)>0,median_family_income,as.character(0))]
 tracts_demog[,("diff_med_family_hh_income"):=as.numeric(median_income_total)-as.numeric(median_family_income)]
 
 
@@ -430,6 +434,22 @@ tracts_demog <- tracts_demog[vacancies[,4:7],on="GEOID"]
 place_born_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                             groupname = "B06004",county_num = county,
                                             block="tract",api_type="acs/acs5",path_suff="est.csv")
+place_born_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                            groupname = "B06009",county_num = county,
+                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
+sex_age_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                               groupname = "B15001",county_num = county,
+                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
+employment_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                               groupname = "B16010",county_num = county,
+                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
+health_insurance_type <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                               groupname = "B27010",county_num = county,
+                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
+health_insurance_age_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                               groupname = "B27019",county_num = county,
+                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
+
 #by race/eth, if needed
 
 #citizenship and nativity B05003
@@ -676,7 +696,14 @@ st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.csv",driver = "CSV",
          layer_options = "GEOMETRY=AS_WKT")
 st_write(tracts_demog,"~/Downloads/Harris_superneighborhood_tracts_2021_on_7_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_4_3_23"))
+write_rds(test2,"~/Downloads/tracts_demog_2021_on_2_12_24.RDS")
+st_write(test2,"~/Downloads/tracts_demog_2021_on_2_12_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
+         layer_options = "GEOMETRY=AS_WKT")
+st_write(test2,"~/Downloads/tracts_demog_2021_on_2_12_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 rank_demogs <- tracts_demog[""]
+
+st_write(redlines_geo,"~/Downloads/redlines_geo_on_2_12_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+write_rds(redlines_geo,paste0(maindir,"redlining/redlines_geo_on_2_12_24.RDS"))
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
 FIPS_vector <- c("201","157","167","039","071","291","339","473")
