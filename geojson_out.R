@@ -4,9 +4,12 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 
+#maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 #censusdir from workflow / census_key from expand_from scripts / source CensusData.R
 #quick and dirty for Carlos' redlining
+library(jsonlite)
 redlines_Houston <- read_json(paste0(maindir,"redlining/mappinginequality_houston.json")) #use as it's own layer
+redlines_natl <- read_json(paste0(maindir,"redlining/mappinginequality_national.json"))
 library(readxl)
 redline_scores_2020 <- read_excel(paste0(maindir,"redlining/Historic Redlining Indicator 2020.xlsx"))
 
@@ -18,6 +21,7 @@ tractsDT <- as.data.table(censustracts)
 tractsDT[,("centroid"):=st_centroid(geometry)] 
 tractsDT[,("longitude"):=unlist(map(centroid,1))]
 tractsDT[,("latitude"):=unlist(map(centroid,2))]
+
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
 #RGV: 061 Cameron County; 215 Hidalgo County; 427 Star County; 489 Willacy County
@@ -130,17 +134,17 @@ tractsDT$Congress_district=texas_cd116DT$NAMELSAD[tracts4cd116unlisted]
 superneighborhoods <- st_read(paste0(houstondatadir, "2022/HOUSTON_LIMITS_BOUNDARIES_PACKAGE/HOUSTON_LIMITS_BOUNDARIES_PACKAGE.shp"))
 #2017 had different title, but same geometry
 #superneighborhoods <- st_read(paste0(houstondatadir, "2017/COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
-superneighborhoods <- st_transform(superneighborhoods, st_crs(censusblocks)) #HCAD is renamed from sf_HCAD in this run - can change
-super_within <- st_within(blocksDT$centroid, superneighborhoods)
+superneighborhoods <- st_transform(superneighborhoods, st_crs(censustracts)) #HCAD is renamed from sf_HCAD in this run - can change
+super_within <- st_within(tractsDT$centroid, superneighborhoods)
 super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 super_within_unlist <- unlist(super_within_unlist)
-blocksDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
+tractsDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
 
 redline_scores_2020_DT <- as.data.table(redline_scores_2020)
 redline_scores_2020_DT[,("TRACTCE"):=GEOID20] #keeping both names, in case for matching
-redlines_geo <- redline_scores_2020_DT[blocksDT,on="TRACTCE"]
+redlines_geo <- redline_scores_2020_DT[tractsDT,on="TRACTCE"]
 
-vintage <- "2021"
+vintage <- "2022"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
 tract_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B01001",county_num = county,
@@ -208,7 +212,7 @@ setnames(tracts_demog,"median_income","median_individual_income")
 med_income_fb <- median_income[name=="B06011_005E"]
 tracts_demog <- tracts_demog[med_income_fb[,4:5],on="GEOID"]
 setnames(tracts_demog,"median_income","median_income_fb")
-tracts_demog[,("median_income_total"):=if_else(median_income_total=="-666666666","0",median_income_total)]
+tracts_demog[,("median_individual_income"):=if_else(median_individual_income=="-666666666","0",median_individual_income)]
 tracts_demog[,("median_income_fb"):=if_else(median_income_fb=="-666666666","0",median_income_fb)]
 
 place_born_med_income_err <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -231,7 +235,7 @@ median_family_income <- as.data.table(med_family_income)
 med_fam_income_total <- median_family_income[name=="B19113_001E"]
 tracts_demog <- tracts_demog[med_fam_income_total[,4:5],on="GEOID"]
 tracts_demog[,("median_family_income"):=if_else(as.numeric(median_family_income)>0,median_family_income,as.character(0))]
-tracts_demog[,("diff_med_family_hh_income"):=as.numeric(median_income_total)-as.numeric(median_family_income)]
+tracts_demog[,("diff_med_family_hh_income"):=as.numeric(median_family_income)-as.numeric(median_individual_income)]
 
 
 median_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -440,12 +444,18 @@ place_born_education <- censusData_byGroupName(censusdir, vintage, state, census
 sex_age_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                groupname = "B15001",county_num = county,
                                                block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+#Educational Attainment and Employment Status by Language Spoken at Home for the Population 25 Years and Over
 employment_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                groupname = "B16010",county_num = county,
                                                block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+#Types of Health Insurance Coverage by Age
 health_insurance_type <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                groupname = "B27010",county_num = county,
                                                block="tract",api_type="acs/acs5",path_suff="est.csv")
+
+#Health Insurance Coverage Status and Type by Age by Educational Attainment
 health_insurance_age_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                groupname = "B27019",county_num = county,
                                                block="tract",api_type="acs/acs5",path_suff="est.csv")
@@ -692,18 +702,20 @@ st_write(censusblocks2,"~/Downloads/chw_stories_kepler_2020_on_4_20_23.geojson",
 write_rds(chw_stories_kepler,paste0(censusdir,vintage,"/chw_stories_kepler2_2021_on_4_20_23"))
 
 tracts_demog[,("centroid"):=NULL]
+tracts_demog <- tracts_demog[!is.na(STATEFP)]
 st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
 st_write(tracts_demog,"~/Downloads/Harris_superneighborhood_tracts_2021_on_7_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_4_3_23"))
-write_rds(test2,"~/Downloads/tracts_demog_2021_on_2_12_24.RDS")
-st_write(test2,"~/Downloads/tracts_demog_2021_on_2_12_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
+write_rds(redlines1,"~/Downloads/redline_tracts_2022_on_2_15_24.RDS")
+st_write(redlines1,"~/Downloads/redline_tracts_2022_on_2_15_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(test2,"~/Downloads/tracts_demog_2021_on_2_12_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+st_write(redlines1,"~/Downloads/redline_tracts_2022_on_2_15_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 rank_demogs <- tracts_demog[""]
 
 st_write(redlines_geo,"~/Downloads/redlines_geo_on_2_12_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(redlines_geo,paste0(maindir,"redlining/redlines_geo_on_2_12_24.RDS"))
+st_write(tracts_demog2,"~/Downloads/redlines_Harris_on_2_12_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
 FIPS_vector <- c("201","157","167","039","071","291","339","473")
