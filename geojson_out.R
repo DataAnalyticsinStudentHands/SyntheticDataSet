@@ -459,8 +459,125 @@ health_insurance_type <- censusData_byGroupName(censusdir, vintage, state, censu
 health_insurance_age_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                groupname = "B27019",county_num = county,
                                                block="tract",api_type="acs/acs5",path_suff="est.csv")
+hi_ae <- health_insurance_age_education %>%
+  pivot_longer(4:ncol(health_insurance_age_education),names_to = "GEOID", values_to = "number")
+hi_ae_DT <- as.data.table(hi_ae)
+hi_ae_DT <- hi_ae_DT[!is.na(number)]
+BA_26_64_no_insurance <- hi_ae_DT[name=="B27019_022E"]
+redlines1 <- redlines1[BA_26_64_no_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","BA_26_64_no_insurance")
+redlines1[,("BA_26_64_no_insurance_pct"):=as.integer((as.numeric(BA_26_64_no_insurance)*100)/as.numeric(total_pop))]
+BA_26_64_private_insurance <- hi_ae_DT[name=="B27019_020E"]
+redlines1 <- redlines1[BA_26_64_private_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","BA_26_64_private_insurance")
+redlines1[,("BA_26_64_private_insurance_pct"):=as.integer((as.numeric(BA_26_64_private_insurance)*100)/as.numeric(total_pop))]
+BA_26_64_public_insurance <- hi_ae_DT[name=="B27019_021E"]
+redlines1 <- redlines1[BA_26_64_public_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","BA_26_64_public_insurance")
+redlines1[,("BA_26_64_puplic_insurance_pct"):=as.integer((as.numeric(BA_26_64_public_insurance)*100)/as.numeric(total_pop))]
 
-#by race/eth, if needed
+HS_26_64_no_insurance <- hi_ae_DT[name=="B27019_012E"]
+redlines1 <- redlines1[HS_26_64_no_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","HS_26_64_no_insurance")
+redlines1[,("HS_26_64_no_insurance_pct"):=as.integer((as.numeric(HS_26_64_no_insurance)*100)/as.numeric(total_pop))]
+HS_26_64_private_insurance <- hi_ae_DT[name=="B27019_010E"]
+redlines1 <- redlines1[HS_26_64_private_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","HS_26_64_private_insurance")
+redlines1[,("HS_26_64_private_insurance_pct"):=as.integer((as.numeric(HS_26_64_private_insurance)*100)/as.numeric(total_pop))]
+HS_26_64_public_insurance <- hi_ae_DT[name=="B27019_011E"]
+redlines1 <- redlines1[HS_26_64_public_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","HS_26_64_public_insurance")
+redlines1[,("HS_26_64_public_insurance_pct"):=as.integer((as.numeric(HS_26_64_public_insurance)*100)/as.numeric(total_pop))]
+
+LTHS_26_64_no_insurance <- hi_ae_DT[name=="B27019_007E"]
+redlines1 <- redlines1[LTHS_26_64_no_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","LTHS_26_64_no_insurance")
+redlines1[,("LTHS_26_64_no_insurance_pct"):=as.integer((as.numeric(LTHS_26_64_no_insurance)*100)/as.numeric(total_pop))]
+LTHS_26_64_private_insurance <- hi_ae_DT[name=="B27019_005E"]
+redlines1 <- redlines1[LTHS_26_64_private_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","LTHS_26_64_private_insurance")
+redlines1[,("LTHS_26_64_private_insurance_pct"):=as.integer((as.numeric(LTHS_26_64_private_insurance)*100)/as.numeric(total_pop))]
+LTHS_26_64_public_insurance <- hi_ae_DT[name=="B27019_006E"]
+redlines1 <- redlines1[LTHS_26_64_public_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","LTHS_26_64_public_insurance")
+redlines1[,("LTHS_26_64_public_insurance_pct"):=as.integer((as.numeric(LTHS_26_64_public_insurance)*100)/as.numeric(total_pop))]
+
+Some_College_26_64_no_insurance <- hi_ae_DT[name=="B27019_017E"]
+redlines1 <- redlines1[Some_College_26_64_no_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","Some_College_26_64_no_insurance")
+redlines1[,("Some_College_26_64_no_insurance_pct"):=as.integer((as.numeric(Some_College_26_64_no_insurance)*100)/as.numeric(total_pop))]
+Some_College_26_64_private_insurance <- hi_ae_DT[name=="B27019_015E"]
+redlines1 <- redlines1[Some_College_26_64_private_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","Some_College_26_64_private_insurance")
+redlines1[,("Some_College_26_64_private_insurance_pct"):=as.integer((as.numeric(Some_College_26_64_private_insurance)*100)/as.numeric(total_pop))]
+Some_College_26_64_public_insurance <- hi_ae_DT[name=="B27019_016E"]
+redlines1 <- redlines1[Some_College_26_64_public_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","Some_College_26_64_public_insurance")
+redlines1[,("Some_College_26_64_public_insurance_pct"):=as.integer((as.numeric(Some_College_26_64_public_insurance)*100)/as.numeric(total_pop))]
+
+BA_65up_no_insurance <- hi_ae_DT[name=="B27019_043E"]
+redlines1 <- redlines1[BA_65up_no_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","BA_65up_no_insurance")
+redlines1[,("BA_65up_no_insurance_pct"):=as.integer((as.numeric(BA_65up_no_insurance)*100)/as.numeric(total_pop))]
+BA_65up_private_insurance <- hi_ae_DT[name=="B27019_041E"]
+redlines1 <- redlines1[BA_65up_private_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","BA_65up_private_insurance")
+redlines1[,("BA_65up_private_insurance_pct"):=as.integer((as.numeric(BA_65up_private_insurance)*100)/as.numeric(total_pop))]
+BA_65up_public_insurance <- hi_ae_DT[name=="B27019_042E"]
+redlines1 <- redlines1[BA_65up_public_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","BA_65up_public_insurance")
+redlines1[,("BA_65up_public_insurance_pct"):=as.integer((as.numeric(BA_65up_public_insurance)*100)/as.numeric(total_pop))]
+
+HS_65up_no_insurance <- hi_ae_DT[name=="B27019_033E"]
+redlines1 <- redlines1[HS_65up_no_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","HS_65up_no_insurance")
+redlines1[,("HS_65up_no_insurance_pct"):=as.integer((as.numeric(HS_65up_no_insurance)*100)/as.numeric(total_pop))]
+HS_65up_private_insurance <- hi_ae_DT[name=="B27019_031E"]
+redlines1 <- redlines1[HS_65up_private_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","HS_65up_private_insurance")
+redlines1[,("HS_65up_private_insurance_pct"):=as.integer((as.numeric(HS_65up_private_insurance)*100)/as.numeric(total_pop))]
+HS_65up_public_insurance <- hi_ae_DT[name=="B27019_032E"]
+redlines1 <- redlines1[HS_65up_public_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","HS_65up_public_insurance")
+redlines1[,("HS_65up_public_insurance_pct"):=as.integer((as.numeric(HS_65up_public_insurance)*100)/as.numeric(total_pop))]
+
+LTHS_65up_no_insurance <- hi_ae_DT[name=="B27019_028E"]
+redlines1 <- redlines1[LTHS_65up_no_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","LTHS_65up_no_insurance")
+redlines1[,("LTHS_65up_no_insurance_pct"):=as.integer((as.numeric(LTHS_65up_no_insurance)*100)/as.numeric(total_pop))]
+LTHS_65up_private_insurance <- hi_ae_DT[name=="B27019_026E"]
+redlines1 <- redlines1[LTHS_65up_private_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","LTHS_65up_private_insurance")
+redlines1[,("LTHS_65up_private_insurance_pct"):=as.integer((as.numeric(LTHS_65up_private_insurance)*100)/as.numeric(total_pop))]
+LTHS_65up_public_insurance <- hi_ae_DT[name=="B27019_027E"]
+redlines1 <- redlines1[LTHS_65up_public_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","LTHS_65up_public_insurance")
+redlines1[,("LTHS_65up_public_insurance_pct"):=as.integer((as.numeric(LTHS_65up_public_insurance)*100)/as.numeric(total_pop))]
+
+Some_College_65up_no_insurance <- hi_ae_DT[name=="B27019_038E"]
+redlines1 <- redlines1[Some_College_65up_no_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","Some_College_65up_no_insurance")
+redlines1[,("Some_College_65up_no_insurance_pct"):=as.integer((as.numeric(Some_College_65up_no_insurance)*100)/as.numeric(total_pop))]
+Some_College_65up_private_insurance <- hi_ae_DT[name=="B27019_036E"]
+redlines1 <- redlines1[Some_College_65up_private_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","Some_College_65up_private_insurance")
+redlines1[,("Some_College_65up_private_insurance_pct"):=as.integer((as.numeric(Some_College_65up_private_insurance)*100)/as.numeric(total_pop))]
+Some_College_65up_public_insurance <- hi_ae_DT[name=="B27019_037E"]
+redlines1 <- redlines1[Some_College_65up_public_insurance[,4:5],on="GEOID"]
+setnames(redlines1,"number","Some_College_65up_public_insurance")
+redlines1[,("Some_College_65up_public_insurance_pct"):=as.integer((as.numeric(Some_College_65up_public_insurance)*100)/as.numeric(total_pop))]
+
+
+
+
+pb_male_under_18_native_born <- pb_DT[name=="B05003_004E"]
+pb_male_under_18_nb <- pb_male_under_18_native_born %>%
+  pivot_longer(4:ncol(pb_male_under_18_native_born), names_to = "GEOID", values_to = "male_under_18_native_born")
+pb_male_under_18_nb_dt <- as.data.table(pb_male_under_18_nb)
+tracts_demog <- tracts_demog[pb_male_under_18_nb_dt[,4:5],on="GEOID"]
+
+
+
 
 #citizenship and nativity B05003
 citizenship_pb <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -707,10 +824,10 @@ st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.csv",driver = "CSV",
          layer_options = "GEOMETRY=AS_WKT")
 st_write(tracts_demog,"~/Downloads/Harris_superneighborhood_tracts_2021_on_7_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_4_3_23"))
-write_rds(redlines1,"~/Downloads/redline_tracts_2022_on_2_15_24.RDS")
-st_write(redlines1,"~/Downloads/redline_tracts_2022_on_2_15_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
+write_rds(redlines1,"~/Downloads/insurance_tracts_2022_on_2_19_24.RDS")
+st_write(redlines1,"~/Downloads/insurance_tracts_2022_on_2_19_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(redlines1,"~/Downloads/redline_tracts_2022_on_2_15_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+st_write(redlines1,"~/Downloads/insurance_tracts_2022_on_2_19_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 rank_demogs <- tracts_demog[""]
 
 st_write(redlines_geo,"~/Downloads/redlines_geo_on_2_12_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
