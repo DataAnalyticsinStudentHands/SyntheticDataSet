@@ -435,6 +435,22 @@ vacancies <- vacant_totalDT[vacantDT[,4:5],on="GEOID"]
 vacancies[,("vacant_housing_pct"):=as.integer((as.numeric(vacant)*100)/as.numeric(vacant_houses_total))]
 tracts_demog <- tracts_demog[vacancies[,4:7],on="GEOID"]
 
+fb_language <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                            groupname = "B06007",county_num = county,
+                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
+fb_lang <- fb_language %>%
+  pivot_longer(4:ncol(fb_language),names_to = "GEOID", values_to = "only_English")
+fb_lang <- as.data.table(fb_lang)
+only_English <- fb_lang[name=="B06007_002E"]
+tracts_demog <- tracts_demog[only_English[,4:5],on="GEOID"]
+tracts_demog[,("pct_only_English"):=as.integer((as.numeric(only_English)*100)/as.numeric(total_pop))]
+
+med_fam_income_total <- median_family_income[name=="B19113_001E"]
+tracts_demog <- tracts_demog[med_fam_income_total[,4:5],on="GEOID"]
+tracts_demog[,("median_family_income"):=if_else(as.numeric(median_family_income)>0,median_family_income,as.character(0))]
+tracts_demog[,("diff_med_family_hh_income"):=as.numeric(median_family_income)-as.numeric(median_individual_income)]
+
+
 place_born_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                             groupname = "B06004",county_num = county,
                                             block="tract",api_type="acs/acs5",path_suff="est.csv")
@@ -636,8 +652,10 @@ tracts_demog[,("foreign_born"):=as.numeric(fem_under_18_foreign_born)+as.numeric
                as.numeric(male_under_18_foreign_born)+as.numeric(male_adult_foreign_born)]
 tracts_demog[,("native_born"):=as.numeric(fem_under_18_native_born)+as.numeric(fem_adult_native_born)+
                as.numeric(male_under_18_native_born)+as.numeric(male_adult_native_born)]
-tracts_demog[,("diff_in_total_pop_check"):=total_pop-foreign_born-native_born]
-tracts_demog[foreign_born!=0,("percent_foreign_born"):=total_pop/foreign_born]
+#tracts_demog[,("diff_in_total_pop_check"):=total_pop-foreign_born-native_born]
+tracts_demog[,("pct_foreign_born"):=as.integer(foreign_born*100/as.numeric(total_pop))]
+tracts_demog[,("pct_under_18"):=as.integer((as.numeric(fem_under_18_foreign_born)+as.numeric(male_under_18_foreign_born)+
+               as.numeric(fem_under_18_native_born)+as.numeric(male_under_18_native_born))*100/as.numeric(total_pop))]
 
 #B05003_016E - Estimate!!Total:!!Female:!!Under 18 years:!!Foreign born:
 #B05003_015E - Estimate!!Total:!!Female:!!Under 18 years:!!Native
@@ -820,10 +838,10 @@ write_rds(chw_stories_kepler,paste0(censusdir,vintage,"/chw_stories_kepler2_2021
 
 tracts_demog[,("centroid"):=NULL]
 tracts_demog <- tracts_demog[!is.na(STATEFP)]
-st_write(tracts_demog,"~/Downloads/TX_tracts_2021_on_4_3_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
+st_write(tracts_demog,"~/Downloads/TX_tracts_2022_on_3_7_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(tracts_demog,"~/Downloads/Harris_superneighborhood_tracts_2021_on_7_13_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
-write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_demog_2021_on_4_3_23"))
+st_write(tracts_demog,"~/Downloads/TX_tracts_2022_on_3_7_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_2022_on_3_7_24.RDS"))
 write_rds(redlines1,"~/Downloads/insurance_tracts_2022_on_2_19_24.RDS")
 st_write(redlines1,"~/Downloads/insurance_tracts_2022_on_2_19_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
