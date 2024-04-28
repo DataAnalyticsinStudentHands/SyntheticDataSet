@@ -19,7 +19,7 @@ library(dplyr) #may not be using; need to check
 #' @param county_num the census code for the county - only needed if there are blockgroups; some APIs seem to ignore and return whole state...
 #' @param api_type the census api called from - https://www.census.gov/data/developers/data-sets.html
 #' @path_suff the suffix for the variable file and whether estimate or error -   "dec.csv" | "est.csv" | "err.csv"
-#' @block for region - either block_group or tract or zip
+#' @block for region - either block_group (API as "block group") or tract or zipcode (API as "zip code tabulation area"); zip returns whole country (complain to your representative)
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
 #tools
@@ -93,18 +93,32 @@ censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,c
       #https://www.census.gov/programs-surveys/acs/technical-documentation/variance-tables.html to calculate new margins for combined geographies
       }
     if(block=="block_group"){
-      region = paste0("block group:*")
-      regionin = paste0("state:", state,"+county:",county_num,"+tract:*") #it gets confused if this var is named "county" 
+      #it gets confused if this var is named "county" 
+      data_for_vars_state <- getCensus(name = api_type,
+                                       vintage = vintage,
+                                       vars = c("NAME", census_variables$name),
+                                       region = paste0("block group:*"), 
+                                       regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
+                                       key = censuskey)
     }else{
-      region = paste0(block,":*") #, tract)
-      regionin = paste0("state:", state)
-    }
-    data_for_vars_state <- getCensus(name = api_type,
+      if(block=="tract"){
+        data_for_vars_state <- getCensus(name = api_type,
+                                         vintage = vintage,
+                                         vars = c("NAME", census_variables$name),
+                                         region = paste0("tract:*"), 
+                                         regionin = paste0("state:", state),
+                                         key = censuskey)
+      }else{
+        region = "zip code tabulation area:*"
+        data_for_vars_state <- getCensus(name = api_type,
                                          vintage = vintage,
                                          vars = c("NAME", census_variables$name),
                                          region = region, 
-                                         regionin = regionin,
+                                         #regionin = regionin,
                                          key = censuskey)
+      }
+    }
+    
     #transpose the data to be joined with variable information 
     if(block=="block_group"){
       data_for_vars <- data_for_vars_state %>%  
@@ -112,20 +126,26 @@ censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,c
         gather(var, value, -GEOID_15) %>% 
         spread(GEOID_15, value)
     }else{
+      if(block=="tract"){
       data_for_vars <- data_for_vars_state %>%
         mutate(GEOID = paste0(state,county,tract)) %>%
         gather(var, value, -GEOID) %>% 
         spread(GEOID, value)
+      }else{
+        data_for_vars <- data_for_vars_state %>%
+        gather(var, value, -zip_code_tabulation_area) %>% 
+        spread(zip_code_tabulation_area, value)
+      }
     }
     #join data and variable information and remove unnecessary columns
-    result <- dplyr::left_join(census_variables, data_for_vars, by = c("name" = "var")) %>%
-      select(-predicateType, -group, -limit, -attributes, -required)
-    percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
-    print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
-    print(sprintf("Writing census file for variable group as csv %s", file_path))
-    write_csv(result,file_path)
-    print("Done.")
+   result <- dplyr::left_join(census_variables, data_for_vars, by = c("name" = "var")) %>%
+     select(-predicateType, -group, -limit, -attributes, -required)
+   percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+   print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
+   print(sprintf("Writing census file for variable group as csv %s", file_path))
+   write_csv(result,file_path)
+   print("Done.")
   } 
-  return(result)
+  return(census_variables)
 }
 
