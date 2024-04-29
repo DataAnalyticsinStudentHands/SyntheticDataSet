@@ -129,6 +129,12 @@ zctas_demog <- zctas_demog[individuals_poverty, on="ZCTA5CE20"]
 zctas_demog[,("poverty_pct"):=as.integer((as.numeric(individuals_poverty)*100)/as.numeric(total_pop))]
 
 #add z-codes and DLD
+z_codes <- read_csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_base1_2022_Z_houMSA.csv"))
+#lots of warnings on the read
+interactions <- read_csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_interaction_zip_houMSA.csv"))
+DLD <- read_csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_TX_delayed_language.csv"))
+
+#add lm for each...
 
 zctas_demog[,("centroid"):=NULL]
 zctas_demog <- zctas_demog[!is.na(STATEFP)]
