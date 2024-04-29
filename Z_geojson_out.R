@@ -19,90 +19,7 @@ censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 #this depends on where your census dir is, but _tract_500k.shp and _faces and _bg, etc. are all downloaded from census, by year: 
 #https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html (I got these on 7/10/21 - 2020 was most recent; got 2021 on 7/18/2022)
 geo_vintage <- "2021"
-censustracts <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_tract_500k/cb_", geo_vintage, "_", state, "_tract_500k.shp"))
-tractsDT <- as.data.table(censustracts)
-tractsDT[,("centroid"):=st_centroid(geometry)] 
-tractsDT[,("longitude"):=unlist(map(centroid,1))]
-tractsDT[,("latitude"):=unlist(map(centroid,2))]
-
-
-#8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
-#RGV: 061 Cameron County; 215 Hidalgo County; 427 Star County; 489 Willacy County
-FIPS_vector <- c("201","157","167","039","071","291","339","473","061","215","427","489")
-tractsDT <- tractsDT[COUNTYFP%in%FIPS_vector]
-
-censusblocks <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_bg_500k/cb_", geo_vintage, "_", state, "_bg_500k.shp"))
-blocksDT <- as.data.table(censusblocks)
-blocks_8county <- blocksDT[COUNTYFP%in%FIPS_vector]
-blocksDT[,("TRACTGEOID"):=substr(GEOID,1,11)]
-blocksDT[,("centroid"):=st_centroid(geometry)] 
-blocksDT[,("longitude"):=unlist(map(centroid,1))]
-blocksDT[,("latitude"):=unlist(map(centroid,2))]
-
-censusplace <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_place_500k/cb_", geo_vintage, "_", state, "_place_500k.shp"))
-placeDT <- as.data.table(censusplace) #just cities
-
-#assign to tractsDT
-placeDT <- st_as_sf(placeDT)
-tracts4places <- st_within(tractsDT$centroid, placeDT)
-#unlist into vector
-tracts4placesunlisted <- rapply(tracts4places,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-tracts4placesunlisted <- unlist(tracts4placesunlisted)
-tractsDT$placename=placeDT$NAME[tracts4placesunlisted]
-#or
-placeDT <- st_as_sf(placeDT)
-blocks4places <- st_within(blocksDT$centroid, placeDT)
-blocks4placesunlisted <- rapply(blocks4places,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-blocks4placesunlisted <- unlist(blocks4placesunlisted)
-blocksDT$placename=placeDT$NAME[blocks4placesunlisted]
-
-#metro stat areas
-census_cbsa <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us_cbsa_500k/cb_", geo_vintage, "_us_cbsa_500k.shp"))
-us_cbsaDT <- as.data.table(census_cbsa)
-us_cbsaDT <- st_as_sf(us_cbsaDT)
-tracts4cbsa <- st_within(tractsDT$centroid, us_cbsaDT)
-tracts4cbsaunlisted <- rapply(tracts4cbsa,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-tracts4cbsaunlisted <- unlist(tracts4cbsaunlisted)
-tractsDT$cbsa=us_cbsaDT$NAME[tracts4cbsaunlisted]
-
-#TX state representatives
-censussldl <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_sldl_500k/cb_", geo_vintage, "_", state, "_sldl_500k.shp"))
-sldlDT <- as.data.table(censussldl) 
-
-#for some reason, 2019 is most recent - state legislature boundaries - TX state senatorial districts
-censussldu <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_2019", "_", state, "_sldu_500k/cb_2019", "_", state, "_sldu_500k.shp"))
-slduDT <- as.data.table(censussldu) 
-
-#elementary school districts - only one in Texas - could merge, but not sure it's worth it.
-censuselsd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_elsd_500k/cb_", geo_vintage, "_", state, "_elsd_500k.shp"))
-elsdDT <- as.data.table(censuselsd) 
-
-#secondary school districts - only one in Texas - Vysehrad 
-censusscsd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_scsd_500k/cb_", geo_vintage, "_", state, "_scsd_500k.shp"))
-scsdDT <- as.data.table(censusscsd) 
-
-#unified school districts - 1019 districts
-censusunsd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_unsd_500k/cb_", geo_vintage, "_", state, "_unsd_500k.shp"))
-unsdDT <- as.data.table(censusunsd)
-unsdDT <- st_as_sf(unsdDT)
-tracts4unsd <- st_within(tractsDT$centroid, unsdDT)
-tracts4unsdunlisted <- rapply(tracts4unsd,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-tracts4unsdunlisted <- unlist(tracts4unsdunlisted)
-tractsDT$unsd=unsdDT$NAME[tracts4unsdunlisted]
-#or
-blocks4unsd <- st_within(blocksDT$centroid, unsdDT)
-blocks4unsdunlisted <- rapply(blocks4unsd,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-blocks4unsdunlisted <- unlist(blocks4unsdunlisted)
-blocksDT$school_district=unsdDT$NAME[blocks4unsdunlisted]
-
-#2020 voting districts - have to get right date
-censusvtd <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_vtd_500k/cb_", geo_vintage, "_", state, "_vtd_500k.shp"))
-vtdDT <- as.data.table(censusvtd)
-vtdDT <- st_as_sf(vtdDT)
-tracts4vtd <- st_within(tractsDT$centroid, vtdDT)
-tracts4vtdunlisted <- rapply(tracts4vtd,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-tracts4vtdunlisted <- unlist(tracts4vtdunlisted)
-tractsDT$vtd=vtdDT$NAME20[tracts4vtdunlisted]
+all_us <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us_all_20m/cb_", geo_vintage, "_us_state_20m/cb_2021_us_state_20m.shp"))
 
 #zip codes, or zctas, most recent was 2020, as of 9/10/2022
 #https://www.census.gov/programs-surveys/geography/guidance/geo-areas/zctas.html
@@ -111,750 +28,115 @@ zip_vintage <- "2020"
 #censuszctas <- st_read(paste0(censusdir, zip_vintage, "/geo_census/cb_", zip_vintage, "_us_zcta510_500k/cb_", zip_vintage, "_us_zcta510_500k.shp"))
 censuszctas <- st_read(paste0(censusdir, zip_vintage, "/geo_census/cb_", zip_vintage, "_us_zcta520_500k/cb_", zip_vintage, "_us_zcta520_500k.shp"))
 zctasDT <- as.data.table(censuszctas)
-zctasDT <- st_as_sf(zctasDT)
-tracts4zctas <- st_within(tractsDT$centroid, zctasDT)
-tracts4zctasunlisted <- rapply(tracts4zctas,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-tracts4zctasunlisted <- unlist(tracts4zctasunlisted)
-tractsDT$zip=zctasDT$ZCTA5CE20[tracts4zctasunlisted]
-#or
-zctasDT <- st_transform(zctasDT,st_crs(blocksDT))
-blocks4zctas <- st_within(blocksDT$centroid, zctasDT)
-blocks4zctasunlisted <- rapply(blocks4zctas,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-blocks4zctasunlisted <- unlist(blocks4zctasunlisted)
-blocksDT$zip=zctasDT$ZCTA5CE20[blocks4zctasunlisted]
+zctasDT[,("centroid"):=st_centroid(geometry)] 
+zctas <- st_within(zctasDT$centroid, all_us)
+zctasunlisted <- rapply(zctas,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+zctasunlisted <- unlist(zctasunlisted)
+zctasDT$STATEFP = all_us$STATEFP[zctasunlisted]
+TXzctas <- zctasDT[STATEFP=="48"]
 
-#congressional districts
-censuscd116 <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_us", "_cd116_500k/cb_", geo_vintage, "_us", "_cd116_500k.shp"))
-cd116DT <- as.data.table(censuscd116)
-texas_cd116DT <- cd116DT[STATEFP=="48"]
-texas_cd116DT <- st_as_sf(texas_cd116DT)
-tracts4cd116 <- st_within(tractsDT$centroid, texas_cd116DT)
-tracts4cd116unlisted <- rapply(tracts4cd116,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-tracts4cd116unlisted <- unlist(tracts4cd116unlisted)
-tractsDT$Congress_district=texas_cd116DT$NAMELSAD[tracts4cd116unlisted]
+censusplace <- st_read(paste0(censusdir, geo_vintage, "/geo_census/cb_", geo_vintage, "_", state, "_place_500k/cb_", geo_vintage, "_", state, "_place_500k.shp"))
+placeDT <- as.data.table(censusplace) #just cities
 
+#assign to tractsDT
+placeDT <- st_as_sf(placeDT)
+zctas4places <- st_within(zctasDT$centroid, placeDT)
+#unlist into vector
+zctas4placesunlisted <- rapply(zctas4places,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
+zctas4placesunlisted <- unlist(zctas4placesunlisted)
+zctasDT$placename=placeDT$NAME[zctas4placesunlisted]
 #
+houstondatadir = paste0(maindir,"HoustonCityData/") 
 superneighborhoods <- st_read(paste0(houstondatadir, "2022/HOUSTON_LIMITS_BOUNDARIES_PACKAGE/HOUSTON_LIMITS_BOUNDARIES_PACKAGE.shp"))
 #2017 had different title, but same geometry
 #superneighborhoods <- st_read(paste0(houstondatadir, "2017/COH_SUPER_NEIGHBORHOODS/COH_SUPER_NEIGHBORHOODS.shp"))
-superneighborhoods <- st_transform(superneighborhoods, st_crs(censustracts)) #HCAD is renamed from sf_HCAD in this run - can change
-super_within <- st_within(tractsDT$centroid, superneighborhoods)
+superneighborhoods <- st_transform(superneighborhoods, st_crs(censuszctas)) #HCAD is renamed from sf_HCAD in this run - can change
+super_within <- st_within(zctasDT$centroid, superneighborhoods)
 super_within_unlist <- rapply(super_within,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
 super_within_unlist <- unlist(super_within_unlist)
-tractsDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
-
-redline_scores_2020_DT <- as.data.table(redline_scores_2020)
-redline_scores_2020_DT[,("TRACTCE"):=GEOID20] #keeping both names, in case for matching
-redlines_geo <- redline_scores_2020_DT[tractsDT,on="TRACTCE"]
+zctasDT$superneighborhood=superneighborhoods$SNBNAME[super_within_unlist]
 
 vintage <- "2022"
 #for each county, can have sex_age by blck group - and thus pop by block group, too
-tract_sex_by_age_race_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+zip_sex_by_age_race_data_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                        groupname = "B01001",county_num = county,
-                       block="zip code tabulation area",api_type="acs/acs5",path_suff="est.csv")
+                       block="zip",api_type="acs/acs5",path_suff="est.csv")
 
 #test <- getCensus(name = api_type,vintage = vintage,key = censuskey,vars = c("NAME","B01001B_029E"),region = "zip code tabulation area")
 #options(digits = 2, scipen = 999) #for display on all of them
 
-sex_by_age_race <- tract_sex_by_age_race_data_from_census_tx %>%
+sex_by_age_race <- zip_sex_by_age_race_data_from_census %>%
   mutate(label = str_remove_all(label,"Estimate!!Total:!!"),
          race = substr(name,7,7)) %>%
-  pivot_longer(4:ncol(tract_sex_by_age_race_data_from_census_tx),names_to = "GEOID", values_to = "number_sams")%>%
+  pivot_longer(4:ncol(zip_sex_by_age_race_data_from_census),names_to = "ZCTA5CE20", values_to = "number_sams")%>%
   separate(label, c("sex","age_range"), sep = ":!!", remove = F, convert = FALSE) 
-sex_age_race_DT <- as.data.table(sex_by_age_race,key="GEOID")
+#zip gets you all of US 
+sex_age_race_DT <- as.data.table(sex_by_age_race,key="ZCTA5CE20")
+zips_tx <- unique(zctasDT[STATEFP=="48",ZCTA5CE20])
+sex_age_race_DT <- sex_age_race_DT[ZCTA5CE20%in%zips_tx]
+
 pop_totals <- sex_age_race_DT[is.na(age_range)&race=="_"&sex=="Estimate!!Total:"]
-tracts_demog <- tractsDT[pop_totals[,7:8],on="GEOID"]
-setnames(tracts_demog,"number_sams","total_pop")
+zctas_demog <- zctasDT[pop_totals[,7:8],on="ZCTA5CE20"]
+setnames(zctas_demog,"number_sams","total_pop")
 pop_hispanic <- sex_age_race_DT[is.na(age_range)&race=="I"&sex=="Estimate!!Total:"]
-tracts_demog <- tracts_demog[pop_hispanic[,7:8],on="GEOID"]
-setnames(tracts_demog,"number_sams","Latin_pop")
-tracts_demog[,("Latin_pct"):=as.integer((as.numeric(Latin_pop)*100)/as.numeric(total_pop))]
+zctas_demog <- zctas_demog[pop_hispanic[,7:8],on="ZCTA5CE20"]
+setnames(zctas_demog,"number_sams","Latin_pop")
+zctas_demog[,("Latin_pct"):=as.integer((as.numeric(Latin_pop)*100)/as.numeric(total_pop))]
 pop_AA <- sex_age_race_DT[is.na(age_range)&race=="B"&sex=="Estimate!!Total:"]
-tracts_demog <- tracts_demog[pop_AA[,7:8],on="GEOID"]
-setnames(tracts_demog,"number_sams","Black_pop")
-tracts_demog[,("Black_pct"):=as.integer((as.numeric(Black_pop)*100)/as.numeric(total_pop))]
+zctas_demog <- zctas_demog[pop_AA[,7:8],on="ZCTA5CE20"]
+setnames(zctas_demog,"number_sams","Black_pop")
+zctas_demog[,("Black_pct"):=as.integer((as.numeric(Black_pop)*100)/as.numeric(total_pop))]
 pop_White <- sex_age_race_DT[is.na(age_range)&race=="H"&sex=="Estimate!!Total:"]
-tracts_demog <- tracts_demog[pop_White[,7:8],on="GEOID"]
-setnames(tracts_demog,"number_sams","White_pop")
-tracts_demog[,("White_pct"):=as.integer((as.numeric(White_pop)*100)/as.numeric(total_pop))]
+zctas_demog <- zctas_demog[pop_White[,7:8],on="ZCTA5CE20"]
+setnames(zctas_demog,"number_sams","White_pop")
+zctas_demog[,("White_pct"):=as.integer((as.numeric(White_pop)*100)/as.numeric(total_pop))]
 pop_asian <- sex_age_race_DT[is.na(age_range)&race=="D"&sex=="Estimate!!Total:"]
-tracts_demog <- tracts_demog[pop_asian[,7:8],on="GEOID"]
-setnames(tracts_demog,"number_sams","Asian_pop")
-tracts_demog[,("Asian_pct"):=as.integer((as.numeric(Asian_pop)*100)/as.numeric(total_pop))]
-pop_boys_10_14 <- sex_age_race_DT[age_range=="10 to 14 years"&race=="_"&sex=="Male"]
-tracts_demog <- tracts_demog[pop_boys_10_14[,7:8],on="GEOID"]
-setnames(tracts_demog,"number_sams","boys_10_14_pop")
-pop_girls_10_14 <- sex_age_race_DT[age_range=="10 to 14 years"&race=="_"&sex=="Female"]
-tracts_demog <- tracts_demog[pop_girls_10_14[,7:8],on="GEOID"]
-setnames(tracts_demog,"number_sams","girls_10_14_pop")
-tracts_demog[,("pop_10_14"):=as.numeric(girls_10_14_pop)+as.numeric(boys_10_14_pop)]
-tracts_demog[,("10_14_pct"):=as.integer(as.numeric(pop_10_14*100)/as.numeric(total_pop))]
-
-#have to have sourced Census_Data.R and get censuskey from expand_from_census
-gini_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                       groupname = "B19083",county_num = county,
-                       block="tract",api_type="acs/acs5",path_suff="est.csv")
-gini_data <- gini_from_census %>%
-  pivot_longer(4:ncol(gini_from_census),names_to = "GEOID", values_to = "gini_index")
-gini_DT <- as.data.table(gini_data)
-gini_DT$gini_index <- format(gini_DT$gini_index,scientific=FALSE)
-tracts_demog <- tracts_demog[gini_DT[,4:5],on="GEOID"]
-tracts_demog[,("gini_index"):=if_else(as.numeric(gini_index)<0,0,as.numeric(gini_index))]
-
-#when just adding for blocks #blocksDT[,("TRACTGEOID"):=substr(GEOID,1,11)]
-blocksDT[,("TRACTCE"):=substr(GEOID,1,11)]
-#and names to TRACTCE, etc., but change back 
-place_born_med_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                       groupname = "B06011",county_num = county,
-                       block="tract",api_type="acs/acs5",path_suff="est.csv")
-med_income <- place_born_med_income %>%
-  pivot_longer(4:ncol(place_born_med_income),names_to = "GEOID", values_to = "median_income")
-median_income <- as.data.table(med_income)
-med_income_total <- median_income[name=="B06011_001E"]
-tracts_demog <- tracts_demog[med_income_total[,4:5],on="GEOID"]
-setnames(tracts_demog,"median_income","median_individual_income")
-med_income_fb <- median_income[name=="B06011_005E"]
-tracts_demog <- tracts_demog[med_income_fb[,4:5],on="GEOID"]
-setnames(tracts_demog,"median_income","median_income_fb")
-tracts_demog[,("median_individual_income"):=if_else(median_individual_income=="-666666666","0",median_individual_income)]
-tracts_demog[,("median_income_fb"):=if_else(median_income_fb=="-666666666","0",median_income_fb)]
-
-place_born_med_income_err <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                                groupname = "B06011",county_num = county,
-                                                block="tract",api_type="acs/acs5",path_suff="err.csv")
-med_income_err <- place_born_med_income_err %>%
-  pivot_longer(4:ncol(place_born_med_income_err),names_to = "GEOID", values_to = "median_income_err")
-median_income_err <- as.data.table(med_income_err)
-median_income_err_total <- median_income_err[name=="B06011_001M"]
-tracts_demog <- tracts_demog[median_income_err_total[,4:5],on="GEOID"]
-tracts_demog[,("median_income_err"):=as.character(median_income_err)]
+zctas_demog <- zctas_demog[pop_asian[,7:8],on="ZCTA5CE20"]
+setnames(zctas_demog,"number_sams","Asian_pop")
+zctas_demog[,("Asian_pct"):=as.integer((as.numeric(Asian_pop)*100)/as.numeric(total_pop))]
+pop_boys_under_5 <- sex_age_race_DT[age_range=="Under 5 years"&race=="_"&sex=="Male"]
+zctas_demog <- zctas_demog[pop_boys_under_5[,7:8],on="ZCTA5CE20"]
+setnames(zctas_demog,"number_sams","boys_under_5_pop")
+pop_girls_under_5 <- sex_age_race_DT[age_range=="Under 5 years"&race=="_"&sex=="Female"]
+zctas_demog <- zctas_demog[pop_girls_under_5[,7:8],on="ZCTA5CE20"]
+setnames(zctas_demog,"number_sams","girls_under_5_pop")
+zctas_demog[,("pop_under_5"):=as.numeric(girls_under_5_pop)+as.numeric(boys_under_5_pop)]
+zctas_demog[,("under_5_pct"):=as.integer(as.numeric(pop_under_5*100)/as.numeric(total_pop))]
 
 
 family_med_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                 groupname = "B19113",county_num = county,
-                                                block="tract",api_type="acs/acs5",path_suff="est.csv")
+                                                block="zip",api_type="acs/acs5",path_suff="est.csv")
 med_family_income <- family_med_income %>%
-  pivot_longer(4:ncol(family_med_income),names_to = "GEOID", values_to = "median_family_income")
+  pivot_longer(4:ncol(family_med_income),names_to = "ZCTA5CE20", values_to = "median_family_income")
 median_family_income <- as.data.table(med_family_income)
+median_family_income <- median_family_income[ZCTA5CE20%in%zips_tx]
 med_fam_income_total <- median_family_income[name=="B19113_001E"]
-tracts_demog <- tracts_demog[med_fam_income_total[,4:5],on="GEOID"]
-tracts_demog[,("median_family_income"):=if_else(as.numeric(median_family_income)>0,median_family_income,as.character(0))]
-tracts_demog[,("diff_med_family_hh_income"):=as.numeric(median_family_income)-as.numeric(median_individual_income)]
+zctas_demog <- zctas_demog[med_fam_income_total[,4:5],on="ZCTA5CE20"]
+zctas_demog[,("median_family_income"):=if_else(as.numeric(median_family_income)>0,median_family_income,as.character(0))]
 
-
-median_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                            groupname = "B19050",county_num = county,
-                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
-
-aggregate_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                                     groupname = "B19049",county_num = county,
-                                                     block="tract",api_type="acs/acs5",path_suff="est.csv")
-
-earnings_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                                     groupname = "B19051",county_num = county,
-                                                     block="tract",api_type="acs/acs5",path_suff="est.csv")
-
-dividend_household_income <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                                     groupname = "B19054",county_num = county,
-                                                     block="tract",api_type="acs/acs5",path_suff="est.csv")
-
-own_rent_hh_type_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                       groupname = "B25011",county_num = county,
-                       block="tract",api_type="acs/acs5",path_suff="est.csv")
-own_rentDT <- as.data.table(own_rent_hh_type_census)
-own_rent_hh <- own_rentDT %>%
-  pivot_longer(4:ncol(own_rentDT),names_to = "GEOID", values_to = "households")
-own_rent_hh <- as.data.table(own_rent_hh)
-total_hh_occupied <- own_rent_hh[name=="B25011_001E",4:5]
-tracts_demog <- tracts_demog[total_hh_occupied, on="GEOID"]
-renters <- own_rent_hh[name=="B25011_026E",4:5]
-setnames(renters,"households","renters")
-tracts_demog <- tracts_demog[renters, on="GEOID"]
-tracts_demog[,("renter_pct"):=as.integer((as.numeric(renters)*100)/as.numeric(households))]
-tracts_demog[,("owner_pct"):=as.integer(((as.numeric(households)*100)-as.numeric(renters)*100)/as.numeric(households))]
-married_couple_owners <- own_rent_hh[name=="B25011_004E",4:5]
-setnames(married_couple_owners,"households","married_owners")
-tracts_demog <- tracts_demog[married_couple_owners, on="GEOID"]
-tracts_demog[,("married_owners_pct"):=as.integer((as.numeric(married_owners)*100)/as.numeric(households))]
-owner_living_alone <- own_rent_hh[name=="B25011_018E",4:5]
-setnames(owner_living_alone,"households","owner_living_alone")
-tracts_demog <- tracts_demog[owner_living_alone, on="GEOID"]
-tracts_demog[,("owner_living_alone_pct"):=as.integer((as.numeric(owner_living_alone)*100)/as.numeric(households))]
-renter_living_alone <- own_rent_hh[name=="B25011_042E",4:5]
-setnames(renter_living_alone,"households","renter_living_alone")
-tracts_demog <- tracts_demog[renter_living_alone, on="GEOID"]
-tracts_demog[,("renter_living_alone_pct"):=as.integer((as.numeric(renter_living_alone)*100)/as.numeric(households))]
-renter_non_family_shared <- own_rent_hh[name=="B25011_046E",4:5]
-setnames(renter_non_family_shared,"households","renter_non_family_shared")
-tracts_demog <- tracts_demog[renter_non_family_shared, on="GEOID"]
-tracts_demog[,("renter_non_family_shared_pct"):=as.integer((as.numeric(renter_non_family_shared)*100)/as.numeric(households))]
-
-#income B19001 - HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 20xx INFLATION-ADJUSTED DOLLARS)
-hh_income_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                             groupname = "B19001",county_num = county,
-                                             block="tract",api_type="acs/acs5",path_suff="est.csv")
-incomeDT <- as.data.table(hh_income_from_census)
-income <- incomeDT %>%
-  pivot_longer(4:ncol(incomeDT),names_to = "GEOID", values_to = "income")
-income <- as.data.table(income)
-income_10k <- income[name=="B19001_002E",4:5]
-setnames(income_10k,"income","income_10k")
-tracts_demog <- tracts_demog[income_10k, on="GEOID"]
-tracts_demog[,("income_10k_pct"):=as.integer((as.numeric(income_10k)*100)/as.numeric(households))]
-income_10_15k <- income[name=="B19001_003E",4:5]
-setnames(income_10_15k,"income","income_10_15k")
-tracts_demog <- tracts_demog[income_10_15k, on="GEOID"]
-tracts_demog[,("income_10_15k_pct"):=as.integer((as.numeric(income_10_15k)*100)/as.numeric(households))]
-income_15_20k <- income[name=="B19001_004E",4:5]
-setnames(income_15_20k,"income","income_15_20k")
-tracts_demog <- tracts_demog[income_15_20k, on="GEOID"]
-tracts_demog[,("income_15_20k_pct"):=as.integer((as.numeric(income_15_20k)*100)/as.numeric(households))]
-income_20_25k <- income[name=="B19001_005E",4:5]
-setnames(income_20_25k,"income","income_20_25k")
-tracts_demog <- tracts_demog[income_20_25k, on="GEOID"]
-tracts_demog[,("income_20_25k_pct"):=as.integer((as.numeric(income_20_25k)*100)/as.numeric(households))]
-income_25_30k <- income[name=="B19001_006E",4:5]
-setnames(income_25_30k,"income","income_25_30k")
-tracts_demog <- tracts_demog[income_25_30k, on="GEOID"]
-tracts_demog[,("income_25_30k_pct"):=as.integer((as.numeric(income_25_30k)*100)/as.numeric(households))]
-income_30_35k <- income[name=="B19001_007E",4:5]
-setnames(income_30_35k,"income","income_30_35k")
-tracts_demog <- tracts_demog[income_30_35k, on="GEOID"]
-tracts_demog[,("income_30_35k_pct"):=as.integer((as.numeric(income_30_35k)*100)/as.numeric(households))]
-income_35_40k <- income[name=="B19001_008E",4:5]
-setnames(income_35_40k,"income","income_35_40k")
-tracts_demog <- tracts_demog[income_35_40k, on="GEOID"]
-tracts_demog[,("income_35_40k_pct"):=as.integer((as.numeric(income_35_40k)*100)/as.numeric(households))]
-income_40_45k <- income[name=="B19001_009E",4:5]
-setnames(income_40_45k,"income","income_40_45k")
-tracts_demog <- tracts_demog[income_40_45k, on="GEOID"]
-tracts_demog[,("income_40_45k_pct"):=as.integer((as.numeric(income_40_45k)*100)/as.numeric(households))]
-income_45_50k <- income[name=="B19001_010E",4:5]
-setnames(income_45_50k,"income","income_45_50k")
-tracts_demog <- tracts_demog[income_45_50k, on="GEOID"]
-tracts_demog[,("income_45_50k_pct"):=as.integer((as.numeric(income_45_50k)*100)/as.numeric(households))]
-income_50_60k <- income[name=="B19001_011E",4:5]
-setnames(income_50_60k,"income","income_50_60k")
-tracts_demog <- tracts_demog[income_50_60k, on="GEOID"]
-tracts_demog[,("income_50_60k_pct"):=as.integer((as.numeric(income_50_60k)*100)/as.numeric(households))]
-income_60_75k <- income[name=="B19001_012E",4:5]
-setnames(income_60_75k,"income","income_60_75k")
-tracts_demog <- tracts_demog[income_60_75k, on="GEOID"]
-tracts_demog[,("income_60_75k_pct"):=as.integer((as.numeric(income_60_75k)*100)/as.numeric(households))]
-income_75_100k <- income[name=="B19001_013E",4:5]
-setnames(income_75_100k,"income","income_75_100k")
-tracts_demog <- tracts_demog[income_75_100k, on="GEOID"]
-tracts_demog[,("income_75_100k_pct"):=as.integer((as.numeric(income_75_100k)*100)/as.numeric(households))]
-income_100_125k <- income[name=="B19001_014E",4:5]
-setnames(income_100_125k,"income","income_100_125k")
-tracts_demog <- tracts_demog[income_100_125k, on="GEOID"]
-tracts_demog[,("income_100_125k_pct"):=as.integer((as.numeric(income_100_125k)*100)/as.numeric(households))]
-income_125_150k <- income[name=="B19001_015E",4:5]
-setnames(income_125_150k,"income","income_125_150k")
-tracts_demog <- tracts_demog[income_125_150k, on="GEOID"]
-tracts_demog[,("income_125_150k_pct"):=as.integer((as.numeric(income_125_150k)*100)/as.numeric(households))]
-income_150_200k <- income[name=="B19001_016E",4:5]
-setnames(income_150_200k,"income","income_150_200k")
-tracts_demog <- tracts_demog[income_150_200k, on="GEOID"]
-tracts_demog[,("income_150_200k_pct"):=as.integer((as.numeric(income_150_200k)*100)/as.numeric(households))]
-income_over_200k <- income[name=="B19001_017E",4:5]
-setnames(income_over_200k,"income","income_over_200k")
-tracts_demog <- tracts_demog[income_over_200k, on="GEOID"]
-tracts_demog[,("income_over_200k_pct"):=as.integer((as.numeric(income_over_200k)*100)/as.numeric(households))]
-tracts_demog[,("income_under_20k"):=as.integer((as.numeric(income_10k)+
-                                                as.numeric(income_10_15k)+
-                                                 as.numeric(income_15_20k))*100/as.numeric(households))] #income_10k,income_10_15k,income_15_20k,income_20_25k,income_25_30k
-tracts_demog[,("hh_income_under_20k_pct"):=as.integer((as.numeric(income_under_20k)*100)/as.numeric(households))]
-tracts_demog[,("income_under_30k"):=as.integer((as.numeric(income_10k)+
-                                                 as.numeric(income_10_15k)+
-                                                 as.numeric(income_15_20k)+as.numeric(income_20_25k)+
-                                                 as.numeric(income_25_30k))*100/as.numeric(households))] #income_10k,income_10_15k,income_15_20k,income_20_25k,income_25_30k
-tracts_demog[,("hh_income_under_30k_pct"):=as.integer((as.numeric(income_under_30k)*100)/as.numeric(households))]
-#for ICEwnhinc
-#HH above $100k & White & Hispanic
-ICEwnhincome_100_125k <- income[name=="B19001H_014E",4:5]
-setnames(ICEwnhincome_100_125k,"income","ICEwnhincome_100_125k")
-tracts_demog <- tracts_demog[ICEwnhincome_100_125k, on="GEOID"]
-tracts_demog[,("ICEwnhincome_100_125k_pct"):=as.integer((as.numeric(ICEwnhincome_100_125k)*100)/as.numeric(households))]
-ICEwnhincome_125_150k <- income[name=="B19001H_015E",4:5]
-setnames(ICEwnhincome_125_150k,"income","ICEwnhincome_125_150k")
-tracts_demog <- tracts_demog[ICEwnhincome_125_150k, on="GEOID"]
-tracts_demog[,("ICEwnhincome_125_150k_pct"):=as.integer((as.numeric(ICEwnhincome_125_150k)*100)/as.numeric(households))]
-ICEwnhincome_150_200k <- income[name=="B19001H_016E",4:5]
-setnames(ICEwnhincome_150_200k,"income","ICEwnhincome_150_200k")
-tracts_demog <- tracts_demog[ICEwnhincome_150_200k, on="GEOID"]
-tracts_demog[,("ICEwnhincome_150_200k_pct"):=as.integer((as.numeric(ICEwnhincome_150_200k)*100)/as.numeric(households))]
-ICEwnhincome_over_200k <- income[name=="B19001H_017E",4:5]
-setnames(ICEwnhincome_over_200k,"income","ICEwnhincome_over_200k")
-tracts_demog <- tracts_demog[ICEwnhincome_over_200k, on="GEOID"]
-tracts_demog[,("ICEwnhincome_over_100k"):=as.numeric(ICEwnhincome_100_125k)+
-                                                 as.numeric(ICEwnhincome_125_150k)+
-                                                 as.numeric(ICEwnhincome_150_200k)+as.numeric(ICEwnhincome_over_200k)]
-#HH below $25k
-tracts_demog[,("income_under_25k"):=as.integer((as.numeric(income_10k)+
-                                                 as.numeric(income_10_15k)+
-                                                 as.numeric(income_15_20k)+as.numeric(income_20_25k))
-                                                 *100/as.numeric(households))]
-#HH below $25k & White not Hispanic
-ICEwnhincome_less_10k <- income[name=="B19001H_002E",4:5]
-setnames(ICEwnhincome_less_10k,"income","ICEwnhincome_less_10k")
-tracts_demog <- tracts_demog[ICEwnhincome_less_10k, on="GEOID"]
-ICEwnhincome_10k_15k <- income[name=="B19001H_003E",4:5]
-setnames(ICEwnhincome_10k_15k,"income","ICEwnhincome_10k_15k")
-tracts_demog <- tracts_demog[ICEwnhincome_10k_15k, on="GEOID"]
-ICEwnhincome_15k_20k <- income[name=="B19001H_004E",4:5]
-setnames(ICEwnhincome_15k_20k,"income","ICEwnhincome_15k_20k")
-tracts_demog <- tracts_demog[ICEwnhincome_15k_20k, on="GEOID"]
-ICEwnhincome_20k_25k <- income[name=="B19001H_005E",4:5]
-setnames(ICEwnhincome_20k_25k,"income","ICEwnhincome_20k_25k")
-tracts_demog <- tracts_demog[ICEwnhincome_20k_25k, on="GEOID"]
-
-#total households
-total_hh <- income[name=="B19001_001E",4:5]
-setnames(total_hh,"income","total_hh")
-tracts_demog <- tracts_demog[total_hh, on="GEOID"]
-
-tracts_demog[,("ICEwnhinc"):=((as.numeric(ICEwnhincome_100_125k)+as.numeric(ICEwnhincome_125_150k)+
-               as.numeric(ICEwnhincome_150_200k)+as.numeric(ICEwnhincome_150_200k)+
-               as.numeric(ICEwnhincome_over_200k))-
-               (as.numeric(ICEwnhincome_less_10k)+as.numeric(ICEwnhincome_10k_15k)+
-                  as.numeric(ICEwnhincome_15k_20k)+as.numeric(ICEwnhincome_20k_25k)))/
-               as.numeric(total_hh)]
-
-
-#housing/renter
-vacant_houses_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                               groupname = "B25002",county_num = county,
-                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
-vacant_housesDT <- as.data.table(vacant_houses_census)
-vacant_houses_total <- vacant_housesDT[name=="B25002_001E"]
-vacant_houses_total <- vacant_houses_total %>%
-  pivot_longer(4:ncol(vacant_houses_total),names_to = "GEOID", values_to = "vacant_houses_total")
-vacant_totalDT <- as.data.table(vacant_houses_total)
-vacant <- vacant_housesDT[name=="B25002_003E"]
-vacant <- vacant %>%
-  pivot_longer(4:ncol(vacant),names_to = "GEOID", values_to = "vacant")
-vacantDT <- as.data.table(vacant)
-vacancies <- vacant_totalDT[vacantDT[,4:5],on="GEOID"]
-vacancies[,("vacant_housing_pct"):=as.integer((as.numeric(vacant)*100)/as.numeric(vacant_houses_total))]
-tracts_demog <- tracts_demog[vacancies[,4:7],on="GEOID"]
-
-fb_language <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                            groupname = "B06007",county_num = county,
-                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
-fb_lang <- fb_language %>%
-  pivot_longer(4:ncol(fb_language),names_to = "GEOID", values_to = "only_English")
-fb_lang <- as.data.table(fb_lang)
-only_English <- fb_lang[name=="B06007_002E"]
-tracts_demog <- tracts_demog[only_English[,4:5],on="GEOID"]
-tracts_demog[,("pct_only_English"):=as.integer((as.numeric(only_English)*100)/as.numeric(total_pop))]
-
-med_fam_income_total <- median_family_income[name=="B19113_001E"]
-tracts_demog <- tracts_demog[med_fam_income_total[,4:5],on="GEOID"]
-tracts_demog[,("median_family_income"):=if_else(as.numeric(median_family_income)>0,median_family_income,as.character(0))]
-tracts_demog[,("diff_med_family_hh_income"):=as.numeric(median_family_income)-as.numeric(median_individual_income)]
-
-
-place_born_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                            groupname = "B06004",county_num = county,
-                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
-place_born_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                            groupname = "B06009",county_num = county,
-                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
-sex_age_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                               groupname = "B15001",county_num = county,
-                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
-
-#Educational Attainment and Employment Status by Language Spoken at Home for the Population 25 Years and Over
-employment_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                               groupname = "B16010",county_num = county,
-                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
-
-#Types of Health Insurance Coverage by Age
-health_insurance_type <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                               groupname = "B27010",county_num = county,
-                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
-
-#Health Insurance Coverage Status and Type by Age by Educational Attainment
-health_insurance_age_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                               groupname = "B27019",county_num = county,
-                                               block="tract",api_type="acs/acs5",path_suff="est.csv")
-hi_ae <- health_insurance_age_education %>%
-  pivot_longer(4:ncol(health_insurance_age_education),names_to = "GEOID", values_to = "number")
-hi_ae_DT <- as.data.table(hi_ae)
-hi_ae_DT <- hi_ae_DT[!is.na(number)]
-BA_26_64_no_insurance <- hi_ae_DT[name=="B27019_022E"]
-redlines1 <- redlines1[BA_26_64_no_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","BA_26_64_no_insurance")
-redlines1[,("BA_26_64_no_insurance_pct"):=as.integer((as.numeric(BA_26_64_no_insurance)*100)/as.numeric(total_pop))]
-BA_26_64_private_insurance <- hi_ae_DT[name=="B27019_020E"]
-redlines1 <- redlines1[BA_26_64_private_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","BA_26_64_private_insurance")
-redlines1[,("BA_26_64_private_insurance_pct"):=as.integer((as.numeric(BA_26_64_private_insurance)*100)/as.numeric(total_pop))]
-BA_26_64_public_insurance <- hi_ae_DT[name=="B27019_021E"]
-redlines1 <- redlines1[BA_26_64_public_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","BA_26_64_public_insurance")
-redlines1[,("BA_26_64_puplic_insurance_pct"):=as.integer((as.numeric(BA_26_64_public_insurance)*100)/as.numeric(total_pop))]
-
-HS_26_64_no_insurance <- hi_ae_DT[name=="B27019_012E"]
-redlines1 <- redlines1[HS_26_64_no_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","HS_26_64_no_insurance")
-redlines1[,("HS_26_64_no_insurance_pct"):=as.integer((as.numeric(HS_26_64_no_insurance)*100)/as.numeric(total_pop))]
-HS_26_64_private_insurance <- hi_ae_DT[name=="B27019_010E"]
-redlines1 <- redlines1[HS_26_64_private_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","HS_26_64_private_insurance")
-redlines1[,("HS_26_64_private_insurance_pct"):=as.integer((as.numeric(HS_26_64_private_insurance)*100)/as.numeric(total_pop))]
-HS_26_64_public_insurance <- hi_ae_DT[name=="B27019_011E"]
-redlines1 <- redlines1[HS_26_64_public_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","HS_26_64_public_insurance")
-redlines1[,("HS_26_64_public_insurance_pct"):=as.integer((as.numeric(HS_26_64_public_insurance)*100)/as.numeric(total_pop))]
-
-LTHS_26_64_no_insurance <- hi_ae_DT[name=="B27019_007E"]
-redlines1 <- redlines1[LTHS_26_64_no_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","LTHS_26_64_no_insurance")
-redlines1[,("LTHS_26_64_no_insurance_pct"):=as.integer((as.numeric(LTHS_26_64_no_insurance)*100)/as.numeric(total_pop))]
-LTHS_26_64_private_insurance <- hi_ae_DT[name=="B27019_005E"]
-redlines1 <- redlines1[LTHS_26_64_private_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","LTHS_26_64_private_insurance")
-redlines1[,("LTHS_26_64_private_insurance_pct"):=as.integer((as.numeric(LTHS_26_64_private_insurance)*100)/as.numeric(total_pop))]
-LTHS_26_64_public_insurance <- hi_ae_DT[name=="B27019_006E"]
-redlines1 <- redlines1[LTHS_26_64_public_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","LTHS_26_64_public_insurance")
-redlines1[,("LTHS_26_64_public_insurance_pct"):=as.integer((as.numeric(LTHS_26_64_public_insurance)*100)/as.numeric(total_pop))]
-
-Some_College_26_64_no_insurance <- hi_ae_DT[name=="B27019_017E"]
-redlines1 <- redlines1[Some_College_26_64_no_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","Some_College_26_64_no_insurance")
-redlines1[,("Some_College_26_64_no_insurance_pct"):=as.integer((as.numeric(Some_College_26_64_no_insurance)*100)/as.numeric(total_pop))]
-Some_College_26_64_private_insurance <- hi_ae_DT[name=="B27019_015E"]
-redlines1 <- redlines1[Some_College_26_64_private_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","Some_College_26_64_private_insurance")
-redlines1[,("Some_College_26_64_private_insurance_pct"):=as.integer((as.numeric(Some_College_26_64_private_insurance)*100)/as.numeric(total_pop))]
-Some_College_26_64_public_insurance <- hi_ae_DT[name=="B27019_016E"]
-redlines1 <- redlines1[Some_College_26_64_public_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","Some_College_26_64_public_insurance")
-redlines1[,("Some_College_26_64_public_insurance_pct"):=as.integer((as.numeric(Some_College_26_64_public_insurance)*100)/as.numeric(total_pop))]
-
-BA_65up_no_insurance <- hi_ae_DT[name=="B27019_043E"]
-redlines1 <- redlines1[BA_65up_no_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","BA_65up_no_insurance")
-redlines1[,("BA_65up_no_insurance_pct"):=as.integer((as.numeric(BA_65up_no_insurance)*100)/as.numeric(total_pop))]
-BA_65up_private_insurance <- hi_ae_DT[name=="B27019_041E"]
-redlines1 <- redlines1[BA_65up_private_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","BA_65up_private_insurance")
-redlines1[,("BA_65up_private_insurance_pct"):=as.integer((as.numeric(BA_65up_private_insurance)*100)/as.numeric(total_pop))]
-BA_65up_public_insurance <- hi_ae_DT[name=="B27019_042E"]
-redlines1 <- redlines1[BA_65up_public_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","BA_65up_public_insurance")
-redlines1[,("BA_65up_public_insurance_pct"):=as.integer((as.numeric(BA_65up_public_insurance)*100)/as.numeric(total_pop))]
-
-HS_65up_no_insurance <- hi_ae_DT[name=="B27019_033E"]
-redlines1 <- redlines1[HS_65up_no_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","HS_65up_no_insurance")
-redlines1[,("HS_65up_no_insurance_pct"):=as.integer((as.numeric(HS_65up_no_insurance)*100)/as.numeric(total_pop))]
-HS_65up_private_insurance <- hi_ae_DT[name=="B27019_031E"]
-redlines1 <- redlines1[HS_65up_private_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","HS_65up_private_insurance")
-redlines1[,("HS_65up_private_insurance_pct"):=as.integer((as.numeric(HS_65up_private_insurance)*100)/as.numeric(total_pop))]
-HS_65up_public_insurance <- hi_ae_DT[name=="B27019_032E"]
-redlines1 <- redlines1[HS_65up_public_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","HS_65up_public_insurance")
-redlines1[,("HS_65up_public_insurance_pct"):=as.integer((as.numeric(HS_65up_public_insurance)*100)/as.numeric(total_pop))]
-
-LTHS_65up_no_insurance <- hi_ae_DT[name=="B27019_028E"]
-redlines1 <- redlines1[LTHS_65up_no_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","LTHS_65up_no_insurance")
-redlines1[,("LTHS_65up_no_insurance_pct"):=as.integer((as.numeric(LTHS_65up_no_insurance)*100)/as.numeric(total_pop))]
-LTHS_65up_private_insurance <- hi_ae_DT[name=="B27019_026E"]
-redlines1 <- redlines1[LTHS_65up_private_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","LTHS_65up_private_insurance")
-redlines1[,("LTHS_65up_private_insurance_pct"):=as.integer((as.numeric(LTHS_65up_private_insurance)*100)/as.numeric(total_pop))]
-LTHS_65up_public_insurance <- hi_ae_DT[name=="B27019_027E"]
-redlines1 <- redlines1[LTHS_65up_public_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","LTHS_65up_public_insurance")
-redlines1[,("LTHS_65up_public_insurance_pct"):=as.integer((as.numeric(LTHS_65up_public_insurance)*100)/as.numeric(total_pop))]
-
-Some_College_65up_no_insurance <- hi_ae_DT[name=="B27019_038E"]
-redlines1 <- redlines1[Some_College_65up_no_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","Some_College_65up_no_insurance")
-redlines1[,("Some_College_65up_no_insurance_pct"):=as.integer((as.numeric(Some_College_65up_no_insurance)*100)/as.numeric(total_pop))]
-Some_College_65up_private_insurance <- hi_ae_DT[name=="B27019_036E"]
-redlines1 <- redlines1[Some_College_65up_private_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","Some_College_65up_private_insurance")
-redlines1[,("Some_College_65up_private_insurance_pct"):=as.integer((as.numeric(Some_College_65up_private_insurance)*100)/as.numeric(total_pop))]
-Some_College_65up_public_insurance <- hi_ae_DT[name=="B27019_037E"]
-redlines1 <- redlines1[Some_College_65up_public_insurance[,4:5],on="GEOID"]
-setnames(redlines1,"number","Some_College_65up_public_insurance")
-redlines1[,("Some_College_65up_public_insurance_pct"):=as.integer((as.numeric(Some_College_65up_public_insurance)*100)/as.numeric(total_pop))]
-
-
-
-
-pb_male_under_18_native_born <- pb_DT[name=="B05003_004E"]
-pb_male_under_18_nb <- pb_male_under_18_native_born %>%
-  pivot_longer(4:ncol(pb_male_under_18_native_born), names_to = "GEOID", values_to = "male_under_18_native_born")
-pb_male_under_18_nb_dt <- as.data.table(pb_male_under_18_nb)
-tracts_demog <- tracts_demog[pb_male_under_18_nb_dt[,4:5],on="GEOID"]
-
-
-
-
-#citizenship and nativity B05003
-citizenship_pb <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                         groupname = "B05003",county_num = county,
-                                         block="tract",api_type="acs/acs5",path_suff="est.csv")
-pb_DT <- as.data.table(citizenship_pb)
-pb_fem_under_18_foreign_born <- pb_DT[name=="B05003_016E"]
-pb_fem_under_18_fb <- pb_fem_under_18_foreign_born %>%
-  pivot_longer(4:ncol(pb_fem_under_18_foreign_born), names_to = "GEOID", values_to = "fem_under_18_foreign_born")
-pb_fem_under_18_fb_dt <- as.data.table(pb_fem_under_18_fb)
-tracts_demog <- tracts_demog[pb_fem_under_18_fb_dt[,4:5],on="GEOID"]
-
-pb_fem_under_18_native_born <- pb_DT[name=="B05003_015E"]
-pb_fem_under_18_nb <- pb_fem_under_18_native_born %>%
-  pivot_longer(4:ncol(pb_fem_under_18_native_born), names_to = "GEOID", values_to = "fem_under_18_native_born")
-pb_fem_under_18_nb_dt <- as.data.table(pb_fem_under_18_nb)
-tracts_demog <- tracts_demog[pb_fem_under_18_nb_dt[,4:5],on="GEOID"]
-
-pb_male_under_18_foreign_born <- pb_DT[name=="B05003_005E"]
-pb_male_under_18_fb <- pb_male_under_18_foreign_born %>%
-  pivot_longer(4:ncol(pb_male_under_18_foreign_born), names_to = "GEOID", values_to = "male_under_18_foreign_born")
-pb_male_under_18_fb_dt <- as.data.table(pb_male_under_18_fb)
-tracts_demog <- tracts_demog[pb_male_under_18_fb_dt[,4:5],on="GEOID"]
-
-pb_male_under_18_native_born <- pb_DT[name=="B05003_004E"]
-pb_male_under_18_nb <- pb_male_under_18_native_born %>%
-  pivot_longer(4:ncol(pb_male_under_18_native_born), names_to = "GEOID", values_to = "male_under_18_native_born")
-pb_male_under_18_nb_dt <- as.data.table(pb_male_under_18_nb)
-tracts_demog <- tracts_demog[pb_male_under_18_nb_dt[,4:5],on="GEOID"]
-
-pb_fem_adult_foreign_born <- pb_DT[name=="B05003_021E"]
-pb_fem_adult_fb <- pb_fem_adult_foreign_born %>%
-  pivot_longer(4:ncol(pb_fem_adult_foreign_born), names_to = "GEOID", values_to = "fem_adult_foreign_born")
-pb_fem_adult_fb_dt <- as.data.table(pb_fem_adult_fb)
-tracts_demog <- tracts_demog[pb_fem_adult_fb_dt[,4:5],on="GEOID"]
-
-pb_fem_adult_native_born <- pb_DT[name=="B05003_020E"]
-pb_fem_adult_nb <- pb_fem_adult_native_born %>%
-  pivot_longer(4:ncol(pb_fem_adult_native_born), names_to = "GEOID", values_to = "fem_adult_native_born")
-pb_fem_adult_nb_dt <- as.data.table(pb_fem_adult_nb)
-tracts_demog <- tracts_demog[pb_fem_adult_nb_dt[,4:5],on="GEOID"]
-
-pb_male_adult_foreign_born <- pb_DT[name=="B05003_010E"]
-pb_male_adult_fb <- pb_male_adult_foreign_born %>%
-  pivot_longer(4:ncol(pb_male_adult_foreign_born), names_to = "GEOID", values_to = "male_adult_foreign_born")
-pb_male_adult_fb_dt <- as.data.table(pb_male_adult_fb)
-tracts_demog <- tracts_demog[pb_male_adult_fb_dt[,4:5],on="GEOID"]
-
-pb_male_adult_native_born <- pb_DT[name=="B05003_009E"]
-pb_male_adult_nb <- pb_male_adult_native_born %>%
-  pivot_longer(4:ncol(pb_male_adult_native_born), names_to = "GEOID", values_to = "male_adult_native_born")
-pb_male_adult_nb_dt <- as.data.table(pb_male_adult_nb)
-tracts_demog <- tracts_demog[pb_male_adult_nb_dt[,4:5],on="GEOID"]
-
-tracts_demog[,("foreign_born"):=as.numeric(fem_under_18_foreign_born)+as.numeric(fem_adult_foreign_born)+
-               as.numeric(male_under_18_foreign_born)+as.numeric(male_adult_foreign_born)]
-tracts_demog[,("native_born"):=as.numeric(fem_under_18_native_born)+as.numeric(fem_adult_native_born)+
-               as.numeric(male_under_18_native_born)+as.numeric(male_adult_native_born)]
-#tracts_demog[,("diff_in_total_pop_check"):=total_pop-foreign_born-native_born]
-tracts_demog[,("pct_foreign_born"):=as.integer(foreign_born*100/as.numeric(total_pop))]
-tracts_demog[,("pct_under_18"):=as.integer((as.numeric(fem_under_18_foreign_born)+as.numeric(male_under_18_foreign_born)+
-               as.numeric(fem_under_18_native_born)+as.numeric(male_under_18_native_born))*100/as.numeric(total_pop))]
-
-#B05003_016E - Estimate!!Total:!!Female:!!Under 18 years:!!Foreign born:
-#B05003_015E - Estimate!!Total:!!Female:!!Under 18 years:!!Native
-#B05003_010E - Estimate!!Total:!!Male:!!18 years and over:!!Foreign born:
-#B05003_004E - Estimate!!Total:!!Male:!!Under 18 years:!!Native
-#B05003_005E - Estimate!!Total:!!Male:!!Under 18 years:!!Foreign born:
-#B05003_009E - Estimate!!Total:!!Male:!!18 years and over:!!Native
-#B05003_020E - Estimate!!Total:!!Female:!!18 years and over:!!Native
-#B05003_021E - Estimate!!Total:!!Female:!!18 years and over:!!Foreign born:
-place_born_age_sex <- place_born %>%
-  pivot_longer(4:ncol(place_born), names_to = "GEOID", values_to = "number")
-
-
-#also has under 18 male / female
-#cit_pb_under_18 <- citizenship_pb %>%
-#  pivot_longer(4:ncol(citizenship_pb),names_to = "GEOID", values_to = "num")
-#cit_pb_under_18 <- as.data.table(cit_pb_under_18)
-#male_under_18 <- cit_pb_under_18[name=="B05003_003E",4:5]
-#fem_under_18 <- cit_pb_under_18[name=="B05003_014E",4:5]
-#under_18s <- male_under_18[fem_under_18,on="GEOID"]
-#under_18s[,("under_18"):=as.numeric(num)+as.numeric(i.num)]
-#under_18s <- under_18s[,c("GEOID","under_18")]
-#tracts_demog <- tracts_demog[under_18s,on="GEOID"]
-#tracts_demog[,("under_18_pct"):=as.integer((as.numeric(under_18)*100)/as.numeric(total_pop))]
-#under_18_fbM <- cit_pb_under_18[name=="B05003_005E",4:5]
-#under_18_fbF <- cit_pb_under_18[name=="B05003_016E",4:5]
-#under_18_fb <- under_18_fbM[under_18_fbF,on="GEOID"]
-#under_18_fb[,("under_18_fb"):=as.numeric(num)+as.numeric(i.num)]
-#under_18_fbs <- under_18_fb[,c("GEOID","under_18_fb")]
-#tracts_demog <- tracts_demog[under_18_fbs,on="GEOID"]
-#tracts_demog[,("under_18_fb_pct"):=as.integer((as.numeric(under_18_fb)*100)/as.numeric(under_18))]
-#over_17_fbM <- cit_pb_under_18[name=="B05003_010E",4:5]
-#over_17_fbF <- cit_pb_under_18[name=="B05003_021E",4:5]
-#over_17_fb <- over_17_fbM[over_17_fbF,on="GEOID"]
-#over_17_fb[,("over_17_fb"):=as.numeric(num)+as.numeric(i.num)]
-#over_17_fbs <- over_17_fb[,c("GEOID","over_17_fb")]
-#tracts_demog <- tracts_demog[over_17_fbs,on="GEOID"]
-#tracts_demog[,("over_17"):=as.numeric(total_pop)-as.numeric(under_18)]
-#tracts_demog[,("over_17_fb_pct"):=as.integer((as.numeric(over_17_fb)*100)/as.numeric(over_17))]
-#tracts_demog[,("fb_pct"):=as.integer((as.numeric(over_17_fb)+as.numeric(under_18_fb))*100/as.numeric(total_pop))]
-
-
-#people per room B25014
-pp_room_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "B25014",county_num = county,
-                         block="tract",api_type="acs/acs5",path_suff="est.csv")
-pp_roomDT <- as.data.table(pp_room_census)
-pp_room <- pp_roomDT %>%
-  pivot_longer(4:ncol(pp_roomDT),names_to = "GEOID", values_to = "households")
-pp_room <- as.data.table(pp_room)
-pp_room3 <- pp_room[name=="B25014_003E",4:5]
-setnames(pp_room3,"households","owner_.5")
-tracts_demog <- tracts_demog[pp_room3, on="GEOID"]
-tracts_demog[,("owner_.5_pct"):=as.integer((as.numeric(owner_.5)*100)/as.numeric(households))]
-pp_room4 <- pp_room[name=="B25014_004E",4:5]
-setnames(pp_room4,"households","owner_.5_1")
-tracts_demog <- tracts_demog[pp_room4, on="GEOID"]
-tracts_demog[,("owner_.5_1_pct"):=as.integer((as.numeric(owner_.5_1)*100)/as.numeric(households))]
-pp_room5 <- pp_room[name=="B25014_005E",4:5]
-setnames(pp_room5,"households","owner_1_1.5")
-tracts_demog <- tracts_demog[pp_room5, on="GEOID"]
-tracts_demog[,("owner_1_1.5_pct"):=as.integer((as.numeric(owner_1_1.5)*100)/as.numeric(households))]
-pp_room6 <- pp_room[name=="B25014_006E",4:5]
-setnames(pp_room6,"households","owner_1.5_2")
-tracts_demog <- tracts_demog[pp_room6, on="GEOID"]
-tracts_demog[,("owner_1.5_2_pct"):=as.integer((as.numeric(owner_1.5_2)*100)/as.numeric(households))]
-pp_room7 <- pp_room[name=="B25014_007E",4:5]
-setnames(pp_room7,"households","owner_over_2")
-tracts_demog <- tracts_demog[pp_room7, on="GEOID"]
-tracts_demog[,("owner_over_2_pct"):=as.integer((as.numeric(owner_over_2)*100)/as.numeric(households))]
-pp_room9 <- pp_room[name=="B25014_009E",4:5]
-setnames(pp_room9,"households","renter_.5")
-tracts_demog <- tracts_demog[pp_room9, on="GEOID"]
-tracts_demog[,("renter_.5pct"):=as.integer((as.numeric(renter_.5)*100)/as.numeric(households))]
-pp_room10 <- pp_room[name=="B25014_010E",4:5]
-setnames(pp_room10,"households","renter_.5_1")
-tracts_demog <- tracts_demog[pp_room10, on="GEOID"]
-tracts_demog[,("renter_.5_1_pct"):=as.integer((as.numeric(renter_.5_1)*100)/as.numeric(households))]
-pp_room11 <- pp_room[name=="B25014_011E",4:5]
-setnames(pp_room11,"households","renter_1_1.5")
-tracts_demog <- tracts_demog[pp_room11, on="GEOID"]
-tracts_demog[,("renter_1_1.5_pct"):=as.integer((as.numeric(renter_1_1.5)*100)/as.numeric(households))]
-pp_room12 <- pp_room[name=="B25014_012E",4:5]
-setnames(pp_room12,"households","renter_1.5_2")
-tracts_demog <- tracts_demog[pp_room12, on="GEOID"]
-tracts_demog[,("renter_1.5_2_pct"):=as.integer((as.numeric(renter_1.5_2)*100)/as.numeric(households))]
-pp_room13 <- pp_room[name=="B25014_013E",4:5]
-setnames(pp_room13,"households","renter_over_2")
-tracts_demog <- tracts_demog[pp_room13, on="GEOID"]
-tracts_demog[,("renter_over_2_pct"):=as.integer((as.numeric(renter_over_2)*100)/as.numeric(households))]
-#tracts_demog[,("over_1.5_pproom_pct"):=renter_over_2_pct+owner_over_2_pct+renter_1.5_2_pct+owner_1.5_2_pct]
-
-#transport by tenure B08137
-transport_tenure <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                           groupname = "B08137",county_num = county,
-                                           block="tract",api_type="acs/acs5",path_suff="est.csv")
-pub_transportDT <- as.data.table(transport_tenure)
-pub_transport <- pub_transportDT %>%
-  pivot_longer(4:ncol(pub_transportDT),names_to = "GEOID", values_to = "pub_transport_hh")
-pub_transport <- as.data.table(pub_transport)
-pub_transport <- pub_transport[name=="B08137_010E",4:5]
-tracts_demog <- tracts_demog[pub_transport, on="GEOID"]
-tracts_demog[,("pub_transport_hh_pct"):=as.integer((as.numeric(pub_transport_hh)*100)/as.numeric(households))]
-tracts_demog <- tracts_demog[!is.na(STATEFP)] #all GEOIDs ending in 90000 - something weird, but not sure what - only 12 in Tx.
 
 #Poverty B17101 POVERTY STATUS IN THE PAST 12 MONTHS OF PEOPLE IN HOUSING UNITS
 poverty <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                          groupname = "B17101",county_num = county,
-                                         block="tract",api_type="acs/acs5",path_suff="est.csv")
-povertyDT <- as.data.table(poverty)
-individuals_poverty <- povertyDT %>%
-  pivot_longer(4:ncol(povertyDT),names_to = "GEOID", values_to = "individuals_poverty")
+                                         block="zip",api_type="acs/acs5",path_suff="est.csv")
+individuals_poverty <- poverty %>%
+  pivot_longer(4:ncol(poverty),names_to = "ZCTA5CE20", values_to = "individuals_poverty")
 individuals_poverty <- as.data.table(individuals_poverty)
+individuals_poverty <- individuals_poverty[ZCTA5CE20%in%zips_tx]
 individuals_poverty <- individuals_poverty[name=="B17101_002E",4:5]
-tracts_demog <- tracts_demog[individuals_poverty, on="GEOID"]
-tracts_demog[,("poverty_pct"):=as.integer((as.numeric(individuals_poverty)*100)/as.numeric(total_pop))]
+zctas_demog <- zctas_demog[individuals_poverty, on="ZCTA5CE20"]
+zctas_demog[,("poverty_pct"):=as.integer((as.numeric(individuals_poverty)*100)/as.numeric(total_pop))]
 
-#health insurance and disability B18135 AGE BY DISABILITY STATUS BY HEALTH INSURANCE COVERAGE STATUS
-#B18135_023E Estimate!!Total:!!19 to 64 years:!!No disability:!!No health insurance coverage
-#B18135_018E Estimate!!Total:!!19 to 64 years:!!With a disability:!!No health insurance coverage
-insurance_disability <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                  groupname = "B18135",county_num = county,
-                                  block="tract",api_type="acs/acs5",path_suff="est.csv")
-insuranceDT <- as.data.table(insurance_disability)
-insurance_dis <- insuranceDT %>%
-  pivot_longer(4:ncol(insuranceDT),names_to = "GEOID", values_to = "number")
-insurance_dis <- as.data.table(insurance_dis)
-no_insurance_dis <- insurance_dis[name=="B18135_018E",4:5]
-setnames(no_insurance_dis,"number","not_insured_disabled")
-tracts_demog <- tracts_demog[no_insurance_dis, on="GEOID"]
-no_insurance_not_dis <- insurance_dis[name=="B18135_023E",4:5]
-setnames(no_insurance_not_dis,"number","not_insured_not_disabled")
-tracts_demog <- tracts_demog[no_insurance_not_dis, on="GEOID"]
-pop_19_64 <- insurance_dis[name=="B18135_013E",4:5]
-setnames(pop_19_64,"number","pop_19_64")
-tracts_demog <- tracts_demog[pop_19_64, on="GEOID"]
-tracts_demog[,("uninsured_19_64"):=as.numeric(not_insured_disabled)+as.numeric(not_insured_not_disabled)]
-tracts_demog[,("uninsured_19_64_pct"):=as.integer((as.numeric(uninsured_19_64)*100)/as.numeric(pop_19_64))]
+#add z-codes and DLD
 
-#health insurance and age B27016
-insurance_age <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                                    groupname = "B27001",county_num = county,
-                                    block="tract",api_type="acs/acs5",path_suff="est.csv")
-
-#CHW Stories
-chwstorydir = paste0(maindir,"CHW_stories") # CHW_stories_3_2023.csv
-chw_stories_csv <- paste0(chwstorydir,"/CHW_stories_3_2023.csv")
-chw_stories <- read.csv(chw_stories_csv)
-chw_stories <- as.data.table(chw_stories)
-#just a quick and dirty
-chw_stories[,("zip"):=Zip.code.where.story.is.collected]
-#doesn't work right for tract_rank!!!
-chw_stories[,("block_rank"):=as.character(1:.N),by=(zip)]
-censusblocks[order(-percent_white),("block_rank"):=as.character(1:.N),by=(zip)]
-chw_stories[,("story_match_id"):=
-              paste0(zip,block_rank)]
-censusblocks[,("story_match_id"):=
-               paste0(zip,block_rank),
-             by=.(zip,block_rank)]
-setnames(chw_stories,"Name.of.CHW.that.collected.story","CHW")
-setnames(chw_stories,"Age.Range.","Age")
-setnames(chw_stories,"Race.Ethnicity...Selected.Choice","Race/Ethnicity")
-setnames(chw_stories,"Story..Barriers.Challenges..Issues.they.can.t.get.help.with..Ways.a.CHW.can.help..Info.about.community","Story")
-chw_stories_clean <- chw_stories[,c("zip","CHW","Age","Race/Ethnicity","Story","story_match_id")]
-censusblocks1 <- st_as_sf(censusblocks)
-censusblocks2 <- st_transform(censusblocks1,st_crs(censusblocksA))
-blocks_stories1 <- chw_stories_clean[censusblocks3,on="story_match_id"]
-blocks_stories1$centroid <- NULL
-#blocks_stories <- censusblocks[chw_stories_clean,on="story_match_id"]
-#chw_stories_kepler <- chw_stories_census[,c("median_income","renter_pct","owner_pct","pub_transport_hh_pct","Total_population",
- #                                           "percent_white","percent_black","percent_hispanic","percent_asian","percent_other_or_2+races",
-  #                                          "school_district","placename","zip","TRACTCE","GEOID","latitude","longitude","geometry")]
-chw_stories_kepler <- st_as_sf(blocks_stories1)
-#chw_stories_kepler <- as.data.table(chw_stories_kepler)
-chw_stories_kepler1 <- st_transform(chw_stories_kepler,crs = 4326)
-st_write(chw_stories_kepler,"~/Downloads/chw_stories_4_20_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
+zctas_demog[,("centroid"):=NULL]
+zctas_demog <- zctas_demog[!is.na(STATEFP)]
+st_write(zctas_demog,"~/Downloads/TX_tracts_2022_on_3_7_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(censusblocks2,"~/Downloads/chw_stories_kepler_2020_on_4_20_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
-write_rds(chw_stories_kepler,paste0(censusdir,vintage,"/chw_stories_kepler2_2021_on_4_20_23"))
+st_write(zctas_demog,"~/Downloads/TX_tracts_2022_on_3_7_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+write_rds(zctas_demog,paste0(censusdir,vintage,"/TX_tracts_2022_on_3_7_24.RDS"))
 
-tracts_demog[,("centroid"):=NULL]
-tracts_demog <- tracts_demog[!is.na(STATEFP)]
-st_write(tracts_demog,"~/Downloads/TX_tracts_2022_on_3_7_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
-         layer_options = "GEOMETRY=AS_WKT")
-st_write(tracts_demog,"~/Downloads/TX_tracts_2022_on_3_7_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
-write_rds(tracts_demog,paste0(censusdir,vintage,"/TX_tracts_2022_on_3_7_24.RDS"))
-write_rds(redlines1,"~/Downloads/insurance_tracts_2022_on_2_19_24.RDS")
-st_write(redlines1,"~/Downloads/insurance_tracts_2022_on_2_19_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
-         layer_options = "GEOMETRY=AS_WKT")
-st_write(redlines1,"~/Downloads/insurance_tracts_2022_on_2_19_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
-rank_demogs <- tracts_demog[""]
-
-st_write(redlines_geo,"~/Downloads/redlines_geo_on_2_12_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
-write_rds(redlines_geo,paste0(maindir,"redlining/redlines_geo_on_2_12_24.RDS"))
-st_write(tracts_demog2,"~/Downloads/redlines_Harris_on_2_12_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
 FIPS_vector <- c("201","157","167","039","071","291","339","473")
@@ -871,11 +153,6 @@ st_write(Tx_tract_demog8,"~/Downloads/Tx_tracts8.geojson",driver = "GeoJSON")
 st_write(censusunsd,"~/Downloads/Tx_school_districts.geojson",driver = "GeoJSON")
 write_rds(Tx_tract_demog8,"~/Downloads/Tx_tracts8.RDS")
 
-
-HISD_HS <- st_read(paste0(censusdir, "2020/geo_census/HISDHighAttendanceZones1920/", "HighAttendanceZones1920.shp"))
-coords <- st_as_sf(Tx_tract_demog8)
-HISD_HS <- st_transform(HISD_HS,crs = st_crs(coords))
-st_write(HISD_HS,"~/Downloads/HISD_HS.geojson",driver = "GeoJSON")
 
 
 #for the vaccine stuff 

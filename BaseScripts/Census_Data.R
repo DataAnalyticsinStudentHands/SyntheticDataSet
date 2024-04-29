@@ -61,19 +61,20 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
     print(sprintf("Read variable options from %s", variables_json))
   }
   #doing read here and not in else, above, doesn't seem right, but otherwise returns nested lists...
-  if(str_detect(api_type,"dec")){
+  
+  #if(str_detect(api_type,"dec")){
     census_variables_dt <- read_json(variables_json) %>%
       map(as.data.table) %>%
       rbindlist(fill = TRUE) %>%
       filter(name != "GEO_ID") %>%
       filter(str_detect(group, groupname))
-  }else{
-    census_variables_dt <- read_json(variables_json) %>%
-      map(as.data.table) %>%
-      rbindlist(fill = TRUE) %>%
-      filter(name != "GEO_ID") %>%
-      filter(str_detect(name, groupname))
-  }
+  #}else{
+  #  census_variables_dt <- read_json(variables_json) %>%
+  #    map(as.data.table) %>%
+  #    rbindlist(fill = TRUE) %>%
+  #    filter(name != "GEO_ID") %>%
+  #    filter(str_detect(name, groupname))
+  #}
   return(census_variables_dt)
 }
 
@@ -146,6 +147,6 @@ censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,c
    write_csv(result,file_path)
    print("Done.")
   } 
-  return(census_variables)
+  return(result)
 }
 
