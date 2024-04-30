@@ -113,7 +113,7 @@ median_family_income <- as.data.table(med_family_income)
 median_family_income <- median_family_income[ZCTA5CE20%in%zips_tx]
 med_fam_income_total <- median_family_income[name=="B19113_001E"]
 zctas_demog <- zctas_demog[med_fam_income_total[,4:5],on="ZCTA5CE20"]
-zctas_demog[,("median_family_income"):=if_else(as.numeric(median_family_income)>0,median_family_income,as.character(0))]
+zctas_demog[,("median_family_income"):=if_else(as.numeric(median_family_income)>0,median_family_income,as.numeric(0))]
 
 
 #Poverty B17101 POVERTY STATUS IN THE PAST 12 MONTHS OF PEOPLE IN HOUSING UNITS
@@ -128,11 +128,53 @@ individuals_poverty <- individuals_poverty[name=="B17101_002E",4:5]
 zctas_demog <- zctas_demog[individuals_poverty, on="ZCTA5CE20"]
 zctas_demog[,("poverty_pct"):=as.integer((as.numeric(individuals_poverty)*100)/as.numeric(total_pop))]
 
-#add z-codes and DLD
-z_codes <- read_csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_base1_2022_Z_houMSA.csv"))
+#add DLD (Delayed Language Development)
+DLD <- read.csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_TX_delayed_language.csv"))
+DLD <- as.data.table(DLD)
+#get DLD by zip, with total number, number by race, number by ethnicity
+DLD[,DLD_case_total_zip:=.N,by=(PAT_ZIP)]
+DLD[,DLD_cases_race:=.N,by=.(PAT_ZIP,RACE)]
+DLD[,Asian:=fifelse(RACE=="2",DLD_cases_race,0)]
+DLD[,Black:=fifelse(RACE=="3",DLD_cases_race,0)]
+DLD[,White:=fifelse(RACE=="4",DLD_cases_race,0)]
+DLD[,DLD_cases_eth:=.N,by=.(PAT_ZIP,ETHNICITY)]
+DLD[,Hispanic:=fifelse(ETHNICITY=="1",DLD_cases_eth,0)]
+DLD[,Asian_pct_DLD:=(Asian/DLD_case_total_zip)*100]
+DLD[,Black_pct_DLD:=(Black/DLD_case_total_zip)*100]
+DLD[,White_pct_DLD:=(White/DLD_case_total_zip)*100]
+DLD[,Hispanic_pct_DLD:=(Hispanic/DLD_case_total_zip)*100]
+DLD_zip <- DLD[,lapply(.SD,max,na.rm=TRUE),by=(PAT_ZIP),.SDcols=c("DLD_case_total_zip","Asian_pct_DLD","Black_pct_DLD","White_pct_DLD","Hispanic_pct_DLD")]
+setnames(DLD_zip,"PAT_ZIP","ZCTA5CE20")
+zctas_demog_DLD <- zctas_demog[DLD_zip, on="ZCTA5CE20"]
+
+
+
+#get simple regressions
+
+#test <- DLD[,("DLD_DX"):=fcase(str_detect(OTH_DIAG_CODE_1,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_2,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_3,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_4,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_5,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_6,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_7,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_8,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_9,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_10,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_11,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_12,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_13,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_14,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_15,"F8"),T,
+#                               str_detect(PRINC_DIAG_CODE,"F8"),T,
+#                               default=F)]
+
+
+#add z-codes 
+z_codes <- read.csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_base1_2022_Z_houMSA.csv"))
 #lots of warnings on the read
 interactions <- read_csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_interaction_zip_houMSA.csv"))
-DLD <- read_csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_TX_delayed_language.csv"))
+DLD <- read.csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_TX_delayed_language.csv"))
 
 #add lm for each...
 
