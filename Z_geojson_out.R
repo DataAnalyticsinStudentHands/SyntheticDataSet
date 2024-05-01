@@ -182,7 +182,7 @@ zctas_demog_z <- zctas_demog[z_zip, on="ZCTA5CE20"]
 zctas_demog_z[,z_code_pop:=z_case_total_zip/total_pop]
 
 #did not do interactions normalization
-interactions <- read_csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_interaction_zip_houMSA.csv"))
+interactions <- read.csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_interaction_zip_houMSA.csv"))
 
 #add lm for each...
 
