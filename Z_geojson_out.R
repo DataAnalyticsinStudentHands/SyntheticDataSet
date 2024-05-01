@@ -134,56 +134,64 @@ DLD <- as.data.table(DLD)
 #get DLD by zip, with total number, number by race, number by ethnicity
 DLD[,DLD_case_total_zip:=.N,by=(PAT_ZIP)]
 DLD[,DLD_cases_race:=.N,by=.(PAT_ZIP,RACE)]
-DLD[,Asian:=fifelse(RACE=="2",DLD_cases_race,0)]
-DLD[,Black:=fifelse(RACE=="3",DLD_cases_race,0)]
-DLD[,White:=fifelse(RACE=="4",DLD_cases_race,0)]
+DLD[,Asian_DLD:=fifelse(RACE=="2",DLD_cases_race,0)]
+DLD[,Black_DLD:=fifelse(RACE=="3",DLD_cases_race,0)]
+DLD[,White_DLD:=fifelse(RACE=="4",DLD_cases_race,0)]
 DLD[,DLD_cases_eth:=.N,by=.(PAT_ZIP,ETHNICITY)]
-DLD[,Hispanic:=fifelse(ETHNICITY=="1",DLD_cases_eth,0)]
-DLD[,Asian_pct_DLD:=(Asian/DLD_case_total_zip)*100]
-DLD[,Black_pct_DLD:=(Black/DLD_case_total_zip)*100]
-DLD[,White_pct_DLD:=(White/DLD_case_total_zip)*100]
-DLD[,Hispanic_pct_DLD:=(Hispanic/DLD_case_total_zip)*100]
-DLD_zip <- DLD[,lapply(.SD,max,na.rm=TRUE),by=(PAT_ZIP),.SDcols=c("DLD_case_total_zip","Asian_pct_DLD","Black_pct_DLD","White_pct_DLD","Hispanic_pct_DLD")]
+DLD[,Hispanic_DLD:=fifelse(ETHNICITY=="1",DLD_cases_eth,0)]
+DLD[,Asian_pct_DLD:=(Asian_DLD/DLD_case_total_zip)*100]
+DLD[,Black_pct_DLD:=(Black_DLD/DLD_case_total_zip)*100]
+DLD[,White_pct_DLD:=(White_DLD/DLD_case_total_zip)*100]
+DLD[,Hispanic_pct_DLD:=(Hispanic_DLD/DLD_case_total_zip)*100]
+
+
+DLD_zip <- DLD[,lapply(.SD,max,na.rm=TRUE),
+               by=(PAT_ZIP),.SDcols=c("DLD_case_total_zip","Asian_pct_DLD","Black_pct_DLD",
+                                      "White_pct_DLD","Hispanic_pct_DLD","Asian_DLD","Black_DLD",
+                                      "White_DLD","Hispanic_DLD")]
 setnames(DLD_zip,"PAT_ZIP","ZCTA5CE20")
 zctas_demog_DLD <- zctas_demog[DLD_zip, on="ZCTA5CE20"]
-
-
-
-#get simple regressions
-
-#test <- DLD[,("DLD_DX"):=fcase(str_detect(OTH_DIAG_CODE_1,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_2,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_3,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_4,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_5,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_6,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_7,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_8,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_9,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_10,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_11,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_12,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_13,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_14,"F8"),T,
-#                               str_detect(OTH_DIAG_CODE_15,"F8"),T,
-#                               str_detect(PRINC_DIAG_CODE,"F8"),T,
-#                               default=F)]
-
+zctas_demog_DLD[,Asian_diff_expected:=Asian_pct-Black_pct_DLD]
+zctas_demog_DLD[,Black_diff_expected:=Black_pct-Black_pct_DLD]
+zctas_demog_DLD[,White_diff_expected:=White_pct-Black_pct_DLD]
+zctas_demog_DLD[,Latin_diff_expected:=Latin_pct-Hispanic_pct_DLD]
 
 #add z-codes 
 z_codes <- read.csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_base1_2022_Z_houMSA.csv"))
-#lots of warnings on the read
+z_codes <- as.data.table(z_codes)
+z_codes[,z_case_total_zip:=.N,by=(PAT_ZIP)]
+z_codes[,z_cases_race:=.N,by=.(PAT_ZIP,RACE)]
+z_codes[,Asian_z:=fifelse(RACE=="2",z_cases_race,0)]
+z_codes[,Black_z:=fifelse(RACE=="3",z_cases_race,0)]
+z_codes[,White_z:=fifelse(RACE=="4",z_cases_race,0)]
+z_codes[,z_cases_eth:=.N,by=.(PAT_ZIP,ETHNICITY)]
+z_codes[,Hispanic_z:=fifelse(ETHNICITY=="1",z_cases_eth,0)]
+z_codes[,Asian_pct_z:=(Asian_z/z_case_total_zip)*100]
+z_codes[,Black_pct_z:=(Black_z/z_case_total_zip)*100]
+z_codes[,White_pct_z:=(White_z/z_case_total_zip)*100]
+z_codes[,Hispanic_pct_z:=(Hispanic_z/z_case_total_zip)*100]
+
+
+
+z_zip <- z_codes[,lapply(.SD,max,na.rm=TRUE),
+               by=(PAT_ZIP),.SDcols=c("z_case_total_zip","Asian_pct_z","Black_pct_z",
+                                      "White_pct_z","Hispanic_pct_z","Asian_z","Black_z",
+                                      "White_z","Hispanic_z")]
+setnames(z_zip,"PAT_ZIP","ZCTA5CE20")
+zctas_demog_z <- zctas_demog[z_zip, on="ZCTA5CE20"]
+zctas_demog_z[,z_code_pop:=z_case_total_zip/total_pop]
+
+#did not do interactions normalization
 interactions <- read_csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_interaction_zip_houMSA.csv"))
-DLD <- read.csv(paste0(maindir,"/public_use_outpatient/OP_PUDF_2022_TX_delayed_language.csv"))
 
 #add lm for each...
 
-zctas_demog[,("centroid"):=NULL]
-zctas_demog <- zctas_demog[!is.na(STATEFP)]
-st_write(zctas_demog,"~/Downloads/TX_tracts_2022_on_3_7_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
+zctas_demog_z[,("centroid"):=NULL]
+zctas_demog_z <- zctas_demog_z[!is.na(STATEFP)]
+st_write(zctas_demog_z,"~/Downloads/TX_2022_z_codes_5_1_24.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(zctas_demog,"~/Downloads/TX_tracts_2022_on_3_7_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
-write_rds(zctas_demog,paste0(censusdir,vintage,"/TX_tracts_2022_on_3_7_24.RDS"))
+st_write(zctas_demog_z,"~/Downloads/TX_2022_z_codes_5_1_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+write_rds(zctas_demog_z,paste0(censusdir,vintage,"/TX_2022_z_codes_5_1_24.RDS"))
 
 
 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller 
