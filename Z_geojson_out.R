@@ -171,6 +171,23 @@ z_codes[,Black_pct_z:=(Black_z/z_case_total_zip)*100]
 z_codes[,White_pct_z:=(White_z/z_case_total_zip)*100]
 z_codes[,Hispanic_pct_z:=(Hispanic_z/z_case_total_zip)*100]
 
+#test <- DLD[,("DLD_DX"):=fcase(str_detect(OTH_DIAG_CODE_1,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_2,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_3,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_4,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_5,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_6,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_7,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_8,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_9,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_10,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_11,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_12,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_13,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_14,"F8"),T,
+#                               str_detect(OTH_DIAG_CODE_15,"F8"),T,
+#                               str_detect(PRINC_DIAG_CODE,"F8"),T,
+#                               default=F)]
 
 
 z_zip <- z_codes[,lapply(.SD,max,na.rm=TRUE),
