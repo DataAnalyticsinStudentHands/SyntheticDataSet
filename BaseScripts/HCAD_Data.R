@@ -56,7 +56,7 @@ getHCADParcels <- function(hcadDataDir){
 #'
 #' @param HCAD_parcels set of preprocessed parcels
 getResBuildings <- function(buildingDataDir, HCAD_parcels) {
-  # Prepare building features for residential houses downloaded from http://pdata.hcad.org/download/2014.html
+  # Prepare building features for residential houses downloaded from https://hcad.org/pdata/pdata-property-downloads.html by year
   HCAD_res_build <- read.table(paste0(buildingDataDir, "building_res.txt"), sep="\t", header=FALSE, fill=TRUE, colClasses = "character", strip.white = TRUE, quote = "")
   # colnames are exported from HCAD access.zip
   colnames(HCAD_res_build) <- readLines("Mappings/HCAD_ResBuildingFeaturesColumnNames.txt")
