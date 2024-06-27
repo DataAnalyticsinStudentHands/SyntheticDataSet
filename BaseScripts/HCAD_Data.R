@@ -1,3 +1,12 @@
+#Doing from 2005 through most recent per email on 6/26/24:
+#You have reached Open Records at Harris Central Appraisal District.
+
+#After a diligent search, there are no downloads responsive to your request prior to tax year 2005.
+#Why?
+#  Harris Central Appraisal District (HCAD) was established in 1983 for the purpose of appraising property in Harris County and adjacent counties for taxing purposes only. Prior to the opening of our office in 1983, all property assessments in the county was handled by the Harris County Tax Assessor-Collectors Office. When all the Harris County Tax Assessor-Collector transferred their assessment records to us, these assessments were on microfilm. The transition from microfilm to DOS was handled by us in 1988 which is why all accounts in our database begin with tax year 988. We began transitioning from DOS to a Windows based operating system in 2004-2005 and the software that was used at that time is obsolete and no longer available.
+#Regards,
+#Marlive Taylor-Harris/Open Records | Information & Assistance Division/Harris Central Appraisal District13013 Northwest Freeway/Houston, TX 77040/713.957.5678 – FAX/hcad.org/openrecords@hcad.org
+
 library(sf)
 library(tigris)
 library(stringr)
@@ -9,6 +18,8 @@ library(dplyr)
 #'
 #' @param hcadDataDir the folder with the HCAD raw parcels
 #' @param HCAD_parcelsRDS determines wheter to read preprocessed HCAD data from RDS file
+# 
+
 getHCADParcels <- function(hcadDataDir){
   
   # the Parcels.shp file can be downloaded from http://pdata.hcad.org/GIS/index.html
