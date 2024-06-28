@@ -5,6 +5,8 @@ library(tidyr)
 library(stringr)
 
 #maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
+#https://api.census.gov/data/2022/acs/acs5/variables.html
+#https://api.census.gov/data/2020/dec/dhc/variables.html
 #censusdir from workflow / census_key from expand_from scripts / source CensusData.R
 #quick and dirty for Carlos' redlining
 library(jsonlite)
@@ -196,7 +198,20 @@ under5boys <- sex_age_race_DT[age_range=="Under 5 years"&race=="_"&sex=="Male"]
 tracts_demog <- tracts_demog[under5boys[,7:8],on="GEOID"]
 setnames(tracts_demog,"number_sams","under_5_boys")
 tracts_demog[,("under_5"):=as.numeric(under_5_girls)+as.numeric(under_5_boys)]
-tracts_demog[,("zip_under_5"):=.SD[sum(under_5,na.rm = TRUE)],by=zip]
+#tracts_demog[,("zip_under_5"):=.SD[sum(under_5,na.rm = TRUE)],by=zip]#Error in as.vector(x, "list") : cannot coerce type 'closure' to vector of type 'list'
+
+#Venezualans
+tract_specific_origin_data_from_census_tx <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                                                    groupname = "B03001",county_num = county,
+                                                                    block="tract",api_type="acs/acs5",path_suff="est.csv")
+specific_origin_data <- tract_specific_origin_data_from_census_tx %>%
+  pivot_longer(4:ncol(tract_specific_origin_data_from_census_tx),names_to = "GEOID", values_to = "number_Venezuelan")
+origin_DT <- as.data.table(specific_origin_data)
+origin_DT <- origin_DT[!is.na(number_Venezuelan)]
+hispanic_origin_total <- origin_DT[name=="B03001_025E"]
+tracts_demog <- tracts_demog[hispanic_origin_total[,4:5],on="GEOID"]
+tracts_demog <- tracts_demog[!is.na(STATEFP)]
+tracts_demog_display <- tracts_demog[,c("placename","total_pop","Latin_pop","Latin_pct","number_Venezuelan","TRACTCE","NAMELSADCO","geometry")]
 
 #have to have sourced Census_Data.R and get censuskey from expand_from_census
 gini_from_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -224,8 +239,8 @@ setnames(tracts_demog,"median_income","median_individual_income")
 med_income_fb <- median_income[name=="B06011_005E"]
 tracts_demog <- tracts_demog[med_income_fb[,4:5],on="GEOID"]
 setnames(tracts_demog,"median_income","median_income_fb")
-tracts_demog[,("median_individual_income"):=if_else(median_individual_income=="-666666666","0",median_individual_income)]
-tracts_demog[,("median_income_fb"):=if_else(median_income_fb=="-666666666","0",median_income_fb)]
+tracts_demog[,("median_individual_income"):=if_else(as.numeric(median_individual_income)<0,0,median_individual_income)]
+tracts_demog[,("median_income_fb"):=if_else(as.numeric(median_income_fb)<0,0,median_income_fb)]
 
 place_born_med_income_err <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                 groupname = "B06011",county_num = county,
@@ -450,12 +465,49 @@ tracts_demog <- tracts_demog[vacancies[,4:7],on="GEOID"]
 place_born_census <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                             groupname = "B06004",county_num = county,
                                             block="tract",api_type="acs/acs5",path_suff="est.csv")
+place_born_language <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
+                                            groupname = "B06007",county_num = county,
+                                            block="tract",api_type="acs/acs5",path_suff="est.csv")
+language <- place_born_language %>%
+  pivot_longer(4:ncol(place_born_language),names_to = "GEOID", values_to = "language")
+language <- as.data.table(language)
+language_Spanish <- language[name=="B06007_003E"]
+setnames(language_Spanish,"language","Spanish_speakers")
+tracts_demog <- tracts_demog[language_Spanish[,4:5],on="GEOID"]
+language_bilingual <- language[name=="B06007_004E"]
+setnames(language_bilingual,"language","bilingual")
+tracts_demog <- tracts_demog[language_bilingual[,4:5],on="GEOID"]
+language_limited_English <- language[name=="B06007_005E"]
+setnames(language_limited_English,"language","limited_English")
+tracts_demog <- tracts_demog[language_limited_English[,4:5],on="GEOID"]
+
 place_born_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                             groupname = "B06009",county_num = county,
                                             block="tract",api_type="acs/acs5",path_suff="est.csv")
+pb_ed <- place_born_education %>%
+  pivot_longer(4:ncol(place_born_education),names_to = "GEOID", values_to = "education")
+pb_ed <- as.data.table(pb_ed)
+pb_ed_fb_no_HS <- pb_ed[name=="B06009_026E"]
+setnames(pb_ed_fb_no_HS,"education","foreign_born_no_HS")
+tracts_demog <- tracts_demog[pb_ed_fb_no_HS[,4:5],on="GEOID"]
+pb_ed_fb_HS <- pb_ed[name=="B06009_027E"]
+setnames(pb_ed_fb_HS,"education","foreign_born_HS")
+tracts_demog <- tracts_demog[pb_ed_fb_HS[,4:5],on="GEOID"]
+pb_ed_fb_sc <- pb_ed[name=="B06009_028E"]
+setnames(pb_ed_fb_sc,"education","foreign_born_some_college")
+tracts_demog <- tracts_demog[pb_ed_fb_sc[,4:5],on="GEOID"]
+pb_ed_fb_ba <- pb_ed[name=="B06009_029E"]
+setnames(pb_ed_fb_ba,"education","foreign_born_bachelor")
+tracts_demog <- tracts_demog[pb_ed_fb_ba[,4:5],on="GEOID"]
+pb_ed_fb_prof <- pb_ed[name=="B06009_030E"]
+setnames(pb_ed_fb_prof,"education","foreign_born_post_grad")
+tracts_demog <- tracts_demog[pb_ed_fb_prof[,4:5],on="GEOID"]
+
+
 sex_age_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
                                                groupname = "B15001",county_num = county,
                                                block="tract",api_type="acs/acs5",path_suff="est.csv")
+
 
 #Educational Attainment and Employment Status by Language Spoken at Home for the Population 25 Years and Over
 employment_education <- censusData_byGroupName(censusdir, vintage, state, censuskey, 
@@ -827,7 +879,7 @@ chw_stories_kepler <- st_as_sf(blocks_stories1)
 chw_stories_kepler1 <- st_transform(chw_stories_kepler,crs = 4326)
 st_write(chw_stories_kepler,"~/Downloads/chw_stories_4_20_23.csv",driver = "CSV",factorsAsCharacter=FALSE,
          layer_options = "GEOMETRY=AS_WKT")
-st_write(censusblocks2,"~/Downloads/chw_stories_kepler_2020_on_4_20_23.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
+st_write(tracts_demog_display,"~/Downloads/Venezuelan_ed_income_kepler_2022_on_6_28_24.geojson",driver = "GeoJSON",factorsAsCharacter=FALSE)
 write_rds(chw_stories_kepler,paste0(censusdir,vintage,"/chw_stories_kepler2_2021_on_4_20_23"))
 
 tracts_demog[,("centroid"):=NULL]
