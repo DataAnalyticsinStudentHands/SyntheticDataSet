@@ -23,7 +23,8 @@ library(dplyr)
 library(tidyr)
 library(data.table)
 library(stringr)
-maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+maindir = "~/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/"
+#maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 #maindir = "~/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
 housingdir = paste0(maindir,"HCAD/")

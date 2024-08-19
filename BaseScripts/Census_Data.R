@@ -22,6 +22,10 @@ library(dplyr) #may not be using; need to check
 #' @block for region - either block_group (API as "block group") or tract or zipcode (API as "zip code tabulation area"); zip returns whole country (complain to your representative)
 #' @return census_data A dataframe of the Census data used for simulations in this package
 
+#NEED - new folder structure, including different areas better, and dates
+#NEED - write to download_metadata.csv - or xl - at highest level? 
+#needs a "used in" column. 
+
 #tools
 valid_file_path <- function(censusdir,vintage,state,county,api_type,block,groupname,path_suff){
   if (!file.exists(paste0(censusdir,vintage))){
