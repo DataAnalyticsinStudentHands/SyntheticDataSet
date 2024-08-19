@@ -44,6 +44,9 @@ valid_file_path <- function(censusdir,vintage,state,county,api_type,block,groupn
     print(sprintf("created folder %s", paste0(folder_path,"/downloaded")))
   }
   api <- str_replace_all(api_type,"/","_")
+  #need to figure out how to deal with things that are the whole state, then counties below - maybe not just one folder?
+  #or a new folder for block_group for each county???
+  if (block != "block_group")(county="")
   file_path <- paste0(censusdir,vintage,"/state_",state,"/downloaded/", state, county, "_", api, "_", block, "_", groupname, "_", path_suff)
   return(file_path)
 }
