@@ -87,13 +87,28 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
   return(census_variables_dt)
 }
 
+write_download_metadata <- function(concept,vintage,state,county,groupname,api_type,block,file_path){
+  rel_file_path <- str_remove(file_path,censusdir)
+  csv_path <- paste0(censusdir,"download_metadata.csv")
+  new_row <- data.frame("concept"=concept,"year"=vintage,"state"=state,"county"=county,"groupname"=groupname,
+                        "api_type"=api_type,"block"=block,"file_path"=file_path,"download_date"=Sys.time())
+  if (file.exists(csv_path)){
+    write_csv(new_row,csv_path,append = TRUE)
+  }else{
+    write_csv(new_row,csv_path,append = FALSE,col_names = TRUE)
+  }
+  return(result)
+}
+
 censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,county_num,block,api_type,path_suff){
   file_path <- valid_file_path(censusdir,vintage,state,county,api_type,block,groupname,path_suff)
   if (file.exists(file_path)){
     result <- read_csv(file_path, col_types = cols())
-    print(sprintf("Reading file from %s", file_path))
+    print(paste0("Reading file from ", file_path))
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
+    print(census_variables$label)
+    print(census_variables$name)
     if(path_suff=="err.csv"){
       census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
       census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
@@ -128,7 +143,6 @@ censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,c
                                          key = censuskey)
       }
     }
-    
     #transpose the data to be joined with variable information 
     if(block=="block_group"){
       data_for_vars <- data_for_vars_state %>%  
@@ -154,6 +168,8 @@ censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,c
    print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
    print(sprintf("Writing census file for variable group as csv %s", file_path))
    write_csv(result,file_path)
+   write_download_metadata(concept,vintage,state,county,groupname,api_type,block,file_path)
+   print(var)
    print("Done.")
   } 
   return(result)
