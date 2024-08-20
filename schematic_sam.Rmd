@@ -23,7 +23,7 @@ library(dplyr)
 library(tidyr)
 library(data.table)
 library(stringr)
-maindir = "~/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/"
+maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Studio
 #maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 #maindir = "~/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at work
@@ -70,7 +70,7 @@ each census block are also held invariant."
 Cut out the discussion
 
 Do population for 2020, with notes to where to find the already worked out stuff for 2010
-Do sare, bgSARE with specifications from P! and PCT
+Do sare, bgSARE with specifications from P1 and PCT
 Do household
 
 Do post-enumeration fix

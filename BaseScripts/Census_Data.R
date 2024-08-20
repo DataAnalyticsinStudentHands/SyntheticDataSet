@@ -1,9 +1,10 @@
 library(jsonlite) #may not be using; need to check
 library(censusapi)
 library(readr)
-library(purrr) #may not be using; need to check
+#library(purrr) #may not be using; need to check
 library(data.table)
-library(dplyr) #may not be using; need to check
+#library(dplyr) #may not be using; need to check
+#library(lehdr) #need for LODES data - https://github.com/jamgreen/lehdr
 
 #' Census Data from API for a variable group
 #'
@@ -17,37 +18,38 @@ library(dplyr) #may not be using; need to check
 #' @param state The state for which the data is being pulled
 #' @param groupname the variable groupname we are pulling the data for
 #' @param county_num the census code for the county - only needed if there are blockgroups; some APIs seem to ignore and return whole state...
+#' @param county * for all, including when calling place or zip
 #' @param api_type the census api called from - https://www.census.gov/data/developers/data-sets.html
 #' @path_suff the suffix for the variable file and whether estimate or error -   "dec.csv" | "est.csv" | "err.csv"
-#' @block for region - either block_group (API as "block group") or tract or zipcode (API as "zip code tabulation area"); zip returns whole country (complain to your representative)
-#' @return census_data A dataframe of the Census data used for simulations in this package
+#' @block for region - either block_group (API as "block group") or tract or place or zipcode (API as "zip code tabulation area"); zip returns whole country (complain to your representative)
+#' @return census_data / LODES data - A dataframe of the Census data used for simulations in this package
 
-#NEED - new folder structure, including different areas better, and dates
-#NEED - write to download_metadata.csv - or xl - at highest level? 
-#needs a "used in" column. 
-
-#tools
+#creates folders and filenames. 
 valid_file_path <- function(censusdir,vintage,state,county,api_type,block,groupname,path_suff){
   if (!file.exists(paste0(censusdir,vintage))){
     dir.create(paste0(censusdir,vintage))
+    print(paste0("created folder: ",censusdir,vintage))
+  }else{
+    print(paste0("found folder: ",censusdir,vintage))
   }
   folder_path <- paste0(censusdir,vintage,"/state_",state)
-  if (file.exists(paste0(folder_path,"/downloaded"))){
-    print(sprintf("found folder %s", paste0(folder_path,"/downloaded")))
+  if (!file.exists(paste0(folder_path))){
+    dir.create(folder_path)
+    print(paste0("created folder: ",folder_path))
   }else{
-    if (!file.exists(paste0(folder_path))){
-      dir.create(paste0(folder_path))
-      dir.create(paste0(folder_path,"/downloaded"))
+    print(paste0("found folder: ",folder_path))
+  }
+  if (block=="block_group" & county!="*"){
+    if (file.exists(paste0(folder_path,"/county_",county))){
+      print(paste0("found folder: ", paste0(folder_path,"/county_",county)))
     }else{
-      dir.create(paste0(folder_path,"/downloaded"))
+      dir.create(paste0(folder_path,"/county_",county))
+      print(paste0("created folder:", folder_path,"/county_",county))
     }
-    print(sprintf("created folder %s", paste0(folder_path,"/downloaded")))
+    folder_path <- paste0(folder_path,"/county_",county)
   }
   api <- str_replace_all(api_type,"/","_")
-  #need to figure out how to deal with things that are the whole state, then counties below - maybe not just one folder?
-  #or a new folder for block_group for each county???
-  if (block != "block_group")(county="")
-  file_path <- paste0(censusdir,vintage,"/state_",state,"/downloaded/", state, county, "_", api, "_", block, "_", groupname, "_", path_suff)
+  file_path <- paste0(folder_path,"/",vintage,"_",state,"_",api,"_",block,"_",groupname,"_",path_suff)
   return(file_path)
 }
 
@@ -156,4 +158,18 @@ censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,c
   } 
   return(result)
 }
+
+
+#https://github.com/jamgreen/lehdr
+#or_od <- grab_lodes(state = "tx", 
+#                    year = 2020, 
+#                    version = "LODES8", 
+#                    lodes_type = "od", 
+#                    job_type = "JT01",
+#                    segment = "S000", 
+#                    state_part = "main", 
+#                    agg_geo = "block")
+# 10m rows - by origin and destination in block by job type... could be very interesting, but not simple
+#think about BFRSS, and Kid version, etc.
+
 
