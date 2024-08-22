@@ -51,6 +51,43 @@ _dec = decennial; _acs = American Community Survey; years are included when know
 SARE = Sex, Age, Race, Ethnicity; race_ and eth_ when too confusing
 _DT for a data.table (need to think about how to remove not needed files)
 
+2020 count problems
+https://www.census.gov/newsroom/blogs/random-samplings/2023/12/recommendations-2020-pes-coverage-results-in-vintage-2023-pop-estimates.html
+https://api.census.gov/data/2020/dec/pes.html
+There are numbers we can use to nudge toward the post-enumeration survey from 2020, but not for 2010 or 2000.
+Importantly, from above, for 2020:
+The Hispanic or Latino population had a 4.99% undercount.
+The Black or African American population had a 3.30% undercount.
+The American Indian or Alaska Native population living on reservations had a 5.64% undercount.
+The White alone, non-Hispanic population had a 1.64% overcount.
+The Asian population had a 2.62% overcount.
+
+Some folks have tried to use self-response rate as an indicator - https://www.census.gov/data/developers/data-sets/decennial-response-rates.html
+
+2010 count problems (also didn't correct for estimations)
+https://www.census.gov/programs-surveys/decennial-census/about/coverage-measurement/pes.2010.html
+https://www.census.gov/data/developers/data-sets/decennial-response-rates.2010.html#list-tab-45070917
+https://www.census.gov/programs-surveys/decennial-census/about/coverage-measurement/pes/2010/ccm-results-texas.html
+
+
+2000 count problems
+vgl: 2000 revision: https://www2.census.gov/programs-surveys/decennial/2000/program-management/5-review/ace/pp-60r.pdf
+https://www2.census.gov/programs-surveys/decennial/2000/program-management/5-review/ace/pp-45r.pdf
+https://www.census.gov/library/working-papers/2011/demo/POP-twps0091.html and:
+https://www2.census.gov/programs-surveys/decennial/2000/program-management/5-review/ace/pp-41r.pdf
+"The DA estimates for race-sex groups in 2000 reveal the persistence of the differential
+undercount of one group as measured by DA--Black males–though the differential is reduced
+from 1990 and earlier censuses. For Black males, the group with the highest net undercount rates
+historically, the rate of 5.15 percent for 2000 is 3.0 percentage points below the 1990 estimate of
+8.13 percent (Table 2). For Black females, the rate of 0.52 percent is appreciably lower than the
+1990 estimate of 3.05 percent (a drop of 2.5 percentage points). The DA estimates for NonBlack
+males shows a small net undercount of 0.21 percent, while a net census overcount of 0.78 percent
+is estimated for NonBlack females. Like Black net undercount rates, the NonBlack rates are
+appreciably reduced from 1990. The reduction was proportionately greater for Black, however,
+lowering the Black-NonBlack differential undercount from 4.44 to 3.07 percentage points."
+
+
+
 At some point: https://www2.census.gov/programs-surveys/decennial/2020/data/apportionment/2020CensusOverseasCounts.xlsx
 and: a discussion of https://www.census.gov/programs-surveys/decennial-census/decade/2020/planning-management/count/service-based-enumeration.html
 some of the homeless are in group quarters, but the service-based enumeration is supposed to be higher. Looks like gq 702, 704 and 706
@@ -180,12 +217,13 @@ Now that we have the information at the tract level, let's also pick up the bloc
 ```{r block_group sex by age}
 begin <- Sys.time()
 bgSAR_dec_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+  census_block_get(censusdir, vintage, state, censuskey,
+  #censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P12",county_num = county, 
                          block="block_group",api_type="dec/dhc",path_suff="est.csv")
-bgSAR_dec_data_from_census_DT <- as.data.table(bgSAR_dec_data_from_census)
-bgSAR_dec_data_from_census_DT[,4:ncol(bgSAR_dec_data_from_census_DT)] <- 
-  bgSAR_dec_data_from_census_DT[,lapply(.SD[,4:ncol(bgSAR_dec_data_from_census_DT)], as.numeric)]
+#bgSAR_dec_data_from_census_DT <- as.data.table(bgSAR_dec_data_from_census)
+#bgSAR_dec_data_from_census_DT[,4:ncol(bgSAR_dec_data_from_census_DT)] <- 
+#  bgSAR_dec_data_from_census_DT[,lapply(.SD[,4:ncol(bgSAR_dec_data_from_census_DT)], as.numeric)]
 end <- Sys.time()
 paste0("Process took ",end-begin," to finish")
 ```
