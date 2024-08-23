@@ -19,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r prelims, include=FALSE}
 source('BaseScripts/Census_Data.R') #move out of BaseScripts?
 source('tests.R') #need to redo! Using for some of bgSAR now, but not consistent
-library(dplyr)
+#library(dplyr)
 library(tidyr)
 library(data.table)
 library(stringr)
@@ -31,7 +31,6 @@ housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
 vintage = "2020"
-#numberOfCores = 1
 state = "48" #48 Texas; 22 Louisiana
 county = "*" #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
 #st_county = paste0(state,county) #"48201"
@@ -149,7 +148,7 @@ Let's begin with PCT12, which is tract level data but has every age by year, gen
 trSAR_dec_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT12",county_num = county,
-                         block="tract",api_type="dec/dhc",path_suff="est.csv") #dec/sf1 for 2010!!
+                         block="tract",api_type="dec/dhc",path_suff="est") #dec/sf1 for 2010!!
 
 #This is all of Texas - county number doesn't seem to matter. 
 #trSAR_dec_data_from_census <- trSAR_dec_data_from_census %>%
@@ -220,7 +219,7 @@ bgSAR_dec_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey,
   #censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P12",county_num = county, 
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
+                         block="block_group",api_type="dec/dhc",path_suff="est")
 #bgSAR_dec_data_from_census_DT <- as.data.table(bgSAR_dec_data_from_census)
 #bgSAR_dec_data_from_census_DT[,4:ncol(bgSAR_dec_data_from_census_DT)] <- 
 #  bgSAR_dec_data_from_census_DT[,lapply(.SD[,4:ncol(bgSAR_dec_data_from_census_DT)], as.numeric)]

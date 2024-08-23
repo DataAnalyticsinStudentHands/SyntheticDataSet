@@ -26,6 +26,7 @@ library(tidyr)
 library(dplyr)
 library(stringr)
 library(data.table)
+maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Studio
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
@@ -33,11 +34,9 @@ housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
 vintage = "2020"
-housingStockFromRDS = TRUE 
-#numberOfCores = 1
 state = 48 #48 Texas; 22 Louisiana
-county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
-st_county = paste0(state,county)
+county = "*" #201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
+#st_county = paste0(state,county)
 tract = "*"
 Sam_seed = 135
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
@@ -55,7 +54,7 @@ bg_hh_type_race_eth_data_from_census <-
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P16", county_num = "*",
                          block="block_group", api_type="dec/dhc",
-                         path_suff="est.csv")
+                         path_suff="est")
 ```
 
 The households have data associated with them, and each household will have an id. The head of household is given extra tables, although there are reasons to think hard about the various ways in which head of household is designated and only recently has the census allowed for female head of household when a male is present. Vast majority are assumed to be male, if present.
@@ -130,7 +129,7 @@ bg_hh_age_tenure_data_from_census <-
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "H13", county_num = "*",
                          block="block_group", api_type="dec/dhc",
-                         path_suff="est.csv")
+                         path_suff="est")
 bgHH_age_data <- as.data.table(bg_hh_age_tenure_data_from_census)
 bgHH_age_data[,6:ncol(bgHH_age_data)] <- 
   bgHH_age_data[,lapply(.SD[,6:ncol(bgHH_age_data)], as.numeric)]
@@ -208,7 +207,7 @@ bg_hh_type_tenure_data_from_census <-
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "H14", county_num = "*",
                          block="block_group", api_type="dec/dhc",
-                         path_suff="est.csv")
+                         path_suff="est")
 bgHH_type_data <- as.data.table(bg_hh_type_tenure_data_from_census)
 bgHH_type_data[,6:ncol(bgHH_type_data)] <- 
   bgHH_type_data[,lapply(.SD[,6:ncol(bgHH_type_data)], as.numeric)]
@@ -272,7 +271,7 @@ rm(bgHH_type_data)
 bg_hh_own_children_type_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P20",county_num = "*",
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
+                         block="block_group",api_type="dec/dhc",path_suff="est")
 bgHH_own_kids_type_data <- as.data.table(bg_hh_own_children_type_data_from_census)
 bgHH_own_kids_type_data[,6:ncol(bgHH_own_kids_type_data)] <- 
   bgHH_own_kids_type_data[,lapply(.SD[,6:ncol(bgHH_own_kids_type_data)], as.numeric)]
@@ -341,7 +340,7 @@ rm(bgHH_own_kids_type_data)
 tr_hh_couples_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT15",county_num = "*",
-                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+                         block="tract",api_type="dec/dhc",path_suff="est")
 tr_hh_couples_data <- as.data.table(tr_hh_couples_data_from_census)
 tr_hh_couples_data[,6:ncol(tr_hh_couples_data)] <- 
   tr_hh_couples_data[,lapply(.SD[,6:ncol(tr_hh_couples_data)], as.numeric)]
@@ -396,7 +395,7 @@ rm(trHH_couples)
 tr_hh_own_children_tenure_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "HCT2",county_num = "*",
-                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+                         block="tract",api_type="dec/dhc",path_suff="est")
 trHH_own_kids_tenure_data <- as.data.table(tr_hh_own_children_tenure_data_from_census)
 trHH_own_kids_tenure_data[,6:ncol(trHH_own_kids_tenure_data)] <- 
   trHH_own_kids_tenure_data[,lapply(.SD[,6:ncol(trHH_own_kids_tenure_data)], as.numeric)]
@@ -420,7 +419,7 @@ rm(trHH_own_kids_tenure_data)
 tr_hh_tenure_children_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "HCT3",county_num = "*",
-                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+                         block="tract",api_type="dec/dhc",path_suff="est")
 trHH_all_kids_tenure_data <- as.data.table(tr_hh_tenure_children_data_from_census)
 trHH_all_kids_tenure_data[,6:ncol(trHH_all_kids_tenure_data)] <- 
   trHH_all_kids_tenure_data[,lapply(.SD[,6:ncol(trHH_all_kids_tenure_data)], as.numeric)]
@@ -478,7 +477,7 @@ rm(trHH_own_kids_tenure)
 bg_hh_family_children_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P21",county_num = "*",
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
+                         block="block_group",api_type="dec/dhc",path_suff="est")
 bgHH_fam_kids_data <- as.data.table(bg_hh_family_children_data_from_census)
 bgHH_fam_kids_data[,6:ncol(bgHH_fam_kids_data)] <- 
   bgHH_fam_kids_data[,lapply(.SD[,6:ncol(bgHH_fam_kids_data)], as.numeric)]
@@ -511,7 +510,7 @@ table(bgHH_fam_kids[,family],bgHH_fam_kids[,all_kids])
 tr_hh_type_rel_seniors_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT9",county_num = "*",
-                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+                         block="tract",api_type="dec/dhc",path_suff="est")
 trHH_typesr_data <- as.data.table(tr_hh_type_rel_seniors_data_from_census)
 trHH_typesr_data[,6:ncol(trHH_typesr_data)] <- 
   trHH_typesr_data[,lapply(.SD[,6:ncol(trHH_typesr_data)], as.numeric)]
@@ -700,7 +699,7 @@ bg_hh_size_tenure_data_from_census <-
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "H12", county_num = "*",
                          block="block_group", api_type="dec/dhc",
-                         path_suff="est.csv")
+                         path_suff="est")
 bgHH_size_data <- as.data.table(bg_hh_size_tenure_data_from_census)
 bgHH_size_data[,6:ncol(bgHH_size_data)] <- 
   bgHH_size_data[,lapply(.SD[,6:ncol(bgHH_size_data)], as.numeric)]
@@ -766,7 +765,7 @@ tr_hh_size_family_data_from_census <-
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT7", county_num = "*",
                          block="tract", api_type="dec/dhc",
-                         path_suff="est.csv")
+                         path_suff="est")
 trHH_size_data <- as.data.table(tr_hh_size_family_data_from_census)
 trHH_size_data[,6:ncol(trHH_size_data)] <- 
   trHH_size_data[,lapply(.SD[,6:ncol(trHH_size_data)], as.numeric)]

@@ -22,11 +22,12 @@ https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html for options on the knit
 source('BaseScripts/Census_Data.R') #move out of BaseScripts?
 source('tests.R')
 library(tidyr)
-library(dplyr)
+#library(dplyr)
 library(stringr)
 library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
-maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
+maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Studio
+#maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
@@ -55,9 +56,14 @@ set up group quarters
 #https://www.census.gov/programs-surveys/decennial-census/decade/2020/planning-management/plan/memo-series/2020-memo-2021_08.html
 
 bg_gq_age_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
+  census_block_get(censusdir, vintage, state, censuskey, 
                          groupname = "P18",county_num = "*",
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
+                         api_type="dec/dhc",path_suff="est")
+
+total_test <- sum(as.integer(bg_gq_age_data_from_census[label=="!!",6:(ncol(bg_gq_age_data_from_census)-4)],na.rm = TRUE))
+bgGQ_age_data <- bg_gq_age_data_from_census[!is.na(label_4)]
+
+
 bgGQ_age_data <- as.data.table(bg_gq_age_data_from_census)
 bgGQ_age_data[,6:ncol(bgGQ_age_data)] <- 
   bgGQ_age_data[,lapply(.SD[,6:ncol(bgGQ_age_data)], as.numeric)]
@@ -99,7 +105,7 @@ rm(bgGQ_age_data)
 tr_gq_race_data_from_census <- 
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT18",county_num = "*",
-                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+                         block="tract",api_type="dec/dhc",path_suff="est")
 trGQ_age_data <- as.data.table(tr_gq_race_data_from_census)
 trGQ_age_data[,6:ncol(trGQ_age_data)] <- 
   trGQ_age_data[,lapply(.SD[,6:ncol(trGQ_age_data)], as.numeric)]
@@ -153,7 +159,7 @@ trGQ_eth[,("HvL"):=ifelse(race=="H",TRUE,FALSE)]
 #tr_gq_sex_age_data_from_census <- 
 #  censusData_byGroupName(censusdir, vintage, state, censuskey, 
 #                         groupname = "PCT19",county_num = "*",
-#                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+#                         block="tract",api_type="dec/dhc",path_suff="est")
 
 #all show up blank, presumably need special access for small numbers - tried tract and block_group, but not larger - could look for city
 #PC01 	GROUP QUARTERS POPULATION BY SEX BY AGE
@@ -373,7 +379,7 @@ bgHH_dec <- read_rds(paste0(censusdir,vintage,"/working/bgHH_dec.RDS"))
 #tr_dp_relationship_data_from_census <- 
 #  censusData_byGroupName(censusdir, vintage, state, censuskey, 
 #                         groupname = "DP1",county_num = "*",
-#                         block="tract",api_type="dec/dp",path_suff="est.csv")
+#                         block="tract",api_type="dec/dp",path_suff="est")
 #
 
 ```
@@ -389,12 +395,12 @@ if (file.exists(paste0(censusdir,vintage,"/working/bgSARE.RDS"))){
 bg_hh_type_relation_data_from_census <-  #seems to have all the categories of PCT17, but not race/ethnicity; type is just inHH or gq
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "P17",county_num = "*",
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv")
+                         block="block_group",api_type="dec/dhc",path_suff="est")
 
 tr_hh_type_relation_race_data_from_census <-  #seems to have all the categories of P17, but also has race/ethnicity...
   censusData_byGroupName(censusdir, vintage, state, censuskey, 
                          groupname = "PCT17",county_num = "*",
-                         block="tract",api_type="dec/dhc",path_suff="est.csv")
+                         block="tract",api_type="dec/dhc",path_suff="est")
 
 #add two together to get bg race, etc.; might need to do the Cartesian thing
 
@@ -410,7 +416,7 @@ tr_hh_type_relation_race_data_from_census <-  #seems to have all the categories 
 #response_data_from_census <- 
 #  censusData_byGroupName(censusdir, vintage, state, censuskey, 
 #                         groupname = "",county_num = "*",
-#                         block="tract",api_type="dec/responserate",path_suff="est.csv")
+#                         block="tract",api_type="dec/responserate",path_suff="est")
 #this gets "name":"CRRALL","label":"Cumulative Self-Response Rate - Overall"
 response_data_from_census <- getCensus(name = "dec/responserate",
                                          vintage = vintage,
@@ -450,7 +456,7 @@ What we'll do, therefore, is move the tract level information from bgSAR to the 
 trHH_SARE_data_from_census <- 
   censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
                          groupname = "PCT13",county_num = county,
-                         block="tract",api_type="dec/dhc",path_suff="est.csv")#api_type="dec/sf1" for 2010
+                         block="tract",api_type="dec/dhc",path_suff="est")#api_type="dec/sf1" for 2010
 trHH_SARE_data <- as.data.table(trHH_SARE_data_from_census)
 trHH_SARE_data[,4:ncol(trHH_SARE_data)] <- 
   trHH_SARE_data[,lapply(.SD[,4:ncol(trHH_SARE_data)], as.numeric)]
@@ -686,7 +692,7 @@ group quarters are needed b/c hh don't include them - PC03 offers more detail, o
 group_quarters_block_data_from_census <- 
   censusData_byGroupName(censusdir, vintage="2020", state, censuskey, 
                          groupname = "P43",county_num = county,
-                         block="block_group",api_type="dec/dhc",path_suff="est.csv") #api_type="dec/sf1" for 2010
+                         block="block_group",api_type="dec/dhc",path_suff="est") #api_type="dec/sf1" for 2010
 bg_group_quarters_data <- as.data.table(group_quarters_block_data_from_census)
 bg_group_quarters_data[,4:ncol(bg_group_quarters_data)] <- 
   bg_group_quarters_data[,lapply(.SD[,4:ncol(bg_group_quarters_data)], as.numeric)]
@@ -761,7 +767,7 @@ The age ranges are quite broad, and the absence of race and ethnicity data would
 group_quarters_tract_type_data_from_census <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "PCT20",county_num = county,
-                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+                         block="tract",api_type="dec/sf1",path_suff="est")
 tr_re_group_quarters_type_data <- as.data.table(group_quarters_tract_type_data_from_census) %>%
       select(name,label,concept,starts_with(st_county))
 tr_re_group_quarters_type_data[,4:ncol(tr_re_group_quarters_type_data)] <- 
@@ -839,7 +845,7 @@ LOOKS LIKE THIS AND OTHER GQ THINGS WERE DROPPED IN 2020
 group_quarters_tract_sex_age_data_from_census <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "PCT21",county_num = county,
-                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+                         block="tract",api_type="dec/sf1",path_suff="est")
 tr_sex_age_group_quarters_data <- as.data.table(group_quarters_tract_sex_age_data_from_census)%>%
       select(name,label,concept,starts_with(st_county))
 tr_sex_age_group_quarters_data[,4:ncol(tr_sex_age_group_quarters_data)] <- 
@@ -909,7 +915,7 @@ And PCT22 is tract level group quarters, 18 years old and over, but with sex by 
 group_quarters_tract_sex_type_data_from_census <- 
   censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                          groupname = "PCT22",county_num = county,
-                         block="tract",api_type="dec/sf1",path_suff="est.csv")
+                         block="tract",api_type="dec/sf1",path_suff="est")
 tr_re_sex_type_group_quarters_data <- as.data.table(group_quarters_tract_sex_type_data_from_census) %>%
       select(name,label,concept,starts_with(st_county))
 tr_re_sex_type_group_quarters_data[,4:ncol(tr_re_sex_type_group_quarters_data)] <- 
@@ -2121,16 +2127,16 @@ The redistricting data collected in 2010 reports population estimates in yet a d
 ```{r pl data downloaded}
     eth_block_data_from_census <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                       groupname = "P2",county_num = county,
-                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
+                                                                      block="block_group",api_type="dec/pl",path_suff="est")
     race_block_data_from_census <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                 groupname = "P1",county_num = county,
-                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
+                                                                block="block_group",api_type="dec/pl",path_suff="est")
     eth_over17_block_data_from_census <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                       groupname = "P4",county_num = county,
-                                                                      block="block_group",api_type="dec/pl",path_suff="est.csv")
+                                                                      block="block_group",api_type="dec/pl",path_suff="est")
     race_over17_block_data_from_census <- censusData_byGroupName(censusdir, vintage="2010", state, censuskey, 
                                                                 groupname = "P3",county_num = county,
-                                                                block="block_group",api_type="dec/pl",path_suff="est.csv")
+                                                                block="block_group",api_type="dec/pl",path_suff="est")
  
     
 ```

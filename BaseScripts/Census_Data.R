@@ -31,16 +31,15 @@ library(data.table)
 #for writing download metadata to a single file - may want to put in a separate "tools" beyond census
 write_download_metadata <- function(maindir,concept,vintage,state,county,theme,groupname,api_type,geo_type,
                                     rel_file_path,tool,citation,notes){
-  csv_path <- paste0(maindir,"download_metadata.csv")
   new_row <- data.frame("concept"=concept,"year"=vintage,"state"=state,"county"=county,"theme"=theme,"groupname"=groupname,
                         "api_type"=api_type,"geo_type"=geo_type,"download_date"=Sys.time(),
-                        "tool"=tool,"file_path"=rel_file_path,"citation"=citation,"notes"="")
+                        "tool"=tool,"file_path"=rel_file_path,"citation"=citation,"notes"=notes)
+  csv_path <- paste0(maindir,"download_metadata.csv")
   if (file.exists(csv_path)){
-    write_csv(new_row,csv_path,append = TRUE)
+    write_csv(new_row,csv_path,append = TRUE, col_names = FALSE)
   }else{
     write_csv(new_row,csv_path,append = FALSE,col_names = TRUE)
   }
-  return(result)
 }
 
 #creates folders and filenames. 
@@ -82,6 +81,7 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
     census_variables <- as.data.table(census_variables)
     census_variables <- census_variables[is.na(predicateOnly)]
     census_variables <- census_variables[,c("predicateType","predicateOnly","hasGeoCollectionSupport","required","limit"):=NULL]
+    census_variables <- census_variables[label!="Geography"]
     write_rds(census_variables,variables_dt)
     print(paste0("Retrieved new variable options from census api and saved to: ", variables_dt))
   }else{
@@ -92,6 +92,26 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
   return(selected_vars)
 }
 
+extract_schema <- function(dt){
+  #extract_from_dt <- dt[,c("name","label")] #could separate and rejoin, if too long
+  extract_from_dt <- extract_from_dt[!is.na(label)]
+  extract_from_dt[,("label"):=str_remove_all(label,":")]
+  extract_from_dt[,("label"):=str_remove_all(label,"Total")]
+  extract_from_dt[,("label"):=str_remove_all(label,"!!!!")]
+  extract_from_dt[,("label"):=trimws(label)]
+  label_size <- 1+max(str_count(extract_from_dt[,label],"!!"),na.rm = TRUE)
+  label_names <- paste0("label_",1:label_size)
+  extract_from_dt[,c(label_names):=tstrsplit(label,"!!")]
+  return(extract_from_dt)
+  
+  #should be a way to automatically add right number for splits, then just get all !is.na(last col)
+  #label_names2 <- paste0("label_",2:label_size-1)
+  #uniques_dt <- data.table(unique(extract_from_dt[,..label_names]))
+  #uniques_dt[,("conflict_3"):=label_3%in%uniques_dt[label_4!="<NA>",label_4]]
+  #uniques_dt[,c(cols):=ifelse(label_names2%in%uniques_dt[label_names!="<NA>",label_names],uniques_dt[,label_names],NA)]
+  #iterating through from label_size down should let you fill in so they all line up under the right column
+}
+
 census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_num,api_type,path_suff){
   geo_type <- "block_group"
   file_path <- valid_file_path(censusdir,vintage,state,county_num,api_type,geo_type,groupname,path_suff)
@@ -100,9 +120,12 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
     print(paste0("Reading file from ", file_path))
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
-    if(path_suff=="err.csv"){
-      census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
-      census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
+    #schema <- extract_schema()
+    if(path_suff=="err"){
+      census_variables[,("name"):=str_replace(name,".{1}$","M")] # need to test; think we're just replacing last one with M
+      census_variables[,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
+      #census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
+      #census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
     }
     data_for_vars <- getCensus(name = api_type,
                                      vintage = vintage,
@@ -115,11 +138,13 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
     data_for_vars_dt[,("GEOID_15"):=paste0(state,"_",county,"_",tract,"_",block_group)]
     data_for_vars_tr <- data.table(table_name = names(data_for_vars_dt),t(data_for_vars_dt))
     colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,GEOID_15])
-    result <- census_variables[data_for_vars_tr,on="name"]
+    data_census_dt <- census_variables[data_for_vars_tr,on="name"]
+    result <- extract_schema(data_census_dt) #returning with a bit of a mess
     write_rds(result,file_path)
-    percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+    percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
     print(paste0("Newly retrieved data was written to disk as .RDS at: ",file_path))
+    concept <- census_variables[1,"concept"]
     theme <- "Decennial Census"
     geo_type <- "block_group"
     tool <- "censusapi"
@@ -139,7 +164,7 @@ census_tract_get <- function(censusdir,vintage,state,censuskey,groupname,county,
     print(paste0("Reading file from ", file_path))
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
-    if(path_suff=="err.csv"){
+    if(path_suff=="err"){
       census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
       census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
     }
@@ -156,9 +181,10 @@ census_tract_get <- function(censusdir,vintage,state,censuskey,groupname,county,
     colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,GEOID])
     result <- census_variables[data_for_vars_tr,on="name"]
     write_rds(result,file_path)
-    percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+    percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
     print(paste0("Newly retrieved data was written to disk as .RDS at: ",file_path))
+    concept <- census_variables[1,"concept"]
     theme <- "Decennial Census"
     geo_type <- "tract"
     tool <- "censusapi"
@@ -179,7 +205,7 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
     print(paste0("Reading file from ", file_path))
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
-    if(path_suff=="err.csv"){
+    if(path_suff=="err"){
       census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
       census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
     }
@@ -194,9 +220,10 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
     colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,zip_code_tabulation_area])
     result <- census_variables[data_for_vars_tr,on="name"]
     write_rds(result,file_path)
-    percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+    percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
     print(paste0("Newly retrieved data was written to disk as .RDS at: ",file_path))
+    concept <- census_variables[1,"concept"]
     theme <- "Decennial Census"
     geo_type <- "zcta"
     tool <- "censusapi"
@@ -216,7 +243,7 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,ap
     print(paste0("Reading file from ", file_path))
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
-    if(path_suff=="err.csv"){
+    if(path_suff=="err"){
       census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
       census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
     }
@@ -231,7 +258,7 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,ap
     colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,zip_code_tabulation_area])
     result <- census_variables[data_for_vars_tr,on="name"]
     write_rds(result,file_path)
-    percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+    percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
     print(paste0("Newly retrieved data was written to disk as .RDS at: ",file_path))
     theme <- "Decennial Census"
@@ -245,74 +272,75 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,ap
   return(result)
 }
 
-censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,county_num,block,api_type,path_suff){
-  file_path <- valid_file_path(censusdir,vintage,state,county,api_type,block,groupname,path_suff)
-  if (file.exists(file_path)){
-    result <- read_csv(file_path, col_types = cols())
-    print(paste0("Reading file from ", file_path))
-  }else{
-    census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
-    if(path_suff=="err.csv"){
-      census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
-      census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
-      }
-    if(block=="block_group"){
-      #it gets confused if this var is named "county" 
-      data_for_vars_state <- getCensus(name = api_type,
-                                       vintage = vintage,
-                                       vars = c("NAME",census_variables$name),
-                                       region = paste0("block group:*"), 
-                                       regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
-                                       key = censuskey)
-    }else{
-      if(block=="tract"){
-        data_for_vars_state <- getCensus(name = api_type,
-                                         vintage = vintage,
-                                         vars = c("NAME",census_variables$name),
-                                         region = paste0("tract:*"), 
-                                         regionin = paste0("state:", state),
-                                         key = censuskey)
-      }else{
-        region = 
-        data_for_vars_state <- getCensus(name = api_type,
-                                         vintage = vintage,
-                                         vars = c("NAME", census_variables$name),
-                                         region = "zip code tabulation area:*", 
-                                         key = censuskey)
-      }
-    }
-    #transpose the data to be joined with variable information 
-    if(block=="block_group"){
-      data_for_vars <- data_for_vars_state %>%  
-        mutate(GEOID_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
-        gather(var, value, -GEOID_15) %>% 
-        spread(GEOID_15, value)
-    }else{
-      if(block=="tract"){
-      data_for_vars <- data_for_vars_state %>%
-        mutate(GEOID = paste0(state,county,tract)) %>%
-        gather(var, value, -GEOID) %>% 
-        spread(GEOID, value)
-      }else{
-        data_for_vars <- data_for_vars_state %>%
-        gather(var, value, -zip_code_tabulation_area) %>% 
-        spread(zip_code_tabulation_area, value)
-      }
-    }
-    #join data and variable information and remove unnecessary columns
-   result <- dplyr::left_join(census_variables, data_for_vars, by = c("name" = "var")) %>%
-     select(-predicateType, -group, -limit, -attributes, -required)
-   percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
-   print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
-   print(sprintf("Writing census file for variable group as csv %s", file_path))
-   write_csv(result,file_path)
-   tool <- "censusapi"
-   citation <- "Decennial U.S. Census"
-   rel_file_path <- str_remove(file_path,censusdir)
-   write_download_metadata(maindir,concept,vintage,state,county,groupname,api_type,block,rel_file_path,tool,citation)
-  } 
-  return(result)
-}
+
+#censusData_byGroupName <- function(censusdir,vintage,state,censuskey,groupname,county_num,block,api_type,path_suff){
+#  file_path <- valid_file_path(censusdir,vintage,state,county,api_type,block,groupname,path_suff)
+#  if (file.exists(file_path)){
+#    result <- read_csv(file_path, col_types = cols())
+#    print(paste0("Reading file from ", file_path))
+#  }else{
+#    census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
+#    if(path_suff=="err.csv"){
+#      census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
+#      census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
+#      }
+#    if(block=="block_group"){
+#      #it gets confused if this var is named "county" 
+#      data_for_vars_state <- getCensus(name = api_type,
+#                                       vintage = vintage,
+#                                       vars = c("NAME",census_variables$name),
+#                                       region = paste0("block group:*"), 
+#                                       regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
+#                                       key = censuskey)
+#    }else{
+#      if(block=="tract"){
+#        data_for_vars_state <- getCensus(name = api_type,
+#                                         vintage = vintage,
+#                                         vars = c("NAME",census_variables$name),
+#                                         region = paste0("tract:*"), 
+#                                         regionin = paste0("state:", state),
+#                                         key = censuskey)
+#      }else{
+#        region = 
+#        data_for_vars_state <- getCensus(name = api_type,
+#                                         vintage = vintage,
+#                                         vars = c("NAME", census_variables$name),
+#                                         region = "zip code tabulation area:*", 
+#                                         key = censuskey)
+#      }
+#    }
+#    #transpose the data to be joined with variable information 
+#    if(block=="block_group"){
+#      data_for_vars <- data_for_vars_state %>%  
+#        mutate(GEOID_15 = paste0(state,"_",county,"_",tract,"_",block_group)) %>%
+#        gather(var, value, -GEOID_15) %>% 
+#        spread(GEOID_15, value)
+#    }else{
+#      if(block=="tract"){
+#      data_for_vars <- data_for_vars_state %>%
+#        mutate(GEOID = paste0(state,county,tract)) %>%
+#        gather(var, value, -GEOID) %>% 
+#        spread(GEOID, value)
+#      }else{
+#        data_for_vars <- data_for_vars_state %>%
+#        gather(var, value, -zip_code_tabulation_area) %>% 
+#        spread(zip_code_tabulation_area, value)
+#      }
+#    }
+#    #join data and variable information and remove unnecessary columns
+#   result <- dplyr::left_join(census_variables, data_for_vars, by = c("name" = "var")) %>%
+#     select(-predicateType, -group, -limit, -attributes, -required)
+#   percent_na <- result[,sum(is.na(.SD))] / (result[,sum(!is.na(.SD))]+result[,sum(is.na(.SD))])
+#   print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
+#   print(sprintf("Writing census file for variable group as csv %s", file_path))
+#   write_csv(result,file_path)
+#   tool <- "censusapi"
+#   citation <- "Decennial U.S. Census"
+#   rel_file_path <- str_remove(file_path,censusdir)
+#   write_download_metadata(maindir,concept,vintage,state,county,groupname,api_type,block,rel_file_path,tool,citation)
+#  } 
+#  return(result)
+#}
 
 
 #https://github.com/jamgreen/lehdr
