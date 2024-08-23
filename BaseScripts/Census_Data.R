@@ -6,7 +6,7 @@ library(jsonlite) #may not be using; need to check
 library(censusapi)
 library(readr)
 library(data.table)
-#library(lehdr) #need for LODES data - https://github.com/jamgreen/lehdr
+#library(lehdr) #need for LODES data - https://github.com/jamgreen/lehdr - for sense of flow
 
 #' Census Data from API for a variable group
 #'
