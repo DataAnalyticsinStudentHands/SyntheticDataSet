@@ -92,24 +92,15 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
   return(selected_vars)
 }
 
-extract_schema <- function(dt){
-  #extract_from_dt <- dt[,c("name","label")] #could separate and rejoin, if too long
-  extract_from_dt <- extract_from_dt[!is.na(label)]
-  extract_from_dt[,("label"):=str_remove_all(label,":")]
-  extract_from_dt[,("label"):=str_remove_all(label,"Total")]
-  extract_from_dt[,("label"):=str_remove_all(label,"!!!!")]
-  extract_from_dt[,("label"):=trimws(label)]
-  label_size <- 1+max(str_count(extract_from_dt[,label],"!!"),na.rm = TRUE)
+split_labels <- function(census_vars){
+  census_vars[,("label"):=str_remove_all(label,":")]
+  census_vars[,("label"):=str_remove_all(label,"Total")]
+  census_vars[,("label"):=str_remove_all(label,"!!!!")]
+  census_vars[,("label"):=trimws(label)]
+  label_size <- 1+max(str_count(census_vars[,label],"!!"),na.rm = TRUE)
   label_names <- paste0("label_",1:label_size)
-  extract_from_dt[,c(label_names):=tstrsplit(label,"!!")]
-  return(extract_from_dt)
-  
-  #should be a way to automatically add right number for splits, then just get all !is.na(last col)
-  #label_names2 <- paste0("label_",2:label_size-1)
-  #uniques_dt <- data.table(unique(extract_from_dt[,..label_names]))
-  #uniques_dt[,("conflict_3"):=label_3%in%uniques_dt[label_4!="<NA>",label_4]]
-  #uniques_dt[,c(cols):=ifelse(label_names2%in%uniques_dt[label_names!="<NA>",label_names],uniques_dt[,label_names],NA)]
-  #iterating through from label_size down should let you fill in so they all line up under the right column
+  census_vars[,c(label_names):=tstrsplit(label,"!!")]
+  return(census_vars)
 }
 
 census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_num,api_type,path_suff){
@@ -120,13 +111,13 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
     print(paste0("Reading file from ", file_path))
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
-    #schema <- extract_schema()
     if(path_suff=="err"){
       census_variables[,("name"):=str_replace(name,".{1}$","M")] # need to test; think we're just replacing last one with M
       census_variables[,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
       #census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
       #census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
     }
+    census_vars_labels <- split_labels(census_variables)
     data_for_vars <- getCensus(name = api_type,
                                      vintage = vintage,
                                      vars = c("NAME",census_variables$name),
@@ -135,11 +126,13 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
                                      key = censuskey)
     data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
     #columns are table names; rows are geographic area (block groups)
+    data_for_vars_dt[,]
     data_for_vars_dt[,("GEOID_15"):=paste0(state,"_",county,"_",tract,"_",block_group)]
     data_for_vars_tr <- data.table(table_name = names(data_for_vars_dt),t(data_for_vars_dt))
     colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,GEOID_15])
-    data_census_dt <- census_variables[data_for_vars_tr,on="name"]
-    result <- extract_schema(data_census_dt) #returning with a bit of a mess
+    #data_census_dt <- census_variables[data_for_vars_tr,on="name"]
+    result <- census_vars_labels[data_for_vars_tr,on="name"]#split_labels(data_census_dt) #returning with a bit of a mess
+    
     write_rds(result,file_path)
     percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))

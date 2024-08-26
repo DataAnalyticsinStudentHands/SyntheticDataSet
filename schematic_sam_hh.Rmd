@@ -60,15 +60,11 @@ bg_gq_age_data_from_census <-
                          groupname = "P18",county_num = "*",
                          api_type="dec/dhc",path_suff="est")
 
-total_test <- sum(as.integer(bg_gq_age_data_from_census[label=="!!",6:(ncol(bg_gq_age_data_from_census)-4)],na.rm = TRUE))
-bgGQ_age_data <- bg_gq_age_data_from_census[!is.na(label_4)]
+total_test <- sum(as.integer(bg_gq_age_data_from_census[is.na(label_2)&name=="P18_001N",10:ncol(bg_gq_age_data_from_census)],na.rm = TRUE))
+#should we do any other tests?
+bgGQ <- bg_gq_age_data_from_census[!is.na(label)]
+bgGQ[()]
 
-
-bgGQ_age_data <- as.data.table(bg_gq_age_data_from_census)
-bgGQ_age_data[,6:ncol(bgGQ_age_data)] <- 
-  bgGQ_age_data[,lapply(.SD[,6:ncol(bgGQ_age_data)], as.numeric)]
-bgGQ_age_data[,c("predicateOnly","hasGeoCollectionSupport"):=NULL]
-rm(bg_gq_age_data_from_census)
 
 bgGQ <- bgGQ_age_data %>%
   pivot_longer(4:ncol(bgGQ_age_data),names_to = "geoid", values_to = "number_sams") %>% 
