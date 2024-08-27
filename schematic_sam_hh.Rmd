@@ -61,9 +61,11 @@ bg_gq_age_data_from_census <-
                          api_type="dec/dhc",path_suff="est")
 
 total_test <- sum(as.integer(bg_gq_age_data_from_census[is.na(label_2)&name=="P18_001N",10:ncol(bg_gq_age_data_from_census)],na.rm = TRUE))
+label_c1 <- c("sex","age","gq_institution","gq_type")
+row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
 #should we do any other tests?
-bgGQ <- bg_gq_age_data_from_census[!is.na(label)]
-bgGQ[()]
+bgGQ <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1)
+
 
 
 bgGQ <- bgGQ_age_data %>%

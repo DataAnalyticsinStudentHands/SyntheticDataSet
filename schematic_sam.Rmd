@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
 source('BaseScripts/Census_Data.R') #move out of BaseScripts?
 source('tests.R') #need to redo! Using for some of bgSAR now, but not consistent
 #library(dplyr)
-library(tidyr)
+library(tidyr) #what am I using from tidy?
 library(data.table)
 library(stringr)
 maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Studio
@@ -144,17 +144,17 @@ Let's begin with PCT12, which is tract level data but has every age by year, gen
 ```{r look at PCT12}
 #this gives you by every year at the tract level - could be a good example for adding together - PCTs never go below tract level
 
-
 trSAR_dec_data_from_census <- 
-  censusData_byGroupName(censusdir, vintage, state, censuskey, 
-                         groupname = "PCT12",county_num = county,
-                         block="tract",api_type="dec/dhc",path_suff="est") #dec/sf1 for 2010!!
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                         groupname = "PCT12",county,
+                         api_type="dec/dhc",path_suff="est") #dec/sf1 for 2010!!
+
 
 #This is all of Texas - county number doesn't seem to matter. 
 #trSAR_dec_data_from_census <- trSAR_dec_data_from_census %>%
 #      select(name,label,concept,starts_with(st_county))
 #needs to be numeric for the sum in the test
-trSAR_dec_data_from_census_DT <- as.data.table(trSAR_dec_data_from_census)
+
 begin <- Sys.time()
 system.time(
 trSAR_dec_data_from_census_DT[,4:ncol(trSAR_dec_data_from_census_DT)] <- 

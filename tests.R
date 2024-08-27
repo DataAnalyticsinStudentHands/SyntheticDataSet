@@ -13,8 +13,8 @@ library(data.table)
 #' @param dt2 - rows need to be same granularity as dt1; column names don't need to be same, but expected outcomes should be.
 #' @param vars1 - vector (or list?) that should contain the column names in correct order
 #' @param vars2 - vector (or list?) that should contain the column names in correct order
-#' @param limits_dt1 - character string with i as limitiation (for example, "race="A"")
-#' @param limits_dt2 - character string with i as limitiation (for example, "race="A"")
+#' @param limits_dt1 - character string with i as limitation (for example, "race="A"")
+#' @param limits_dt2 - character string with i as limitation (for example, "race="A"")
 #' Prints to log - should it also return?
 #' @return ??
 
