@@ -159,9 +159,10 @@ write_schema <- function(groupname,label_c1,dt){
 tests_download_data <- function(dt,label_c1,row_c1,pop_level){
   name_string <- dt[,name]
   total_name <- name_string[str_detect(name_string,"_001")]
-  total_pop <- sum(as.integer(dt[is.na(label_2)&name==total_name,(5+label_c1):ncol(dt)],na.rm = TRUE))
-  #if(file.exists()), etc., then you have the total pop stuff... 
-  #should write as a report that gets attached to either schema or metadata, too?
+  total_pop <- sum(as.integer(dt[name==total_name,(6+length(label_c1)):ncol(dt)]),na.rm = TRUE)
+  print("Total population for ",total_name," is: ",total_pop)
+  setkey(dt,"name")
+  #test <- dt[row_c1,.SD,.SDcols = patterns(paste0(state,"_"))]
 }
 
 census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_num,api_type,path_suff){

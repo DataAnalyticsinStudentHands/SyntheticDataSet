@@ -33,8 +33,6 @@ housingdir = paste0(maindir,"HCAD/")
 houstondatadir = paste0(maindir,"HoustonCityData/") 
 censusdir = paste0(maindir,"Census/") 
 vintage = "2020"
-housingStockFromRDS = TRUE 
-#numberOfCores = 1
 state = 48 #48 Texas; 22 Louisiana
 county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
 st_county = paste0(state,county)
@@ -59,14 +57,19 @@ bg_gq_age_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                          groupname = "P18",county_num = "*",
                          api_type="dec/dhc",path_suff="est")
-
-label_c1 <- c("sex","age","gq_institution","gq_type")
-#row_c1 will change
-row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
-pop_level <- "group_quarters"
-test_result <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,pop_level)
-bgGQ <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1)
-write_relabel(bgGQ,censusdir,vintage,state,censuskey,geo_type,groupname,county_num,api_type,path_suff)
+if(names(bg_gq_age_data_from_census)[6]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("sex","age","gq_institution","gq_type")
+  #row_c1 determined by hand
+  row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
+  pop_level <- "group_quarters"
+  test_result <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,pop_level)
+  bgGQ <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1)
+  write_relabel(bgGQ,censusdir,vintage,state,censuskey,geo_type,groupname,county_num,api_type,path_suff)
+}else{
+  bgGQ <- bg_gq_age_data_from_census
+}
+rm(bg_gq_age_data_from_census)
 
 
 
