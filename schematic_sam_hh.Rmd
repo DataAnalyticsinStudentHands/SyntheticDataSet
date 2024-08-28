@@ -60,11 +60,13 @@ bg_gq_age_data_from_census <-
                          groupname = "P18",county_num = "*",
                          api_type="dec/dhc",path_suff="est")
 
-total_test <- sum(as.integer(bg_gq_age_data_from_census[is.na(label_2)&name=="P18_001N",10:ncol(bg_gq_age_data_from_census)],na.rm = TRUE))
 label_c1 <- c("sex","age","gq_institution","gq_type")
+#row_c1 will change
 row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
-#should we do any other tests?
+pop_level <- "group_quarters"
+test_result <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,pop_level)
 bgGQ <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1)
+write_relabel(bgGQ,censusdir,vintage,state,censuskey,geo_type,groupname,county_num,api_type,path_suff)
 
 
 

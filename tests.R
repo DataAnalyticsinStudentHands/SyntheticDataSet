@@ -1,5 +1,7 @@
 library(data.table)
 
+#should we have a suite of numbers written to desk as checks for the totals?
+
 #' suite of tests for data tables to test symmetries by comparing outputs to each other or other expected
 #'
 #' census_table_check looks for basic errors in the census tables while still wide format

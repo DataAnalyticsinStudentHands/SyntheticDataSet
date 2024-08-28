@@ -28,38 +28,10 @@ library(data.table)
 
 #for multiple geographies:
 #https://www.hrecht.com/censusapi/articles/getting-started.html#advanced-geographies
-#for writing download metadata to a single file - may want to put in a separate "tools" beyond census
-write_download_metadata <- function(maindir,concept,vintage,state,county,theme,groupname,api_type,geo_type,
-                                    rel_file_path,tool,citation,notes){
-  new_row <- data.frame("concept"=concept,"year"=vintage,"state"=state,"county"=county,"theme"=theme,"groupname"=groupname,
-                        "api_type"=api_type,"geo_type"=geo_type,"download_date"=Sys.time(),
-                        "tool"=tool,"file_path"=rel_file_path,"citation"=citation,"notes"=notes)
-  csv_path <- paste0(maindir,"download_metadata.csv")
-  if (file.exists(csv_path)){
-    write_csv(new_row,csv_path,append = TRUE, col_names = FALSE)
-  }else{
-    write_csv(new_row,csv_path,append = FALSE,col_names = TRUE)
-  }
-}
-
-write_schema <- function(label_c1,dt){
-  #follow above, but call from relabel
-  #want this to be smart at some point, but right now just adding to the big file with no joins
-  rds_path <- paste0(maindir,"sam_schema.RDS")
-  rds_dt <- unique(dt[,..label_c1])
-  rds_dt[,("cnt"):=1:.N]
-  if (file.exists(rds_path)){
-    old_rds_dt <- readRDS(rds_path) #read_rds() is the wrapper provided from tidyr
-    today_date <- strftime(Sys.Date(),"%y%m%d")
-    saveRDS(rds_dt,paste0(maindir,"sam_schema",today_date,".RDS"))
-    rds_dt <- old_rds_dt[rds_dt,on=cnt]
-    file.remove(rds_path)
-  }
-  saveRDS(rds_dt,rds_path)
-}
 
 #creates folders and filenames. 
 valid_file_path <- function(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff){
+  if (county=="*"){county <- "all"}
   if (!file.exists(paste0(censusdir,vintage))){
     dir.create(paste0(censusdir,vintage))
     print(paste0("created folder: ",censusdir,vintage))
@@ -73,7 +45,7 @@ valid_file_path <- function(censusdir,vintage,state,county,api_type,geo_type,gro
   }else{
     print(paste0("found folder: ",folder_path))
   }
-  if (geo_type=="block_group" & county!="*"){
+  if (geo_type=="block_group" & county!="all"){
     if (file.exists(paste0(folder_path,"/county_",county))){
       print(paste0("found folder: ", paste0(folder_path,"/county_",county)))
     }else{
@@ -120,22 +92,89 @@ split_labels <- function(census_vars){
 }
 
 #if need two dt split, will call relabel twice
-relabel <- function(dt,label_c1,row_c1,replace=TRUE){ #replace is for the write to schema
+relabel <- function(dt,label_c1,row_c1){ 
   #doing this on whole dt, not just census_variables, for both testing and so it can be handtuned after original get
   label_names <- paste0("label_",1:length(label_c1))
   setnames(dt,label_names,label_c1)
+  groupname <- str_split(row_c1[1],"_")[[1]][1]
   #rows are called by name; the !is.na() for certain labels is done before call
   setkey(dt,name)
   result <- dt[row_c1]
-  write_schema(label_c1,dt) 
+  write_schema(group_name,label_c1,result) 
+  return(result)
+}
+
+write_relabel <- function(relabel_dt,censusdir,vintage,state,censuskey,geo_type,groupname,county_num,api_type,path_suff){
+  file_path <- valid_file_path(censusdir,vintage,state,county_num,api_type,geo_type,groupname,path_suff)
+  path <- str_replace(file_path,".RDS","_relabeled.RDS")
+  if (file.exists(file_path)){
+    if (file.exists(path)){
+      file.remove(path)
+      print(paste0("Replacing file at ", path))
+    }else{
+      print(paste0("Creating file at ", path))
+    }
+  }else{
+    print(paste0("No file found at ", file_path," creating only at ",path))
+  }
+  saveRDS(relabel_dt,path)
+}
+
+#for writing download metadata to a single file - may want to put in a separate "tools" beyond census
+write_download_metadata <- function(maindir,concept,vintage,state,county,theme,groupname,api_type,geo_type,
+                                    rel_file_path,tool,citation,notes){
+  new_row <- data.frame("concept"=concept,"year"=vintage,"state"=state,"county"=county,"theme"=theme,"groupname"=groupname,
+                        "api_type"=api_type,"geo_type"=geo_type,"download_date"=Sys.time(),
+                        "tool"=tool,"file_path"=rel_file_path,"citation"=citation,"notes"=notes)
+  csv_path <- paste0(maindir,"download_metadata.csv")
+  if (file.exists(csv_path)){
+    write_csv(new_row,csv_path,append = TRUE, col_names = FALSE)
+  }else{
+    write_csv(new_row,csv_path,append = FALSE,col_names = TRUE)
+  }
+}
+
+write_schema <- function(groupname,label_c1,dt){
+  #follow above, but call from relabel - now saving old, but probably don't need for final
+  #want this to be smart at some point, but right now just adding to the big file with no joins
+  labels <- paste0(groupname,"_",label_c1)
+  if(!file.exists(paste0(maindir,"sam_schemas/"))){
+    dir.create(paste0(maindir,"sam_schemas/"))
+    print(paste0("created folder: ",maindir,"sam_schemas/"))
+  }
+  rds_path <- paste0(maindir,"sam_schemas/","sam_schema.RDS")
+  rds_dt <- unique(dt[,..label_c1])
+  setnames(rds_dt,label_c1,labels)
+  rds_dt[,("cnt"):=1:.N]
+  if (file.exists(rds_path)){
+    old_rds_dt <- readRDS(rds_path) 
+    today_date <- strftime(Sys.time(),"%y%m%d%H%M%S")
+    saveRDS(rds_dt,paste0(maindir,"sam_schemas/","sam_schema",today_date,".RDS"))
+    rds_dt <- old_rds_dt[rds_dt,on="cnt"]
+    file.remove(rds_path)
+  }
+  saveRDS(rds_dt,rds_path)
+}
+
+tests_download_data <- function(dt,label_c1,row_c1,pop_level){
+  name_string <- dt[,name]
+  total_name <- name_string[str_detect(name_string,"_001")]
+  total_pop <- sum(as.integer(dt[is.na(label_2)&name==total_name,(5+label_c1):ncol(dt)],na.rm = TRUE))
+  #if(file.exists()), etc., then you have the total pop stuff... 
+  #should write as a report that gets attached to either schema or metadata, too?
 }
 
 census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_num,api_type,path_suff){
   geo_type <- "block_group"
   file_path <- valid_file_path(censusdir,vintage,state,county_num,api_type,geo_type,groupname,path_suff)
   if (file.exists(file_path)){
-    result <- read_rds(file_path)
-    print(paste0("Reading file from ", file_path))
+    if (file.exists(str_replace(file_path,".RDS","_relabeled.RDS"))){
+      result <- read_rds(file_path)
+      print(paste0("Reading file from ", str_replace(file_path,".RDS","_relabeled.RDS")))
+    }else{
+      result <- read_rds(file_path)
+      print(paste0("Reading file from ", file_path))
+    }
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
     if(path_suff=="err"){
@@ -146,11 +185,11 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
     }
     census_vars_labels <- split_labels(census_variables)
     data_for_vars <- getCensus(name = api_type,
-                                     vintage = vintage,
-                                     vars = c("NAME",census_variables$name),
-                                     region = paste0("block group:*"), 
-                                     regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
-                                     key = censuskey)
+                               vintage = vintage,
+                               vars = c("NAME",census_variables$name),
+                               region = paste0("block group:*"), 
+                               regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
+                               key = censuskey)
     data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
     #columns are table names; rows are geographic area (block groups)
     data_for_vars_dt[,("GEOID_15"):=paste0(state,"_",county,"_",tract,"_",block_group)]
