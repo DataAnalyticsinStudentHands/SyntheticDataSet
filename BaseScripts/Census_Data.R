@@ -192,11 +192,14 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
                                regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
                                key = censuskey)
     data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
+    #data_for_vars_dt[,names(.SD):=lapply(.SD,numeric),.SDcols = str_detect(state,names(data_for_vars_dt))]
     #columns are table names; rows are geographic area (block groups)
     data_for_vars_dt[,("GEOID_15"):=paste0(state,"_",county,"_",tract,"_",block_group)]
-    data_for_vars_tr <- data.table(table_name = names(data_for_vars_dt),t(data_for_vars_dt))
-    colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,GEOID_15])
+    data_dt <- data_for_vars_dt[,6:ncol(data_for_vars_dt)]
+    data_for_vars_tr <- data.table(table_name = names(data_dt),t(data_dt))
+    colnames(data_for_vars_tr) <- c("name",data_dt[,GEOID_15])
     result <- census_vars_labels[data_for_vars_tr,on="name"]
+    result[,names(.SD):=lapply(.SD,as.numeric),.SDcols=startsWith(names(result),paste0(state,"_"))]
     write_rds(result,file_path)
     percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
@@ -233,11 +236,14 @@ census_tract_get <- function(censusdir,vintage,state,censuskey,groupname,county,
                                regionin = paste0("state:", state),
                                key = censuskey)
     data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
+    #data_for_vars_dt[,names(.SD):=lapply(.SD,numeric),.SDcols = str_detect(state,names(data_for_vars_dt))]
     #columns are table names; rows are geographic area (block groups)
     data_for_vars_dt[,("GEOID"):=paste0(state,county,tract)]
-    data_for_vars_tr <- data.table(table_name = names(data_for_vars_dt),t(data_for_vars_dt))
-    colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,GEOID])
+    data_dt <- data_for_vars_dt[,6:ncol(data_for_vars_dt)]
+    data_for_vars_tr <- data.table(table_name = names(data_dt),t(data_dt))
+    colnames(data_for_vars_tr) <- c("name",data_dt[,GEOID])
     result <- census_vars_labels[data_for_vars_tr,on="name"]
+    result[,names(.SD):=lapply(.SD,as.numeric),.SDcols=startsWith(names(result),paste0(state,"_"))]
     write_rds(result,file_path)
     percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
@@ -274,10 +280,13 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
                                region = "zip code tabulation area:*", 
                                key = censuskey)
     data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
+    #data_for_vars_dt[,names(.SD):=lapply(.SD,numeric),.SDcols = str_detect(state,names(data_for_vars_dt))]
     #columns are table names; rows are geographic area (block groups)
-    data_for_vars_tr <- data.table(table_name = names(data_for_vars_dt),t(data_for_vars_dt))
-    colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,zip_code_tabulation_area])
-    result <- census_variables[data_for_vars_tr,on="name"]
+    data_dt <- data_for_vars_dt[,6:ncol(data_for_vars_dt)]
+    data_for_vars_tr <- data.table(table_name = names(data_dt),t(data_dt))
+    colnames(data_for_vars_tr) <- c("name",data_dt[,GEOID_15])
+    result <- census_vars_labels[data_for_vars_tr,on="name"]
+    #result[,names(.SD):=lapply(.SD,as.numeric),.SDcols=startsWith(names(result),paste0(ztcaSOMEHOW,"_"))]
     write_rds(result,file_path)
     percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
@@ -312,6 +321,7 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,ap
                                region = "zip code tabulation area:*", 
                                key = censuskey)
     data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
+    #data_for_vars_dt[,names(.SD):=lapply(.SD,numeric),.SDcols = str_detect(state,names(data_for_vars_dt))]
     #columns are table names; rows are geographic area (block groups)
     data_for_vars_tr <- data.table(table_name = names(data_for_vars_dt),t(data_for_vars_dt))
     colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,zip_code_tabulation_area])
