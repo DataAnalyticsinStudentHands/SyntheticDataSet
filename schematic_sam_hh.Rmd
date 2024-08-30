@@ -27,6 +27,7 @@ library(stringr)
 library(data.table)
 #maindir = "~/University Of Houston/Price, Daniel M - Social Network Hypergraphs/"
 maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Studio
+#maindir = "~/Documents/Sam_data/" #seeing if OneDrive is culprit
 #maindir = "~/Downloads/UH_OneDrive/OneDrive\ -\ University\ Of\ Houston/Social\ Network\ Hypergraphs/" #Dan at home
 #maindir = "/Users/areb219/Library/CloudStorage/OneDrive-UniversityOfHouston/Social\ Network\ Hypergraphs/" #Dan on AREB219 laptop
 housingdir = paste0(maindir,"HCAD/")
@@ -35,7 +36,7 @@ censusdir = paste0(maindir,"Census/")
 vintage = "2020"
 state = 48 #48 Texas; 22 Louisiana
 county = 201 #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
-st_county = paste0(state,county)
+#st_county = paste0(state,county)
 tract = "*"
 Sam_seed = 135
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
@@ -52,20 +53,21 @@ set up group quarters
 #group quarters codes: https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/demographic-and-housing-characteristics-file-and-demographic-profile/2020census-demographic-and-housing-characteristics-file-and-demographic-profile-techdoc.pdf
 #https://www.census.gov/programs-surveys/decennial-census/decade/2020/planning-management/count/service-based-enumeration.html
 #https://www.census.gov/programs-surveys/decennial-census/decade/2020/planning-management/plan/memo-series/2020-memo-2021_08.html
-
+groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
+geo_type <- "group_block"
+api_type <- "dec/dhc"
 bg_gq_age_data_from_census <- 
   census_block_get(censusdir, vintage, state, censuskey, 
-                         groupname = "P18",county_num = "*",
-                         api_type="dec/dhc",path_suff="est")
+                         groupname,county_num = "*",
+                         api_type,path_suff="est")
 if(names(bg_gq_age_data_from_census)[6]=="label_1"){
   #labels determined by hand
   label_c1 <- c("sex","age","gq_institution","gq_type")
   #row_c1 determined by hand
   row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
-  pop_level <- "group_quarters"
-  test_result <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,pop_level)
-  bgGQ <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1)
-  write_relabel(bgGQ,censusdir,vintage,state,censuskey,geo_type,groupname,county_num,api_type,path_suff)
+  test_result <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1)
+  bgGQ <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bgGQ,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
 }else{
   bgGQ <- bg_gq_age_data_from_census
 }

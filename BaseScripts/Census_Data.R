@@ -92,15 +92,14 @@ split_labels <- function(census_vars){
 }
 
 #if need two dt split, will call relabel twice
-relabel <- function(dt,label_c1,row_c1){ 
+relabel <- function(dt,label_c1,row_c1,groupname){ 
   #doing this on whole dt, not just census_variables, for both testing and so it can be handtuned after original get
   label_names <- paste0("label_",1:length(label_c1))
   setnames(dt,label_names,label_c1)
-  groupname <- str_split(row_c1[1],"_")[[1]][1]
   #rows are called by name; the !is.na() for certain labels is done before call
   setkey(dt,name)
   result <- dt[row_c1]
-  write_schema(group_name,label_c1,result) 
+  write_schema(groupname,label_c1,result) 
   return(result)
 }
 
@@ -156,13 +155,18 @@ write_schema <- function(groupname,label_c1,dt){
   saveRDS(rds_dt,rds_path)
 }
 
-tests_download_data <- function(dt,label_c1,row_c1,pop_level){
+tests_download_data <- function(dt,label_c1,row_c1){
+  setkey(dt,"name")
   name_string <- dt[,name]
   total_name <- name_string[str_detect(name_string,"_001")]
-  total_pop <- sum(as.integer(dt[name==total_name,(6+length(label_c1)):ncol(dt)]),na.rm = TRUE)
-  print("Total population for ",total_name," is: ",total_pop)
-  setkey(dt,"name")
-  #test <- dt[row_c1,.SD,.SDcols = patterns(paste0(state,"_"))]
+  total_pop <- sum(dt[total_name,(6+length(label_c1)):ncol(dt)],na.rm = TRUE)
+  print(paste0("Total population for ",total_name," is: ",total_pop))
+  dt[,("total"):=sum(.SD[,(6+length(label_c1)):ncol(dt)],na.rm = TRUE),by=.I]
+  if(total_pop == sum(dt[row_c1,"total"])){
+    print("Total populations agree between total row and total of selected rows")
+  }else{
+    print("Total and total of selected rows do not agree")
+  }
 }
 
 census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_num,api_type,path_suff){
@@ -170,7 +174,7 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
   file_path <- valid_file_path(censusdir,vintage,state,county_num,api_type,geo_type,groupname,path_suff)
   if (file.exists(file_path)){
     if (file.exists(str_replace(file_path,".RDS","_relabeled.RDS"))){
-      result <- read_rds(file_path)
+      result <- read_rds(str_replace(file_path,".RDS","_relabeled.RDS"))
       print(paste0("Reading file from ", str_replace(file_path,".RDS","_relabeled.RDS")))
     }else{
       result <- read_rds(file_path)
@@ -191,15 +195,15 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
                                region = paste0("block group:*"), 
                                regionin = paste0("state:", state,"+county:",county_num,"+tract:*"),
                                key = censuskey)
-    data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
-    #data_for_vars_dt[,names(.SD):=lapply(.SD,numeric),.SDcols = str_detect(state,names(data_for_vars_dt))]
+    data_for_vars_dt <- as.data.table(data_for_vars) 
     #columns are table names; rows are geographic area (block groups)
     data_for_vars_dt[,("GEOID_15"):=paste0(state,"_",county,"_",tract,"_",block_group)]
     data_dt <- data_for_vars_dt[,6:ncol(data_for_vars_dt)]
     data_for_vars_tr <- data.table(table_name = names(data_dt),t(data_dt))
     colnames(data_for_vars_tr) <- c("name",data_dt[,GEOID_15])
     result <- census_vars_labels[data_for_vars_tr,on="name"]
-    result[,names(.SD):=lapply(.SD,as.numeric),.SDcols=startsWith(names(result),paste0(state,"_"))]
+    suppressWarnings( #b/c NAs introduced by coercion, but that is the desired outcome
+      result[,names(.SD):=lapply(.SD,as.numeric),.SDcols=startsWith(names(result),paste0(state,"_"))])
     write_rds(result,file_path)
     percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
@@ -220,8 +224,13 @@ census_tract_get <- function(censusdir,vintage,state,censuskey,groupname,county,
   geo_type <- "tract"
   file_path <- valid_file_path(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff)
   if (file.exists(file_path)){
-    result <- read_rds(file_path)
-    print(paste0("Reading file from ", file_path))
+    if (file.exists(str_replace(file_path,".RDS","_relabeled.RDS"))){
+      result <- read_rds(str_replace(file_path,".RDS","_relabeled.RDS"))
+      print(paste0("Reading file from ", str_replace(file_path,".RDS","_relabeled.RDS")))
+    }else{
+      result <- read_rds(file_path)
+      print(paste0("Reading file from ", file_path))
+    }
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
     if(path_suff=="err"){
@@ -265,8 +274,13 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
   geo_type <- "zcta"
   file_path <- valid_file_path(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff)
   if (file.exists(file_path)){
-    result <- read_rds(file_path)
-    print(paste0("Reading file from ", file_path))
+    if (file.exists(str_replace(file_path,".RDS","_relabeled.RDS"))){
+      result <- read_rds(str_replace(file_path,".RDS","_relabeled.RDS"))
+      print(paste0("Reading file from ", str_replace(file_path,".RDS","_relabeled.RDS")))
+    }else{
+      result <- read_rds(file_path)
+      print(paste0("Reading file from ", file_path))
+    }
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
     if(path_suff=="err"){
@@ -307,8 +321,13 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,ap
   geo_type <- "pes" 
   file_path <- valid_file_path(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff)
   if (file.exists(file_path)){
-    result <- read_rds(file_path)
-    print(paste0("Reading file from ", file_path))
+    if (file.exists(str_replace(file_path,".RDS","_relabeled.RDS"))){
+      result <- read_rds(str_replace(file_path,".RDS","_relabeled.RDS"))
+      print(paste0("Reading file from ", str_replace(file_path,".RDS","_relabeled.RDS")))
+    }else{
+      result <- read_rds(file_path)
+      print(paste0("Reading file from ", file_path))
+    }
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
     if(path_suff=="err"){
