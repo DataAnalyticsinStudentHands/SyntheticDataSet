@@ -17,7 +17,7 @@ library(data.table)
 #'
 #' @param censusdir The location for storing retrieved files
 #' @param vintage The census data year as character string
-#' @param state The state for which the data is being pulled; two digit number as character string
+#' @param state The state for which the data is being pulled; two digit number as character string or "all"
 #' @param groupname The variable groupname we are pulling the data for
 #' @param county_num The census code for the county - only needed if there are blockgroups; some APIs ignore and return whole state (or country).
 #' @param county Same as county_num, but api needs it in separately named variable; * for all, including when calling place or zip; can put in specifics. 
@@ -29,7 +29,8 @@ library(data.table)
 
 #creates folders and filenames. 
 valid_file_path <- function(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff){
-  if (county=="*"){county <- "all"}
+  if (county=="*"){county <- "all"} #some file systems can't use * as part of name
+  if (state=="*"){state <- "all"}
   if (!file.exists(paste0(censusdir,vintage))){
     dir.create(paste0(censusdir,vintage))
     print(paste0("created folder: ",censusdir,vintage))
@@ -43,15 +44,15 @@ valid_file_path <- function(censusdir,vintage,state,county,api_type,geo_type,gro
   }else{
     print(paste0("found folder: ",folder_path))
   }
-  if (geo_type=="block_group" & county!="all"){
-    if (file.exists(paste0(folder_path,"/county_",county))){
-      print(paste0("found folder: ", paste0(folder_path,"/county_",county)))
-    }else{
-      dir.create(paste0(folder_path,"/county_",county))
-      print(paste0("created folder:", folder_path,"/county_",county))
-    }
-    folder_path <- paste0(folder_path,"/county_",county)
-  }
+  #if (geo_type=="block_group" & county!="all"){
+  #  if (file.exists(paste0(folder_path,"/county_",county))){
+  #    print(paste0("found folder: ", paste0(folder_path,"/county_",county)))
+  #  }else{
+  #    dir.create(paste0(folder_path,"/county_",county))
+  #    print(paste0("created folder:", folder_path,"/county_",county))
+  #  }
+  #  folder_path <- paste0(folder_path,"/county_",county)
+  #}
   api <- str_replace_all(api_type,"/","_")
   file_path <- paste0(folder_path,"/",vintage,"_",state,"_",api,"_",geo_type,"_",groupname,"_",path_suff,".RDS")
   return(file_path)
@@ -112,7 +113,7 @@ write_relabel <- function(relabel_dt,censusdir,vintage,state,censuskey,geo_type,
       print(paste0("Creating file at ", path))
     }
   }else{
-    print(paste0("No file found at ", file_path," creating only at ",path))
+    print(paste0("No file found at ", file_path," creating new file at ",path))
   }
   saveRDS(relabel_dt,path)
 }
@@ -159,7 +160,7 @@ tests_download_data <- function(dt,label_c1,row_c1){
   total_name <- name_string[str_detect(name_string,"_001")]
   total_pop <- sum(dt[total_name,(6+length(label_c1)):ncol(dt)],na.rm = TRUE)
   print(paste0("Total population for ",total_name," is: ",total_pop))
-  dt[,("total"):=sum(.SD[,(6+length(label_c1)):ncol(dt)],na.rm = TRUE),by=.I]
+  dt[,("total"):=sum(.SD[,(6+length(label_c1)):ncol(.SD)],na.rm = TRUE),by=.I]
   if(total_pop == sum(dt[row_c1,"total"])){
     print("Total populations agree between total row and total of selected rows")
   }else{
