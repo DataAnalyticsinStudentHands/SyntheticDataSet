@@ -158,9 +158,14 @@ tests_download_data <- function(dt,label_c1,row_c1){
   setkey(dt,"name")
   name_string <- dt[,name]
   total_name <- name_string[str_detect(name_string,"_001")]
-  total_pop <- sum(dt[total_name,(6+length(label_c1)):ncol(dt)],na.rm = TRUE)
+  if(length(total_name)>1){
+    tn_dt <- as.data.table(total_name)
+    total_name <- tn_dt[min(length(total_name))]
+  }
+  total_pop <- sum(as.integer(dt[total_name,(6+length(label_c1)):ncol(dt)]),na.rm = TRUE)
   print(paste0("Total population for ",total_name," is: ",total_pop))
-  dt[,("total"):=sum(.SD[,(6+length(label_c1)):ncol(.SD)],na.rm = TRUE),by=.I]
+  suppressWarnings( #b/c NAs introduced by coercion, but that is the desired outcome
+    dt[row_c1,("total"):=sum(as.integer(.SD[,(6+length(label_c1)):ncol(.SD)]),na.rm = TRUE),by=.I])
   if(total_pop == sum(dt[row_c1,"total"])){
     print("Total populations agree between total row and total of selected rows")
   }else{
@@ -184,8 +189,6 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
     if(path_suff=="err"){
       census_variables[,("name"):=str_replace(name,".{1}$","M")] # need to test; think we're just replacing last one with M
       census_variables[,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
-      #census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
-      #census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
     }
     census_vars_labels <- split_labels(census_variables)
     data_for_vars <- getCensus(name = api_type,
@@ -244,14 +247,14 @@ census_tract_get <- function(censusdir,vintage,state,censuskey,groupname,county,
                                regionin = paste0("state:", state),
                                key = censuskey)
     data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
-    #data_for_vars_dt[,names(.SD):=lapply(.SD,numeric),.SDcols = str_detect(state,names(data_for_vars_dt))]
     #columns are table names; rows are geographic area (block groups)
     data_for_vars_dt[,("GEOID"):=paste0(state,county,tract)]
     data_dt <- data_for_vars_dt[,6:ncol(data_for_vars_dt)]
     data_for_vars_tr <- data.table(table_name = names(data_dt),t(data_dt))
     colnames(data_for_vars_tr) <- c("name",data_dt[,GEOID])
     result <- census_vars_labels[data_for_vars_tr,on="name"]
-    result[,names(.SD):=lapply(.SD,as.numeric),.SDcols=startsWith(names(result),paste0(state,"_"))]
+    suppressWarnings( #b/c NAs introduced by coercion, but that is the desired outcome
+      result[,names(.SD):=lapply(.SD,as.numeric),.SDcols=startsWith(names(result),paste0(state,"_"))])
     write_rds(result,file_path)
     percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
