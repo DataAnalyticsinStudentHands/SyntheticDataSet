@@ -8,15 +8,15 @@ maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Stud
 censusdir = paste0(maindir,"Census/") 
 vintage = "2020"
 state = 48 #48 Texas; 22 Louisiana
-county = "*" #8 county region: 201 Harris; 157 Fort Bend; 167 Galveston; 039 Brazoria; 071 Chambers; 291 Liberty; 339 Montgomery; 473 Waller ; other place FIPS are longer
-#st_county = paste0(state,county)
+county = "*" 
 tract = "*"
-#you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to the OneDrive
+#you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to mine on the OneDrive
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 
+#moved from schematic_sam.Rmd - moved to data.table only 
 
 
-#used for testing on smaller group
+#moved from schematic_sam.Rmd - moved to data.table only
 groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
 geo_type <- "block_group"
 api_type <- "dec/dhc"
