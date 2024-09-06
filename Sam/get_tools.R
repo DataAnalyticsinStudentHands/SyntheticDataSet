@@ -154,7 +154,7 @@ write_schema <- function(groupname,label_c1,dt){
   saveRDS(rds_dt,rds_path)
 }
 
-tests_download_data <- function(dt,label_c1,row_c1){
+tests_download_data <- function(dt,label_c1,row_c1,state_char){
   setkey(dt,"name")
   name_string <- dt[,name]
   total_name <- name_string[str_detect(name_string,"_001")]
@@ -162,7 +162,8 @@ tests_download_data <- function(dt,label_c1,row_c1){
     tn_dt <- as.data.table(total_name)
     total_name <- tn_dt[min(length(total_name))]
   }
-  total_pop <- sum(as.integer(dt[total_name,(6+length(label_c1)):ncol(dt)]),na.rm = TRUE)
+  suppressWarnings(
+    total_pop <- sum(as.integer(dt[total_name,.SDcols = startsWith(names(dt),state_char)]),na.rm = TRUE))
   print(paste0("Total population for ",total_name," is: ",total_pop))
   suppressWarnings( #b/c NAs introduced by coercion, but that is the desired outcome
     dt[row_c1,("total"):=sum(as.integer(.SD[,(6+length(label_c1)):ncol(.SD)]),na.rm = TRUE),by=.I])
