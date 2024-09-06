@@ -26,8 +26,9 @@ if(names(trSAR_dec_data_from_census)[6]=="label_1"){
   #row_c1 determined by hand
   row_c1 <- c(unique(trSAR_dec_data_from_census[!is.na(label_2)&
                                                   str_detect(concept,"NOT HISPANIC OR LATINO")&
-                                                  !str_detect(concept,"IN COMBINATION"),name]))
-  test_result <- tests_download_data(trSAR_dec_data_from_census,label_c1,row_c1)
+                                                  !str_detect(concept,"IN COMBINATION") | !is.na(label_2)&
+                                                  str_detect(concept,"\\(HISPANIC OR LATINO"),name]))
+  test_total_pop <- tests_download_data(trSAR_dec_data_from_census,label_c1,row_c1)
   trSAR_data <- relabel(trSAR_dec_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
   write_relabel(bgGQ,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
 }else{

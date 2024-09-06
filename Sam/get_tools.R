@@ -171,6 +171,7 @@ tests_download_data <- function(dt,label_c1,row_c1){
   }else{
     print("Total and total of selected rows do not agree")
   }
+  return(dt[total_name])
 }
 
 census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_num,api_type,path_suff){
