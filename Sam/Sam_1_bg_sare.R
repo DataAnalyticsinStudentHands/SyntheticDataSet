@@ -1,3 +1,5 @@
+##Finish SAE for Tract and Block_group!!
+
 source('Sam/get_tools.R')
 library(stringr)
 library(data.table)
@@ -28,27 +30,83 @@ if(names(trSAR_dec_data_from_census)[6]=="label_1"){
                                                   str_detect(concept,"NOT HISPANIC OR LATINO")&
                                                   !str_detect(concept,"IN COMBINATION") | !is.na(label_2)&
                                                   str_detect(concept,"\\(HISPANIC OR LATINO"),name]))
+  row_c2 <- c(unique(trSAR_dec_data_from_census[!is.na(label_2)&
+                                                  str_detect(concept,", HISPANIC OR LATINO")&
+                                                  !str_detect(concept,"IN COMBINATION"),name]))
   test_total_pop <- tests_download_data(trSAR_dec_data_from_census,label_c1,row_c1,as.character(state))
+  test_HvL_pop <- tests_download_data(trSAR_dec_data_from_census,label_c1,row_c2,as.character(state))
   trSAR_data <- relabel(trSAR_dec_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  trSAE_data <- relabel(trSAR_dec_data_from_census[!is.na(label)],label_c1,row_c2,groupname)
   write_relabel(trSAR_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+  write_relabel(trSAE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
 }else{
   print("Using already given labels; no rewrite.")
   trSAR_data <- trSAR_dec_data_from_census
+  trSAE_data <- trSAE_dec_data_from_census
 }
-rm(trSAR_dec_data_from_census)
+
 trSAR_data[,("re_code") := substr(name,4,4)]
 trSAR_data[,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")]
 trSAR_data[,("race") := str_replace(race,"\\)","")]
 trSAR_data[,("age_range") := str_replace(age_range, "Under 1 year", "0")]
 trSAR_data[,("age_range") := str_replace(age_range,"year"," year")]
-trSAR_data[,("age") := as.integer(substr(age_range,1,3))]
+suppressWarnings(
+  trSAR_data[,("age") := as.integer(substr(age_range,1,3))])
 
 #reshape a bit and make list of individuals
-Geoids <- colnames(trSAR_data[,8:(ncol(trSAR_data)-3)])
+Geoids <- colnames(trSAR_data[,8:(ncol(trSAR_data)-4)])
 trSAR_melted <- melt(trSAR_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
 trSAR <- as.data.table(lapply(trSAR_melted[,.SD],rep,trSAR_melted[,value]))
+
+#get trSAE for Hispanic or Latino
+rm(trSAR_dec_data_from_census)
 rm(trSAR_data)
 rm(trSAR_melted)
+
+#block_group level of same data
+groupname <- "P12" #SEX BY AGE FOR SELECTED AGE CATEGORIES (race/ethnicity)
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bgSAR_dec_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county,
+                   api_type,path_suff)
+if(names(bgSAR_dec_data_from_census)[6]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("sex","age_range")
+  #row_c1 determined by hand; table names for matching
+  row_c1 <- c(unique(bgSAR_dec_data_from_census[!is.na(label_2)&
+                                                  str_detect(concept,"NOT HISPANIC OR LATINO")&
+                                                  !str_detect(concept,"IN COMBINATION") | !is.na(label_2)&
+                                                  str_detect(concept,"\\(HISPANIC OR LATINO"),name]))
+  test_total_pop <- tests_download_data(bgSAR_dec_data_from_census,label_c1,row_c1,as.character(state))
+  bgSAR_data <- relabel(bgSAR_dec_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bgSAR_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bgSAR_data <- bgSAR_dec_data_from_census
+}
+
+bgSAR_data[,("re_code") := substr(name,4,4)]
+bgSAR_data[,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")]
+bgSAR_data[,("race") := str_replace(race,"\\)","")]
+bgSAR_data[,("age_range") := str_replace(age_range, "Under 1 year", "0")]
+bgSAR_data[,("age_range") := str_replace(age_range,"year"," year")]
+suppressWarnings(
+  bgSAR_data[,("age") := as.integer(substr(age_range,1,3))])
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(bgSAR_data[,8:(ncol(bgSAR_data)-4)])
+bgSAR_melted <- melt(bgSAR_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
+bgSAR <- as.data.table(lapply(bgSAR_melted[,.SD],rep,bgSAR_melted[,value]))
+
+#get bgSAE
+
+rm(bgSAR_dec_data_from_census)
+rm(bgSAR_data)
+rm(bgSAR_melted)
+
 
 
 #moved from schematic_sam.Rmd - moved to data.table only

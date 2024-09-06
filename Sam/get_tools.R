@@ -169,8 +169,15 @@ tests_download_data <- function(dt,label_c1,row_c1,state_char){
     dt[row_c1,("total"):=sum(as.integer(.SD[,(6+length(label_c1)):ncol(.SD)]),na.rm = TRUE),by=.I])
   if(total_pop == sum(dt[row_c1,"total"])){
     print("Total populations agree between total row and total of selected rows")
-  }else{
-    print("Total and total of selected rows do not agree")
+  }else{ #try Hispanic or Latino
+    total_name <- name_string[str_detect(name_string,"H_001")]
+    suppressWarnings(
+      total_pop <- sum(as.integer(dt[total_name,.SDcols = startsWith(names(dt),state_char)]),na.rm = TRUE))
+    if(total_pop==sum(dt[row_c1,"total"])){
+      print("Total Hispanic or Latino populations agree between total row and total of selected rows")
+    }else{
+      print("Total and total of selected rows do not agree")
+      }
   }
   return(dt[total_name])
 }
