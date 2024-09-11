@@ -7,106 +7,140 @@ maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Stud
 #maindir = "~/Documents/Sam_data/" #if need local
 censusdir = paste0(maindir,"Census/") 
 vintage = "2020"
-state = 48 #48 Texas; 22 Louisiana
+state = "48" #48 Texas; 22 Louisiana
 county = "*" 
 tract = "*"
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to mine on the OneDrive
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 
-#moved from schematic_sam.Rmd - moved to data.table only 
-groupname <- "P12" #SEX BY AGE FOR SELECTED AGE CATEGORIES (race/ethnicity)
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-trSAR_dec_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county,
-                   api_type,path_suff)
-if(names(trSAR_dec_data_from_census)[6]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("sex","age_range")
-  #row_c1 determined by hand; table names for matching
-  row_c1 <- c(unique(trSAR_dec_data_from_census[!is.na(label_2)&
-                                                  str_detect(concept,"NOT HISPANIC OR LATINO")&
-                                                  !str_detect(concept,"IN COMBINATION") | !is.na(label_2)&
-                                                  str_detect(concept,"\\(HISPANIC OR LATINO"),name]))
-  row_c2 <- c(unique(trSAR_dec_data_from_census[!is.na(label_2)&
-                                                  str_detect(concept,", HISPANIC OR LATINO")&
-                                                  !str_detect(concept,"IN COMBINATION"),name]))
-  test_total_pop <- tests_download_data(trSAR_dec_data_from_census,label_c1,row_c1,as.character(state))
-  test_HvL_pop <- tests_download_data(trSAR_dec_data_from_census,label_c1,row_c2,as.character(state))
-  trSAR_data <- relabel(trSAR_dec_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  trSAE_data <- relabel(trSAR_dec_data_from_census[!is.na(label)],label_c1,row_c2,groupname)
-  write_relabel(trSAR_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-  write_relabel(trSAE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  trSAR_data <- trSAR_dec_data_from_census
-  trSAE_data <- trSAE_dec_data_from_census
-}
-
-trSAR_data[,("re_code") := substr(name,4,4)]
-trSAR_data[,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")]
-trSAR_data[,("race") := str_replace(race,"\\)","")]
-trSAR_data[,("age_range") := str_replace(age_range, "Under 1 year", "0")]
-trSAR_data[,("age_range") := str_replace(age_range,"year"," year")]
-suppressWarnings(
-  trSAR_data[,("age") := as.integer(substr(age_range,1,3))])
-
-#reshape a bit and make list of individuals
-Geoids <- colnames(trSAR_data[,8:(ncol(trSAR_data)-4)])
-trSAR_melted <- melt(trSAR_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
-trSAR <- as.data.table(lapply(trSAR_melted[,.SD],rep,trSAR_melted[,value]))
-
-#get trSAE for Hispanic or Latino
-rm(trSAR_dec_data_from_census)
-rm(trSAR_data)
-rm(trSAR_melted)
+#moved from schematic_sam.Rmd - moved to data.table only - LOOKS LIKE BG HAS SAME AS TR!!
+#groupname <- "P12" #SEX BY AGE FOR SELECTED AGE CATEGORIES (race/ethnicity)
+#geo_type <- "tract"
+#api_type <- "dec/dhc"
+#path_suff <- "est"
+#trSARE_dec_data_from_census <- 
+#  census_tract_get(censusdir, vintage, state, censuskey, 
+#                   groupname,county,
+#                   api_type,path_suff)
+#if(names(trSARE_dec_data_from_census)[6]=="label_1"){
+#  #labels determined by hand
+#  label_c1 <- c("sex","age_range")
+#  #row_c1 determined by hand; table names for matching
+#  row_c1 <- c(unique(trSARE_dec_data_from_census[!is.na(label_2)&
+#                                                  str_detect(concept,"NOT HISPANIC OR LATINO")&
+#                                                  !str_detect(concept,"IN COMBINATION") | 
+#                                                  !is.na(label_2)&
+#                                                  !str_detect(concept,"IN COMBINATION")&
+#                                                  str_detect(concept,", HISPANIC OR LATINO"),name]))
+#  #in combination counts people twice (or more) - may not want to use.
+#  #for TX, 34464309 in total with duplicate counts; 5133738 counted as two or more races; 185066 seem to be counted triple or more
+#  row_c2 <- c(unique(trSARE_dec_data_from_census[!is.na(label_2)&
+#                                                  !str_detect(concept,"NOT HISPANIC OR LATINO")&
+#                                                  str_detect(concept,"IN COMBINATION") | 
+#                                                  !is.na(label_2)&
+#                                                  str_detect(concept,"IN COMBINATION")&
+#                                                  !str_detect(concept,", HISPANIC OR LATINO"),name]))
+#  test_total_pop <- tests_download_data(trSARE_dec_data_from_census,"_001",label_c1,row_c1,state)
+#  trSARE_data <- relabel(trSARE_dec_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+#  write_relabel(trSARE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+#}else{
+#  print("Using already given labels; no rewrite.")
+#  trSARE_data <- trSARE_dec_data_from_census
+#}
+#
+#trSARE_data[,("re_code") := substr(name,4,4)]
+#trSARE_data[,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")]
+#trSARE_data[,("race") := str_replace(race,"\\)","")]
+#trSARE_data[,("age_range") := str_replace(age_range, "Under 1 year", "0")]
+#trSARE_data[,("age_range") := str_replace(age_range,"year"," year")]
+#suppressWarnings(
+#  trSARE_data[,("age") := as.integer(substr(age_range,1,3))])
+#
+##reshape a bit and make list of individuals
+#Geoids <- colnames(trSARE_data[,8:(ncol(trSARE_data)-4)])
+#trSARE_melted <- melt(trSARE_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
+#trSARE <- as.data.table(lapply(trSARE_melted[,.SD],rep,trSARE_melted[,value]))
+#
+##get trSAE for Hispanic or Latino
+#rm(trSARE_dec_data_from_census)
+#rm(trSARE_data)
+#rm(trSARE_melted)
 
 #block_group level of same data
 groupname <- "P12" #SEX BY AGE FOR SELECTED AGE CATEGORIES (race/ethnicity)
 geo_type <- "block_group"
 api_type <- "dec/dhc"
 path_suff <- "est"
-bgSAR_dec_data_from_census <- 
+bgSARE_dec_data_from_census <- 
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
                    api_type,path_suff)
-if(names(bgSAR_dec_data_from_census)[6]=="label_1"){
+if(names(bgSARE_dec_data_from_census)[6]=="label_1"){
   #labels determined by hand
   label_c1 <- c("sex","age_range")
   #row_c1 determined by hand; table names for matching
-  row_c1 <- c(unique(bgSAR_dec_data_from_census[!is.na(label_2)&
-                                                  str_detect(concept,"NOT HISPANIC OR LATINO")&
-                                                  !str_detect(concept,"IN COMBINATION") | !is.na(label_2)&
-                                                  str_detect(concept,"\\(HISPANIC OR LATINO"),name]))
-  test_total_pop <- tests_download_data(bgSAR_dec_data_from_census,label_c1,row_c1,as.character(state))
-  bgSAR_data <- relabel(bgSAR_dec_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bgSAR_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+  row_c1 <- c(unique(bgSARE_dec_data_from_census[!is.na(label_2)&
+                                                   str_detect(concept,"NOT HISPANIC OR LATINO")&
+                                                   !str_detect(concept,"IN COMBINATION") | 
+                                                   !is.na(label_2)&
+                                                   !str_detect(concept,"IN COMBINATION")&
+                                                   str_detect(concept,", HISPANIC OR LATINO"),name]))
+  #in combination counts people twice (or more) - may not want to use.
+  #for TX, 34464309 in total with duplicate counts; 5133738 counted as two or more races; 185066 seem to be counted triple or more
+  row_c2 <- c(unique(bgSARE_dec_data_from_census[!is.na(label_2)&
+                                                   !str_detect(concept,"NOT HISPANIC OR LATINO")&
+                                                   str_detect(concept,"IN COMBINATION") | 
+                                                   !is.na(label_2)&
+                                                   str_detect(concept,"IN COMBINATION")&
+                                                   !str_detect(concept,", HISPANIC OR LATINO"),name]))
+  test_total_pop <- tests_download_data(bgSARE_dec_data_from_census,label_c1,row_c1,as.character(state))
+  bgSARE_data <- relabel(bgSARE_dec_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  bgSARE2_data <- relabel(bgSARE_dec_data_from_census[!is.na(label)],label_c1,row_c2,groupname)
+  write_relabel(bgSARE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+  write_relabel(bgSARE2_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff="combo_est")
 }else{
   print("Using already given labels; no rewrite.")
-  bgSAR_data <- bgSAR_dec_data_from_census
+  bgSARE_data <- bgSARE_dec_data_from_census
+  file_path <- valid_file_path(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff="combo_est")
+  if(file.exists(file_path)){
+      bgSARE2_data <- read_rds(file_path)
+    }else{
+      print(paste0("bgSARE2 file does not exist at: ",file_path))
+    }
 }
 
-bgSAR_data[,("re_code") := substr(name,4,4)]
-bgSAR_data[,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")]
-bgSAR_data[,("race") := str_replace(race,"\\)","")]
-bgSAR_data[,("age_range") := str_replace(age_range, "Under 1 year", "0")]
-bgSAR_data[,("age_range") := str_replace(age_range,"year"," year")]
-suppressWarnings(
-  bgSAR_data[,("age") := as.integer(substr(age_range,1,3))])
+bgSARE_data[,("re_code") := substr(name,4,4)][
+  ,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")][
+    ,("race") := str_replace(race,"\\)","")][
+      ,("age_range") := str_replace(age_range, "Under 1 year", "0")][
+        ,("age_range") := str_replace(age_range,"year"," year")][
+          ,("age") := as.integer(substr(age_range,1,3))]
 
 #reshape a bit and make list of individuals
-Geoids <- colnames(bgSAR_data[,8:(ncol(bgSAR_data)-4)])
-bgSAR_melted <- melt(bgSAR_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
-bgSAR <- as.data.table(lapply(bgSAR_melted[,.SD],rep,bgSAR_melted[,value]))
+Geoids <- colnames(bgSARE_data[,8:(ncol(bgSARE_data)-4)])
+bgSARE_melted <- melt(bgSARE_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
+bgSARE <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,value]))
 
-#get bgSAE
+#get two or more races as duplicated relations
+bgSARE2_data[,("re_code") := substr(name,4,4)][
+  ,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")][
+    ,("race") := str_replace(race,"\\)","")][
+      ,("age_range") := str_replace(age_range, "Under 1 year", "0")][
+        ,("age_range") := str_replace(age_range,"year"," year")][
+          ,("age") := as.integer(substr(age_range,1,3))]
 
-rm(bgSAR_dec_data_from_census)
-rm(bgSAR_data)
-rm(bgSAR_melted)
+#reshape a bit and make list of individuals
+bgSARE2_melted <- melt(bgSARE2_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
+bgSARE2 <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,value]))
 
+
+
+rm(bgSARE_dec_data_from_census)
+rm(bgSARE_data)
+rm(bgSARE_melted)
+
+groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
+groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETH
 
 
 #moved from schematic_sam.Rmd - moved to data.table only

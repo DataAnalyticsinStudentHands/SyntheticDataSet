@@ -44,15 +44,6 @@ valid_file_path <- function(censusdir,vintage,state,county,api_type,geo_type,gro
   }else{
     print(paste0("found folder: ",folder_path))
   }
-  #if (geo_type=="block_group" & county!="all"){
-  #  if (file.exists(paste0(folder_path,"/county_",county))){
-  #    print(paste0("found folder: ", paste0(folder_path,"/county_",county)))
-  #  }else{
-  #    dir.create(paste0(folder_path,"/county_",county))
-  #    print(paste0("created folder:", folder_path,"/county_",county))
-  #  }
-  #  folder_path <- paste0(folder_path,"/county_",county)
-  #}
   api <- str_replace_all(api_type,"/","_")
   file_path <- paste0(folder_path,"/",vintage,"_",state,"_",api,"_",geo_type,"_",groupname,"_",path_suff,".RDS")
   return(file_path)
@@ -66,9 +57,9 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
       name = paste0(vintage,"/",api_type), 
       type = "variables") 
     census_variables <- as.data.table(census_variables)
-    census_variables <- census_variables[is.na(predicateOnly)]
-    census_variables <- census_variables[,c("predicateType","predicateOnly","hasGeoCollectionSupport","required","limit"):=NULL]
-    census_variables <- census_variables[label!="Geography"]
+    census_variables[is.na(predicateOnly)][
+      ,c("predicateType","predicateOnly","hasGeoCollectionSupport","required","limit"):=NULL][
+        label!="Geography"]
     write_rds(census_variables,variables_dt)
     print(paste0("Retrieved new variable options from census api and saved to: ", variables_dt))
   }else{
@@ -80,10 +71,10 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
 }
 
 split_labels <- function(census_vars){
-  census_vars[,("label"):=str_remove_all(label,":")]
-  census_vars[,("label"):=str_remove_all(label,"Total")]
-  census_vars[,("label"):=str_remove_all(label,"!!!!")]
-  census_vars[,("label"):=trimws(label)]
+  census_vars[,("label"):=str_remove_all(label,":")][
+    ,("label"):=str_remove_all(label,"Total")][
+      ,("label"):=str_remove_all(label,"!!!!")][
+        ,("label"):=trimws(label)]
   label_size <- 1+max(str_count(census_vars[,label],"!!"),na.rm = TRUE)
   label_names <- paste0("label_",1:label_size)
   census_vars[,c(label_names):=tstrsplit(label,"!!")]
@@ -154,7 +145,8 @@ write_schema <- function(groupname,label_c1,dt){
   saveRDS(rds_dt,rds_path)
 }
 
-tests_download_data <- function(dt,label_c1,row_c1,state_char){
+#state needs to be a character string
+tests_download_data <- function(dt,label_c1,row_c1,total_str,state){
   setkey(dt,"name")
   name_string <- dt[,name]
   total_name <- name_string[str_detect(name_string,"_001")]
@@ -163,21 +155,15 @@ tests_download_data <- function(dt,label_c1,row_c1,state_char){
     total_name <- tn_dt[min(length(total_name))]
   }
   suppressWarnings(
-    total_pop <- sum(as.integer(dt[total_name,.SDcols = startsWith(names(dt),state_char)]),na.rm = TRUE))
+    total_pop <- sum(as.integer(dt[total_name,.SDcols = startsWith(names(dt),state)]),na.rm = TRUE))
   print(paste0("Total population for ",total_name," is: ",total_pop))
+  dt[,("total"):=0] #in case it's second time through...
   suppressWarnings( #b/c NAs introduced by coercion, but that is the desired outcome
     dt[row_c1,("total"):=sum(as.integer(.SD[,(6+length(label_c1)):ncol(.SD)]),na.rm = TRUE),by=.I])
   if(total_pop == sum(dt[row_c1,"total"])){
     print("Total populations agree between total row and total of selected rows")
-  }else{ #try Hispanic or Latino
-    total_name <- name_string[str_detect(name_string,"H_001")]
-    suppressWarnings(
-      total_pop <- sum(as.integer(dt[total_name,.SDcols = startsWith(names(dt),state_char)]),na.rm = TRUE))
-    if(total_pop==sum(dt[row_c1,"total"])){
-      print("Total Hispanic or Latino populations agree between total row and total of selected rows")
-    }else{
-      print("Total and total of selected rows do not agree")
-      }
+  }else{ 
+    print("Total and total of selected rows do not agree")
   }
   return(dt[total_name])
 }
@@ -196,8 +182,8 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
     if(path_suff=="err"){
-      census_variables[,("name"):=str_replace(name,".{1}$","M")] # need to test; think we're just replacing last one with M
-      census_variables[,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
+      census_variables[,("name"):=str_replace(name,".{1}$","M")][
+        ,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
     }
     census_vars_labels <- split_labels(census_variables)
     data_for_vars <- getCensus(name = api_type,
@@ -245,8 +231,8 @@ census_tract_get <- function(censusdir,vintage,state,censuskey,groupname,county,
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
     if(path_suff=="err"){
-      census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
-      census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
+      census_variables[,("name"):=str_replace(name,".{1}$","M")][
+        ,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
     }
     census_vars_labels <- split_labels(census_variables)
     data_for_vars <- getCensus(name = api_type,
@@ -295,8 +281,8 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
   }else{
     census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
     if(path_suff=="err"){
-      census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
-      census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
+      census_variables[,("name"):=str_replace(name,".{1}$","M")][
+        ,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
     }
     census_vars_labels <- split_labels(census_variables)
     data_for_vars <- getCensus(name = api_type,
