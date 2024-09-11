@@ -133,12 +133,16 @@ bgSARE2_data[,("re_code") := substr(name,4,4)][
 bgSARE2_melted <- melt(bgSARE2_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
 bgSARE2 <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,value]))
 
-
+#assign order to individuals (maybe worth a comment on why different than doing subtraction first and then casting to individual)
 
 rm(bgSARE_dec_data_from_census)
 rm(bgSARE_data)
 rm(bgSARE_melted)
 
+groupname <- "P8" #was this what I should have been using??
+groupname <- "P9"
+groupname <- "P10" #RACE FOR THE POPULATION 18 YEARS AND OVER = includes breakdown by multiple races - could use it to check above?
+groupname <- "P11" #HISPANIC OR LATINO, AND NOT HISPANIC OR LATINO BY RACE FOR THE POPULATION 18 YEARS AND OVER
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
 groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETH
 
