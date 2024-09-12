@@ -27,7 +27,7 @@ bgSARE_dec_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
                    api_type,path_suff)
-if(names(bgSARE_dec_data_from_census)[6]=="label_1"){
+if(names(bgSARE_dec_data_from_census)[11]=="label_1"){
   #labels determined by hand
   label_c1 <- c("sex","age_range")
   #row_c1 determined by hand; table names for matching
@@ -103,7 +103,7 @@ bgR_dec_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
                    api_type,path_suff)
-if(names(bgR_dec_data_from_census)[6]=="label_1"){
+if(names(bgR_dec_data_from_census)[11]=="label_1"){
   #labels determined by hand
   label_c1 <- c("number_races","race_description","multiple_races")
   #row_c1 determined by hand; table names for matching
@@ -137,7 +137,7 @@ bgE_dec_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
                    api_type,path_suff)
-if(names(bgE_dec_data_from_census)[6]=="label_1"){
+if(names(bgE_dec_data_from_census)[11]=="label_1"){
   #labels determined by hand
   label_c1 <- c("HvL","number_races","race_description","multiple_races")
   #row_c1 determined by hand; table names for matching
@@ -170,7 +170,7 @@ bgR18_dec_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
                    api_type,path_suff)
-if(names(bgR18_dec_data_from_census)[6]=="label_1"){
+if(names(bgR18_dec_data_from_census)[11]=="label_1"){
   #labels determined by hand
   label_c1 <- c("number_races","race_description","multiple_races")
   #row_c1 determined by hand; table names for matching
@@ -202,7 +202,7 @@ bgE18_dec_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
                    api_type,path_suff)
-if(names(bgE18_dec_data_from_census)[6]=="label_1"){
+if(names(bgE18_dec_data_from_census)[11]=="label_1"){
   #labels determined by hand
   label_c1 <- c("HvL","number_races","race_description","multiple_races")
   #row_c1 determined by hand; table names for matching
@@ -231,14 +231,14 @@ rm(bgE18_data)
 rm(bgE18_melted)
 
 #collapse bgR, bgE, bgR18, and bgE18 together - variable is GEOID
-bgR[,("row_num"):=1:.N,by=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
-bgE[,("row_num"):=1:.N,by=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
-bgRE <- bgR[bgE,on=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
+bgR[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+bgE[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+bgRE <- bgR[bgE,on=.(variable,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
 #setorderv(bgR18,c("variable","race_1","race_2","race_3","race_4","race_5","race_6"),na.last=TRUE)
 #setorderv(bgE18,c("variable","race_1","race_2","race_3","race_4","race_5","race_6"),na.last=TRUE)
-bgR18[,("row_num"):=1:.N,by=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
-bgE18[,("row_num"):=1:.N,by=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
-bgRE18 <- bgR18[bgE18,on=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
+bgR18[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+bgE18[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+bgRE18 <- bgR18[bgE18,on=.(variable,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
 #think about renaming value and i.value and row_num...
 bgARE <- bgRE18[bgRE,on=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
 bgARE[,("under_18"):=fifelse(is.na(HvL),T,F)]
