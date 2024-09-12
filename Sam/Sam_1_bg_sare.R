@@ -69,7 +69,7 @@ bgSARE_data[,("re_code") := substr(name,4,4)][
           ,("age") := as.integer(substr(age_range,1,3))]
 
 #reshape a bit and make list of individuals
-Geoids <- colnames(bgR_data[,.SD,.SDcols = startsWith(names(bgSARE_data),state)])
+Geoids <- colnames(bgSARE_data[,.SD,.SDcols = startsWith(names(bgSARE_data),state)])
 bgSARE_melted <- melt(bgSARE_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
 bgSARE <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,value]))
 
@@ -96,6 +96,9 @@ rm(bgSARE2_data)
 rm(bgSARE2_melted)
 
 groupname <- "P8" #RACE (but with up to 6 combinations)
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
 bgR_dec_data_from_census <- 
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
@@ -113,9 +116,10 @@ if(names(bgR_dec_data_from_census)[6]=="label_1"){
   print("Using already given labels; no rewrite.")
   bgR_data <- bgR_dec_data_from_census
 }
+
 #should be a more elegant way of assigning the series of race_1, etc...
-bgR_data[,("race_description"):=str_replace(race_description," alone","")][
-  ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,";"))[1]), by=.I][
+bgR_data[,("race_descript"):=str_replace(race_description," alone","")][
+  ,("race_1"):=fifelse(number_races=="Population of one race",race_descript,unlist(str_split(multiple_races,";"))[1]), by=.I][
     ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
       ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
         ,("race_4"):=unlist(str_split(multiple_races,";"))[4],by=.I][
