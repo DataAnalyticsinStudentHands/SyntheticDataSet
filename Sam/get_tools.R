@@ -85,7 +85,7 @@ split_labels <- function(census_vars){
 relabel <- function(dt,label_c1,row_c1,groupname){ 
   #doing this on whole dt, not just census_variables, for both testing and so it can be handtuned after original get
   label_names <- paste0("label_",1:length(label_c1))
-  setnames(dt,label_names,label_c1)
+  setnames(dt,label_names,label_c1,skip_absent = TRUE)
   #rows are called by name; the !is.na() for certain labels is done before call
   setkey(dt,name)
   result <- dt[row_c1]
@@ -133,7 +133,7 @@ write_schema <- function(groupname,label_c1,dt){
   }
   rds_path <- paste0(maindir,"sam_schemas/","sam_schema.RDS")
   rds_dt <- unique(dt[,..label_c1])
-  setnames(rds_dt,label_c1,labels)
+  setnames(rds_dt,label_c1,labels,skip_absent = TRUE)
   rds_dt[,("cnt"):=1:.N]
   if (file.exists(rds_path)){
     old_rds_dt <- readRDS(rds_path) 
@@ -145,7 +145,6 @@ write_schema <- function(groupname,label_c1,dt){
   saveRDS(rds_dt,rds_path)
 }
 
-#state needs to be a character string
 tests_download_data <- function(dt,label_c1,row_c1,total_str,state){
   setkey(dt,"name")
   name_string <- dt[,name]
@@ -159,7 +158,7 @@ tests_download_data <- function(dt,label_c1,row_c1,total_str,state){
   print(paste0("Total population for ",total_name," is: ",total_pop))
   dt[,("total"):=0] #in case it's second time through...
   suppressWarnings( #b/c NAs introduced by coercion, but that is the desired outcome
-    dt[row_c1,("total"):=sum(as.integer(.SD[,(6+length(label_c1)):ncol(.SD)]),na.rm = TRUE),by=.I])
+    dt[row_c1,("total"):=sum(as.integer(.SD,.SDcols = startsWith(names(dt),state)),na.rm = TRUE),by=.I])
   if(total_pop == sum(dt[row_c1,"total"])){
     print("Total populations agree between total row and total of selected rows")
   }else{ 
