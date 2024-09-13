@@ -256,6 +256,13 @@ rm(bgRE18)
 #should we do th ¬¬ logic for some determinations?
 #should we go back to the cartesian expansion idea for finding within a space? I don't think so - not very elegant, after all...
 
+#taking bgSARE as the base, assign ¬¬weights for every second race to indicate a potential direction, not yet filled. 
+#final goal is having a distance to calculate against as we get to point of determination.
+#so, for race_6, only value is on ¬¬Some Other Race, but applies to everyone. 
+#For each block group, what does the total number in that category indicate? Do we multiply by that magnitude in that direction?
+#magnitude should be #to assign per bg / # that could've matched (I believe it's either value.i or value!)
+
+
 #schematic_sam_dec
 groupname <- "P16" #HOUSEHOLDER AGE/RACE/ETH
 groupname <- "H13" #HOUSEHOLDER AGE / TENURE
