@@ -53,7 +53,7 @@ if(names(bgSARE_dec_data_from_census)[11]=="label_1"){
 }else{
   print("Using already given labels; no rewrite.")
   bgSARE_data <- bgSARE_dec_data_from_census
-  file_path <- valid_file_path(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff="combo_est")
+  file_path <- valid_file_path(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff="combo_est_relabeled")
   if(file.exists(file_path)){
       bgSARE2_data <- read_rds(file_path)
     }else{
@@ -64,25 +64,21 @@ if(names(bgSARE_dec_data_from_census)[11]=="label_1"){
 bgSARE_data[,("re_code") := substr(name,4,4)][
   ,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")][
     ,("race") := str_replace(race,"\\)","")][
-      ,("age_range") := str_replace(age_range, "Under 1 year", "0")][
-        ,("age_range") := str_replace(age_range,"year"," year")][
-          ,("age") := as.integer(substr(age_range,1,3))]
+      ,("age_range") := str_replace(age_range, "Under 1 year", "0")]
 
 #reshape a bit and make list of individuals
 Geoids <- colnames(bgSARE_data[,.SD,.SDcols = startsWith(names(bgSARE_data),state)])
-bgSARE_melted <- melt(bgSARE_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
+bgSARE_melted <- melt(bgSARE_data, id.vars = c("re_code","race","sex","age_range"), measure.vars = Geoids)
 bgSARE <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,value]))
 
 #get two or more races as duplicated relations
 bgSARE2_data[,("re_code") := substr(name,4,4)][
   ,("race") := str_replace(concept,"SEX BY AGE FOR SELECTED AGE CATEGORIES \\(","")][
     ,("race") := str_replace(race,"\\)","")][
-      ,("age_range") := str_replace(age_range, "Under 1 year", "0")][
-        ,("age_range") := str_replace(age_range,"year"," year")][
-          ,("age") := as.integer(substr(age_range,1,3))]
+      ,("age_range") := str_replace(age_range, "Under 1 year", "0")]
 
 #reshape a bit and make list of individuals
-bgSARE2_melted <- melt(bgSARE2_data, id.vars = c("re_code","race","sex","age_range","age"), measure.vars = Geoids)
+bgSARE2_melted <- melt(bgSARE2_data, id.vars = c("re_code","race","sex","age_range"), measure.vars = Geoids)
 bgSARE2 <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,value]))
 
 #assign order to individuals (maybe worth a comment on why different than doing subtraction first and then casting to individual)
@@ -95,7 +91,7 @@ rm(bgSARE_melted)
 rm(bgSARE2_data)
 rm(bgSARE2_melted)
 
-groupname <- "P8" #RACE (but with up to 6 combinations)
+groupname <- "P8" #RACE (but with up to 6 combinations for "two or more races")
 geo_type <- "block_group"
 api_type <- "dec/dhc"
 path_suff <- "est"
@@ -118,7 +114,8 @@ if(names(bgR_dec_data_from_census)[11]=="label_1"){
 }
 
 #should be a more elegant way of assigning the series of race_1, etc...
-bgR_data[,("race_descript"):=str_replace(race_description," alone","")][
+bgR_data[,("race_descript"):=str_replace(race_description," alone","")]
+bgR_data[
   ,("race_1"):=fifelse(number_races=="Population of one race",race_descript,unlist(str_split(multiple_races,";"))[1]), by=.I][
     ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
       ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
@@ -133,6 +130,9 @@ rm(bgR_data)
 rm(bgR_melted)
 
 groupname <- "P9" #HISPANIC OR LATINO, AND NOT HISPANIC OR LATINO BY RACE (combine with P8 to find HvL by race)
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
 bgE_dec_data_from_census <- 
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
@@ -152,7 +152,8 @@ if(names(bgE_dec_data_from_census)[11]=="label_1"){
   bgE_data <- bgE_dec_data_from_census
 }
 #should be a more elegant way of assigning the series of race_1, etc...
-bgE_data[,("race_description"):=str_replace(race_description," alone","")][
+bgE_data[,("race_description"):=str_replace(race_description," alone","")] #for some reason, pipe wasn't working when called altogether, but does when separate...
+bgE_data[
   ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,";"))[1]), by=.I][
     ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
       ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
@@ -166,6 +167,9 @@ rm(bgE_data)
 rm(bgE_melted)
 
 groupname <- "P10" #RACE FOR THE POPULATION 18 YEARS AND OVER = includes breakdown by multiple races - could use it to check above?
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
 bgR18_dec_data_from_census <- 
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
@@ -184,7 +188,8 @@ if(names(bgR18_dec_data_from_census)[11]=="label_1"){
   bgR18_data <- bgR18_dec_data_from_census
 }
 #should be a more elegant way of assigning the series of race_1, etc...
-bgR18_data[,("race_description"):=str_replace(race_description," alone","")][
+bgR18_data[,("race_description"):=str_replace(race_description," alone","")]
+bgR18_data[
   ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,";"))[1]), by=.I][
     ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
       ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
@@ -198,6 +203,9 @@ rm(bgR18_data)
 rm(bgR18_melted)
 
 groupname <- "P11" #HISPANIC OR LATINO, AND NOT HISPANIC OR LATINO BY RACE FOR THE POPULATION 18 YEARS AND OVER
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
 bgE18_dec_data_from_census <- 
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county,
@@ -217,7 +225,8 @@ if(names(bgE18_dec_data_from_census)[11]=="label_1"){
   bgE18_data <- bgE18_dec_data_from_census
 }
 #should be a more elegant way of assigning the series of race_1, etc...
-bgE18_data[,("race_description"):=str_replace(race_description," alone","")][
+bgE18_data[,("race_description"):=str_replace(race_description," alone","")]
+bgE18_data[
   ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,";"))[1]), by=.I][
     ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
       ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
@@ -232,16 +241,22 @@ rm(bgE18_melted)
 
 #collapse bgR, bgE, bgR18, and bgE18 together - variable is GEOID
 bgR[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+setnames(bgR,"value","race_value")
 bgE[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
-bgRE <- bgR[bgE,on=.(variable,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
+setnames(bgE,"value","eth_value")
+bgRE <- bgE[bgR,on=.(variable,race_1,race_2,race_3,race_4,race_5,race_6,row_num)] 
+bgRE[,("HvL"):=fifelse(is.na(HvL),"Hispanic or Latino",HvL)]
 #setorderv(bgR18,c("variable","race_1","race_2","race_3","race_4","race_5","race_6"),na.last=TRUE)
 #setorderv(bgE18,c("variable","race_1","race_2","race_3","race_4","race_5","race_6"),na.last=TRUE)
 bgR18[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+setnames(bgR18,"value","race18_value")
 bgE18[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
-bgRE18 <- bgR18[bgE18,on=.(variable,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
+setnames(bgE18,"value","eth18_value")
+bgRE18 <- bgE18[bgR18,on=.(variable,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
+bgRE18[,("HvL"):=fifelse(is.na(HvL),"Hispanic or Latino",HvL)]
 #think about renaming value and i.value and row_num...
-bgARE <- bgRE18[bgRE,on=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
-bgARE[,("under_18"):=fifelse(is.na(HvL),T,F)]
+bgARE <- bgRE[bgRE18,on=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
+bgARE[,("under_18"):=fifelse(is.na(race18_value),T,F)]
 #clean up the trail
 rm(bgR)
 rm(bgE)
