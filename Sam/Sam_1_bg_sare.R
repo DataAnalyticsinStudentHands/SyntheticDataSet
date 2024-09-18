@@ -79,7 +79,7 @@ bgSARE2_data[,("re_code") := substr(name,4,4)][
 
 #reshape a bit and make list of individuals
 bgSARE2_melted <- melt(bgSARE2_data, id.vars = c("re_code","race","sex","age_range"), measure.vars = Geoids)
-bgSARE2 <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,value]))
+bgSARE2 <- as.data.table(lapply(bgSARE2_melted[,.SD],rep,bgSARE2_melted[,value]))
 
 #assign order to individuals (maybe worth a comment on why different than doing subtraction first and then casting to individual)
 #row_nums to both, merge toward combined; redo row_nums on combined, only if they don't have 
@@ -240,32 +240,96 @@ rm(bgE18_data)
 rm(bgE18_melted)
 
 #collapse bgR, bgE, bgR18, and bgE18 together - variable is GEOID
-bgR[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
-setnames(bgR,"value","race_value")
-bgE[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
-setnames(bgE,"value","eth_value")
-bgRE <- bgE[bgR,on=.(variable,race_1,race_2,race_3,race_4,race_5,race_6,row_num)] 
-bgRE[,("HvL"):=fifelse(is.na(HvL),"Hispanic or Latino",HvL)]
-#setorderv(bgR18,c("variable","race_1","race_2","race_3","race_4","race_5","race_6"),na.last=TRUE)
-#setorderv(bgE18,c("variable","race_1","race_2","race_3","race_4","race_5","race_6"),na.last=TRUE)
-bgR18[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
-setnames(bgR18,"value","race18_value")
-bgE18[,("row_num"):=1:.N,by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
-setnames(bgE18,"value","eth18_value")
-bgRE18 <- bgE18[bgR18,on=.(variable,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
-bgRE18[,("HvL"):=fifelse(is.na(HvL),"Hispanic or Latino",HvL)]
-#think about renaming value and i.value and row_num...
-bgARE <- bgRE[bgRE18,on=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,row_num)]
-bgARE[,("under_18"):=fifelse(is.na(race18_value),T,F)]
+#doing my own variable construction for matching to better control multi-step process
+bgR[,("races_match_id"):=
+      paste0(variable,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+    by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+bgE[,("races_match_id"):=
+      paste0(variable,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+    by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+#move just bgE with race info, b/c: table(bgE[,HvL],bgE[,race_1])
+bgR[,("HvL"):=
+      bgE[.SD,list(HvL),on=.(races_match_id)]]
+#table(bgR[!is.na(HvL),race_1])==table(bgE[,race_1])
+bgR[is.na(HvL),("HvL"):="Hispanic or Latino"]
+#under 18
+bgR18[,("races_match_id"):=
+      paste0(variable,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+    by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+bgE18[,("races_match_id"):=
+      paste0(variable,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+    by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+#move just bgE with race info, b/c: table(bgE18[,HvL],bgE18[,race_1])
+bgR18[,("HvL"):=
+      bgE18[.SD,list(HvL),on=.(races_match_id)]]
+#table(bgR18[!is.na(HvL),race_1])==table(bgE18[,race_1])
+bgR[is.na(HvL),("HvL"):="Hispanic or Latino"]
+bgR[,("under_18"):=
+      bgR18[.SD,list("Under 18 years old"),on=.(races_match_id)]]
+#table(bgR[!is.na(under_18),race_1])==table(bgR18[,race_1])
+bgR[is.na(under_18),("under_18"):="18 years or older"]
+
 #clean up the trail
-rm(bgR)
 rm(bgE)
 rm(bgR18)
 rm(bgE18)
-rm(bgRE)
-rm(bgRE18)
 
 #join with bgSARE
+bgR[,("re_code"):=fcase(HvL=="Hispanic or Latino"&race_1=="White","P",
+                        HvL=="Not Hispanic or Latino"&race_1=="White","I",
+                        HvL=="Hispanic or Latino"&race_1=="Black or African American","Q",
+                        HvL=="Not Hispanic or Latino"&race_1=="Black or African American","J",
+                        HvL=="Hispanic or Latino"&race_1=="Asian","S",
+                        HvL=="Not Hispanic or Latino"&race_1=="Asian","L",
+                        HvL=="Hispanic or Latino"&race_1=="American Indian and Alaska Native","R",
+                        HvL=="Not Hispanic or Latino"&race_1=="American Indian and Alaska Native","K",
+                        HvL=="Hispanic or Latino"&race_1=="Native Hawaiian and Other Pacific Islander","T",
+                        HvL=="Not Hispanic or Latino"&race_1=="Native Hawaiian and Other Pacific Islander","M",
+                        HvL=="Hispanic or Latino"&race_1=="Some Other Race","U",
+                        HvL=="Not Hispanic or Latino"&race_1=="Some Other Race","N",default = NA)]
+bgSARE2[,("re_code2"):=fcase(race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","R",
+                             race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","K",
+                             race=="ASIAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","S",
+                             race=="ASIAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","L",
+                             race=="WHITE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","P",
+                             race=="WHITE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","I",
+                             race=="BLACK OR AFRICAN AMERICAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","Q",
+                             race=="BLACK OR AFRICAN AMERICAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","J",
+                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","T",
+                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","M",
+                             race=="SOME OTHER RACE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","U",
+                             race=="SOME OTHER RACE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","N",default = NA)]
+bgSARE[,("age_num"):=fcase(age_range=="Under 5 years",as.integer(0),
+                            age_range=="5 to 9 years",as.integer(5),default = as.integer(str_sub(age_range,start=1,end=2)))]
+bgSARE[,("HvL"):=fifelse(str_detect(race,"NOT"),"Not Hispanic or Latino","Hispanic or Latino")]
+bgSARE2[,("age_num"):=fcase(age_range=="Under 5 years",as.integer(0),
+                            age_range=="5 to 9 years",as.integer(5),default = as.integer(str_sub(age_range,start=1,end=2)))]
+bgSARE2[,("under_18"):=fifelse(age_num<18,"Under 18 years old","18 years or older")]
+bgSARE2[,("HvL"):=fifelse(str_detect(race,"NOT"),"Not Hispanic or Latino","Hispanic or Latino")]
+bgR[,("races_age_match_id"):=
+        paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
+      by=.(variable,HvL,re_code,under_18)]
+bgSARE2[,("races_age_match_id"):=
+        paste0(variable,HvL,re_code2,under_18,as.character(100000+sample(1:.N))),
+      by=.(variable,HvL,re_code2,under_18)]
+#move just bgE with race info, b/c: table(bgE18[,HvL],bgE18[,race_1])
+bgR[,c("sex","age_range","age_num"):=
+      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num)),on=.(races_age_match_id)]]
+bgSARE2[,("matched1"):=
+      bgR[.SD,list(race_1),on=.(races_age_match_id)]]
+#test - ??
+#do some tables and think about what to add...
+
+#then move race_1 through 6 to bgSARE
+bgR[,("races_age2_match_id"):=
+      paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
+    by=.(variable,HvL,re_code,under_18)]
+bgSARE[,("races_age2_match_id"):=
+         paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
+       by=.(variable,HvL,re_code,under_18)]
+
+
+
 #need to not make order in bgARE determinative (White is not always race_1; Black is not always race_2, etc)
 #should we wait, in some sense, so that siblings have matching multiples?
 #should we do th ¬¬ logic for some determinations?
