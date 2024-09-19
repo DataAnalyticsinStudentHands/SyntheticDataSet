@@ -263,11 +263,25 @@ bgE18[,("races_match_id"):=
 bgR18[,("HvL"):=
       bgE18[.SD,list(HvL),on=.(races_match_id)]]
 #table(bgR18[!is.na(HvL),race_1])==table(bgE18[,race_1])
-bgR[is.na(HvL),("HvL"):="Hispanic or Latino"]
+bgR18[is.na(HvL),("HvL"):="Hispanic or Latino"]
+bgR18[,("under_18"):="18 years or older"]
+bgR18[,("races_eth_match_id"):=
+        paste0(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+      by=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
+bgR[,("races_eth_match_id"):=
+        paste0(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+      by=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
 bgR[,("under_18"):=
-      bgR18[.SD,list("Under 18 years old"),on=.(races_match_id)]]
+      bgR18[.SD,list(under_18),on=.(races_eth_match_id)]]
 #table(bgR[!is.na(under_18),race_1])==table(bgR18[,race_1])
-bgR[is.na(under_18),("under_18"):="18 years or older"]
+bgR[is.na(under_18),("under_18"):="Under 18 years old"]
+bgR[,("codom_races"):=.N,by=.(variable,HvL)]
+bgR[,("codom_race_2"):=nrow(.SD[!is.na(race_2)]),by=.(variable,HvL,race_2)]
+bgR[,("codom_race_3"):=nrow(.SD[!is.na(race_3)]),by=.(variable,HvL,race_3)]
+bgR[,("codom_race_4"):=nrow(.SD[!is.na(race_4)]),by=.(variable,HvL,race_4)]
+bgR[,("codom_race_5"):=nrow(.SD[!is.na(race_5)]),by=.(variable,HvL,race_5)]
+bgR[,("codom_race_6"):=nrow(.SD[!is.na(race_6)]),by=.(variable,HvL,race_6)]
+
 
 #clean up the trail
 rm(bgE)
@@ -296,7 +310,7 @@ bgSARE2[,("re_code2"):=fcase(race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE OR I
                              race=="BLACK OR AFRICAN AMERICAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","Q",
                              race=="BLACK OR AFRICAN AMERICAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","J",
                              race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","T",
-                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","M",
+                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","M",
                              race=="SOME OTHER RACE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","U",
                              race=="SOME OTHER RACE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","N",default = NA)]
 bgSARE[,("age_num"):=fcase(age_range=="Under 5 years",as.integer(0),
@@ -306,8 +320,8 @@ bgSARE2[,("age_num"):=fcase(age_range=="Under 5 years",as.integer(0),
                             age_range=="5 to 9 years",as.integer(5),default = as.integer(str_sub(age_range,start=1,end=2)))]
 bgSARE2[,("under_18"):=fifelse(age_num<18,"Under 18 years old","18 years or older")]
 bgSARE2[,("HvL"):=fifelse(str_detect(race,"NOT"),"Not Hispanic or Latino","Hispanic or Latino")]
-bgR[,("races_age_match_id"):=
-        paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
+bgR[,c("codom_re_code_18","races_age_match_id"):=
+        c(list(.N),list(paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))))),
       by=.(variable,HvL,re_code,under_18)]
 bgSARE2[,("races_age_match_id"):=
         paste0(variable,HvL,re_code2,under_18,as.character(100000+sample(1:.N))),
@@ -317,6 +331,9 @@ bgR[,c("sex","age_range","age_num"):=
       bgSARE2[.SD,c(list(sex),list(age_range),list(age_num)),on=.(races_age_match_id)]]
 bgSARE2[,("matched1"):=
       bgR[.SD,list(race_1),on=.(races_age_match_id)]]
+#nrow(bgSARE)-nrow(bgSARE2[!is.na(matched1)])==0
+#have to start with race_6 when finally determined, but idea is that you're putting the weights (codom_race_6/codom_races) with the race - need to make sure they vary...
+
 #test - ??
 #do some tables and think about what to add...
 
@@ -324,10 +341,11 @@ bgSARE2[,("matched1"):=
 bgR[,("races_age2_match_id"):=
       paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
     by=.(variable,HvL,re_code,under_18)]
-bgSARE[,("races_age2_match_id"):=
-         paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
+bgSARE[,c("codom_races","races_age2_match_id"):=
+         c(list(.N),list(paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))))),
        by=.(variable,HvL,re_code,under_18)]
-
+bgSARE[,c("codom_re_code_18","codom_race_6","matched1"):=
+          bgR[.SD,c(list(codom_re_code_18),list(codom_race_6),list(race_6)),on=.(races_age_match_id)]]
 
 
 #need to not make order in bgARE determinative (White is not always race_1; Black is not always race_2, etc)
