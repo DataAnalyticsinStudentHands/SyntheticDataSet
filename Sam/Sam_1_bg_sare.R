@@ -334,9 +334,11 @@ bgSARE2[,("matched1"):=
 #nrow(bgSARE)-nrow(bgSARE2[!is.na(matched1)])==0
 #have to start with race_6 when finally determined, but idea is that you're putting the weights (codom_race_6/codom_races) with the race - need to make sure they vary...
 
+#TO DO NEXT:::each layer of race_ needs to be related to all the others, like an exponential cartesian combination...
+#does determining backwards ensure no hallucinations? Is it the same problem as hallucination??
 #test - ??
 #do some tables and think about what to add...
-
+#have to think harder about race_1, too...
 #then move race_1 through 6 to bgSARE
 bgR[,("races_age2_match_id"):=
       paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
@@ -344,8 +346,9 @@ bgR[,("races_age2_match_id"):=
 bgSARE[,c("codom_races","races_age2_match_id"):=
          c(list(.N),list(paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))))),
        by=.(variable,HvL,re_code,under_18)]
-bgSARE[,c("codom_re_code_18","codom_race_6","matched1"):=
-          bgR[.SD,c(list(codom_re_code_18),list(codom_race_6),list(race_6)),on=.(races_age_match_id)]]
+bgSARE[,c("codom_re_code_18","codom_race_6","codom_race_5","codom_race_4","codom_race_3","codom_race_2","matched1"):=
+          bgR[.SD,c(list(codom_re_code_18),list(codom_race_6),list(codom_race_5),list(codom_race_4),list(codom_race_3)
+                    ,list(codom_race_2),list(race_6)),on=.(races_age_match_id)]]
 
 
 #need to not make order in bgARE determinative (White is not always race_1; Black is not always race_2, etc)
