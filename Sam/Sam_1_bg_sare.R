@@ -288,8 +288,11 @@ rm(bgE)
 rm(bgR18)
 rm(bgE18)
 
-#join with bgSARE
-bgR[,("re_code"):=fcase(HvL=="Hispanic or Latino"&race_1=="White","P",
+#join with bgSARE2
+#start with race_6, assigning probabilities, in terms of the codom vars, then, with race_1, do the determination of all the others.
+#Texas Two or more races = 5,133,738; we're trying to get just these matches right for age and sex; 
+#note fewer options as multiple races are always listed in a certain order, with white first
+bgR[,("re_code_1"):=fcase(HvL=="Hispanic or Latino"&race_1=="White","P",
                         HvL=="Not Hispanic or Latino"&race_1=="White","I",
                         HvL=="Hispanic or Latino"&race_1=="Black or African American","Q",
                         HvL=="Not Hispanic or Latino"&race_1=="Black or African American","J",
@@ -301,6 +304,36 @@ bgR[,("re_code"):=fcase(HvL=="Hispanic or Latino"&race_1=="White","P",
                         HvL=="Not Hispanic or Latino"&race_1=="Native Hawaiian and Other Pacific Islander","M",
                         HvL=="Hispanic or Latino"&race_1=="Some Other Race","U",
                         HvL=="Not Hispanic or Latino"&race_1=="Some Other Race","N",default = NA)]
+bgR[,("re_code_2"):=fcase(HvL=="Hispanic or Latino"&race_2=="Black or African American","Q",
+                          HvL=="Not Hispanic or Latino"&race_2=="Black or African American","J",
+                          HvL=="Hispanic or Latino"&race_2=="Asian","S",
+                          HvL=="Not Hispanic or Latino"&race_2=="Asian","L",
+                          HvL=="Hispanic or Latino"&race_2=="American Indian and Alaska Native","R",
+                          HvL=="Not Hispanic or Latino"&race_2=="American Indian and Alaska Native","K",
+                          HvL=="Hispanic or Latino"&race_2=="Native Hawaiian and Other Pacific Islander","T",
+                          HvL=="Not Hispanic or Latino"&race_2=="Native Hawaiian and Other Pacific Islander","M",
+                          HvL=="Hispanic or Latino"&race_2=="Some Other Race","U",
+                          HvL=="Not Hispanic or Latino"&race_2=="Some Other Race","N",default = NA)]
+bgR[,("re_code_3"):=fcase(HvL=="Hispanic or Latino"&race_3=="Asian","S",
+                          HvL=="Not Hispanic or Latino"&race_3=="Asian","L",
+                          HvL=="Hispanic or Latino"&race_3=="American Indian and Alaska Native","R",
+                          HvL=="Not Hispanic or Latino"&race_3=="American Indian and Alaska Native","K",
+                          HvL=="Hispanic or Latino"&race_3=="Native Hawaiian and Other Pacific Islander","T",
+                          HvL=="Not Hispanic or Latino"&race_3=="Native Hawaiian and Other Pacific Islander","M",
+                          HvL=="Hispanic or Latino"&race_3=="Some Other Race","U",
+                          HvL=="Not Hispanic or Latino"&race_3=="Some Other Race","N",default = NA)]
+bgR[,("re_code_4"):=fcase(HvL=="Hispanic or Latino"&race_4=="Asian","S",
+                          HvL=="Not Hispanic or Latino"&race_4=="Asian","L",
+                          HvL=="Hispanic or Latino"&race_4=="Native Hawaiian and Other Pacific Islander","T",
+                          HvL=="Not Hispanic or Latino"&race_4=="Native Hawaiian and Other Pacific Islander","M",
+                          HvL=="Hispanic or Latino"&race_4=="Some Other Race","U",
+                          HvL=="Not Hispanic or Latino"&race_4=="Some Other Race","N",default = NA)]
+bgR[,("re_code_5"):=fcase(HvL=="Hispanic or Latino"&race_5=="Native Hawaiian and Other Pacific Islander","T",
+                          HvL=="Not Hispanic or Latino"&race_5=="Native Hawaiian and Other Pacific Islander","M",
+                          HvL=="Hispanic or Latino"&race_5=="Some Other Race","U",
+                          HvL=="Not Hispanic or Latino"&race_5=="Some Other Race","N",default = NA)]
+bgR[,("re_code_6"):=fcase(HvL=="Hispanic or Latino"&race_2=="Some Other Race","U",
+                          HvL=="Not Hispanic or Latino"&race_2=="Some Other Race","N",default = NA)]
 bgSARE2[,("re_code2"):=fcase(race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","R",
                              race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","K",
                              race=="ASIAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","S",
@@ -320,21 +353,38 @@ bgSARE2[,("age_num"):=fcase(age_range=="Under 5 years",as.integer(0),
                             age_range=="5 to 9 years",as.integer(5),default = as.integer(str_sub(age_range,start=1,end=2)))]
 bgSARE2[,("under_18"):=fifelse(age_num<18,"Under 18 years old","18 years or older")]
 bgSARE2[,("HvL"):=fifelse(str_detect(race,"NOT"),"Not Hispanic or Latino","Hispanic or Latino")]
-bgR[,c("codom_re_code_18","races_age_match_id"):=
-        c(list(.N),list(paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))))),
-      by=.(variable,HvL,re_code,under_18)]
-bgSARE2[,("races_age_match_id"):=
+bgR[,c("codom_re_code_18","races_age_match_6_id"):=
+        c(list(.N),list(paste0(variable,HvL,re_code_6,under_18,as.character(100000+sample(1:.N))))),
+      by=.(variable,HvL,re_code_6,under_18)]
+bgSARE2[,("races_age_match_6_id"):=
         paste0(variable,HvL,re_code2,under_18,as.character(100000+sample(1:.N))),
       by=.(variable,HvL,re_code2,under_18)]
+#move just bgE with race info, b/c: table(bgE18[,HvL],bgE18[,race_1])
+bgR[,c("sex_6","age_range_6","age_num_6"):=
+      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num)),on=.(races_age_match_6_id)]]
+#with calculation for probability by codomain...
+bgSARE2[,("matched6"):=
+      bgR[.SD,list(race_1),on=.(races_age_match_6_id)]]
+
+
+
+#nrow(bgSARE)-nrow(bgSARE2[!is.na(matched1)])==0
+
+bgR[,("races_age_match2_id"):=
+      paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
+    by=.(variable,HvL,re_code_2,under_18)]
+bgSARE2[,("races_age_match2_id"):=
+          paste0(variable,HvL,re_code2,under_18,as.character(100000+sample(1:.N))),
+        by=.(variable,HvL,re_code2,under_18)]
 #move just bgE with race info, b/c: table(bgE18[,HvL],bgE18[,race_1])
 bgR[,c("sex","age_range","age_num"):=
       bgSARE2[.SD,c(list(sex),list(age_range),list(age_num)),on=.(races_age_match_id)]]
 bgSARE2[,("matched1"):=
-      bgR[.SD,list(race_1),on=.(races_age_match_id)]]
-#nrow(bgSARE)-nrow(bgSARE2[!is.na(matched1)])==0
-#have to start with race_6 when finally determined, but idea is that you're putting the weights (codom_race_6/codom_races) with the race - need to make sure they vary...
+          bgR[.SD,list(race_1),on=.(races_age_match_id)]]
+#idea is that you're putting the weights (codom_race_6/codom_races) with the race - need to make sure they vary...
 
-#TO DO NEXT:::each layer of race_ needs to be related to all the others, like an exponential cartesian combination...
+#TO DO NEXT:::each layer of race_ needs to be constructed - idea is to have the paths built up to indicate embedding on the race_01 through 6 as an example
+#
 #does determining backwards ensure no hallucinations? Is it the same problem as hallucination??
 #test - ??
 #do some tables and think about what to add...
