@@ -68,8 +68,9 @@ bgSARE_data[,("re_code") := substr(name,4,4)][
 
 #reshape a bit and make list of individuals
 Geoids <- colnames(bgSARE_data[,.SD,.SDcols = startsWith(names(bgSARE_data),state)])
-bgSARE_melted <- melt(bgSARE_data, id.vars = c("re_code","race","sex","age_range"), measure.vars = Geoids)
-bgSARE <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,value]))
+bgSARE_melted <- melt(bgSARE_data, id.vars = c("re_code","race","sex","age_range"), measure.vars = Geoids,
+                      value.name = "codom_SARE", variable.name = "GEOID")
+bgSARE <- as.data.table(lapply(bgSARE_melted[,.SD],rep,bgSARE_melted[,codom_SARE]))
 
 #get two or more races as duplicated relations
 bgSARE2_data[,("re_code") := substr(name,4,4)][
@@ -78,8 +79,9 @@ bgSARE2_data[,("re_code") := substr(name,4,4)][
       ,("age_range") := str_replace(age_range, "Under 1 year", "0")]
 
 #reshape a bit and make list of individuals
-bgSARE2_melted <- melt(bgSARE2_data, id.vars = c("re_code","race","sex","age_range"), measure.vars = Geoids)
-bgSARE2 <- as.data.table(lapply(bgSARE2_melted[,.SD],rep,bgSARE2_melted[,value]))
+bgSARE2_melted <- melt(bgSARE2_data, id.vars = c("re_code","race","sex","age_range"), measure.vars = Geoids,
+                       value.name = "codom_SARE2", variable.name = "GEOID")
+bgSARE2 <- as.data.table(lapply(bgSARE2_melted[,.SD],rep,bgSARE2_melted[,codom_SARE2]))
 
 #assign order to individuals (maybe worth a comment on why different than doing subtraction first and then casting to individual)
 #row_nums to both, merge toward combined; redo row_nums on combined, only if they don't have 
@@ -116,15 +118,17 @@ if(names(bgR_dec_data_from_census)[11]=="label_1"){
 #should be a more elegant way of assigning the series of race_1, etc...
 bgR_data[,("race_descript"):=str_replace(race_description," alone","")]
 bgR_data[
-  ,("race_1"):=fifelse(number_races=="Population of one race",race_descript,unlist(str_split(multiple_races,";"))[1]), by=.I][
-    ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
-      ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
-        ,("race_4"):=unlist(str_split(multiple_races,";"))[4],by=.I][
-          ,("race_5"):=unlist(str_split(multiple_races,";"))[5],by=.I][
-            ,("race_6"):=unlist(str_split(multiple_races,";"))[6],by=.I]
+  ,("race_1"):=fifelse(number_races=="Population of one race",race_descript,
+                       unlist(str_split(multiple_races,"; "))[1]), by=.I][
+    ,("race_2"):=unlist(str_split(multiple_races,"; "))[2],by=.I][
+      ,("race_3"):=unlist(str_split(multiple_races,"; "))[3],by=.I][
+        ,("race_4"):=unlist(str_split(multiple_races,"; "))[4],by=.I][
+          ,("race_5"):=unlist(str_split(multiple_races,"; "))[5],by=.I][
+            ,("race_6"):=unlist(str_split(multiple_races,"; "))[6],by=.I]
 
-bgR_melted <- melt(bgR_data, id.vars = c("race_1","race_2","race_3","race_4","race_5","race_6"), measure.vars = Geoids)
-bgR <- as.data.table(lapply(bgR_melted[,.SD],rep,bgR_melted[,value]))
+bgR_melted <- melt(bgR_data, id.vars = c("race_1","race_2","race_3","race_4","race_5","race_6"), measure.vars = Geoids,
+                   value.name = "codom_R", variable.name = "GEOID")
+bgR <- as.data.table(lapply(bgR_melted[,.SD],rep,bgR_melted[,codom_R]))
 rm(bgR_dec_data_from_census)
 rm(bgR_data)
 rm(bgR_melted)
@@ -154,14 +158,15 @@ if(names(bgE_dec_data_from_census)[11]=="label_1"){
 #should be a more elegant way of assigning the series of race_1, etc...
 bgE_data[,("race_description"):=str_replace(race_description," alone","")] #for some reason, pipe wasn't working when called altogether, but does when separate...
 bgE_data[
-  ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,";"))[1]), by=.I][
-    ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
-      ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
-        ,("race_4"):=unlist(str_split(multiple_races,";"))[4],by=.I][
-          ,("race_5"):=unlist(str_split(multiple_races,";"))[5],by=.I][
-            ,("race_6"):=unlist(str_split(multiple_races,";"))[6],by=.I]
-bgE_melted <- melt(bgE_data, id.vars = c("HvL","race_1","race_2","race_3","race_4","race_5","race_6"), measure.vars = Geoids)
-bgE <- as.data.table(lapply(bgE_melted[,.SD],rep,bgE_melted[,value]))
+  ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,"; "))[1]), by=.I][
+    ,("race_2"):=unlist(str_split(multiple_races,"; "))[2],by=.I][
+      ,("race_3"):=unlist(str_split(multiple_races,"; "))[3],by=.I][
+        ,("race_4"):=unlist(str_split(multiple_races,"; "))[4],by=.I][
+          ,("race_5"):=unlist(str_split(multiple_races,"; "))[5],by=.I][
+            ,("race_6"):=unlist(str_split(multiple_races,"; "))[6],by=.I]
+bgE_melted <- melt(bgE_data, id.vars = c("HvL","race_1","race_2","race_3","race_4","race_5","race_6"), measure.vars = Geoids,
+                   value.name = "codom_E", variable.name = "GEOID")
+bgE <- as.data.table(lapply(bgE_melted[,.SD],rep,bgE_melted[,codom_E]))
 rm(bgE_dec_data_from_census)
 rm(bgE_data)
 rm(bgE_melted)
@@ -190,14 +195,15 @@ if(names(bgR18_dec_data_from_census)[11]=="label_1"){
 #should be a more elegant way of assigning the series of race_1, etc...
 bgR18_data[,("race_description"):=str_replace(race_description," alone","")]
 bgR18_data[
-  ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,";"))[1]), by=.I][
-    ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
-      ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
-        ,("race_4"):=unlist(str_split(multiple_races,";"))[4],by=.I][
-          ,("race_5"):=unlist(str_split(multiple_races,";"))[5],by=.I][
-            ,("race_6"):=unlist(str_split(multiple_races,";"))[6],by=.I]
-bgR18_melted <- melt(bgR18_data, id.vars = c("race_1","race_2","race_3","race_4","race_5","race_6"), measure.vars = Geoids)
-bgR18 <- as.data.table(lapply(bgR18_melted[,.SD],rep,bgR18_melted[,value]))
+  ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,"; "))[1]), by=.I][
+    ,("race_2"):=unlist(str_split(multiple_races,"; "))[2],by=.I][
+      ,("race_3"):=unlist(str_split(multiple_races,"; "))[3],by=.I][
+        ,("race_4"):=unlist(str_split(multiple_races,"; "))[4],by=.I][
+          ,("race_5"):=unlist(str_split(multiple_races,"; "))[5],by=.I][
+            ,("race_6"):=unlist(str_split(multiple_races,"; "))[6],by=.I]
+bgR18_melted <- melt(bgR18_data, id.vars = c("race_1","race_2","race_3","race_4","race_5","race_6"), measure.vars = Geoids,
+                     value.name = "codom_R18", variable.name = "GEOID")
+bgR18 <- as.data.table(lapply(bgR18_melted[,.SD],rep,bgR18_melted[,codom_R18]))
 rm(bgR18_dec_data_from_census)
 rm(bgR18_data)
 rm(bgR18_melted)
@@ -227,26 +233,27 @@ if(names(bgE18_dec_data_from_census)[11]=="label_1"){
 #should be a more elegant way of assigning the series of race_1, etc...
 bgE18_data[,("race_description"):=str_replace(race_description," alone","")]
 bgE18_data[
-  ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,";"))[1]), by=.I][
-    ,("race_2"):=unlist(str_split(multiple_races,";"))[2],by=.I][
-      ,("race_3"):=unlist(str_split(multiple_races,";"))[3],by=.I][
-        ,("race_4"):=unlist(str_split(multiple_races,";"))[4],by=.I][
-          ,("race_5"):=unlist(str_split(multiple_races,";"))[5],by=.I][
-            ,("race_6"):=unlist(str_split(multiple_races,";"))[6],by=.I]
-bgE18_melted <- melt(bgE18_data, id.vars = c("HvL","race_1","race_2","race_3","race_4","race_5","race_6"), measure.vars = Geoids)
-bgE18 <- as.data.table(lapply(bgE18_melted[,.SD],rep,bgE18_melted[,value]))
+  ,("race_1"):=fifelse(number_races=="Population of one race",race_description,unlist(str_split(multiple_races,"; "))[1]), by=.I][
+    ,("race_2"):=unlist(str_split(multiple_races,"; "))[2],by=.I][
+      ,("race_3"):=unlist(str_split(multiple_races,"; "))[3],by=.I][
+        ,("race_4"):=unlist(str_split(multiple_races,"; "))[4],by=.I][
+          ,("race_5"):=unlist(str_split(multiple_races,"; "))[5],by=.I][
+            ,("race_6"):=unlist(str_split(multiple_races,"; "))[6],by=.I]
+bgE18_melted <- melt(bgE18_data, id.vars = c("HvL","race_1","race_2","race_3","race_4","race_5","race_6"), measure.vars = Geoids,
+                     value.name = "codom_E18", variable.name = "GEOID")
+bgE18 <- as.data.table(lapply(bgE18_melted[,.SD],rep,bgE18_melted[,codom_E18]))
 rm(bgE18_dec_data_from_census)
 rm(bgE18_data)
 rm(bgE18_melted)
 
-#collapse bgR, bgE, bgR18, and bgE18 together - variable is GEOID
+#collapse bgR, bgE, bgR18, and bgE18 together 
 #doing my own variable construction for matching to better control multi-step process
 bgR[,("races_match_id"):=
-      paste0(variable,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
-    by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+      paste0(GEOID,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+    by=.(GEOID,race_1,race_2,race_3,race_4,race_5,race_6)]
 bgE[,("races_match_id"):=
-      paste0(variable,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
-    by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+      paste0(GEOID,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+    by=.(GEOID,race_1,race_2,race_3,race_4,race_5,race_6)]
 #move just bgE with race info, b/c: table(bgE[,HvL],bgE[,race_1])
 bgR[,("HvL"):=
       bgE[.SD,list(HvL),on=.(races_match_id)]]
@@ -254,38 +261,37 @@ bgR[,("HvL"):=
 bgR[is.na(HvL),("HvL"):="Hispanic or Latino"]
 #under 18
 bgR18[,("races_match_id"):=
-      paste0(variable,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
-    by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
+      paste0(GEOID,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+    by=.(GEOID,race_1,race_2,race_3,race_4,race_5,race_6)]
 bgE18[,("races_match_id"):=
-      paste0(variable,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
-    by=.(variable,race_1,race_2,race_3,race_4,race_5,race_6)]
-#move just bgE with race info, b/c: table(bgE18[,HvL],bgE18[,race_1])
+      paste0(GEOID,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+    by=.(GEOID,race_1,race_2,race_3,race_4,race_5,race_6)]
 bgR18[,("HvL"):=
       bgE18[.SD,list(HvL),on=.(races_match_id)]]
 #table(bgR18[!is.na(HvL),race_1])==table(bgE18[,race_1])
 bgR18[is.na(HvL),("HvL"):="Hispanic or Latino"]
 bgR18[,("under_18"):="18 years or older"]
 bgR18[,("races_eth_match_id"):=
-        paste0(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
-      by=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
+        paste0(GEOID,HvL,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+      by=.(GEOID,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
 bgR[,("races_eth_match_id"):=
-        paste0(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
-      by=.(variable,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
+        paste0(GEOID,HvL,race_1,race_2,race_3,race_4,race_5,race_6,as.character(100000+sample(1:.N))),
+      by=.(GEOID,HvL,race_1,race_2,race_3,race_4,race_5,race_6)]
 bgR[,("under_18"):=
       bgR18[.SD,list(under_18),on=.(races_eth_match_id)]]
 #table(bgR[!is.na(under_18),race_1])==table(bgR18[,race_1])
 bgR[is.na(under_18),("under_18"):="Under 18 years old"]
-bgR[,("codom_races"):=.N,by=.(variable,HvL,under_18,race_1)]
-bgR[,("copath_races"):=.N,by=.(variable,HvL,under_18,race_1,race_2,race_3,race_4,race_5,race_6)]
+bgR[,("codom_races"):=.N,by=.(GEOID,HvL,under_18,race_1)] #should think through how this compares with codom_R
+bgR[,("copath_races"):=.N,by=.(GEOID,HvL,under_18,race_1,race_2,race_3,race_4,race_5,race_6)]
 bgR[,("weight_races"):=copath_races/codom_races] #remember all will be inside "Two or more races" 
 #then, as we build, we'd know how to nudge the weights by re_code_(1:6)? 
 
-bgR[,(paste0("codom_race_",as.character(2:6))):=nrow(.SD[!is.na(race_1)]),by=.(variable,HvL,race_1)]
-bgR[!is.na(race_2),("copath_race_2"):=.N,by=.(variable,HvL,under_18,race_1,race_2)]
-bgR[!is.na(race_3),("copath_race_3"):=.N,by=.(variable,HvL,under_18,race_2,race_3)]
-bgR[!is.na(race_4),("copath_race_4"):=.N,by=.(variable,HvL,under_18,race_3,race_4)]
-bgR[!is.na(race_5),("copath_race_5"):=.N,by=.(variable,HvL,under_18,race_4,race_5)]
-bgR[!is.na(race_6),("copath_race_6"):=.N,by=.(variable,HvL,under_18,race_5,race_6)]
+bgR[,(paste0("codom_race_",as.character(2:6))):=nrow(.SD[!is.na(race_1)]),by=.(GEOID,HvL,race_1)]
+bgR[!is.na(race_2),("copath_race_2"):=.N,by=.(GEOID,HvL,under_18,race_1,race_2)]
+bgR[!is.na(race_3),("copath_race_3"):=.N,by=.(GEOID,HvL,under_18,race_2,race_3)]
+bgR[!is.na(race_4),("copath_race_4"):=.N,by=.(GEOID,HvL,under_18,race_3,race_4)]
+bgR[!is.na(race_5),("copath_race_5"):=.N,by=.(GEOID,HvL,under_18,race_4,race_5)]
+bgR[!is.na(race_6),("copath_race_6"):=.N,by=.(GEOID,HvL,under_18,race_5,race_6)]
 bgR[codom_race_2>0,("weight_race_2"):=copath_race_2/codom_race_2]
 bgR[codom_race_3>0,("weight_race_3"):=copath_race_3/codom_race_3]
 bgR[codom_race_4>0,("weight_race_4"):=copath_race_4/codom_race_4]
@@ -345,8 +351,8 @@ bgR[,("re_code_5"):=fcase(HvL=="Hispanic or Latino"&race_5=="Native Hawaiian and
                           HvL=="Not Hispanic or Latino"&race_5=="Native Hawaiian and Other Pacific Islander","M",
                           HvL=="Hispanic or Latino"&race_5=="Some Other Race","U",
                           HvL=="Not Hispanic or Latino"&race_5=="Some Other Race","N",default = NA)]
-bgR[,("re_code_6"):=fcase(HvL=="Hispanic or Latino"&race_2=="Some Other Race","U",
-                          HvL=="Not Hispanic or Latino"&race_2=="Some Other Race","N",default = NA)]
+bgR[,("re_code_6"):=fcase(HvL=="Hispanic or Latino"&race_6=="Some Other Race","U",
+                          HvL=="Not Hispanic or Latino"&race_6=="Some Other Race","N",default = NA)]
 bgSARE2[,("re_codeB"):=fcase(race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","R",
                              race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","K",
                              race=="ASIAN ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, HISPANIC OR LATINO","S",
@@ -371,97 +377,100 @@ bgSARE2[,("HvL"):=fifelse(str_detect(race,"NOT"),"Not Hispanic or Latino","Hispa
 #go through all the bgSARE2, so that race_1, etc. are lined up with ages... start with race_6 and go down... the 
 
 #have to rethink a bit - make it weights, still - what can I do to weight bgSARE2? can I identify the ones that are "two or more"?
-bgSARE[,("races_age_match_1_id"):=
-      paste0(variable,re_code,sex,age_range,as.character(100000+sample(1:.N))),
-    by=.(variable,re_code,sex,age_range)] #re_codes account for HvL
-bgSARE2[,c("codom_re_code_1","races_age_match_1_id"):=
-          c(list(.N),list(paste0(variable,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
-        by=.(variable,re_codeB,sex,age_range)]
+bgSARE[,("races_age_match_id"):=
+      list(paste0(GEOID,re_code,sex,age_range,as.character(100000+sample(1:.N)))),
+    by=.(GEOID,re_code,sex,age_range)] #re_codes account for HvL
+bgSARE2[,c("codom_re_code_1","races_age_match_id"):=
+          c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
+        by=.(GEOID,re_codeB,sex,age_range)]
 bgSARE2[,("matched1"):=
-      bgSARE[.SD,list(re_code),on=.(races_age_match_1_id)]]
+      bgSARE[.SD,list(re_code),on=.(races_age_match_id)]]
 #nrow(bgSARE[str_detect(race,"TWO")])+nrow(bgSARE2[!is.na(matched1)])==nrow(bgSARE)
 #with calculation for probability by codomain...
 
-#nrow(bgSARE)-nrow(bgSARE2[!is.na(matched1)])==0
+#this is what it means to do a copath determination and not a codomain
+#determine along the path
+#everything but the two or more races 
+bgR[is.na(race_2),("races_age_match_1_id"):=
+        paste0(GEOID,re_code_1,under_18,as.character(100000+sample(1:.N))),
+      by=.(GEOID,re_code_1,under_18)] #re_codes account for HvL
+bgSARE2[!is.na(matched1),c("codom_re_code_1","races_age_match_1_id"):=
+          c(list(.N),list(paste0(GEOID,re_codeB,under_18,as.character(100000+sample(1:.N))))),
+      by=.(GEOID,re_codeB,under_18)]
+bgR[is.na(race_2),c("sex","age_range","age_num","codom_re_code_1"):=
+      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_1)),
+              on=.(races_age_match_1_id)]]
+#table(bgR[,sex],bgR[,age_range])-table(bgSARE[!str_detect(race,"TWO"),sex],bgSARE[!str_detect(race,"TWO"),age_range])
+#table(bgR[,sex],bgR[,age_range])==table(bgSARE2[!is.na(matched1),sex],bgSARE2[!is.na(matched1),age_range])
+#because I'm not changing values on bgR, path from 1- 6 will stay; all I get from SARE2 is that there is a match
 
-bgR[is.na(race_2),("races_age_match_2_id"):=
-        paste0(variable,re_code_1,under_18,as.character(100000+sample(1:.N))),
-      by=.(variable,re_code_1,under_18)] #re_codes account for HvL
-bgSARE2[!is.na(matched1),c("codom_re_code_2","races_age_match_2_id"):=
-          c(list(.N),list(paste0(variable,re_codeB,under_18,as.character(100000+sample(1:.N))))),
-      by=.(variable,re_codeB,under_18)]
-bgR[is.na(race_2),c("sex","age_range","age_num","codom_re_code_2"):=
-      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_2)),
-              on=.(races_age_match_2_id)]]
-#nrow(bgR[is.na(sex)])
-
-
-#with calculation for probability by codomain...
-bgR[is.na(race_3),c("codom_re_code_2","races_age_match_2_id"):=
-      c(list(.N),list(paste0(variable,re_code_2,under_18,as.character(100000+sample(1:.N))))),
-    by=.(variable,re_code_2,under_18)] #re_codes account for HvL
-bgSARE2[is.na(matched1),("races_age_match_2_id"):=
-          paste0(variable,re_codeB,under_18,as.character(100000+sample(1:.N))),
-        by=.(variable,re_codeB,under_18)]
-bgR[is.na(race_3),c("sex","age_range","age_num","codom_re_code_2"):=
+#finish path along races
+bgR[!is.na(race_2),("races_age_match_2_id"):=
+      list(paste0(GEOID,re_code_2,under_18,as.character(100000+sample(1:.N)))),
+    by=.(GEOID,re_code_2,under_18)] #re_codes account for HvL
+bgSARE2[is.na(matched1),c("codom_re_code_2","races_age_match_2_id"):=
+          c(list(.N),list(paste0(GEOID,re_codeB,under_18,as.character(100000+sample(1:.N))))),
+        by=.(GEOID,re_codeB,under_18)]
+bgR[!is.na(race_2),c("sex","age_range","age_num","codom_re_code_2"):=
       bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_2)),
               on=.(races_age_match_2_id)]]
 bgSARE2[is.na(matched1),("matched1"):=
-          bgR[.SD,list(re_code_1)],
-        on=.(races_age_match_2_id)]
+          bgR[!is.na(race_2)][.SD,list(re_code_1),
+        on=.(races_age_match_2_id)]]
+#nrow(bgR[is.na(sex)]) - want it to be everyone, but there are a few mismatches on age_range...
+#perhaps go back to matching on under18 (on second match) and keep bgSARE age_range, etc., with the idea that the whole match along the 6 races adds structure
 
-bgR[is.na(race_4),c("codom_re_code_3","races_age_match_3_id"):=
-      c(list(.N),list(paste0(variable,re_code_3,under_18,as.character(100000+sample(1:.N))))),
-    by=.(variable,re_code_3,under_18)] #re_codes account for HvL
-bgSARE2[is.na(matched1),("races_age_match_3_id"):=
-          paste0(variable,re_codeB,under_18,as.character(100000+sample(1:.N))),
-        by=.(variable,re_codeB,under_18)]
-bgR[is.na(race_4),c("sex","age_range","age_num","codom_re_code_3"):=
-      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_3)),
+bgR[!is.na(race_3),("races_age_match_3_id"):=
+      paste0(GEOID,re_code_3,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,re_code_3,sex,age_range)] #re_codes account for HvL
+bgSARE2[is.na(matched1),c("codom_re_code_3","races_age_match_3_id"):=
+          c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
+        by=.(GEOID,re_codeB,sex,age_range)]
+bgR[!is.na(race_3),("codom_re_code_3"):=
+      bgSARE2[.SD,list(codom_re_code_3),
               on=.(races_age_match_3_id)]]
-bgSARE2[is.na(matched1),("matched1"):=
-          bgR[.SD,list(re_code_1)],
-        on=.(races_age_match_3_id)]
+bgSARE2[is.na(matched1),("matched1a"):=
+          bgR[!is.na(race_3)][.SD,list(re_code_1),
+              on=.(races_age_match_3_id)]]
 
-bgR[is.na(race_5),c("codom_re_code_4","races_age_match_4_id"):=
-      c(list(.N),list(paste0(variable,re_code_4,under_18,as.character(100000+sample(1:.N))))),
-    by=.(variable,re_code_4,under_18)] #re_codes account for HvL
-bgSARE2[is.na(matched1),("races_age_match_4_id"):=
-          paste0(variable,re_codeB,under_18,as.character(100000+sample(1:.N))),
-        by=.(variable,re_codeB,under_18)]
-bgR[is.na(race_5),c("sex","age_range","age_num","codom_re_code_3"):=
-      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_4)),
+bgR[!is.na(race_4),("races_age_match_4_id"):=
+      paste0(GEOID,re_code_4,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,re_code_4,sex,age_range)] #re_codes account for HvL
+bgSARE2[is.na(matched1),c("codom_re_code_4","races_age_match_4_id"):=
+          c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
+        by=.(GEOID,re_codeB,sex,age_range)]
+bgR[!is.na(race_4),("codom_re_code_4"):=
+      bgSARE2[.SD,list(codom_re_code_4),
               on=.(races_age_match_4_id)]]
 bgSARE2[is.na(matched1),("matched1"):=
-          bgR[.SD,list(re_code_1)],
-        on=.(races_age_match_4_id)]
+          bgR[!is.na(race_4)][.SD,list(re_code_1),
+              on=.(races_age_match_4_id)]]
 
-
-bgR[is.na(race_6),c("codom_re_code_5","races_age_match_5_id"):=
-      c(list(.N),list(paste0(variable,re_code_5,under_18,as.character(100000+sample(1:.N))))),
-    by=.(variable,re_code_5,under_18)] #re_codes account for HvL
-bgSARE2[is.na(matched1),("races_age_match_3_id"):=
-          paste0(variable,re_codeB,under_18,as.character(100000+sample(1:.N))),
-        by=.(variable,re_codeB,under_18)]
-bgR[is.na(race_6),c("sex","age_range","age_num","codom_re_code_5"):=
-      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_5)),
+bgR[!is.na(race_5),("races_age_match_5_id"):=
+      paste0(GEOID,re_code_5,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,re_code_5,sex,age_range)] #re_codes account for HvL
+bgSARE2[is.na(matched1),c("codom_re_code_5","races_age_match_5_id"):=
+          c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
+        by=.(GEOID,re_codeB,sex,age_range)]
+bgR[!is.na(race_5),("codom_re_code_5"):=
+      bgSARE2[.SD,list(codom_re_code_5),
               on=.(races_age_match_5_id)]]
 bgSARE2[is.na(matched1),("matched1"):=
-          bgR[.SD,list(re_code_1)],
-        on=.(races_age_match_5_id)]
+          bgR[!is.na(race_5)][.SD,list(re_code_1),
+              on=.(races_age_match_5_id)]]
 
-bgR[!is.na(race_6),c("codom_re_code_6","races_age_match_6_id"):=
-      c(list(.N),list(paste0(variable,re_code_6,under_18,as.character(100000+sample(1:.N))))),
-    by=.(variable,re_code_6,under_18)] #re_codes account for HvL
-bgSARE2[is.na(matched1),("races_age_match_6_id"):=
-          paste0(variable,re_codeB,under_18,as.character(100000+sample(1:.N))),
-        by=.(variable,re_codeB,under_18)]
-bgR[!is.na(race_6),c("sex","age_range","age_num","codom_re_code_6"):=
-      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_6)),
+bgR[!is.na(race_6),("races_age_match_6_id"):=
+      paste0(GEOID,re_code_6,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,re_code_6,sex,age_range)] #re_codes account for HvL
+bgSARE2[is.na(matched1),c("codom_re_code_6","races_age_match_6_id"):=
+          c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
+        by=.(GEOID,re_codeB,sex,age_range)]
+bgR[!is.na(race_6),("codom_re_code_6"):=
+      bgSARE2[.SD,list(codom_re_code_6),
               on=.(races_age_match_6_id)]]
 bgSARE2[is.na(matched1),("matched1"):=
-          bgR[.SD,list(re_code_1)],
-        on=.(races_age_match_6_id)]
+          bgR[!is.na(race_6)][.SD,list(re_code_1),
+              on=.(races_age_match_6_id)]]
 
 
 
@@ -475,11 +484,11 @@ bgSARE2[is.na(matched1),("matched1"):=
 #have to think harder about race_1, too...
 #then move race_1 through 6 to bgSARE
 bgR[,("races_age2_match_id"):=
-      paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
-    by=.(variable,HvL,re_code,under_18)]
+      paste0(GEOID,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,re_code,under_18)]
 bgSARE[,c("codom_races","races_age2_match_id"):=
-         c(list(.N),list(paste0(variable,HvL,re_code,under_18,as.character(100000+sample(1:.N))))),
-       by=.(variable,HvL,re_code,under_18)]
+         c(list(.N),list(paste0(GEOID,HvL,re_code,under_18,as.character(100000+sample(1:.N))))),
+       by=.(GEOID,HvL,re_code,under_18)]
 bgSARE[,c("codom_re_code_18","codom_race_6","codom_race_5","codom_race_4","codom_race_3","codom_race_2","matched1"):=
           bgR[.SD,c(list(codom_re_code_18),list(codom_race_6),list(codom_race_5),list(codom_race_4),list(codom_race_3)
                     ,list(codom_race_2),list(race_6)),on=.(races_age_match_id)]]
@@ -550,7 +559,8 @@ bgGQ_data[,("gq_type_6"):=fcase(str_detect(gq_type,"College"), #catching some id
                              "Other noninstitutional facilities")]
 #reshape a bit and make list of individuals 
 Geoids <- colnames(bgGQ_data[,10:(ncol(bgGQ_data)-3)])
-bgGQ_melted <- melt(bgGQ_data, id.vars = c("sex","age_range","beg_age_gq","gq_institution","gq_type","gq_type_6"), measure.vars = Geoids)
-bgGQ <- as.data.table(lapply(bgGQ_melted[,.SD],rep,bgGQ_melted[,value]))
+bgGQ_melted <- melt(bgGQ_data, id.vars = c("sex","age_range","beg_age_gq","gq_institution","gq_type","gq_type_6"), measure.vars = Geoids,
+                    value.name = "codom_GQSAT", variable.name = "GEOID")
+bgGQ <- as.data.table(lapply(bgGQ_melted[,.SD],rep,bgGQ_melted[,codom_GQSAT]))
 rm(bgGQ_data)
 rm(bgGQ_melted)
