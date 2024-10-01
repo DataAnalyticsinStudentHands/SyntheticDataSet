@@ -374,9 +374,8 @@ bgSARE2[,("under_18"):=fifelse(age_num<18,"Under 18 years old","18 years or olde
 bgSARE2[,("HvL"):=fifelse(str_detect(race,"NOT"),"Not Hispanic or Latino","Hispanic or Latino")]
 
 
-#go through all the bgSARE2, so that race_1, etc. are lined up with ages... start with race_6 and go down... the 
-
-#have to rethink a bit - make it weights, still - what can I do to weight bgSARE2? can I identify the ones that are "two or more"?
+#keeping track of weights, but may show that they are not needed b/c the mapping re-asserts the ground truth...
+#do a match between bgSARE and bgSARE2, so that we have all the ones that aren't "two or more races" in both.
 bgSARE[,("races_age_match_id"):=
       list(paste0(GEOID,re_code,sex,age_range,as.character(100000+sample(1:.N)))),
     by=.(GEOID,re_code,sex,age_range)] #re_codes account for HvL
@@ -389,7 +388,8 @@ bgSARE2[,("matched1"):=
 #with calculation for probability by codomain...
 
 #this is what it means to do a copath determination and not a codomain
-#determine along the path
+#determine along the path as if it were a set of codomains = weights
+#determine / shrink the region and then map so that the right grounded frame is called = co-paths
 #everything but the two or more races 
 bgR[is.na(race_2),("races_age_match_1_id"):=
         paste0(GEOID,re_code_1,under_18,as.character(100000+sample(1:.N))),
@@ -398,13 +398,15 @@ bgSARE2[!is.na(matched1),c("codom_re_code_1","races_age_match_1_id"):=
           c(list(.N),list(paste0(GEOID,re_codeB,under_18,as.character(100000+sample(1:.N))))),
       by=.(GEOID,re_codeB,under_18)]
 bgR[is.na(race_2),c("sex","age_range","age_num","codom_re_code_1"):=
-      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_1)),
+      bgSARE2[!is.na(matched1)][.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_1)),
               on=.(races_age_match_1_id)]]
-#table(bgR[,sex],bgR[,age_range])-table(bgSARE[!str_detect(race,"TWO"),sex],bgSARE[!str_detect(race,"TWO"),age_range])
+nrow(bgR[is.na(race_2)])
+#nrow(bgR[is.na(sex)])==nrow(bgSARE[str_detect(race,"TWO")])
+#table(bgR[,sex],bgR[,age_range])==table(bgSARE[!str_detect(race,"TWO"),sex],bgSARE[!str_detect(race,"TWO"),age_range])
 #table(bgR[,sex],bgR[,age_range])==table(bgSARE2[!is.na(matched1),sex],bgSARE2[!is.na(matched1),age_range])
 #because I'm not changing values on bgR, path from 1- 6 will stay; all I get from SARE2 is that there is a match
 
-#finish path along races
+#finish path along races for two or more races group
 bgR[!is.na(race_2),("races_age_match_2_id"):=
       list(paste0(GEOID,re_code_2,under_18,as.character(100000+sample(1:.N)))),
     by=.(GEOID,re_code_2,under_18)] #re_codes account for HvL
@@ -414,63 +416,79 @@ bgSARE2[is.na(matched1),c("codom_re_code_2","races_age_match_2_id"):=
 bgR[!is.na(race_2),c("sex","age_range","age_num","codom_re_code_2"):=
       bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_2)),
               on=.(races_age_match_2_id)]]
-bgSARE2[is.na(matched1),("matched1"):=
-          bgR[!is.na(race_2)][.SD,list(re_code_1),
+bgSARE2[is.na(matched1),("matched1"):= 
+          bgR[!is.na(race_2)][.SD,list(re_codeB),
         on=.(races_age_match_2_id)]]
-#nrow(bgR[is.na(sex)]) - want it to be everyone, but there are a few mismatches on age_range...
-#perhaps go back to matching on under18 (on second match) and keep bgSARE age_range, etc., with the idea that the whole match along the 6 races adds structure
+nrow(bgR[!is.na(codom_re_code_2)])
+nrow(bgR[!is.na(race_2)])
+#nrow(bgR[is.na(sex)])==0
+#nrow(bgSARE2[is.na(matched1)])==0 #that is, all two or more have matched already... 
+#the idea that the whole match along the 6 races adds structure
 
 bgR[!is.na(race_3),("races_age_match_3_id"):=
       paste0(GEOID,re_code_3,sex,age_range,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code_3,sex,age_range)] #re_codes account for HvL
-bgSARE2[is.na(matched1),c("codom_re_code_3","races_age_match_3_id"):=
+bgSARE2[!is.na(codom_re_code_2),c("codom_re_code_3","races_age_match_3_id"):=
           c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
         by=.(GEOID,re_codeB,sex,age_range)]
 bgR[!is.na(race_3),("codom_re_code_3"):=
       bgSARE2[.SD,list(codom_re_code_3),
               on=.(races_age_match_3_id)]]
-bgSARE2[is.na(matched1),("matched1a"):=
-          bgR[!is.na(race_3)][.SD,list(re_code_1),
+bgSARE2[!is.na(codom_re_code_2),("matched2"):=
+          bgR[!is.na(race_3)][.SD,list(re_codeB),
               on=.(races_age_match_3_id)]]
+nrow(bgR[!is.na(codom_re_code_3)])
+nrow(bgR[!is.na(codom_re_code_3)])/nrow(bgR[!is.na(race_3)])#percent that matched for race_3
 
 bgR[!is.na(race_4),("races_age_match_4_id"):=
       paste0(GEOID,re_code_4,sex,age_range,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code_4,sex,age_range)] #re_codes account for HvL
-bgSARE2[is.na(matched1),c("codom_re_code_4","races_age_match_4_id"):=
+bgSARE2[!is.na(matched2),c("codom_re_code_4","races_age_match_4_id"):=
           c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
         by=.(GEOID,re_codeB,sex,age_range)]
 bgR[!is.na(race_4),("codom_re_code_4"):=
       bgSARE2[.SD,list(codom_re_code_4),
               on=.(races_age_match_4_id)]]
-bgSARE2[is.na(matched1),("matched1"):=
-          bgR[!is.na(race_4)][.SD,list(re_code_1),
+bgSARE2[!is.na(matched2),("matched2"):=
+          bgR[!is.na(race_4)][.SD,list(re_codeB),
               on=.(races_age_match_4_id)]]
+nrow(bgR[!is.na(codom_re_code_4)])
+nrow(bgR[!is.na(race_4)])
 
 bgR[!is.na(race_5),("races_age_match_5_id"):=
       paste0(GEOID,re_code_5,sex,age_range,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code_5,sex,age_range)] #re_codes account for HvL
-bgSARE2[is.na(matched1),c("codom_re_code_5","races_age_match_5_id"):=
+bgSARE2[!is.na(matched2),c("codom_re_code_5","races_age_match_5_id"):=
           c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
         by=.(GEOID,re_codeB,sex,age_range)]
 bgR[!is.na(race_5),("codom_re_code_5"):=
       bgSARE2[.SD,list(codom_re_code_5),
               on=.(races_age_match_5_id)]]
-bgSARE2[is.na(matched1),("matched1"):=
-          bgR[!is.na(race_5)][.SD,list(re_code_1),
+bgSARE2[!is.na(matched2),("matched2"):=
+          bgR[!is.na(race_5)][.SD,list(re_codeB),
               on=.(races_age_match_5_id)]]
+nrow(bgR[!is.na(codom_re_code_5)])
+nrow(bgR[!is.na(race_5)])
 
 bgR[!is.na(race_6),("races_age_match_6_id"):=
       paste0(GEOID,re_code_6,sex,age_range,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code_6,sex,age_range)] #re_codes account for HvL
-bgSARE2[is.na(matched1),c("codom_re_code_6","races_age_match_6_id"):=
+bgSARE2[!is.na(matched2),c("codom_re_code_6","races_age_match_6_id"):=
           c(list(.N),list(paste0(GEOID,re_codeB,sex,age_range,as.character(100000+sample(1:.N))))),
         by=.(GEOID,re_codeB,sex,age_range)]
 bgR[!is.na(race_6),("codom_re_code_6"):=
       bgSARE2[.SD,list(codom_re_code_6),
               on=.(races_age_match_6_id)]]
-bgSARE2[is.na(matched1),("matched1"):=
-          bgR[!is.na(race_6)][.SD,list(re_code_1),
+bgSARE2[!is.na(matched2),("matched2"):=
+          bgR[!is.na(race_6)][.SD,list(re_codeB),
               on=.(races_age_match_6_id)]]
+nrow(bgR[!is.na(codom_re_code_6)])
+nrow(bgR[!is.na(race_6)])
+
+#that it matched so well at race_1 of two or more races is remarkable, but we're only getting 70-80% of matches after that.
+
+
+#compare the matching we just did with one that includes the weights as codomain markers, and then talk about final matching back...
 
 
 
