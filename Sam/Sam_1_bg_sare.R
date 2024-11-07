@@ -18,6 +18,7 @@ censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 #that it shows how topology of destination changes is key, although it's constrained by the census schema at individual level
 
 #https://www.census.gov/programs-surveys/acs/data/data-tables/table-ids-explained.html #no longer has full list...
+#
 #block_group for sex by age by race
 groupname <- "P12" #SEX BY AGE FOR SELECTED AGE CATEGORIES (race/ethnicity)
 geo_type <- "block_group"
@@ -93,7 +94,7 @@ rm(bgSARE_melted)
 rm(bgSARE2_data)
 rm(bgSARE2_melted)
 
-groupname <- "P8" #RACE (but with up to 6 combinations for "two or more races")
+groupname <- "P8" #RACE (but with up to 6 combinations instead of "two or more races"; same total number of individuals as bgSARE)
 geo_type <- "block_group"
 api_type <- "dec/dhc"
 path_suff <- "est"
@@ -289,10 +290,18 @@ rm(bgE)
 rm(bgR18)
 rm(bgE18)
 
-#join with bgSARE2
-#start with race_6, assigning probabilities, in terms of the codom vars, then, do the determination of all the others with probs, from 1-6;
+#bgSARE2 and bgR represent the same group
+#(nrow(bgR[!is.na(race_6)])+nrow(bgR[!is.na(race_5)])+nrow(bgR[!is.na(race_4)])+nrow(bgR[!is.na(race_3)])+
+#    nrow(bgR[!is.na(race_2)])+nrow(bgR[!is.na(race_1)]))==nrow(bgSARE2)
+#join with bgSARE2 to get the repetitions right
+#idea is that if we set weights correctly, top 168 will all be in right bg with under18 and HvL correct for anyone in bgSARE2
+#can we find all the ones in bgSARE2 that have more than 6 matches by age_race and sex, inside??? Or just a weight by how many share the same?
+#codom_SARE2 was just the .N for smallest cell size on bgSARE2. Anything with 6 matches would have to have at least 6 matches, since the same one 
+#for each of those matches would need to be pulled. In the case of "Some Other Race," which is only one for race_6, that leaves a small group.
+
 #getting the age and sex from bgSARE2, as weighted by the others.
 #Texas Two or more races = 5,133,738; we're trying to get just these matches right for age and sex; 
+#clean up the naming so they match:
 #note fewer options as multiple races are always listed in a certain order, with white first
 bgR[,("re_code_1"):=fcase(HvL=="Hispanic or Latino"&race_1=="White","P",
                         HvL=="Not Hispanic or Latino"&race_1=="White","I",
@@ -350,6 +359,7 @@ bgSARE2[,("re_codeB"):=fcase(race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE OR I
                              race=="SOME OTHER RACE ALONE OR IN COMBINATION WITH ONE OR MORE OTHER RACES, NOT HISPANIC OR LATINO","N",default = NA)]
 bgSARE[,("age_num"):=fcase(age_range=="Under 5 years",as.integer(0),
                             age_range=="5 to 9 years",as.integer(5),default = as.integer(str_sub(age_range,start=1,end=2)))]
+#getting a warning about NAs introduced by coercion, but no NAs when check nrow(bgSARE[is.na(age_num)]) and nothing missed in conversion
 bgSARE[,("HvL"):=fifelse(str_detect(race,"NOT"),"Not Hispanic or Latino","Hispanic or Latino")]
 bgSARE2[,("age_num"):=fcase(age_range=="Under 5 years",as.integer(0),
                             age_range=="5 to 9 years",as.integer(5),default = as.integer(str_sub(age_range,start=1,end=2)))]
@@ -357,40 +367,38 @@ bgSARE2[,("under_18"):=fifelse(age_num<18,"Under 18 years old","18 years or olde
 bgSARE[,("under_18"):=fifelse(age_num<18,"Under 18 years old","18 years or older")]
 bgSARE2[,("HvL"):=fifelse(str_detect(race,"NOT"),"Not Hispanic or Latino","Hispanic or Latino")]
 #should think through how this compares with codom_R, above, and codom_race, below...
-bgR[,("codom_races"):=.N,by=.(GEOID,HvL,under_18,race_1)] 
-bgR[,("copath_races"):=.N,by=.(GEOID,HvL,under_18,race_1,race_2,race_3,race_4,race_5,race_6)] #correctly gets last not NA
-#have to think whether races should be 1-, or -, etc. What is the logic????
-bgR[,("weight_races"):=copath_races/codom_races] #remember all will be inside "Two or more races" 
-#then, as we build, we'd know how to nudge the weights by re_code_(1:6)? 
+#could make this work if I were smarter...
+#bgR[,("codom_races"):=.N,by=.(GEOID,HvL,under_18,race_1)] 
+#bgR[,("copath_races"):=.N,by=.(GEOID,HvL,under_18,race_1,race_2,race_3,race_4,race_5,race_6)] #correctly gets last not NA
+##have to think whether races should be 1-, or -, etc. What is the logic????
+#bgR[,("weight_races"):=copath_races/codom_races] #remember all will be inside "Two or more races" 
+##then, as we build, we'd know how to nudge the weights by re_code_(1:6)? 
 
 bgR[!is.na(race_2),("copath_race_2"):=.N,by=.(GEOID,HvL,under_18,race_1,race_2)]
 bgR[!is.na(race_3),("copath_race_3"):=.N,by=.(GEOID,HvL,under_18,race_2,race_3)]
 bgR[!is.na(race_4),("copath_race_4"):=.N,by=.(GEOID,HvL,under_18,race_3,race_4)]
 bgR[!is.na(race_5),("copath_race_5"):=.N,by=.(GEOID,HvL,under_18,race_4,race_5)]
 bgR[!is.na(race_6),("copath_race_6"):=.N,by=.(GEOID,HvL,under_18,race_5,race_6)]
-bgR[codom_races>0,("weight_race_2"):=copath_race_2/codom_races]
-bgR[codom_races>0,("weight_race_3"):=copath_race_3/codom_races]
-bgR[codom_races>0,("weight_race_4"):=copath_race_4/codom_races]
-bgR[codom_races>0,("weight_race_5"):=copath_race_5/codom_races]
-bgR[codom_races>0,("weight_race_6"):=copath_race_6/codom_races]
+#adding whole numbers so there's a very heavy weight toward the whole
+bgR[,("weight_race_2"):=2+(copath_race_2/codom_R)]
+bgR[,("weight_race_3"):=3+(copath_race_3/codom_R)]
+bgR[,("weight_race_4"):=4+(copath_race_4/codom_R)]
+bgR[,("weight_race_5"):=5+(copath_race_5/codom_R)]
+bgR[,("weight_race_6"):=6+(copath_race_6/codom_R)]
 bgR[,("weight_races_all"):=1-sum(c(weight_race_2,weight_race_3,weight_race_4,weight_race_5,weight_race_6),na.rm = TRUE),by=.I]
 #then order by co_race_6, etc., and assign from 1 - 6 (from co_path_2 through 6) should avoid things like "Some Other Race" twice, without making an explicit rule
 #need to figure out P17 relationships before that and in such a way that it adds something to the weights.
 #before doing P17, will do bgSARE2 info, to help with weighting
-bgSARE2[,("codom_race"):=.N,by=.(GEOID,HvL,re_codeB)]
-bgSARE2[,("codom_age"):=.N,by=.(GEOID,HvL,age_range)]
-bgSARE2[,("copath_path"):=.N,by=.(GEOID,HvL,age_range,re_codeB)]
-bgSARE2[copath_path>0,("weight_race"):=copath_path/codom_race,by=.I]
-bgSARE2[copath_path>0,("weight_age"):=copath_path/codom_age,by=.I]
-bgSARE2[copath_path>0,("weight"):=weight_race+weight_age,by=.I]
+bgSARE2[,("codom_age"):=.N,by=.(GEOID,age_range)]
+#because codom_SARE2 uses a different schema for re_code
+bgSARE2[,("codom_re_codeB"):=.N,by=.(GEOID,age_range,re_codeB)]
+bgSARE2[,("weight"):=codom_age/codom_re_codeB,by=.I]
 #also for weight_age??
 #all of them have percentages instead of matches at lowest path level...
 
-#NEED TO DRAW AND REDO!!!!
-
-
 #keeping track of weights, but this is unweighted because completely mapped without loss
 #do a match between bgSARE and bgSARE2, so that we have all the ones that aren't "two or more races" in both.
+#note using sample, although they should all match so a 1:N should have worked by itself
 bgSARE[,("races_age_match_id"):=
       list(paste0(GEOID,re_code,sex,age_range,as.character(100000+sample(1:.N)))),
     by=.(GEOID,re_code,sex,age_range)] #re_codes account for HvL
@@ -402,223 +410,209 @@ bgSARE2[,("matched1"):=
 bgSARE[,("matched2"):=
           bgSARE2[.SD,list(re_codeB),on=.(races_age_match_id)]]
 #nrow(bgSARE[str_detect(race,"TWO")])+nrow(bgSARE2[!is.na(matched1)])==nrow(bgSARE)
-#with calculation for probability by codomain...
-#table(bgSARE[is.na(matched2),re_code]) - O (not HvL) and V (HvL)
 
 #this is what it means to do a copath determination and not a codomain
 #determine along the path as if it were a set of codomains = weights
-#determine / shrink the region and then map so that the right grounded frame is called = co-paths
-#everything but the two or more races 
-bgR[order(weight_races)&is.na(race_2),("races_age_match_1_id"):=
+#determine / shrink the region and then map so that the right grounded frame is called = co-paths; vgl sense of constraint on mapping
+#all the one race alones 
+bgR[order(-weight_races_all)&is.na(race_2),("races_age_match_1_id"):=
         paste0(GEOID,re_code_1,under_18,as.character(100000+sample(1:.N))),
       by=.(GEOID,re_code_1,under_18)] #re_codes account for HvL
-bgSARE2[order(weight)&!is.na(matched1),c("codom_re_code_1","races_age_match_1_id"):=
-          c(list(.N),list(paste0(GEOID,re_codeB,under_18,as.character(100000+sample(1:.N))))),
+bgSARE2[order(-weight)&!is.na(matched1),("races_age_match_1_id"):=
+          list(paste0(GEOID,re_codeB,under_18,as.character(100000+sample(1:.N)))),
       by=.(GEOID,re_codeB,under_18)]
-bgR[is.na(race_2),c("sex","age_range","age_num","codom_re_code_1"):=
-      bgSARE2[!is.na(matched1)][.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_1)),
+bgR[is.na(race_2),c("sex","age_range","age_num"):=
+      bgSARE2[!is.na(matched1)][.SD,c(list(sex),list(age_range),list(age_num)),
               on=.(races_age_match_1_id)]]
 #nrow(bgR[is.na(sex)])==nrow(bgSARE[str_detect(race,"TWO")])
 #table(bgR[,sex],bgR[,age_range])==table(bgSARE[!str_detect(race,"TWO"),sex],bgSARE[!str_detect(race,"TWO"),age_range])
 #table(bgR[,sex],bgR[,age_range])==table(bgSARE2[!is.na(matched1),sex],bgSARE2[!is.na(matched1),age_range])
-#because I'm not changing values on bgR, path from 1- 6 will stay; all I get from SARE2 is that there is a match
 
-#no order gets in the 70% match after matching all at 2; order 1-6, gets 80%
-#try 6 to 2
-#finish path along races for two or more races group
-bgR[order(weight_races)&!is.na(race_2),("races_age_match_2_id"):=
+#finish path along races for two or more races group;
+bgR[order(weight_races_all)&!is.na(race_2),("races_age_match_2_id"):=
       list(paste0(GEOID,re_code_2,under_18,as.character(100000+sample(1:.N)))),
     by=.(GEOID,re_code_2,under_18)] #re_codes account for HvL in bgSARE2, but not for all of bgSARE
-bgSARE2[order(weight)&is.na(matched1),c("codom_re_code_2","races_age_match_2_id"):=
-          c(list(.N),list(paste0(GEOID,re_codeB,under_18,as.character(100000+sample(1:.N))))),
+bgSARE2[order(weight)&is.na(matched1),("races_age_match_2_id"):=
+          list(paste0(GEOID,re_codeB,under_18,as.character(100000+sample(1:.N)))),
         by=.(GEOID,re_codeB,under_18)]
-bgR[!is.na(race_2),c("sex","age_range","age_num","codom_re_code_2"):=
-      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num),list(codom_re_code_2)),
+bgR[!is.na(race_2),c("sex","age_range","age_num"):=
+      bgSARE2[.SD,c(list(sex),list(age_range),list(age_num)),
               on=.(races_age_match_2_id)]]
 bgSARE2[is.na(matched1),("matched1"):= 
           bgR[!is.na(race_2)][.SD,list(re_codeB),
         on=.(races_age_match_2_id)]]
-#nrow(bgR[!is.na(codom_re_code_2)])==nrow(bgR[!is.na(race_2)]) #i.e., all matched
-#nrow(bgR[is.na(sex)])==0
-#nrow(bgSARE2[is.na(matched1)])==0 #that is, all two or more have also matched already; three or more is a subset, etc.
-#below started having only 70% when matches on bgR weren't ordered by weight_races and tried to do age_range; checked and some from bgR do not have matches at all (bgR, race_6 not even being in the right tract to match...)
-#the idea that the whole match along the 6 races adds structure is finished by mapping back at end
-#take out age_range, to get as close as possible, but just on ordering.
-#table(bgR[is.na(race_2),age_range])-table(bgSARE[!str_detect(race,"TWO"),age_range]) is all zeroes
-#but table(bgR[!is.na(race_2),age_range])-table(bgSARE[str_detect(race,"TWO"),age_range]) has a bunch off - no doubt b/c of order on races on bgR
-#should we rewrite age_range over the first match on bgR? need to keep them together, in some way...
-#starting from race_6 because it's only in a few block groups and want to keep it straight
-#NEED TO TEST AFTER EACH TO MAKE SURE WE'RE NOT LOSING THINGS...
+#nrow(bgR[is.na(sex)])
+#(table(bgR[,sex],bgR[,age_range])-table(bgSARE[,sex],bgSARE[,age_range]))/table(bgSARE[,sex],bgSARE[,age_range])
+#that is, the matches are very good already, with some symmetry by inverting sex, but
+#(table(bgR[,age_range])-table(bgSARE[,age_range]))/table(bgSARE[,age_range]) #suggests not just a matter of swapping them out on sex - checking...
 
-#since age_range is coming from extras in bgSARE2, part of point is to let these override; will let bgSARE be final...
-#think about whether weights should be for every step or not
-bgR[order(weight_races)&!is.na(race_6),("races_age_match_6_id"):=
-      paste0(GEOID,re_code_6,sex,under_18,as.character(100000+sample(1:.N))),
-    by=.(GEOID,re_code_6,sex,under_18)] #re_codes account for HvL and sex is already on all bgR
-bgSARE2[order(weight)&!is.na(codom_re_code_2),c("codom_re_code_6","races_age_match_6_id"):=
-          c(list(.N),list(paste0(GEOID,re_codeB,sex,under_18,as.character(100000+sample(1:.N))))),
-        by=.(GEOID,re_codeB,sex,under_18)]
-bgR[!is.na(race_6),c("codom_re_code_6","age_range"):=
-      bgSARE2[.SD,c(list(codom_re_code_6),list(age_range)),#changing the age_range
-              on=.(races_age_match_6_id)]]
-bgSARE2[!is.na(codom_re_code_2),("matched2"):=
-          bgR[!is.na(race_6)][.SD,list(re_codeB),
-              on=.(races_age_match_6_id)]]
-nrow(bgR[!is.na(codom_re_code_6)]) 
-nrow(bgR[!is.na(codom_re_code_6)])/nrow(bgR[!is.na(race_6)])#percent that matched for race_6; 97% for under_18; checked and there are some impossible ones!! could be differential privacy measures?
-
-bgR[order(weight_races)&!is.na(race_5),("races_age_match_5_id"):=
-      paste0(GEOID,re_code_5,sex,under_18,as.character(100000+sample(1:.N))),
-    by=.(GEOID,re_code_5,sex,under_18)] #re_codes account for HvL
-bgSARE2[order(weight)&!is.na(matched2),c("codom_re_code_5","races_age_match_5_id"):=
-          c(list(.N),list(paste0(GEOID,re_codeB,sex,under_18,as.character(100000+sample(1:.N))))),
-        by=.(GEOID,re_codeB,sex,under_18)]
-bgR[!is.na(race_5),c("codom_re_code_5","age_range"):=
-      bgSARE2[.SD,c(list(codom_re_code_5),list(age_range)),
-              on=.(races_age_match_5_id)]]
-bgSARE2[!is.na(matched2),("matched2"):=
-          bgR[!is.na(race_5)][.SD,list(re_codeB),
-                              on=.(races_age_match_5_id)]]
-#nrow(bgR[!is.na(codom_re_code_5)]) #1299; 1652 for under_18
-#nrow(bgR[!is.na(race_5)]) #1829 90% for under_18 (same for 6-3 as for 3-6!)
-
-bgR[order(weight_races)&!is.na(race_4),("races_age_match_4_id"):=
-      paste0(GEOID,re_code_4,sex,under_18,as.character(100000+sample(1:.N))),
-    by=.(GEOID,re_code_4,sex,under_18)] #re_codes account for HvL
-bgSARE2[order(weight)&!is.na(matched2),c("codom_re_code_4","races_age_match_4_id"):=
-          c(list(.N),list(paste0(GEOID,re_codeB,sex,under_18,as.character(100000+sample(1:.N))))),
-        by=.(GEOID,re_codeB,sex,under_18)]
-bgR[!is.na(race_4),c("codom_re_code_4","age_range"):=
-      bgSARE2[.SD,c(list(codom_re_code_4),list(age_range)),
-              on=.(races_age_match_4_id)]]
-bgSARE2[!is.na(matched2),("matched2"):=
-          bgR[!is.na(race_4)][.SD,list(re_codeB),
-              on=.(races_age_match_4_id)]]
-#nrow(bgR[!is.na(codom_re_code_4)])  #12683 on age_range #15364, on under_18
-#nrow(bgR[!is.na(race_4)]) #16205 [78% on age_range; 95% on under_18]
-
-
-bgR[order(weight_races)&!is.na(race_3),("races_age_match_3_id"):=
-      paste0(GEOID,re_code_3,sex,under_18,as.character(100000+sample(1:.N))),
-    by=.(GEOID,re_code_3,sex,under_18)] #re_codes account for HvL
-bgSARE2[order(weight)&!is.na(matched2),c("codom_re_code_3","races_age_match_3_id"):=
-          c(list(.N),list(paste0(GEOID,re_codeB,sex,under_18,as.character(100000+sample(1:.N))))),
-        by=.(GEOID,re_codeB,sex,under_18)]
-bgR[!is.na(race_3),c("codom_re_code_3","age_range"):=
-      bgSARE2[.SD,c(list(codom_re_code_3),list(age_range)),
-              on=.(races_age_match_3_id)]]
-bgSARE2[!is.na(matched2),("matched2"):=
-          bgR[!is.na(race_3)][.SD,list(re_codeB),
-              on=.(races_age_match_3_id)]]
-#nrow(bgR[!is.na(codom_re_code_3)])/nrow(bgR[!is.na(race_3)]) #97%
-
-#table(bgR[is.na(race_2),re_code_1])==table(bgSARE[!str_detect(race,"TWO"),re_code])
-#test <- table(bgR[is.na(race_2),re_code_1],bgR[is.na(race_2),age_range])==table(bgSARE[!str_detect(race,"TWO"),re_code],bgSARE[!str_detect(race,"TWO"),age_range])
-#length(test[test==FALSE])==FALSE
 #then match back to bgSARE, but as whole path...
-#starting with re_code_1 - which is the weirdness for some other race, after all...
-bgR[,("races_age_match_SARE_id"):=
-      paste0(GEOID,re_code_1,sex,age_range,as.character(100000+sample(1:.N))),
-    by=.(GEOID,re_code_1,sex,age_range)] #re_codes account for HvL
-bgSARE[,("races_age_match_SARE_id"):=
-          list(paste0(GEOID,re_code,sex,age_range,as.character(100000+sample(1:.N)))),
-        by=.(GEOID,re_code,sex,age_range)]
-bgR[,("matched_SARE"):=
+#table(bgR[is.na(race_2),re_code_1])==table(bgSARE[!str_detect(race,"TWO"),re_code])
+#bgSARE[!str_detect(race,"TWO"),("race_1"):=re_code] - would have to translate into race.
+#table(bgR[is.na(race_2),re_code_1])==table(bgSARE[,race_1])
+
+#finish by assigning whole path, but starting with the race_6 (just assigning, although previous matching strategy means ones from higher number of re_code 
+#in age_range are preferred, so some bias in that direction; 
+#which seems better than having them assigned at the end without that structure because the matches were already taken)
+#do all of bgSARE[!str_detect(race,"TWO") 
+#because don't have re_code in match, need to put in HvL explicitly
+
+bgR[is.na(race_2),("race_only_match_SARE_id"):=
+      paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,sex,age_range)] 
+bgSARE[!str_detect(race,"TWO"),("race_only_match_SARE_id"):=
+         list(paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N)))),
+       by=.(GEOID,HvL,sex,age_range)]
+bgR[is.na(race_2),("matched_SARE"):=
       bgSARE[.SD,list(re_code),
-              on=.(races_age_match_SARE_id)]]
-bgSARE[,("race_1"):=
-          bgR[.SD,list(race_1),
-              on=.(races_age_match_SARE_id)]]
-#nrow(bgR[!is.na(matched_SARE)])==nrow(bgSARE[!str_detect(race,"TWO")])
-#compare the matching we just did with one that includes the weights as codomain markers, and then talk about final matching back...
-bgR[is.na(matched_SARE),("races_age_match_SARE_2_id"):=
-      paste0(GEOID,sex,age_range,as.character(100000+sample(1:.N))),
-    by=.(GEOID,sex,age_range)] #re_codes account for HvL
-bgSARE[is.na(race_1),("races_age_match_SARE_2_id"):=
-         list(paste0(GEOID,sex,age_range,as.character(100000+sample(1:.N)))),
-       by=.(GEOID,sex,age_range)]
-bgR[is.na(matched_SARE),("matched_SARE"):=
+             on=.(race_only_match_SARE_id)]]
+bgSARE[!str_detect(race,"TWO"),("race_1"):=
+         bgR[.SD,list(race_1),
+             on=.(race_only_match_SARE_id)]]
+#nrow(bgSARE[!is.na(race_1)]) #24011767
+#nrow(bgSARE[!str_detect(race,"TWO")]) #24011767
+
+bgR[!is.na(race_6),("race_6_match_SARE_id"):=
+      paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,sex,age_range)] #re_codes account for HvL
+bgSARE[is.na(race_1),("race_6_match_SARE_id"):=
+          list(paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N)))),
+        by=.(GEOID,HvL,sex,age_range)]
+bgR[!is.na(race_6),("matched_SARE"):=
       bgSARE[.SD,list(re_code),
-             on=.(races_age_match_SARE_2_id)]]
+              on=.(race_6_match_SARE_id)]]
+bgSARE[is.na(race_1),c("race_1","race_2","race_3","race_4","race_5","race_6"):=
+          bgR[.SD,c(list(race_1),list(race_2),list(race_3),list(race_4),list(race_5),list(race_6)),
+              on=.(race_6_match_SARE_id)]]
+#nrow(bgSARE[!is.na(race_6)]) #168
+#nrow(bgR[!is.na(race_6)]) #168
+bgR[!is.na(race_5)&is.na(race_6),("race_5_match_SARE_id"):=
+      paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,sex,age_range)] #re_codes account for HvL
+bgSARE[is.na(race_1),("race_5_match_SARE_id"):=
+         list(paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N)))),
+       by=.(GEOID,HvL,sex,age_range)]
+bgR[!is.na(race_5)&is.na(race_6),("matched_SARE"):=
+      bgSARE[.SD,list(re_code),
+             on=.(race_5_match_SARE_id)]]
+bgSARE[is.na(race_1),c("race_1","race_2","race_3","race_4","race_5"):=
+         bgR[.SD,c(list(race_1),list(race_2),list(race_3),list(race_4),list(race_5)),
+             on=.(race_5_match_SARE_id)]]
+#nrow(bgSARE[!is.na(race_5)]) #1829
+#nrow(bgR[!is.na(race_5)]) #1829
+bgR[!is.na(race_4)&is.na(race_5),("race_4_match_SARE_id"):=
+      paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,sex,age_range)] #re_codes account for HvL
+bgSARE[is.na(race_1),("race_4_match_SARE_id"):=
+         list(paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N)))),
+       by=.(GEOID,HvL,sex,age_range)]
+bgR[!is.na(race_4)&is.na(race_5),("matched_SARE"):=
+      bgSARE[.SD,list(re_code),
+             on=.(race_4_match_SARE_id)]]
+bgSARE[is.na(race_1),c("race_1","race_2","race_3","race_4"):=
+         bgR[.SD,c(list(race_1),list(race_2),list(race_3),list(race_4)),
+             on=.(race_4_match_SARE_id)]]
+#nrow(bgSARE[!is.na(race_4)]) #16190
+#nrow(bgR[!is.na(race_4)]) #16205 
+bgR[!is.na(race_3)&is.na(race_4),("race_3_match_SARE_id"):=
+      paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,sex,age_range)] #re_codes account for HvL
+bgSARE[is.na(race_1),("race_3_match_SARE_id"):=
+         list(paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N)))),
+       by=.(GEOID,HvL,sex,age_range)]
+bgR[!is.na(race_3)&is.na(race_4),("matched_SARE"):=
+      bgSARE[.SD,list(re_code),
+             on=.(race_3_match_SARE_id)]]
+bgSARE[is.na(race_1),c("race_1","race_2","race_3"):=
+         bgR[.SD,c(list(race_1),list(race_2),list(race_3)),
+             on=.(race_3_match_SARE_id)]]
+#nrow(bgSARE[!is.na(race_3)]) #167101
+#nrow(bgR[!is.na(race_3)]) #167599
+bgR[!is.na(race_2)&is.na(race_3),("race_2_match_SARE_id"):=
+      paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,sex,age_range)] #re_codes account for HvL
+bgSARE[is.na(race_1),("race_2_match_SARE_id"):=
+         list(paste0(GEOID,HvL,sex,age_range,as.character(100000+sample(1:.N)))),
+       by=.(GEOID,HvL,sex,age_range)]
+bgR[!is.na(race_2)&is.na(race_3),("matched_SARE"):=
+      bgSARE[.SD,list(re_code),
+             on=.(race_2_match_SARE_id)]]
+bgSARE[is.na(race_1),c("race_1","race_2"):=
+         bgR[.SD,c(list(race_1),list(race_2)),
+             on=.(race_2_match_SARE_id)]]
+nrow(bgSARE[!is.na(race_2)]) #4994295
+nrow(bgR[!is.na(race_2)]) #5133738
+#catch rest, forgetting structure around sex for matching because it seemed to be a problem with bgSARE2, above and just keep from bgSARE
+bgR[!is.na(race_2)&is.na(matched_SARE),("race_last_match_SARE_id"):=
+      paste0(GEOID,HvL,age_range,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,age_range)] #re_codes account for HvL
+bgSARE[is.na(race_1),("race_last_match_SARE_id"):=
+         list(paste0(GEOID,HvL,age_range,as.character(100000+sample(1:.N)))),
+       by=.(GEOID,HvL,age_range)]
+bgR[!is.na(race_2)&is.na(matched_SARE),("matched_SARE"):=
+      bgSARE[.SD,list(re_code),
+             on=.(race_last_match_SARE_id)]]
 bgSARE[is.na(race_1),c("race_1","race_2","race_3","race_4","race_5","race_6"):=
          bgR[.SD,c(list(race_1),list(race_2),list(race_3),list(race_4),list(race_5),list(race_6)),
-             on=.(races_age_match_SARE_2_id)]]
-#nrow(bgSARE[is.na(race_1)])/nrow(bgSARE[!str_detect(race,"TWO")]) #.6% didn't match
-#table(bgSARE[is.na(race_1),under_18]==table(bgR[is.na(matched_SARE),under_18])
-#table(bgSARE[is.na(race_1),under_18],bgSARE[is.na(race_1),sex])-table(bgR[is.na(matched_SARE),under_18],bgR[is.na(matched_SARE),sex])
-
-bgR[is.na(matched_SARE),("races_age_match_SARE_3_id"):=
-      paste0(GEOID,sex,under_18,as.character(100000+sample(1:.N))),
-    by=.(GEOID,sex,under_18)] #re_codes account for HvL
-bgSARE[is.na(race_1),("races_age_match_SARE_3_id"):=
-         list(paste0(GEOID,sex,under_18,as.character(100000+sample(1:.N)))),
-       by=.(GEOID,sex,under_18)]
-bgR[is.na(matched_SARE),("matched_SARE"):=
+             on=.(race_last_match_SARE_id)]]
+nrow(bgSARE[is.na(race_1)]) #115203
+nrow(bgSARE[str_detect(race,"TWO")]) #5133738
+#and last 2% by forgetting age_range structure (keeping under18)
+bgR[!is.na(race_2)&is.na(matched_SARE),("race_last2_match_SARE_id"):=
+      paste0(GEOID,HvL,under_18,as.character(100000+sample(1:.N))),
+    by=.(GEOID,HvL,under_18)] #re_codes account for HvL
+bgSARE[is.na(race_1),("race_last2_match_SARE_id"):=
+         list(paste0(GEOID,HvL,under_18,as.character(100000+sample(1:.N)))),
+       by=.(GEOID,HvL,under_18)]
+bgR[!is.na(race_2)&is.na(matched_SARE),("matched_SARE"):=
       bgSARE[.SD,list(re_code),
-             on=.(races_age_match_SARE_3_id)]]
+             on=.(race_last2_match_SARE_id)]]
 bgSARE[is.na(race_1),c("race_1","race_2","race_3","race_4","race_5","race_6"):=
          bgR[.SD,c(list(race_1),list(race_2),list(race_3),list(race_4),list(race_5),list(race_6)),
-             on=.(races_age_match_SARE_3_id)]]
-#nrow(bgSARE[is.na(race_1)]) #41088 #male and female are exactly backwards...
-bgR[is.na(matched_SARE),("races_age_match_SARE_4_id"):=
-      paste0(GEOID,under_18,as.character(100000+sample(1:.N))),
-    by=.(GEOID,under_18)] #re_codes account for HvL
-bgSARE[is.na(race_1),("races_age_match_SARE_4_id"):=
-         list(paste0(GEOID,under_18,as.character(100000+sample(1:.N)))),
-       by=.(GEOID,under_18)]
-bgR[is.na(matched_SARE),("matched_SARE"):=
-      bgSARE[.SD,list(re_code),
-             on=.(races_age_match_SARE_4_id)]]
-bgSARE[is.na(race_1),c("race_1","race_2","race_3","race_4","race_5","race_6"):=
-         bgR[.SD,c(list(race_1),list(race_2),list(race_3),list(race_4),list(race_5),list(race_6)),
-             on=.(races_age_match_SARE_4_id)]]
-#nrow(bgSARE[is.na(race_1)])==0
-#table(bgSARE[,race_6])
-#table(bgR[,race_6]) #not even close!!!
+             on=.(race_last2_match_SARE_id)]]
+nrow(bgSARE[is.na(race_1)])
 
-#idea is that you're putting the weights (codom_race_6/codom_races) with the race - need to make sure they vary...
-
-#TO DO NEXT:::each layer of race_ needs to be constructed - idea is to have the paths built up to indicate embedding on the race_01 through 6 as an example
-#
-#does determining backwards ensure no hallucinations? Is it the same problem as hallucination??
-#test - ??
-#do some tables and think about what to add...
-#have to think harder about race_1, too...
-#then move race_1 through 6 to bgSARE
-bgR[,("races_age2_match_id"):=
-      paste0(GEOID,HvL,re_code,under_18,as.character(100000+sample(1:.N))),
-    by=.(GEOID,HvL,re_code,under_18)]
-bgSARE[,c("codom_races","races_age2_match_id"):=
-         c(list(.N),list(paste0(GEOID,HvL,re_code,under_18,as.character(100000+sample(1:.N))))),
-       by=.(GEOID,HvL,re_code,under_18)]
-bgSARE[,c("codom_re_code_18","codom_race_6","codom_race_5","codom_race_4","codom_race_3","codom_race_2","matched1"):=
-          bgR[.SD,c(list(codom_re_code_18),list(codom_race_6),list(codom_race_5),list(codom_race_4),list(codom_race_3)
-                    ,list(codom_race_2),list(race_6)),on=.(races_age_match_id)]]
-
-
-#need to not make order in bgARE determinative (White is not always race_1; Black is not always race_2, etc)
-#should we wait, in some sense, so that siblings have matching multiples?
-#should we do th ¬¬ logic for some determinations?
-#should we go back to the cartesian expansion idea for finding within a space? I don't think so - not very elegant, after all...
-
-#taking bgSARE as the base, assign ¬¬weights for every second race to indicate a potential direction, not yet filled. 
-#final goal is having a distance to calculate against as we get to point of determination.
-#so, for race_6, only value is on ¬¬Some Other Race, but applies to everyone. 
-#For each block group, what does the total number in that category indicate? Do we multiply by that magnitude in that direction?
-#magnitude should be #to assign per bg / # that could've matched (I believe it's either value.i or value!)
+#see whether we've lost any information in moving them over. There was some inevitable sloppiness in the match by age, but GEOID and under18 are retained
+test <- table(bgSARE[,GEOID],bgSARE[,race_6],bgSARE[,race_5],bgSARE[,race_4],
+              bgSARE[,race_3],bgSARE[,race_2],bgSARE[,race_1],bgSARE[,under_18],bgSARE[,HvL])==
+ table(bgR[,GEOID],bgR[,race_6],bgR[,race_5],bgR[,race_4],
+       bgR[,race_3],bgR[,race_2],bgR[,race_1],bgR[,under_18],bgR[,HvL])
+length(test[test==F])
 
 
 #schematic_sam_dec
 groupname <- "P16" #HOUSEHOLDER AGE/RACE/ETH
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_hhFam_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_hhFam_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("family","family_type","no_spouse_sex")
+  #row_c1 determined by hand
+  row_c1 <- c(unique(bg_hhFam_data_from_census[!is.na(label_3),name]))
+  test_total_pop <- tests_download_data(bg_hhFam_data_from_census,label_c1,row_c1,as.character(state))
+  bg_hhFam_data <- relabel(bg_hhFam_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhFam_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhFam_data <- bg_hhFam_data_from_census
+}
+#if(!test_total_pop){test_total_pop<-sum(bg_hhFam_data[,total],na.rm = TRUE)}
+rm(bg_hhFam_data_from_census)
+
 groupname <- "H13" #HOUSEHOLDER AGE / TENURE
 groupname <- "H13" #HOUSEHOLD TYPE / TENURE
 
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
 groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETH - more categories at tract
-#and PCT8 RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
+
 groupname <- "P20" #OWN CHILDREN
 #PCT15 is coupled households, including same sex
-
+#and PCT8 RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
 
 #moved from schematic_sam.Rmd - moved to data.table only
 groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
