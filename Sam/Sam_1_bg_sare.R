@@ -581,31 +581,92 @@ length(test[test==F])
 
 
 #schematic_sam_dec
-groupname <- "P16" #HOUSEHOLDER AGE/RACE/ETH
+groupname <- "P16" #HOUSEHOLDER TYPE/RACE/ETH
 geo_type <- "block_group"
 api_type <- "dec/dhc"
 path_suff <- "est"
-bg_hhFam_data_from_census <- 
+bg_hhType_data_from_census <- 
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county_num = "*",
                    api_type,path_suff)
-if(names(bg_hhFam_data_from_census)[11]=="label_1"){
+if(names(bg_hhType_data_from_census)[11]=="label_1"){
   #labels determined by hand
   label_c1 <- c("family","family_type","no_spouse_sex")
-  #row_c1 determined by hand
-  row_c1 <- c(unique(bg_hhFam_data_from_census[!is.na(label_3),name]))
-  test_total_pop <- tests_download_data(bg_hhFam_data_from_census,label_c1,row_c1,as.character(state))
-  bg_hhFam_data <- relabel(bg_hhFam_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bg_hhFam_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+  #row_c1 determined by hand 
+  bg_hhType_data_from_census_a <- bg_hhType_data_from_census[!str_detect(label_2,"Other") | !is.na(label_3)]
+  row_c1 <- c(unique(bg_hhType_data_from_census_a[str_detect(concept,", HISP") & !is.na(label_2) | 
+                                                  str_detect(concept,"NOT HISP") & !is.na(label_2),name]))
+  test_total_pop <- tests_download_data(bg_hhType_data_from_census,label_c1,row_c1,state=state)
+  bg_hhType_data <- relabel(bg_hhType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
 }else{
   print("Using already given labels; no rewrite.")
-  bg_hhFam_data <- bg_hhFam_data_from_census
+  bg_hhType_data <- bg_hhType_data_from_census
 }
+#this has a different total than the ACS 1-year, which is what is reported as official? 10491147 vs. 11260645 #CANNOT FIND WHY THEY PREFERRED THE ACS!!!
+#cf., https://www.census.gov/content/dam/Census/library/publications/2020/acs/acs_general_handbook_2020_ch09.pdf and numerous user complaints online.
+#but no reason that population for 2020 is reported from decennial and households are from ACS (but are higher, even though residency is stricter and not point of time)
 #if(!test_total_pop){test_total_pop<-sum(bg_hhFam_data[,total],na.rm = TRUE)}
-rm(bg_hhFam_data_from_census)
+
+bg_hhType_data[,("re_code") := substr(name,4,4)][
+  ,("race") := str_replace(concept,"HOUSEHOLD TYPE \\(","")][
+    ,("race") := str_replace(race,"\\)","")]
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhType_data[,.SD,.SDcols = startsWith(names(bg_hhType_data),state)])
+bg_hhType_melted <- melt(bg_hhType_data, id.vars = c("re_code","race","family","family_type","no_spouse_sex"), measure.vars = Geoids,
+                      value.name = "codom_hhType", variable.name = "GEOID")
+bg_hhType <- as.data.table(lapply(bg_hhType_melted[,.SD],rep,bg_hhType_melted[,codom_hhType]))
+#This has race and ethnicity mixed together, so get the right ones
+#bg_hhType <- bg_hhType[str_detect(race,", NOT") | str_detect(race,", HISP")]
+
+rm(bg_hhType_data_from_census)
+rm(bg_hhType_data_from_census_a)
+rm(bg_hhType_data)
+rm(bg_hhType_melted)
 
 groupname <- "H13" #HOUSEHOLDER AGE / TENURE
-groupname <- "H13" #HOUSEHOLD TYPE / TENURE
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_hhAge_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_hhAge_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("rent_own","age_range_9")
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(bg_hhAge_data_from_census[!is.na(label_2),name]))
+  test_total_pop <- tests_download_data(bg_hhAge_data_from_census,label_c1,row_c1,state=state)
+  bg_hhType_data <- relabel(bg_hhAge_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhAge_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhAge_data <- bg_hhAge_data_from_census
+}
+
+groupname <- "H14" #HOUSEHOLDER TYPE / TENURE
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_hhTenure_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_hhTenure_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("rent_own","family","family_type","no_spouse_sex","age_range_3") #follow above, but will have to divide
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(bg_hhTenure_data_from_census[str_detect(label_5,"years") | str_detect(label_4,"years"),name]))
+  test_total_pop <- tests_download_data(bg_hhTenure_data_from_census,label_c1,row_c1,state=state)
+  bg_hhTenure_data <- relabel(bg_hhTenure_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhTenure_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhTenure_data <- bg_hhTenure_data_from_census
+}
+
 
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
 groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETH - more categories at tract
@@ -628,7 +689,7 @@ if(names(bg_gq_age_data_from_census)[6]=="label_1"){
   label_c1 <- c("sex","age_range","gq_institution","gq_type")
   #row_c1 determined by hand
   row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
-  test_total_pop <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,as.character(state))
+  test_total_pop <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,state=state)
   bgGQ_data <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
   write_relabel(bgGQ_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
 }else{
