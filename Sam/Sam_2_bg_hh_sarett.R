@@ -52,7 +52,6 @@ bg_hhType <- as.data.table(lapply(bg_hhType_melted[,.SD],rep,bg_hhType_melted[,c
 #bg_hhType <- bg_hhType[str_detect(race,", NOT") | str_detect(race,", HISP")]
 
 rm(bg_hhType_data_from_census)
-rm(bg_hhType_data_from_census_a)
 rm(bg_hhType_data)
 rm(bg_hhType_melted)
 
@@ -64,7 +63,7 @@ bg_hhAge_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county_num = "*",
                    api_type,path_suff)
-#checked tract and it doesn't have more ethnicity categories
+#tract level with same groupname does not have more categories
 if(names(bg_hhAge_data_from_census)[11]=="label_1"){
   #labels determined by hand
   label_c1 <- c("rent_own","age_range_9")
@@ -91,9 +90,43 @@ bg_hhAgeR <- bg_hhAge[!re_code %in% c("H","I")]
 bg_hhAgeE <- bg_hhAge[re_code %in% c("H","I")]
 #put ethnicity on all
 
-#clean up and remove
+#tract level for PCT13 - more ages
+groupname <- "PCT13" # SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS (Race/eth x 2) #total pop - group quarters
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhAge_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hhAge_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("sex","age_range_23")
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(tr_hhAge_data_from_census[!is.na(label_2) & concept!="SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS",name]))
+  #test_total_pop <- tests_download_data(bg_hhAge_data_from_census,label_c1,row_c1,state=state)
+  #do this with HvL, to divide later, since don't have whole population by both
+  tr_hhAge_data <- relabel(tr_hhAge_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhAge_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhAge_data <- tr_hhAge_data_from_census
+}
+tr_hhAge_data[,("re_code") := substr(name,6,6)][
+  ,("race") := str_replace(concept,"SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS \\(","")][
+    ,("race") := str_replace(race,"\\)","")]
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhAge_data[,.SD,.SDcols = startsWith(names(tr_hhAge_data),state)])
+tr_hhAge_melted <- melt(tr_hhAge_data, id.vars = c("re_code","race","sex","age_range_23"), measure.vars = Geoids,
+                        value.name = "codom_hhAge", variable.name = "GEOID")
+tr_hhAge <- as.data.table(lapply(tr_hhAge_melted[,.SD],rep,tr_hhAge_melted[,codom_hhAge]))
+tr_hhAgeR <- tr_hhAge[!re_code %in% c("H","I")]
+tr_hhAgeE <- tr_hhAge[re_code %in% c("H","I")]
+
 
 groupname <- "H14" #HOUSEHOLDER TYPE / TENURE
+geo_type <- "block_group"
 api_type <- "dec/dhc"
 path_suff <- "est"
 bg_hhTenure_data_from_census <- 
@@ -112,17 +145,45 @@ if(names(bg_hhTenure_data_from_census)[11]=="label_1"){
   print("Using already given labels; no rewrite.")
   bg_hhTenure_data <- bg_hhTenure_data_from_census
 }
-
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhTenure_data[,.SD,.SDcols = startsWith(names(bg_hhTenure_data),state)])
+bg_hhTenure_melted <- melt(bg_hhTenure_data, id.vars = c("rent_own","family","family_type","no_spouse_sex","age_range_3"), measure.vars = Geoids,
+                        value.name = "codom_hhTenure", variable.name = "GEOID")
+bg_hhTenure <- as.data.table(lapply(bg_hhTenure_melted[,.SD],rep,bg_hhTenure_melted[,codom_hhTenure]))
 
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
+geo_type <- "block_group"
 api_type <- "dec/dhc"
 path_suff <- "est"
 bg_hhRel_data_from_census <- 
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county_num = "*",
                    api_type,path_suff)
+if(names(bg_hhRel_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household","role","sex","alone") #follow above, but will have to divide - need to redo so alone is age_range where appropriate
+  #row_c1 determined by hand 
+  row_ca <- c(unique(bg_hhRel_data_from_census[is.na(label_4) & label_2=="Householder",name]))
+  #don't do row_cb, b/c under18 is a subset on children, not an additional label...
+  #row_cb <- c(unique(bg_hhRel_data_from_census[is.na(label_3) & str_detect(label_2,"child"),name])) #lost foster child!!!
+  row_cc <- c(unique(bg_hhRel_data_from_census[!is.na(label_2),name]))
+  row_cd <- row_cc[!row_cc%in%row_cb]
+  row_c1 <- row_cd[!row_cd%in%row_ca]
+  test_total_pop <- tests_download_data(bg_hhRel_data_from_census,label_c1,row_c1,state=state)
+  bg_hhRel_data <- relabel(bg_hhRel_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhTenure_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhRel_data <- bg_hhRel_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhTenure_data[,.SD,.SDcols = startsWith(names(bg_hhTenure_data),state)])
+bg_hhTenure_melted <- melt(bg_hhTenure_data, id.vars = c("rent_own","family","family_type","no_spouse_sex","age_range_3"), measure.vars = Geoids,
+                           value.name = "codom_hhTenure", variable.name = "GEOID")
+bg_hhTenure <- as.data.table(lapply(bg_hhTenure_melted[,.SD],rep,bg_hhTenure_melted[,codom_hhTenure]))
 
 groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETHx2 
+geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
 tr_hhRel_data_from_census <- 
@@ -131,11 +192,12 @@ tr_hhRel_data_from_census <-
                    api_type,path_suff)
 
 groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
+geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
 tr_hhRel18_data_from_census <- 
   census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
+                   groupname,county = "*",
                    api_type,path_suff)
 
 groupname <- "P20" #OWN CHILDREN
@@ -147,11 +209,12 @@ bg_hhOwnKids_data_from_census <-
                    api_type,path_suff)
 
 groupname <- "PCT15" #coupled households, including same sex
+geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
 tr_hhCouple_data_from_census <- 
   census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
+                   groupname,county = "*",
                    api_type,path_suff)
 
 #moved from schematic_sam.Rmd - moved to data.table only
