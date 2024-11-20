@@ -162,7 +162,7 @@ tests_download_data <- function(dt,label_c1,row_c1,total_str,state){
   if(total_pop == sum(dt[row_c1,"total"])){
     print("Total populations agree between total row and total of selected rows")
   }else{ 
-    print("Total and total of selected rows do not agree")
+    print(paste0("Total, ", total_pop, " and total of selected rows, ", sum(dt[row_c1,`total`])," do not agree"))
   }
   return(dt[total_name])
 }
