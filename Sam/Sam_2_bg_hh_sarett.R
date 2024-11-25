@@ -11,6 +11,8 @@ tract = "*"
 #you don't need a censuskey if you're not pulling new files down; you can only use this one if you have correct access to mine on the OneDrive
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 
+#https://api.census.gov/data/2020/dec/dhc/variables.html
+
 #schematic_sam_dec
 groupname <- "P16" #HOUSEHOLDER TYPE/RACE/ETH
 geo_type <- "block_group"
@@ -265,6 +267,7 @@ tr_hhRel18_data_from_census <-
                    api_type,path_suff)
 
 groupname <- "P20" #OWN CHILDREN
+geo_type <- "block_group"
 api_type <- "dec/dhc"
 path_suff <- "est"
 bg_hhOwnKids_data_from_census <- 
@@ -272,11 +275,174 @@ bg_hhOwnKids_data_from_census <-
                    groupname,county_num = "*",
                    api_type,path_suff)
 
-groupname <- "PCT15" #coupled households, including same sex
+
+groupname <- "P19" #HOUSEHOLDS BY PRESENCE OF PEOPLE 65 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_hh65SizeType_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT4" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER BY HOUSEHOLD TYPE
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hh60Type_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT5" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hh60SizeType_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT6" #HOUSEHOLDS BY PRESENCE OF PEOPLE 75 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hh75SizeType_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hh65RelRE_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT10" #FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN, race/eth
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhTypeOwnKids_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT14" #PRESENCE OF MULTIGENERATIONAL HOUSEHOLDS, race/eth
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhMultiGenRE_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT15" #COUPLED HOUSEHOLDS, BY TYPE, including same sex
 geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
 tr_hhCouple_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT16" #NONFAMILY HOUSEHOLDS BY SEX OF HOUSEHOLDER BY LIVING ALONE BY AGE OF HOUSEHOLDER
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_nfCouple_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "H4" #Tenure - by race and mortgage
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_TenureRE_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+
+groupname <- "H12" #TENURE BY HOUSEHOLD SIZE and race/eth
+api_type <- "dec/dhc"
+geo_type <- "block_group"
+path_suff <- "est"
+bg_hhSizeTenureRE_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT7" #HOUSEHOLD TYPE BY HOUSEHOLD SIZE, race/eth
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhTypeSizeRE_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT2" #HOUSEHOLD SIZE BY HOUSEHOLD TYPE BY PRESENCE OF OWN CHILDREN
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhSizeTypeOwnKids_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "PCT8" #RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhRelKids_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "H13" #TENURE BY AGE OF HOUSEHOLDER and race/eth
+api_type <- "dec/dhc"
+geo_type <- "block_group"
+path_suff <- "est"
+bg_hhAgeTenureRE_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+
+groupname <- "H14" #TENURE BY HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER
+api_type <- "dec/dhc"
+geo_type <- "block_group"
+path_suff <- "est"
+bg_hhTypeTenureAge_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+
+groupname <- "H15" #TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
+api_type <- "dec/dhc"
+geo_type <- "block_group"
+path_suff <- "est"
+bg_hh18Tenure_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+
+groupname <- "HCT12" #TENURE BY PRESENCE AND AGE OF OWN CHILDREN (more categories)
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhTenureOwnKids_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+
+groupname <- "HCT1" #TENURE BY HISPANIC OR LATINO ORIGIN OF HOUSEHOLDER BY RACE OF HOUSEHOLDER - gives everything at tract keeps from guessing about race/eth
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhTenureRE_data_from_census <- 
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)

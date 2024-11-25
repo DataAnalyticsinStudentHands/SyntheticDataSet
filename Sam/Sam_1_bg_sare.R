@@ -16,6 +16,7 @@ censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 #that it shows how topology of destination changes is key, although it's constrained by the census schema at individual level
 
 #https://www.census.gov/programs-surveys/acs/data/data-tables/table-ids-explained.html #no longer has full list...
+#https://api.census.gov/data/2020/dec/dhc/variables.html
 #
 #block_group for sex by age by race
 groupname <- "P12" #SEX BY AGE FOR SELECTED AGE CATEGORIES (race/ethnicity)
@@ -577,5 +578,6 @@ test <- table(bgSARE[,GEOID],bgSARE[,race_6],bgSARE[,race_5],bgSARE[,race_4],
        bgR[,race_3],bgR[,race_2],bgR[,race_1],bgR[,under_18],bgR[,HvL])
 length(test[test==F])
 
-
+#could add PCT12 SEX BY SINGLE YEAR AGE with race/eth at tract level
+#PCT13 sex by age for the population in households with race/eth could fill in gaps for GQ? Need to see after doing GQ if needed...
 
