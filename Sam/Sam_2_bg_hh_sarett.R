@@ -233,7 +233,7 @@ if(names(tr_hhRel_data_from_census)[11]=="label_1"){
 Geoids <- colnames(tr_hhRel_data[,.SD,.SDcols = startsWith(names(tr_hhRel_data),state)])
 tr_hhRel_melted <- melt(tr_hhRel_data, id.vars = c("household","role","sex","alone","age_range_2","re_code","race"), measure.vars = Geoids,
                         value.name = "codom_hhRel", variable.name = "GEOID")
-#clean up to get right number #by GEOID and RACE??? WHY NOT WORKING????
+#clean up to get right number #by GEOID and RACE
 tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Stepchild" & age_range_2=="over_17",
                                          as.numeric(.SD[role=="Stepchild" & age_range_2=="over_17",codom_hhRel])-
                                            as.numeric(.SD[role=="Stepchild" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
@@ -257,7 +257,7 @@ rm(tr_hhRel_data)
 rm(tr_hhRel_data_from_census)
 rm(tr_hhRel_melted)
 
-groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
+groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS; really only own-child and group quarter information
 geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
@@ -265,6 +265,27 @@ tr_hhRel18_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_hhRel18_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household","child_role","age_range_adolescent") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hhRel18_data_from_census[!is.na(label_3),name]))
+  test_total_pop <- tests_download_data(tr_hhRel18_data_from_census,label_c1,row_c1,state=state)
+  #this is 6k off for entire state - need to ensure we understand why different
+  tr_hhRel18_data <- relabel(tr_hhRel18_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhRel18_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhRel18_data <- tr_hhRel18_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhRel18_data[,.SD,.SDcols = startsWith(names(tr_hhRel18_data),state)])
+tr_hhRel18_melted <- melt(tr_hhRel18_data, id.vars = c("household","child_role","age_range_adolescent"), measure.vars = Geoids,
+                           value.name = "codom_tr_hhRel18", variable.name = "GEOID")
+tr_hhRel18 <- as.data.table(lapply(tr_hhRel18_melted[,.SD],rep,tr_hhRel18_melted[,codom_tr_hhRel18]))
+rm(tr_hhRel18_data_from_census)
+rm(tr_hhRel18_melted)
+rm(tr_hhRel18_data)
 
 groupname <- "P20" #OWN CHILDREN
 geo_type <- "block_group"
@@ -274,6 +295,41 @@ bg_hhOwnKids_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county_num = "*",
                    api_type,path_suff)
+if(names(bg_hhOwnKids_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_type_6","in_house","age_range_2_sr") 
+  #row_c1 by hand
+  row_c1 <- c(unique(bg_hhOwnKids_data_from_census[!is.na(label_2),name]))
+  test_total_pop <- tests_download_data(bg_hhOwnKids_data_from_census,label_c1,row_c1,state=state)
+  #this is 6k off for entire state - need to ensure we understand why different
+  bg_hhOwnKids_data <- relabel(bg_hhOwnKids_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhOwnKids_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tbg_hhOwnKids_data <- bg_hhOwnKids_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhOwnKids_data[,.SD,.SDcols = startsWith(names(bg_hhOwnKids_data),state)])
+bg_hhOwnKids_melted <- melt(bg_hhOwnKids_data, id.vars = c("household_type_6","in_house","age_range_2_sr"), measure.vars = Geoids,
+                          value.name = "codom_bg_hhOwnKids", variable.name = "GEOID")
+bg_hhOwnKids_melted[,("codom_bg_hhOwnKids"):=ifelse(household_type_6=="Male householder, no spouse or partner present" &
+                                                      in_house=="Living alone" & is.na(age_range_2_sr),
+                                         as.numeric(.SD[household_type_6=="Male householder, no spouse or partner present" &
+                                                          in_house=="Living alone" & is.na(age_range_2_sr),codom_bg_hhOwnKids])-
+                                           as.numeric(.SD[household_type_6=="Male householder, no spouse or partner present" & 
+                                                            in_house=="Living alone" & 
+                                                            age_range_2_sr=="65 years and over",codom_bg_hhOwnKids]),codom_bg_hhOwnKids),by=.(GEOID)]
+bg_hhOwnKids_melted[,("codom_bg_hhOwnKids"):=ifelse(household_type_6=="Female householder, no spouse or partner present" &
+                                                      in_house=="Living alone" & is.na(age_range_2_sr),
+                                                    as.numeric(.SD[household_type_6=="Female householder, no spouse or partner present" &
+                                                                     in_house=="Living alone" & is.na(age_range_2_sr),codom_bg_hhOwnKids])-
+                                                      as.numeric(.SD[household_type_6=="Female householder, no spouse or partner present" & 
+                                                                       in_house=="Living alone" & 
+                                                                       age_range_2_sr=="65 years and over",codom_bg_hhOwnKids]),codom_bg_hhOwnKids),by=.(GEOID)]
+bg_hhOwnKids <- as.data.table(lapply(bg_hhOwnKids_melted[,.SD],rep,bg_hhOwnKids_melted[,codom_bg_hhOwnKids]))
+rm(bg_hhOwnKids_data_from_census)
+rm(bg_hhOwnKids_melted)
+rm(bg_hhOwnKids_data)
 
 
 groupname <- "P19" #HOUSEHOLDS BY PRESENCE OF PEOPLE 65 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
@@ -284,6 +340,27 @@ bg_hh65SizeType_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county_num = "*",
                    api_type,path_suff)
+if(names(bg_hh65SizeType_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_65","hh_size_2","household") 
+  #row_c1 by hand
+  row_c1 <- c(unique(bg_hh65SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
+  test_total_pop <- tests_download_data(bg_hh65SizeType_data_from_census,label_c1,row_c1,state=state)
+  #this is 6k off for entire state - need to ensure we understand why different
+  bg_hh65SizeType_data <- relabel(bg_hh65SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hh65SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hh65SizeType_data <- bg_hh65SizeType_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hh65SizeType_data[,.SD,.SDcols = startsWith(names(bg_hh65SizeType_data),state)])
+bg_hh65SizeType_melted <- melt(bg_hh65SizeType_data, id.vars = c("household_65","hh_size_2","household"), measure.vars = Geoids,
+                          value.name = "codom_bg_hh65SizeType", variable.name = "GEOID")
+bg_hh65SizeType <- as.data.table(lapply(bg_hh65SizeType_melted[,.SD],rep,bg_hh65SizeType_melted[,codom_bg_hh65SizeType]))
+rm(bg_hh65SizeType_data_from_census)
+rm(bg_hh65SizeType_melted)
+rm(bg_hh65SizeType_data)
 
 groupname <- "PCT4" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER BY HOUSEHOLD TYPE
 geo_type <- "tract"
@@ -293,6 +370,29 @@ tr_hh60Type_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_hh60Type_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_60","family_type","household_type_5","spouse") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hh60Type_data_from_census[label_2=="Nonfamily households" | 
+                                                    label_3=="Married couple family" |
+                                                    !is.na(label_4),name]))
+  test_total_pop <- tests_download_data(tr_hh60Type_data_from_census,label_c1,row_c1,state=state)
+  #this is 2.5m off for entire state - need to ensure we understand why different; seems to be that there is no non-family without 60yo present, which is a close number
+  tr_hh60Type_data <- relabel(tr_hh60Type_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hh60Type_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hh60Type_data <- tr_hh60Type_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hh60Type_data[,.SD,.SDcols = startsWith(names(tr_hh60Type_data),state)])
+tr_hh60Type_melted <- melt(tr_hh60Type_data, id.vars = c("household_60","family_type","household_type_5","spouse"), measure.vars = Geoids,
+                               value.name = "codom_tr_hh60Type", variable.name = "GEOID")
+tr_hh60Type <- as.data.table(lapply(tr_hh60Type_melted[,.SD],rep,tr_hh60Type_melted[,codom_tr_hh60Type]))
+rm(tr_hh60Type_data_from_census)
+rm(tr_hh60Type_melted)
+rm(tr_hh60Type_data)
 
 groupname <- "PCT5" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
 geo_type <- "tract"
@@ -302,6 +402,26 @@ tr_hh60SizeType_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_hh60SizeType_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_60","hh_size_2","household") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hh60SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
+  test_total_pop <- tests_download_data(tr_hh60SizeType_data_from_census,label_c1,row_c1,state=state)
+  tr_hh60SizeType_data <- relabel(tr_hh60SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hh60SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hh60SizeType_data <- tr_hh60SizeType_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hh60SizeType_data[,.SD,.SDcols = startsWith(names(tr_hh60SizeType_data),state)])
+tr_hh60SizeType_melted <- melt(tr_hh60SizeType_data, id.vars = c("household_60","hh_size_2","household"), measure.vars = Geoids,
+                               value.name = "codom_tr_hh60SizeType", variable.name = "GEOID")
+tr_hh60SizeType <- as.data.table(lapply(tr_hh60SizeType_melted[,.SD],rep,tr_hh60SizeType_melted[,codom_tr_hh60SizeType]))
+rm(tr_hh60SizeType_data_from_census)
+rm(tr_hh60SizeType_melted)
+rm(tr_hh60SizeType_data)
 
 groupname <- "PCT6" #HOUSEHOLDS BY PRESENCE OF PEOPLE 75 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
 geo_type <- "tract"
@@ -311,6 +431,26 @@ tr_hh75SizeType_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_hh75SizeType_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_75","hh_size_2","household") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hh75SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
+  test_total_pop <- tests_download_data(tr_hh75SizeType_data_from_census,label_c1,row_c1,state=state)
+  tr_hh75SizeType_data <- relabel(tr_hh75SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hh75SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hh75SizeType_data <- tr_hh75SizeType_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hh75SizeType_data[,.SD,.SDcols = startsWith(names(tr_hh75SizeType_data),state)])
+tr_hh75SizeType_melted <- melt(tr_hh75SizeType_data, id.vars = c("household_75","hh_size_2","household"), measure.vars = Geoids,
+                               value.name = "codom_tr_hh75SizeType", variable.name = "GEOID")
+tr_hh75SizeType <- as.data.table(lapply(tr_hh75SizeType_melted[,.SD],rep,tr_hh75SizeType_melted[,codom_tr_hh75SizeType]))
+rm(tr_hh75SizeType_data_from_census)
+rm(tr_hh75SizeType_melted)
+rm(tr_hh75SizeType_data)
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ
 geo_type <- "tract"
