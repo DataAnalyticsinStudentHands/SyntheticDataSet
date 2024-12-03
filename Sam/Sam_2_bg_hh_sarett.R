@@ -343,7 +343,7 @@ if(names(bg_hhOwnKids_data_from_census)[11]=="label_1"){
   write_relabel(bg_hhOwnKids_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
 }else{
   print("Using already given labels; no rewrite.")
-  tbg_hhOwnKids_data <- bg_hhOwnKids_data_from_census
+  bg_hhOwnKids_data <- bg_hhOwnKids_data_from_census
 }
 #reshape a bit and make list of individuals
 Geoids <- colnames(bg_hhOwnKids_data[,.SD,.SDcols = startsWith(names(bg_hhOwnKids_data),state)])
@@ -535,6 +535,32 @@ tr_hhMultiGenRE_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_hhMultiGenRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("multi_gen_hh","multi_gen_3","re_code","race") 
+  tr_hhMultiGenRE_data_from_census[,("re_code") := substr(name,6,6)][
+    ,("race") := str_replace(concept,"PRESENCE OF MULTIGENERATIONAL HOUSEHOLDS \\(","")][
+      ,("race") := str_replace(race,"\\)","")]
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hhMultiGenRE_data_from_census[str_detect(label_1,"generations") & str_detect(concept,"\\)"),name]))
+  test_total_pop <- tests_download_data(tr_hhMultiGenRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
+  tr_hhMultiGenRE_data <- relabel(tr_hhMultiGenRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhMultiGenRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhMultiGenRE_data <- tr_hhMultiGenRE_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhMultiGenRE_data[,.SD,.SDcols = startsWith(names(tr_hhMultiGenRE_data),state)])
+tr_hhMultiGenRE_melted <- melt(tr_hhMultiGenRE_data, id.vars = c("multi_gen_hh","multi_gen_3","re_code","race"), measure.vars = Geoids,
+                                  value.name = "codom_tr_hhMultiGenRE", variable.name = "GEOID")
+tr_hhMultiGenRE <- as.data.table(lapply(tr_hhMultiGenRE_melted[,.SD],rep,tr_hhMultiGenRE_melted[,codom_tr_hhMultiGenRE]))
+tr_hhMultiGenR <- tr_hhMultiGenRE[!re_code %in% c("H","I")] #is right number...
+tr_hhMultiGenE <- tr_hhMultiGenRE[re_code %in% c("H","I")]
+rm(tr_hhMultiGenRE_data_from_census)
+rm(tr_hhMultiGenRE_data)
+rm(tr_hhMultiGenRE_melted)
+rm(tr_hhMultiGenRE)
 
 groupname <- "PCT15" #COUPLED HOUSEHOLDS, BY TYPE, including same sex
 geo_type <- "tract"
@@ -544,8 +570,37 @@ tr_hhCouple_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_hhCouple_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("hh_type_3","same_sex","couple_gender") 
+  tr_hhCouple_data_from_census[,("label_3"):=ifelse(label_2=="Same-sex unmarried partner households" & is.na(label_3),
+                                                    "Male-male unmarried partner household",label_3)]
+  
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hhCouple_data_from_census[label_1=="All other households" | 
+                                                    str_detect(label_2,"Opposite") | 
+                                                    !is.na(label_3),name]))
+  test_total_pop <- tests_download_data(tr_hhCouple_data_from_census,label_c1,row_c1,state=state) #not right because male-male unmarried is off
+  tr_hhCouple_data <- relabel(tr_hhCouple_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhCouple_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhCouple_data <- tr_hhCouple_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhCouple_data[,.SD,.SDcols = startsWith(names(tr_hhCouple_data),state)])
+tr_hhCouple_melted <- melt(tr_hhCouple_data, id.vars = c("hh_type_3","same_sex","couple_gender"), measure.vars = Geoids,
+                               value.name = "codom_tr_hhCouple", variable.name = "GEOID")
+tr_hhCouple_melted[,("codom_tr_hhCouple"):=fcase(couple_gender=="Male-male unmarried partner household",
+                                         as.numeric(.SD[couple_gender=="Male-male unmarried partner household",codom_tr_hhCouple])-
+                                           as.numeric(.SD[couple_gender=="Female-female unmarried partner household",codom_tr_hhCouple]),
+                                         default=as.numeric(codom_tr_hhCouple)),by=.(GEOID)]
+tr_hhCouple <- as.data.table(lapply(tr_hhCouple_melted[,.SD],rep,tr_hhCouple_melted[,codom_tr_hhCouple])) #right number
+rm(tr_hhCouple_data_from_census)
+rm(tr_hhCouple_data)
+rm(tr_hhCouple_melted)
 
-groupname <- "PCT16" #NONFAMILY HOUSEHOLDS BY SEX OF HOUSEHOLDER BY LIVING ALONE BY AGE OF HOUSEHOLDER
+groupname <- "PCT16" #NONFAMILY HOUSEHOLDS BY SEX OF HOUSEHOLDER BY LIVING ALONE BY AGE OF HOUSEHOLDER (add as subset to PCT15)
 geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
@@ -553,6 +608,26 @@ tr_nfCouple_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_nfCouple_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("sex","alone","age_range_2") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_nfCouple_data_from_census[!is.na(label_3),name]))
+  test_total_pop <- tests_download_data(tr_nfCouple_data_from_census,label_c1,row_c1,state=state) #not right because male-male unmarried is off
+  tr_nfCouple_data <- relabel(tr_nfCouple_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_nfCouple_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_nfCouple_data <- tr_nfCouple_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_nfCouple_data[,.SD,.SDcols = startsWith(names(tr_nfCouple_data),state)])
+tr_nfCouple_melted <- melt(tr_nfCouple_data, id.vars = c("sex","alone","age_range_2"), measure.vars = Geoids,
+                           value.name = "codom_tr_nfCouple", variable.name = "GEOID")
+tr_nfCouple <- as.data.table(lapply(tr_nfCouple_melted[,.SD],rep,tr_nfCouple_melted[,codom_tr_nfCouple])) #right number
+rm(tr_nfCouple_data_from_census)
+rm(tr_nfCouple_data)
+rm(tr_nfCouple_melted)
 
 groupname <- "H4" #Tenure - by race and mortgage
 geo_type <- "block_group"
@@ -562,6 +637,31 @@ bg_TenureRE_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county_num = "*",
                    api_type,path_suff)
+if(names(bg_TenureRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("tenure_1","tenure","re_code","race") 
+  bg_TenureRE_data_from_census[,("re_code") := substr(name,3,3)][
+    ,("race") := str_replace(concept,"TENURE \\(","")][
+      ,("race") := str_replace(race,"\\)","")]
+  #row_c1 by hand
+  row_c1 <- c(unique(bg_TenureRE_data_from_census[label!="!!" & label!="Geography" & 
+                                                    concept!="TENURE (HISPANIC OR LATINO HOUSEHOLDER)" & 
+                                                    concept!="TENURE" & str_detect(concept,"HISP"),name]))
+  test_total_pop <- tests_download_data(bg_TenureRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
+  bg_TenureRE_data <- relabel(bg_TenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_TenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_TenureRE_data <- bg_TenureRE_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_TenureRE_data[,.SD,.SDcols = startsWith(names(bg_TenureRE_data),state)])
+bg_TenureRE_melted <- melt(bg_TenureRE_data, id.vars = c("tenure_1","tenure","re_code","race"), measure.vars = Geoids,
+                               value.name = "codom_bg_TenureRE", variable.name = "GEOID")
+bg_TenureRE <- as.data.table(lapply(bg_TenureRE_melted[,.SD],rep,bg_TenureRE_melted[,codom_bg_TenureRE])) #all re_codes
+rm(bg_TenureRE_data_from_census)
+rm(bg_TenureRE_data)
+rm(bg_TenureRE_melted)
 
 groupname <- "H12" #TENURE BY HOUSEHOLD SIZE and race/eth
 api_type <- "dec/dhc"
@@ -571,6 +671,32 @@ bg_hhSizeTenureRE_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county_num = "*",
                    api_type,path_suff)
+if(names(bg_hhSizeTenureRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("rent_own","size")
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(bg_hhSizeTenureRE_data_from_census[!is.na(label_2) & concept!="TENURE BY HOUSEHOLD SIZE",name])) 
+  bg_hhSizeTenureRE_data <- relabel(bg_hhSizeTenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhSizeTenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhSizeTenureRE_data <- bg_hhSizeTenureRE_data_from_census
+}
+bg_hhSizeTenureRE_data[,("re_code") := substr(name,4,4)][
+  ,("race") := str_replace(concept,"TENURE BY HOUSEHOLD SIZE \\(","")][
+    ,("race") := str_replace(race,"\\)","")]
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhSizeTenureRE_data[,.SD,.SDcols = startsWith(names(bg_hhSizeTenureRE_data),state)])
+bg_hhSizeTenureRE_melted <- melt(bg_hhSizeTenureRE_data, id.vars = c("re_code","race","rent_own","size"), measure.vars = Geoids,
+                        value.name = "codom_bg_hhSizeTenureRE", variable.name = "GEOID")
+bg_hhSizeTenureRE <- as.data.table(lapply(bg_hhSizeTenureRE_melted[,.SD],rep,bg_hhSizeTenureRE_melted[,codom_bg_hhSizeTenureRE]))
+bg_hhSizeTenureR <- bg_hhSizeTenureRE[!re_code %in% c("H","I")]
+bg_hhSizeTenureE <- bg_hhSizeTenureRE[re_code %in% c("H","I")]
+rm(bg_hhSizeTenureRE_data_from_census)
+rm(bg_hhSizeTenureRE_data)
+rm(bg_hhSizeTenureRE_melted)
+rm(bg_hhSizeTenureRE)
 
 groupname <- "PCT7" #HOUSEHOLD TYPE BY HOUSEHOLD SIZE, race/eth
 geo_type <- "tract"
@@ -580,6 +706,32 @@ tr_hhTypeSizeRE_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_hhTypeSizeRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("rent_own","hh_size")
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(tr_hhTypeSizeRE_data_from_census[!is.na(label_2) & concept!="HOUSEHOLD TYPE BY HOUSEHOLD SIZE",name])) 
+  tr_hhTypeSizeRE_data <- relabel(tr_hhTypeSizeRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhTypeSizeRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhTypeSizeRE_data <- tr_hhTypeSizeRE_data_from_census
+}
+tr_hhTypeSizeRE_data[,("re_code") := substr(name,5,5)][
+  ,("race") := str_replace(concept,"HOUSEHOLD TYPE BY HOUSEHOLD SIZE \\(","")][
+    ,("race") := str_replace(race,"\\)","")]
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhTypeSizeRE_data[,.SD,.SDcols = startsWith(names(tr_hhTypeSizeRE_data),state)])
+tr_hhTypeSizeRE_melted <- melt(tr_hhTypeSizeRE_data, id.vars = c("re_code","race","rent_own","hh_size"), measure.vars = Geoids,
+                                 value.name = "codom_tr_hhTypeSizeRE", variable.name = "GEOID")
+tr_hhTypeSizeRE <- as.data.table(lapply(tr_hhTypeSizeRE_melted[,.SD],rep,tr_hhTypeSizeRE_melted[,codom_tr_hhTypeSizeRE]))
+tr_hhTypeSizeR <- tr_hhTypeSizeRE[!re_code %in% c("H","I")]
+tr_hhTypeSizeE <- tr_hhTypeSizeRE[re_code %in% c("H","I")]
+rm(tr_hhTypeSizeRE_data_from_census)
+rm(tr_hhTypeSizeRE_data)
+rm(tr_hhTypeSizeRE_melted)
+rm(tr_hhTypeSizeRE)
 
 groupname <- "PCT2" #HOUSEHOLD SIZE BY HOUSEHOLD TYPE BY PRESENCE OF OWN CHILDREN
 geo_type <- "tract"
