@@ -743,11 +743,19 @@ tr_hhSizeTypeOwnKids_data_from_census <-
                    api_type,path_suff)
 if(names(tr_hhSizeTypeOwnKids_data_from_census)[11]=="label_1"){
   #labels determined by hand
-  label_c1 <- c("rent_own","hh_size")
+  label_c1 <- c("hh_size_2","family","family_type","sex","own_kids")
+  tr_hhSizeTypeOwnKids_data_from_census[,("label_5"):=fcase(str_detect(label_2,"householder"),
+                                                            "No own children under 18 years",
+                                                            str_detect(label_3,"householder"),
+                                                            "Not a family",
+                                                            str_detect(label_4,"under"),
+                                                            label_4,
+                                                            default=label_5)]
   #row_c1 determined by hand 
-  row_c1 <- c(unique(tr_hhSizeTypeOwnKids_data_from_census[!is.na(label_2) & concept!="HOUSEHOLD TYPE BY HOUSEHOLD SIZE",name])) 
+  row_c1 <- c(unique(tr_hhSizeTypeOwnKids_data_from_census[!is.na(label_5),name])) 
+  test_total_pop <- tests_download_data(tr_hhSizeTypeOwnKids_data_from_census,label_c1,row_c1,state=state) 
   tr_hhSizeTypeOwnKids_data <- relabel(tr_hhSizeTypeOwnKids_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhTypeSizeRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+  write_relabel(tr_hhSizeTypeOwnKids_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
 }else{
   print("Using already given labels; no rewrite.")
   ttr_hhSizeTypeOwnKids_data <- tr_hhSizeTypeOwnKids_data_from_census
@@ -755,9 +763,9 @@ if(names(tr_hhSizeTypeOwnKids_data_from_census)[11]=="label_1"){
 
 #reshape a bit and make list of individuals
 Geoids <- colnames(tr_hhSizeTypeOwnKids_data[,.SD,.SDcols = startsWith(names(tr_hhSizeTypeOwnKids_data),state)])
-tr_hhSizeTypeOwnKids_melted <- melt(tr_hhSizeTypeOwnKids_data, id.vars = c("re_code","race","rent_own","hh_size"), measure.vars = Geoids,
+tr_hhSizeTypeOwnKids_melted <- melt(tr_hhSizeTypeOwnKids_data, id.vars = c("hh_size_2","family","family_type","sex","own_kids"), measure.vars = Geoids,
                                value.name = "codom_tr_hhSizeTypeOwnKids", variable.name = "GEOID")
-tr_hhSizeTypeOwnKids <- as.data.table(lapply(tr_hhSizeTypeOwnKids_melted[,.SD],rep,tr_hhTypeSizeRE_melted[,codom_tr_hhSizeTypeOwnKids]))
+tr_hhSizeTypeOwnKids <- as.data.table(lapply(tr_hhSizeTypeOwnKids_melted[,.SD],rep,tr_hhSizeTypeOwnKids_melted[,codom_tr_hhSizeTypeOwnKids]))
 rm(tr_hhSizeTypeOwnKids_data_from_census)
 rm(tr_hhSizeTypeOwnKids_data)
 rm(tr_hhSizeTypeOwnKids_melted)
