@@ -799,7 +799,7 @@ rm(bg_hh18Tenure_data_from_census)
 rm(bg_hh18Tenure_data)
 rm(bg_hh18Tenure_melted)
 
-groupname <- "HCT12" #TENURE BY PRESENCE AND AGE OF OWN CHILDREN (more categories)
+groupname <- "HCT2" #TENURE BY PRESENCE AND AGE OF OWN CHILDREN (more categories)
 geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
@@ -807,6 +807,35 @@ tr_hhTenureOwnKids_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+#for some reason, doesn't include 6-17 years only for renters, which is largest category.
+if(names(tr_hhTenureOwnKids_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("tenure","kid_18","kid_age_range_3") 
+  tr_hhTenureOwnKids_data_from_census[,("label_3"):=fcase(str_detect(label_2,"No"),label_2,
+                                                          name=="HCT2_009N","6 to 17 years only",
+                                                          default=label_3)]
+  row_c1 <- c(unique(tr_hhTenureOwnKids_data_from_census[!is.na(label_3),name]))
+  test_total_pop <- tests_download_data(tr_hhTenureOwnKids_data_from_census,label_c1,row_c1,state=state) #not right total b/c 6-17 for renters, fixed below
+  tr_hhTenureOwnKids_data <- relabel(tr_hhTenureOwnKids_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhTenureOwnKids_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhTenureOwnKids_data <- tr_hhTenureOwnKids_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhTenureOwnKids_data[,.SD,.SDcols = startsWith(names(tr_hhTenureOwnKids_data),state)])
+tr_hhTenureOwnKids_melted <- melt(tr_hhTenureOwnKids_data, id.vars = c("tenure","kid_18","kid_age_range_3"), measure.vars = Geoids,
+                             value.name = "codom_tr_hhTenureOwnKids", variable.name = "GEOID")
+tr_hhTenureOwnKids_melted[,("codom_tr_hhTenureOwnKids"):=fcase(tenure=="Renter occupied"&kid_age_range_3=="6 to 17 years only",
+                                                 as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="6 to 17 years only",codom_tr_hhTenureOwnKids])-
+                                                   as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="Under 6 years and 6 to 17 years",codom_tr_hhTenureOwnKids])-
+                                                   as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="Under 6 years only",codom_tr_hhTenureOwnKids]),
+                                                 default=as.numeric(codom_tr_hhTenureOwnKids)),by=.(GEOID)]
+tr_hhTenureOwnKids <- as.data.table(lapply(tr_hhTenureOwnKids_melted[,.SD],rep,tr_hhTenureOwnKids_melted[,codom_tr_hhTenureOwnKids]))
+rm(tr_hhTenureOwnKids_data_from_census)
+rm(tr_hhTenureOwnKids_data)
+rm(tr_hhTenureOwnKids_melted)
+
 
 groupname <- "HCT1" #TENURE BY HISPANIC OR LATINO ORIGIN OF HOUSEHOLDER BY RACE OF HOUSEHOLDER - gives everything at tract keeps from guessing about race/eth
 geo_type <- "tract"
@@ -816,6 +845,36 @@ tr_hhTenureRE_data_from_census <-
   census_tract_get(censusdir, vintage, state, censuskey, 
                    groupname,county = "*",
                    api_type,path_suff)
+if(names(tr_hhTenureRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand; didn't do re_code in name for some reason; owner_occupied, Latino, AIAN missing (about 33k in TX)
+  label_c1 <- c("tenure","HvL","race") 
+  #row_c1 by hand
+  tr_hhTenureRE_data_from_census[,"label_3":=fcase(label_1=="Owner occupied"&
+                                                     label_2=="Hispanic or Latino householder"&
+                                                     is.na(label_3),"Householder who is American Indian and Alaska Native alone",default = label_3)]
+  row_c1 <- c(unique(tr_hhTenureRE_data_from_census[!is.na(label_3),name]))
+  test_total_pop <- tests_download_data(tr_hhTenureRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
+  tr_hhTenureRE_data <- relabel(tr_hhTenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhTenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhTenureRE_data <- tr_hhTenureRE_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhTenureRE_data[,.SD,.SDcols = startsWith(names(tr_hhTenureRE_data),state)])
+tr_hhTenureRE_melted <- melt(tr_hhTenureRE_data, id.vars = c("tenure","HvL","race"), measure.vars = Geoids,
+                           value.name = "codom_tr_hhTenureRE", variable.name = "GEOID")
+tr_hhTenureRE_melted[,("codom_tr_hhTenureRE"):=fcase(tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
+                                                       race=="Householder who is American Indian and Alaska Native alone",
+                                                     as.numeric(.SD[tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
+                                                                      race=="Householder who is American Indian and Alaska Native alone",codom_tr_hhTenureRE])-
+                                                       sum(as.numeric(.SD[tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
+                                                                        race!="Householder who is American Indian and Alaska Native alone",codom_tr_hhTenureRE]),na.rm = TRUE),
+                                                     default=as.numeric(codom_tr_hhTenureRE)),by=.(GEOID)]
+tr_hhTenureRE <- as.data.table(lapply(tr_hhTenureRE_melted[,.SD],rep,tr_hhTenureRE_melted[,codom_tr_hhTenureRE])) #right number
+rm(tr_hhTenureRE_data_from_census)
+rm(tr_hhTenureRE_data)
+rm(tr_hhTenureRE_melted)
 
 #moved from schematic_sam.Rmd - moved to data.table only
 groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
