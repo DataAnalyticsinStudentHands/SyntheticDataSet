@@ -771,33 +771,6 @@ rm(tr_hhSizeTypeOwnKids_data)
 rm(tr_hhSizeTypeOwnKids_melted)
 
 
-groupname <- "PCT8" #RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhRelKids_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-
-groupname <- "H13" #TENURE BY AGE OF HOUSEHOLDER and race/eth
-api_type <- "dec/dhc"
-geo_type <- "block_group"
-path_suff <- "est"
-bg_hhAgeTenureRE_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-
-groupname <- "H14" #TENURE BY HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER
-api_type <- "dec/dhc"
-geo_type <- "block_group"
-path_suff <- "est"
-bg_hhTypeTenureAge_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-
 groupname <- "H15" #TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
 api_type <- "dec/dhc"
 geo_type <- "block_group"
@@ -806,6 +779,25 @@ bg_hh18Tenure_data_from_census <-
   census_block_get(censusdir, vintage, state, censuskey, 
                    groupname,county_num = "*",
                    api_type,path_suff)
+if(names(bg_hh18Tenure_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("tenure","kid_18") 
+  row_c1 <- c(unique(bg_hh18Tenure_data_from_census[!is.na(label_2),name]))
+  test_total_pop <- tests_download_data(bg_hh18Tenure_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
+  bg_hh18Tenure_data <- relabel(bg_hh18Tenure_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hh18Tenure_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hh18Tenure_data <- bg_hh18Tenure_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hh18Tenure_data[,.SD,.SDcols = startsWith(names(bg_hh18Tenure_data),state)])
+bg_hh18Tenure_melted <- melt(bg_hh18Tenure_data, id.vars = c("tenure","kid_18"), measure.vars = Geoids,
+                           value.name = "codom_bg_hh18Tenure", variable.name = "GEOID")
+bg_hh18Tenure <- as.data.table(lapply(bg_hh18Tenure_melted[,.SD],rep,bg_hh18Tenure_melted[,codom_bg_hh18Tenure]))
+rm(bg_hh18Tenure_data_from_census)
+rm(bg_hh18Tenure_data)
+rm(bg_hh18Tenure_melted)
 
 groupname <- "HCT12" #TENURE BY PRESENCE AND AGE OF OWN CHILDREN (more categories)
 geo_type <- "tract"
