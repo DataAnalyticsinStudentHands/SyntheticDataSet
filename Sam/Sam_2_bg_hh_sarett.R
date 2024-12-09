@@ -708,7 +708,7 @@ tr_hhTypeSizeRE_data_from_census <-
                    api_type,path_suff)
 if(names(tr_hhTypeSizeRE_data_from_census)[11]=="label_1"){
   #labels determined by hand
-  label_c1 <- c("rent_own","hh_size")
+  label_c1 <- c("family","hh_size")
   #row_c1 determined by hand 
   row_c1 <- c(unique(tr_hhTypeSizeRE_data_from_census[!is.na(label_2) & concept!="HOUSEHOLD TYPE BY HOUSEHOLD SIZE",name])) 
   tr_hhTypeSizeRE_data <- relabel(tr_hhTypeSizeRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
@@ -723,7 +723,7 @@ tr_hhTypeSizeRE_data[,("re_code") := substr(name,5,5)][
 
 #reshape a bit and make list of individuals
 Geoids <- colnames(tr_hhTypeSizeRE_data[,.SD,.SDcols = startsWith(names(tr_hhTypeSizeRE_data),state)])
-tr_hhTypeSizeRE_melted <- melt(tr_hhTypeSizeRE_data, id.vars = c("re_code","race","rent_own","hh_size"), measure.vars = Geoids,
+tr_hhTypeSizeRE_melted <- melt(tr_hhTypeSizeRE_data, id.vars = c("re_code","race","family","hh_size"), measure.vars = Geoids,
                                  value.name = "codom_tr_hhTypeSizeRE", variable.name = "GEOID")
 tr_hhTypeSizeRE <- as.data.table(lapply(tr_hhTypeSizeRE_melted[,.SD],rep,tr_hhTypeSizeRE_melted[,codom_tr_hhTypeSizeRE]))
 tr_hhTypeSizeR <- tr_hhTypeSizeRE[!re_code %in% c("H","I")]
