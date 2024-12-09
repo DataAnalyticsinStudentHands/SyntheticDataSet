@@ -66,7 +66,7 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
     census_variables <- read_rds(variables_dt)
     print(paste0("Read variable options from existing file at: ", variables_dt))
   }
-  selected_vars <- census_variables[str_detect(group,groupname)]
+  selected_vars <- census_variables[str_detect(name,groupname)] #had been str_detect in group - need to test
   return(selected_vars)
 }
 
