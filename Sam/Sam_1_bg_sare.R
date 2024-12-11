@@ -394,6 +394,8 @@ bgSARE2[,("codom_re_codeB"):=.N,by=.(GEOID,age_range,re_codeB)]
 bgSARE2[,("weight"):=codom_age/codom_re_codeB,by=.I]
 #also for weight_age??
 #all of them have percentages instead of matches at lowest path level...
+#does this make it that the highest percentage category is completely emptied before taking the first one to match from the second highest?
+#could be that we should sample at that point in a percentage way instead of laid out in order by the weight...
 
 #keeping track of weights, but this is unweighted because completely mapped without loss
 #do a match between bgSARE and bgSARE2, so that we have all the ones that aren't "two or more races" in both.

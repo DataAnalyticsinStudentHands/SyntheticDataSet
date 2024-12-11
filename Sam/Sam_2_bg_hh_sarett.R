@@ -150,7 +150,8 @@ rm(tr_hhRel_data)
 rm(tr_hhRel_data_from_census)
 rm(tr_hhRel_melted)
 
-#match on R, then on E, moving each up separately to P16
+#match on R, then on E, moving each up separately to P16 - need to think through codomain and copath logic for matching
+#first clean up "role" so they can match
 tr_hhRelR[,("race65_match_id"):=
       paste0(GEOID,re_code,household,role,sex,alone,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code,household,role,sex,alone)]
@@ -158,9 +159,8 @@ tr_hh65RelR[,("race65_match_id"):=
       paste0(GEOID,re_code,household,role,sex,alone,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code,household,role,sex,alone)]
 tr_hhRelR[,("over_65"):=
-            tr_hh65RelR[.SD,list(age_range_2),on=.(race65_match_id)]]
-#clean up naming for age
-tr_hhRelR[,("age_range_3"):=fcase(!is.na(over_65),"over_65",default = age_range_2)]
+            tr_hh65RelR[.SD,list(re_code),on=.(race65_match_id)]]
+
 
 
 groupname <- "H13" #HOUSEHOLDER AGE / TENURE / RACE / ETHx2
