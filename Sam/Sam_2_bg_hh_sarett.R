@@ -36,7 +36,7 @@ if(names(bg_hhType_data_from_census)[11]=="label_1"){
   print("Using already given labels; no rewrite.")
   bg_hhType_data <- bg_hhType_data_from_census
 }
-#this has a different total than the ACS 1-year, which is what is reported as official? 10491147 vs. 11260645 #CANNOT FIND WHY THEY PREFERRED THE ACS!!!
+#this has a different total than the ACS 1-year, which is what is reported as official? 10491147 vs. 11260645 #CANNOT FIND WHY THEY PREFERRED THE ACS!!! Just give a warning about "modeled data"
 #cf., https://www.census.gov/content/dam/Census/library/publications/2020/acs/acs_general_handbook_2020_ch09.pdf and numerous user complaints online.
 #but no reason that population for 2020 is reported from decennial and households are from ACS (but are higher, even though residency is stricter and not point of time)
 #if(!test_total_pop){test_total_pop<-sum(bg_hhFam_data[,total],na.rm = TRUE)}
@@ -55,6 +55,113 @@ bg_hhType <- as.data.table(lapply(bg_hhType_melted[,.SD],rep,bg_hhType_melted[,c
 rm(bg_hhType_data_from_census)
 rm(bg_hhType_data)
 rm(bg_hhType_melted)
+
+#merging PCT9 and PCT17 then joining with P16
+
+groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hh65RelRE_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hh65RelRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household","role","alone","sex","re_code","race") 
+  tr_hh65RelRE_data_from_census[,("re_code") := substr(name,5,5)][
+    ,("race") := str_replace(concept,"HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER \\(","")][
+      ,("race") := str_replace(race,"\\)","")]
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hh65RelRE_data_from_census[!is.na(label_4) & str_detect(concept,"\\)") |
+                                                     label_2!="Householder" & str_detect(concept,"\\)"),name]))
+  test_total_pop <- tests_download_data(tr_hh65RelRE_data_from_census,label_c1,row_c1,state=state)
+  tr_hh65RelRE_data <- relabel(tr_hh65RelRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hh65RelRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hh65RelRE_data <- tr_hh65RelRE_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hh65RelRE_data[,.SD,.SDcols = startsWith(names(tr_hh65RelRE_data),state)])
+tr_hh65RelRE_melted <- melt(tr_hh65RelRE_data, id.vars = c("household","role","alone","sex","re_code","race"), measure.vars = Geoids,
+                            value.name = "codom_tr_hh65RelRE", variable.name = "GEOID")
+tr_hh65RelRE <- as.data.table(lapply(tr_hh65RelRE_melted[,.SD],rep,tr_hh65RelRE_melted[,codom_tr_hh65RelRE]))
+tr_hh65RelR <- tr_hh65RelRE[!re_code %in% c("H","I")]
+tr_hh65RelE <- tr_hh65RelRE[re_code %in% c("H","I")]
+#seems to be 44k off on the totals (state-wide) from test_total_pop???? Not at all obvious what is missing...
+rm(tr_hh65RelRE_data_from_census)
+rm(tr_hh65RelRE_data)
+rm(tr_hh65RelRE_melted)
+rm(tr_hh65RelRE)
+
+groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETHx2 
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhRel_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hhRel_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household","role","sex","alone","age_range_2","re_code","race") 
+  #arrange things to get the totals right
+  tr_hhRel_data_from_census[str_detect(label_2,"child")&is.na(label_3),("label_5"):="over_17"]
+  tr_hhRel_data_from_census[label_3=="Under 18 years",("label_5"):="under_18"] #foster child doesn't have under_18
+  tr_hhRel_data_from_census[,("re_code") := substr(name,6,6)][
+    ,("race") := str_replace(concept,"HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP \\(","")][
+      ,("race") := str_replace(race,"\\)","")]
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hhRel_data_from_census[!is.na(label_2) & is.na(label_3) & !str_detect(name,"003N") | !is.na(label_4) | !is.na(label_5),name]))
+  test_total_pop <- tests_download_data(tr_hhRel_data_from_census,label_c1,row_c1,state=state)
+  tr_hhRel_data <- relabel(tr_hhRel_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhRel_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhRel_data <- tr_hhRel_data_from_census
+}
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhRel_data[,.SD,.SDcols = startsWith(names(tr_hhRel_data),state)])
+tr_hhRel_melted <- melt(tr_hhRel_data, id.vars = c("household","role","sex","alone","age_range_2","re_code","race"), measure.vars = Geoids,
+                        value.name = "codom_hhRel", variable.name = "GEOID")
+#clean up to get right number #by GEOID and RACE
+tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Stepchild" & age_range_2=="over_17",
+                                         as.numeric(.SD[role=="Stepchild" & age_range_2=="over_17",codom_hhRel])-
+                                           as.numeric(.SD[role=="Stepchild" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
+tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Biological child" & age_range_2=="over_17",
+                                         as.numeric(.SD[role=="Biological child" & age_range_2=="over_17",codom_hhRel])-
+                                           as.numeric(.SD[role=="Biological child" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
+tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Adopted child" & age_range_2=="over_17",
+                                         as.numeric(.SD[role=="Adopted child" & age_range_2=="over_17",codom_hhRel])-
+                                           as.numeric(.SD[role=="Adopted child" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
+tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Grandchild" & age_range_2=="over_17",
+                                         as.numeric(.SD[role=="Grandchild" & age_range_2=="over_17",codom_hhRel])-
+                                           as.numeric(.SD[role=="Grandchild" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
+tr_hhRel_melted[,("age_range_2"):=ifelse(role=="Foster child","under_18",age_range_2)] #since it doesn't say, but some may be over 17 - should be very few
+
+tr_hhRel <- as.data.table(lapply(tr_hhRel_melted[,.SD],rep,tr_hhRel_melted[,codom_hhRel]))
+tr_hhRelR <- tr_hhRel[!re_code %in% c("H","I")]
+tr_hhRelE <- tr_hhRel[re_code %in% c("H","I")]
+#sum(as.numeric(test_total_pop[,.SD,.SDcols = Geoids]),na.rm = TRUE)#==nrow(tr_hhRelR) - seems like it's all individuals.
+rm(tr_hhRel)
+rm(tr_hhRel_data)
+rm(tr_hhRel_data_from_census)
+rm(tr_hhRel_melted)
+
+#match on R, then on E, moving each up separately to P16
+tr_hhRelR[,("race65_match_id"):=
+      paste0(GEOID,re_code,household,role,sex,alone,as.character(100000+sample(1:.N))),
+    by=.(GEOID,re_code,household,role,sex,alone)]
+tr_hh65RelR[,("race65_match_id"):=
+      paste0(GEOID,re_code,household,role,sex,alone,as.character(100000+sample(1:.N))),
+    by=.(GEOID,re_code,household,role,sex,alone)]
+tr_hhRelR[,("over_65"):=
+            tr_hh65RelR[.SD,list(age_range_2),on=.(race65_match_id)]]
+#clean up naming for age
+tr_hhRelR[,("age_range_3"):=fcase(!is.na(over_65),"over_65",default = age_range_2)]
+
 
 groupname <- "H13" #HOUSEHOLDER AGE / TENURE / RACE / ETHx2
 geo_type <- "block_group"
@@ -201,98 +308,9 @@ rm(bg_hhRel_data)
 rm(bg_hhRel_data_from_census)
 rm(bg_hhRel_melted)
 
-groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETHx2 
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhRel_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hhRel_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("household","role","sex","alone","age_range_2","re_code","race") 
-  #arrange things to get the totals right
-  tr_hhRel_data_from_census[str_detect(label_2,"child")&is.na(label_3),("label_5"):="over_17"]
-  tr_hhRel_data_from_census[label_3=="Under 18 years",("label_5"):="under_18"] #foster child doesn't have under_18
-  tr_hhRel_data_from_census[,("re_code") := substr(name,6,6)][
-    ,("race") := str_replace(concept,"HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP \\(","")][
-      ,("race") := str_replace(race,"\\)","")]
-  #row_c1 by hand
-  row_c1 <- c(unique(tr_hhRel_data_from_census[!is.na(label_2) & is.na(label_3) & !str_detect(name,"003N") | !is.na(label_4) | !is.na(label_5),name]))
-  test_total_pop <- tests_download_data(tr_hhRel_data_from_census,label_c1,row_c1,state=state)
-  tr_hhRel_data <- relabel(tr_hhRel_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhRel_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hhRel_data <- tr_hhRel_data_from_census
-}
-
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hhRel_data[,.SD,.SDcols = startsWith(names(tr_hhRel_data),state)])
-tr_hhRel_melted <- melt(tr_hhRel_data, id.vars = c("household","role","sex","alone","age_range_2","re_code","race"), measure.vars = Geoids,
-                        value.name = "codom_hhRel", variable.name = "GEOID")
-#clean up to get right number #by GEOID and RACE
-tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Stepchild" & age_range_2=="over_17",
-                                         as.numeric(.SD[role=="Stepchild" & age_range_2=="over_17",codom_hhRel])-
-                                           as.numeric(.SD[role=="Stepchild" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
-tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Biological child" & age_range_2=="over_17",
-                                         as.numeric(.SD[role=="Biological child" & age_range_2=="over_17",codom_hhRel])-
-                                           as.numeric(.SD[role=="Biological child" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
-tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Adopted child" & age_range_2=="over_17",
-                                         as.numeric(.SD[role=="Adopted child" & age_range_2=="over_17",codom_hhRel])-
-                                           as.numeric(.SD[role=="Adopted child" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
-tr_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Grandchild" & age_range_2=="over_17",
-                                         as.numeric(.SD[role=="Grandchild" & age_range_2=="over_17",codom_hhRel])-
-                                           as.numeric(.SD[role=="Grandchild" & age_range_2=="under_18",codom_hhRel]),codom_hhRel),by=.(GEOID,re_code)]
-tr_hhRel_melted[,("age_range_2"):=ifelse(role=="Foster child","under_18",age_range_2)] #since it doesn't say...
-
-tr_hhRel <- as.data.table(lapply(tr_hhRel_melted[,.SD],rep,tr_hhRel_melted[,codom_hhRel]))
-tr_hhRelR <- tr_hhRel[!re_code %in% c("H","I")]
-tr_hhRelE <- tr_hhRel[re_code %in% c("H","I")]
-#sum(as.numeric(test_total_pop[,.SD,.SDcols = Geoids]),na.rm = TRUE)#==nrow(tr_hhRelR) - seems like it's all individuals.
-rm(tr_hhRel)
-rm(tr_hhRel_data)
-rm(tr_hhRel_data_from_census)
-rm(tr_hhRel_melted)
 
 
-groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hh65RelRE_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hh65RelRE_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("household","role","alone","sex","re_code","race") 
-  tr_hh65RelRE_data_from_census[,("re_code") := substr(name,5,5)][
-    ,("race") := str_replace(concept,"HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER \\(","")][
-      ,("race") := str_replace(race,"\\)","")]
-  #row_c1 by hand
-  row_c1 <- c(unique(tr_hh65RelRE_data_from_census[!is.na(label_4) & str_detect(concept,"\\)") |
-                                                     label_2!="Householder" & str_detect(concept,"\\)"),name]))
-  test_total_pop <- tests_download_data(tr_hh65RelRE_data_from_census,label_c1,row_c1,state=state)
-  tr_hh65RelRE_data <- relabel(tr_hh65RelRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hh65RelRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hh65RelRE_data <- tr_hh65RelRE_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hh65RelRE_data[,.SD,.SDcols = startsWith(names(tr_hh65RelRE_data),state)])
-tr_hh65RelRE_melted <- melt(tr_hh65RelRE_data, id.vars = c("household","role","alone","sex","re_code","race"), measure.vars = Geoids,
-                            value.name = "codom_tr_hh65RelRE", variable.name = "GEOID")
-tr_hh65RelRE <- as.data.table(lapply(tr_hh65RelRE_melted[,.SD],rep,tr_hh65RelRE_melted[,codom_tr_hh65RelRE]))
-tr_hh65RelR <- tr_hh65RelRE[!re_code %in% c("H","I")]
-tr_hh65RelE <- tr_hh65RelRE[re_code %in% c("H","I")]
-#seems to be 44k off on the totals (state-wide) from test_total_pop???? Not at all obvious what is missing...
-rm(tr_hh65RelRE_data_from_census)
-rm(tr_hh65RelRE_data)
-rm(tr_hh65RelRE_melted)
-rm(tr_hh65RelRE)
+
 
 groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS; really only own-child and group quarter information
 geo_type <- "tract"
