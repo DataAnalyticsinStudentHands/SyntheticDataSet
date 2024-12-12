@@ -413,6 +413,8 @@ bgSARE[,("matched2"):=
 #nrow(bgSARE[str_detect(race,"TWO")])+nrow(bgSARE2[!is.na(matched1)])==nrow(bgSARE)
 
 #this is what it means to do a copath determination and not a codomain
+#BETTER - PERHAPS REDO - WHAT IS THE LOGIC OF COMBINATION THAT IS OR IS NOT FOLLOWED FOR PATH; ZB, MULTIPLICATION FOR WEIGHTS, INSTEAD OF ADDITION, SO 
+#if no other race alone at all in a tract/age, then the zero means it's impossible to match...
 #determine along the path as if it were a set of codomains = weights
 #determine / shrink the region and then map so that the right grounded frame is called = co-paths; vgl sense of constraint on mapping
 #all the one race alones 
