@@ -38,7 +38,7 @@ if(names(bg_hhTypeRE_data_from_census)[11]=="label_1"){
   write_relabel(bg_hhTypeRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
 }else{
   print("Using already given labels; no rewrite.")
-  bg_hhTypeRe_data <- bg_hhType_data_from_census
+  bg_hhTypeRE_data <- bg_hhTypeRE_data_from_census
 }
 #this has a different total than the ACS 1-year, which is what is reported as official? 10491147 vs. 11260645 #CANNOT FIND WHY THEY PREFERRED THE ACS!!! Just give a warning about "modeled data"
 #cf., https://www.census.gov/content/dam/Census/library/publications/2020/acs/acs_general_handbook_2020_ch09.pdf and numerous user complaints online.
@@ -138,9 +138,8 @@ tr_hhRelRE_melted[,("codom_hhRelRE"):=ifelse(role=="Adopted child" & age_range_2
 tr_hhRelRE_melted[,("codom_hhRelRE"):=ifelse(role=="Grandchild" & age_range_2=="over_17",
                                          as.numeric(.SD[role=="Grandchild" & age_range_2=="over_17",codom_hhRelRE])-
                                            as.numeric(.SD[role=="Grandchild" & age_range_2=="under_18",codom_hhRelRE]),codom_hhRelRE),by=.(GEOID,re_code)]
-tr_hhRelRE_melted[,("age_range_2"):=ifelse(role=="Foster child","under_18",age_range_2)] #since it doesn't say, but some may be over 17 - should be very few
 #some should be made impossible to match for 65 and over, although one can imagine some edge cases; same-sex is not weighted by age since we don't know
-tr_hhRel_melted[,("role_7"):=fcase(str_detect(role,"Par"),"Parent or parent-in-law",
+tr_hhRelRE_melted[,("role_7"):=fcase(str_detect(role,"Par"),"Parent or parent-in-law",
                                    str_detect(role,"-sex"),"Spouse or partner",
                                    str_detect(role,"Other rel") | str_detect(role,"or sister"),"Other relatives",
                                    default = role)]
@@ -155,16 +154,98 @@ rm(tr_hhRelRE_data)
 rm(tr_hhRelRE_data_from_census)
 rm(tr_hhRelRE_melted)
 
-#match then move R & E each up separately to P16 - need to think through codomain and copath logic for matching
+#match then move up to P16 - need to think through codomain and copath logic for matching
 tr_hhRelRE[,("re65_match_id"):=
       paste0(GEOID,re_code,household,role_7,sex,alone,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code,household,role_7,sex,alone)]
 tr_hh65RelRE[,("re65_match_id"):=
       paste0(GEOID,re_code,household,role,sex,alone,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code,household,role,sex,alone)]
-tr_hhRelRE[,("over_65"):=
-            tr_hh65RelRE[.SD,list(re_code),on=.(re65_match_id)]]
+tr_hhRelRE[,c("over_64","codom_tr_hh65RelRE"):=
+            tr_hh65RelRE[.SD,c(list(re_code),list(codom_tr_hh65RelRE)),on=.(re65_match_id)]]
+#table(tr_hhRelRE[,over_64])==table(tr_hh65RelRE[,re_code])
+rm(tr_hh65RelRE)
 
+
+groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_hhRel_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_hhRel_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household","role","sex","alone","age_range_2") 
+  #arrange things to get the totals right
+  bg_hhRel_data_from_census[str_detect(label_2,"child")&is.na(label_3),("label_5"):="over_17"]
+  bg_hhRel_data_from_census[label_3=="Under 18 years",("label_5"):="under_18"] #foster child doesn't have under_18
+  #row_c1 by hand
+  row_c1 <- c(unique(bg_hhRel_data_from_census[!is.na(label_2) & is.na(label_3) & name!="P17_003N" | !is.na(label_4) | !is.na(label_5),name]))
+  test_total_pop <- tests_download_data(bg_hhRel_data_from_census,label_c1,row_c1,state=state)
+  bg_hhRel_data <- relabel(bg_hhRel_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhRel_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhRel_data <- bg_hhRel_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhRel_data[,.SD,.SDcols = startsWith(names(bg_hhRel_data),state)])
+bg_hhRel_melted <- melt(bg_hhRel_data, id.vars = c("household","role","sex","alone","age_range_2"), measure.vars = Geoids,
+                        value.name = "codom_hhRel", variable.name = "GEOID")
+#clean up to get right number
+bg_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Stepchild" & age_range_2=="over_17",
+                                         .SD[role=="Stepchild" & age_range_2=="over_17",codom_hhRel]-
+                                           .SD[role=="Stepchild" & age_range_2=="under_18",codom_hhRel],codom_hhRel),by=GEOID]
+bg_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Biological child" & age_range_2=="over_17",
+                                         .SD[role=="Biological child" & age_range_2=="over_17",codom_hhRel]-
+                                           .SD[role=="Biological child" & age_range_2=="under_18",codom_hhRel],codom_hhRel),by=GEOID]
+bg_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Adopted child" & age_range_2=="over_17",
+                                         .SD[role=="Adopted child" & age_range_2=="over_17",codom_hhRel]-
+                                           .SD[role=="Adopted child" & age_range_2=="under_18",codom_hhRel],codom_hhRel),by=GEOID]
+bg_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Grandchild" & age_range_2=="over_17",
+                                         .SD[role=="Grandchild" & age_range_2=="over_17",codom_hhRel]-
+                                           .SD[role=="Grandchild" & age_range_2=="under_18",codom_hhRel],codom_hhRel),by=GEOID]
+bg_hhRel_melted[,("age_range_2"):=ifelse(role=="Foster child","under_18",age_range_2)] #since it doesn't say...
+
+bg_hhRel <- as.data.table(lapply(bg_hhRel_melted[,.SD],rep,bg_hhRel_melted[,codom_hhRel]))
+#sum(test_total_pop[,.SD,.SDcols = Geoids])==nrow(bg_hhRel)
+rm(bg_hhRel_data)
+rm(bg_hhRel_data_from_census)
+rm(bg_hhRel_melted)
+#test<-table(tr_hhRelRE[re_code%in%c(LETTERS[1:7]),household],tr_hhRelRE[re_code%in%c(LETTERS[1:7]),role],
+#      tr_hhRelRE[re_code%in%c(LETTERS[1:7]),alone],tr_hhRelRE[re_code%in%c(LETTERS[1:7]),sex],tr_hhRelRE[re_code%in%c(LETTERS[1:7]),age_range_2])==
+#  table(bg_hhRel[,household],bg_hhRel[,role],bg_hhRel[,alone],bg_hhRel[,sex],bg_hhRel[,age_range_2])
+#length(test[test==FALSE])
+
+#move the ethnicity over with the codom info for sorting
+tr_hhRelR <- tr_hhRelRE[re_code%in%c(LETTERS[1:7])]
+tr_hhRelI <- tr_hhRelRE[re_code=="I"]
+tr_hhRelR[,("bg_rel_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2)]
+tr_hhRelI[,("bg_rel_match_id"):=
+           paste0(substr(GEOID,1,13),household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+         by=.(substr(GEOID,1,13),household,role,sex,alone,age_range_2)]
+###UGH!!! - how will that add at end????
+tr_hhRelR[,("codom_hhRelI"):=
+           tr_hhRelI[.SD,list(codom_hhRelRE),on=.(bg_relI_match_id)]]
+
+#match then move up to P16 - need to think through codomain and copath logic for matching
+tr_hhRelR[,("bg_rel_match_id"):=
+             paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+           by=.(GEOID,household,role,sex,alone,age_range_2)]
+bg_hhRel[,("bg_rel_match_id"):=
+               paste0(substr(GEOID,1,13),household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+             by=.(substr(GEOID,1,13),household,role,sex,alone,age_range_2)]
+bg_hhRel[,c("tract","codom_hhRelRE"):=
+           tr_hhRelR[.SD,c(list(GEOID),list(codom_hhRelRE)),on=.(bg_rel_match_id)]]
+#test <- table(bg_hhRel[,tract])==table(tr_hhRelRE[,GEOID])
+#length(test[test==FALSE])
+rm(tr_hhRelRE)
+
+#nrow(bg_hhTypeRE)-nrow(tr_hhRelRE[re_code%in%c(LETTERS[1:7])&role_7=="Householder"]) 117 different??? 
 
 
 groupname <- "H13" #HOUSEHOLDER AGE / TENURE / RACE / ETHx2
@@ -263,54 +344,7 @@ bg_hhTenure_melted <- melt(bg_hhTenure_data, id.vars = c("rent_own","family","fa
                         value.name = "codom_hhTenure", variable.name = "GEOID")
 bg_hhTenure <- as.data.table(lapply(bg_hhTenure_melted[,.SD],rep,bg_hhTenure_melted[,codom_hhTenure]))
 
-groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
-geo_type <- "block_group"
-api_type <- "dec/dhc"
-path_suff <- "est"
-bg_hhRel_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-if(names(bg_hhRel_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("household","role","sex","alone","age_range_2") 
-  #arrange things to get the totals right
-  bg_hhRel_data_from_census[str_detect(label_2,"child")&is.na(label_3),("label_5"):="over_17"]
-  bg_hhRel_data_from_census[label_3=="Under 18 years",("label_5"):="under_18"] #foster child doesn't have under_18
-  #row_c1 by hand
-  row_c1 <- c(unique(bg_hhRel_data_from_census[!is.na(label_2) & is.na(label_3) & name!="P17_003N" | !is.na(label_4) | !is.na(label_5),name]))
-  test_total_pop <- tests_download_data(bg_hhRel_data_from_census,label_c1,row_c1,state=state)
-  bg_hhRel_data <- relabel(bg_hhRel_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bg_hhRel_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  bg_hhRel_data <- bg_hhRel_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(bg_hhRel_data[,.SD,.SDcols = startsWith(names(bg_hhRel_data),state)])
-bg_hhRel_melted <- melt(bg_hhRel_data, id.vars = c("household","role","sex","alone","age_range_2"), measure.vars = Geoids,
-                           value.name = "codom_hhRel", variable.name = "GEOID")
-#clean up to get right number
-bg_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Stepchild" & age_range_2=="over_17",
-                  .SD[role=="Stepchild" & age_range_2=="over_17",codom_hhRel]-
-                    .SD[role=="Stepchild" & age_range_2=="under_18",codom_hhRel],codom_hhRel),by=GEOID]
-bg_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Biological child" & age_range_2=="over_17",
-                                         .SD[role=="Biological child" & age_range_2=="over_17",codom_hhRel]-
-                                           .SD[role=="Biological child" & age_range_2=="under_18",codom_hhRel],codom_hhRel),by=GEOID]
-bg_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Adopted child" & age_range_2=="over_17",
-                                         .SD[role=="Adopted child" & age_range_2=="over_17",codom_hhRel]-
-                                           .SD[role=="Adopted child" & age_range_2=="under_18",codom_hhRel],codom_hhRel),by=GEOID]
-bg_hhRel_melted[,("codom_hhRel"):=ifelse(role=="Grandchild" & age_range_2=="over_17",
-                                         .SD[role=="Grandchild" & age_range_2=="over_17",codom_hhRel]-
-                                           .SD[role=="Grandchild" & age_range_2=="under_18",codom_hhRel],codom_hhRel),by=GEOID]
-bg_hhRel_melted[,("age_range_2"):=ifelse(role=="Foster child","under_18",age_range_2)] #since it doesn't say...
 
-bg_hhRel <- as.data.table(lapply(bg_hhRel_melted[,.SD],rep,bg_hhRel_melted[,codom_hhRel]))
-sum(test_total_pop[,.SD,.SDcols = Geoids])==nrow(bg_hhRel)
-rm(bg_hhRel)
-rm(bg_hhRel_data)
-rm(bg_hhRel_data_from_census)
-rm(bg_hhRel_melted)
 
 
 
