@@ -166,7 +166,6 @@ tr_hhRelRE[,c("over_64","codom_tr_hh65RelRE"):=
 #table(tr_hhRelRE[,over_64])==table(tr_hh65RelRE[,re_code])
 rm(tr_hh65RelRE)
 
-
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
 geo_type <- "block_group"
 api_type <- "dec/dhc"
@@ -247,7 +246,7 @@ tr_hhRelI[,("bg_rel_match_id"):=
 tr_hhRelR[re_code=="A",c("re_code_HvL","codom_hhRelRE"):=
            tr_hhRelI[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(bg_rel_match_id)]]
 tr_hhRelR[re_code=="A",("re_code_HvL"):=fcase(is.na(re_code_HvL),"P",default = re_code_HvL)]
-#make them all the HvL re_code
+#make them all the HvL re_code to match within...
 tr_hhRelR[re_code!="A",("re_code_HvL"):=fcase(re_code=="B","Q",
                                               re_code=="C","R",
                                               re_code=="D","S",
@@ -265,50 +264,154 @@ tr_hhRelR[re_code_HvL=="P",("bg_relH_match_id"):=
 tr_hhRelH[,("bg_relH_match_id"):=
             paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
           by=.(GEOID,household,role,sex,alone,age_range_2)]
-tr_hhRelH[,c("re_code_HvL","codom_hhRelEth"):=
-            tr_hhRelR[.SD,c(list(re_code_HvL),list(codom_hhRelRE)),on=.(bg_relH_match_id)]]
+tr_hhRelH[,("re_code_HvL"):=
+            tr_hhRelR[.SD,list(re_code_HvL),on=.(bg_relH_match_id)]]
+#save data for Hispanic v Latino, but not white
 tr_hhRelHnotP <- tr_hhRelH[is.na(re_code_HvL)]
+#will finish matching, below, after getting bg distribution by Q-V
+#annoyingly, bg by household don't match fro bg_hhTypeRE (all households) and bg_hhRel (everyone in hh, including "Householders")
+#point is to get a directional match and then make sure final is taken from exact matches where possible; hh is really off!!
+#test_hh <- table(bg_hhRel[role=="Householder",GEOID])-table(bg_hhTypeRE[,GEOID])
+#sum(test_hh) #117
+#sum(abs(test_hh)) #207091
+#mean(abs(test_hh)) #11.1112
+#max(abs(test_hh)) #107
+#will need tract on bg_hhRel
+bg_hhRel[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+bg_hhTypeRE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+
+#match the HvL, not P, to the bg_hhRel; will then match it within bg_hhTypeRE, then match rest (after getting all codomains, will sort and match)
+tr_hhRelHnotP[,("bg_HnotP_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2)]
+bg_hhRel[,("bg_HnotP_match_id"):=
+           paste0(tract,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+         by=.(tract,household,role,sex,alone,age_range_2)]
+bg_hhRel[,c("copath_HvL","codom_hhRelH"):=
+           tr_hhRelHnotP[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(bg_HnotP_match_id)]]
+tr_hhRelHnotP[,c("match_HvL","match_role"):=
+                bg_hhRel[.SD,c(list(household),list(role)),on=.(bg_HnotP_match_id)]]
 rm(tr_hhRelH)
 rm(tr_hhRelI)
-#will finish matching, below, after getting bg spread by Q-V
-#match P17 with P16, then back up to PCT9
+rm(tr_hhRelHnotP)
+#get the little bits of overlap right...
 bg_hhTypeRE[,("alone"):=fcase(family_type=="Householder living alone","Living alone",
                               default = "Not living alone")]
 bg_hhTypeRE[,("sex"):=fcase(no_spouse_sex=="Female householder, no spouse present","Female",
                             no_spouse_sex=="Male householder, no spouse present","Male",
                               default = "Not known")]
+#order by HvL then not HvL (letters follow already) #sometimes seems to not order if only in i
+bg_hhTypeRE <- bg_hhTypeRE[order(GEOID,-re_code,alone,sex)]
+bg_hhRel <- bg_hhRel[order(GEOID,-copath_HvL,alone,sex)]
+
+#match P17 with P16, then back up to PCT9 - counting out, not sampling
 bg_hhTypeRE[,("bg_RT_match_id"):=
-            paste0(GEOID,alone,sex,as.character(100000+sample(1:.N))),
+              paste0(GEOID,alone,sex,as.character(1:.N)),
+            #paste0(GEOID,alone,sex,as.character(100000+sample(1:.N))),
           by=.(GEOID,alone,sex)]
 bg_hhRel[role=="Householder",("bg_RT_match_id"):=
-            paste0(GEOID,alone,sex,as.character(100000+sample(1:.N))),
+           paste0(GEOID,alone,sex,as.character(1:.N)),
+         #paste0(GEOID,alone,sex,as.character(100000+sample(1:.N))),
           by=.(GEOID,alone,sex)]
-bg_hhRel[role=="Householder",c("re_code","race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
+#putting codom for re_code so we can order later numerically with cell sizes from codom_etc.; a co-path is the factor name with the codom
+bg_hhRel[role=="Householder",c("copath_re_code","copath_race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
            bg_hhTypeRE[.SD,c(list(re_code),list(race),list(family),list(family_type),
                              list(no_spouse_sex),list(codom_hhTypeRE)),on=.(bg_RT_match_id)]]
-#same, without sex - basically distributing according to that remnant of not living along without sex (married and some non-family)
-bg_hhTypeRE[sex=="Not known",("bg_RTA_match_id"):=
-              paste0(GEOID,alone,as.character(100000+sample(1:.N))),
+bg_hhTypeRE[,("matched_rel"):=
+              bg_hhRel[.SD,list(copath_re_code),on=.(bg_RT_match_id)]]
+#nrow(bg_hhRel[role=="Householder"])-nrow(bg_hhRel[!is.na(copath_re_code)]) #8321400
+#table(bg_hhTypeRE[is.na(matched_rel),sex]) #only 65 with sex not matched
+
+#same, without sex - basically distributing according to that remnant of not living alone without sex (married and some non-family)
+bg_hhTypeRE[is.na(matched_rel),("bg_RTA_match_id"):=
+              paste0(GEOID,alone,as.character(1:.N)),
+            #paste0(GEOID,alone,as.character(100000+sample(1:.N))),
             by=.(GEOID,alone)]
-bg_hhRel[role=="Householder"&is.na(re_code),("bg_RTA_match_id"):=
-           paste0(GEOID,alone,as.character(100000+sample(1:.N))),
+bg_hhRel[role=="Householder"&is.na(copath_re_code),("bg_RTA_match_id"):=
+           paste0(GEOID,alone,as.character(1:.N)),
+         #paste0(GEOID,alone,as.character(100000+sample(1:.N))),
          by=.(GEOID,alone)]
-bg_hhRel[role=="Householder"&is.na(re_code),c("re_code","race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
+bg_hhRel[role=="Householder"&is.na(copath_re_code),c("copath_re_code","copath_race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
            bg_hhTypeRE[.SD,c(list(re_code),list(race),list(family),list(family_type),
                              list(no_spouse_sex),list(codom_hhTypeRE)),on=.(bg_RTA_match_id)]]
-nrow(bg_hhRel[role=="Householder"])-nrow(bg_hhRel[!is.na(re_code)]) #194982 ????
+bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
+              bg_hhRel[.SD,list(re_code),on=.(bg_RTA_match_id)]]
+#nrow(bg_hhRel[role=="Householder"])-nrow(bg_hhRel[!is.na(copath_re_code)]) #194975, less than two percent, but close to total diff. by bg for hh (207091)
+#need all of bg_hhTypeRE info to move over, but after getting the tract Relative data
+
+#test_bg_re_code <- table(bg_hhRel[,copath_re_code],bg_hhRel[,GEOID])-table(bg_hhTypeRE[,re_code],bg_hhTypeRE[,GEOID])
+#sum(test_bg_re_code) #-194858 #interesting; what's it say about difference from test_hh?
+#sum(abs(test_bg_re_code)) #194858
+#mean(abs(test_bg_re_code)) #.7467
+#max(abs(test_bg_re_code)) #72 - i.e., small amounts per re_code difference for each bg
+#table(bg_hhTypeRE[,re_code])/(table(bg_hhRel[,copath_re_code])) #(with ordering by copath_HvL)
+#remember it would never be a perfect fit b/c of householders being defined differently. 
+#       I        J        K        L        M        N        O        P        Q        R        S        T        U        V 
+#.  1.037912 1.004984 1.005896 1.001059 1.004211 1.004870 1.001504 1.006802 1.000215 1.000710 1.000000 1.000000 1.000124 1.000030 
+##running it without reordering by copath_HvL is close for I, O, R, and U (even better, by a bit), but much better for most to have the order
+#without ordering:
+#       I        J        K        L        M        N        O        P        Q        R        S        T        U        V 
+#   1.002726 1.027935 1.569854 1.008784 1.451405 1.557237 1.000028 1.131656 1.493909 1.000034 1.011502 1.421596 1.000011 1.000169  
+#
+
+#match with re_code in; J-O should be just a subtraction based on non-matching
+#final matches should be able to order on the codomains
+tr_hhRelR[,("bg_R_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,re_code_HvL,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,re_code_HvL)]
+bg_hhRel[,("bg_R_match_id"):=
+           paste0(tract,household,role,sex,alone,age_range_2,copath_re_code,as.character(100000+sample(1:.N))),
+         by=.(tract,household,role,sex,alone,age_range_2,copath_re_code)]
+bg_hhRel[,c("re_code","re_code_HvL","race","codom_hhTypeRE"):=
+           tr_hhRelR[.SD,c(list(re_code),list(re_code_HvL),list(race),list(codom_hhTypeRE)),on=.(bg_R_match_id)]]
+tr_hhRelR[,("matched_bgRel"):=
+            bg_hhRel[.SD,list(codom_hhRel),on=.(bg_R_match_id)]]
+#expand tr_hhRelR's re_code_JtoO
+tr_hhRelR[,("re_code_HvL"):=fcase(is.na(matched_bgRel)&re_code_HvL=="Q","J",
+                                   is.na(matched_bgRel)&re_code_HvL=="R","K",
+                                   is.na(matched_bgRel)&re_code_HvL=="S","L",
+                                   is.na(matched_bgRel)&re_code_HvL=="T","M",
+                                   is.na(matched_bgRel)&re_code_HvL=="U","N",
+                                   is.na(matched_bgRel)&re_code_HvL=="V","O",
+                                   default = re_code_HvL)]
+#match on expanded J to O for re_code on tr_hhRelR
+tr_hhRelR[is.na(matched_bgRel),("bg_R1_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,re_code_HvL,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,re_code_HvL)]
+bg_hhRel[is.na(re_code),("bg_R1_match_id"):=
+           paste0(tract,household,role,sex,alone,age_range_2,copath_re_code,as.character(100000+sample(1:.N))),
+         by=.(tract,household,role,sex,alone,age_range_2,copath_re_code)]
+bg_hhRel[is.na(re_code),c("re_code","re_code_HvL","race","codom_hhTypeRE1"):=
+           tr_hhRelR[.SD,c(list(re_code),list(re_code_HvL),list(race),list(codom_hhTypeRE)),on=.(bg_R1_match_id)]]
+tr_hhRelR[is.na(matched_bgRel),("matched_bgRel"):=
+            bg_hhRel[.SD,list(codom_hhRel),on=.(bg_R1_match_id)]]
+nrow(bg_hhTypeRE)-nrow(bg_hhRel[!is.na(re_code_HvL)]) #2239878 How can we get that down??? Can we order and match from here???
+#order on codoms collected - need to think through which ones...
+#RECHECK ABOVE!!!
+#don't forget to compare re_code1 with re_code on bg_hhRel
+
+
+
+#table(tr_hhRelR[,role])-table(tr_hhRelR[is.na(matched_bgRel),role]) #only householders matched so far; maybe get bgSARE for matching the rest??
+
+
+#move rest of householders over 
+bg_hhTypeRE[is.na(matched_rel),("bg_RTF_match_id"):=
+              paste0(GEOID,alone,as.character(100000+sample(1:.N))),
+            by=.(GEOID,alone)]
+bg_hhRel[is.na(re_code)&is.na(sex),("bg_RTF_match_id"):=
+           paste0(GEOID,alone,as.character(100000+sample(1:.N))),
+         by=.(GEOID,alone)]
+#look at how the other factors fill so it still matches? 
+bg_hhRel[is.na(re_code)&is.na(sex),c("re_code","race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(re_code),list(race),list(family),list(family_type),
+                             list(no_spouse_sex),list(codom_hhTypeRE)),on=.(bg_RTF_match_id)]]
+bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
+              bg_hhRel[.SD,list(re_code),on=.(bg_RTF_match_id)]]
+
+
 #match on relations for rest of bg
 
-#REDO HERE!!!
-tr_hhRelR[,("bg_R_match_id"):=
-              paste0(GEOID,household,role,sex,alone,age_range_2,re_code,re_code_HvL,as.character(100000+sample(1:.N))),
-            by=.(GEOID,household,role,sex,alone,age_range_2)]
-bg_hhRel[role=="Householder"&is.na(re_code),("bg_R_match_id"):=
-           paste0(substr(GEOID,1,13),household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
-         by=.(substr(GEOID,1,13),household,role,sex,alone,age_range_2)]
-bg_hhRel[,c("re_code","race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
-           tr_hhRelR[.SD,c(list(re_code),list(race),list(family),list(family_type),
-                             list(no_spouse_sex),list(codom_hhTypeRE)),on=.(bg_R_match_id)]]
 
 #match rest of H to the Hispanic or Latino, then bg will pull out the ones that don't match
 #tr_hhRelR[re_code!="A",("bg_relEth_match_id"):=
@@ -334,7 +437,7 @@ bg_hhRel[,c("re_code","race","family","family_type","no_spouse_sex","codom_hhTyp
 ##length(test[test==FALSE])
 #rm(tr_hhRelRE)
 
-#nrow(bg_hhTypeRE)-nrow(tr_hhRelRE[re_code%in%c(LETTERS[1:7])&role_7=="Householder"]) 117 different??? 
+#nrow(bg_hhTypeRE)-nrow(tr_hhRelRE[re_code%in%c(LETTERS[1:7])&role_7=="Householder"]) 117 different??? - see above
 
 groupname <- "H13" #HOUSEHOLDER AGE / TENURE / RACE / ETHx2
 geo_type <- "block_group"
@@ -422,10 +525,13 @@ tr_hhSARE[,("hh_age_range_9"):=fcase(age_range_23=="15 to 17 years" |
                                      age_range_23=="75 to 79 years" |
                                        age_range_23=="80 to 84 years","Householder 75 to 84 years",
                                      age_range_23=="85 years and over","Householder 85 years and over",default="not householder")]
+#why doesn't it have same number total as tr_hhRelRE? (check for whether it's just GQ...)still 99921 different for households (no GQ)
 #should we bias 15-24 towards older for matching on hh???
 #tr_hhSAR <- tr_hhSARE[!re_code %in% c("H","I")]
 #tr_hhSAE <- tr_hhSARE[re_code %in% c("H","I")]
-
+rm(tr_hhSARE_data_from_census)
+rm(tr_hhSARE_data)
+rm(tr_hhSARE_melted)
 
 groupname <- "H14" #HOUSEHOLDER TYPE / TENURE
 geo_type <- "block_group"
