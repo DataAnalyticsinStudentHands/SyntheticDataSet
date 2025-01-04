@@ -139,12 +139,11 @@ tr_hhRelRE_melted[,("codom_hhRelRE"):=ifelse(role=="Grandchild" & age_range_2=="
                                          as.numeric(.SD[role=="Grandchild" & age_range_2=="over_17",codom_hhRelRE])-
                                            as.numeric(.SD[role=="Grandchild" & age_range_2=="under_18",codom_hhRelRE]),codom_hhRelRE),by=.(GEOID,re_code)]
 #some should be made impossible to match for 65 and over, although one can imagine some edge cases; same-sex is not weighted by age since we don't know
+tr_hhRelRE_melted[,("age_range_2"):=ifelse(role=="Foster child","under_18",age_range_2)] #since it doesn't say, we assume only until 18.
 tr_hhRelRE_melted[,("role_7"):=fcase(str_detect(role,"Par"),"Parent or parent-in-law",
                                    str_detect(role,"-sex"),"Spouse or partner",
                                    str_detect(role,"Other rel") | str_detect(role,"or sister"),"Other relatives",
                                    default = role)]
-
-
 tr_hhRelRE <- as.data.table(lapply(tr_hhRelRE_melted[,.SD],rep,tr_hhRelRE_melted[,codom_hhRelRE]))
 #tr_hhRelR <- tr_hhRel[!re_code %in% c("H","I")]
 #tr_hhRelE <- tr_hhRel[re_code %in% c("H","I")]
@@ -154,7 +153,7 @@ rm(tr_hhRelRE_data)
 rm(tr_hhRelRE_data_from_census)
 rm(tr_hhRelRE_melted)
 
-#match for over65
+#match for over64 (some potential info loss because of role_7 instead of role_18, but everything has a match and no other tables overlap on role and age)
 tr_hhRelRE[,("re65_match_id"):=
       paste0(GEOID,re_code,household,role_7,sex,alone,as.character(100000+sample(1:.N))),
     by=.(GEOID,re_code,household,role_7,sex,alone)]
@@ -163,7 +162,9 @@ tr_hh65RelRE[,("re65_match_id"):=
     by=.(GEOID,re_code,household,role,sex,alone)]
 tr_hhRelRE[,c("over_64","codom_tr_hh65RelRE"):=
             tr_hh65RelRE[.SD,c(list(re_code),list(codom_tr_hh65RelRE)),on=.(re65_match_id)]]
-#table(tr_hhRelRE[,over_64])==table(tr_hh65RelRE[,re_code])
+#table(tr_hhRelRE[,over_64])==table(tr_hh65RelRE[,re_code]) #using re_code to test all moved over
+#nrow(tr_hhRelRE[!is.na(over_64)])==nrow(tr_hh65RelRE)
+tr_hhRelRE[,("over_64"):=fcase(!is.na(over_64),"over_64",default = "under_65")]
 rm(tr_hh65RelRE)
 
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
@@ -237,35 +238,64 @@ rm(bg_hhRel_melted)
 #move the ethnicity over with the codom info for sorting
 tr_hhRelR <- tr_hhRelRE[re_code%in%c(LETTERS[1:7])]
 tr_hhRelI <- tr_hhRelRE[re_code=="I"]
-tr_hhRelR[re_code=="A",("bg_rel_match_id"):=
-            paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
-          by=.(GEOID,household,role,sex,alone,age_range_2)]
-tr_hhRelI[,("bg_rel_match_id"):=
-           paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
-         by=.(GEOID,household,role,sex,alone,age_range_2)]
+tr_hhRelR[re_code=="A",("tr_rel_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
+tr_hhRelI[,("tr_rel_match_id"):=
+           paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+         by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
 tr_hhRelR[re_code=="A",c("re_code_HvL","codom_hhRelRE"):=
-           tr_hhRelI[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(bg_rel_match_id)]]
-tr_hhRelR[re_code=="A",("re_code_HvL"):=fcase(is.na(re_code_HvL),"P",default = re_code_HvL)]
-#make them all the HvL re_code to match within...
-tr_hhRelR[re_code!="A",("re_code_HvL"):=fcase(re_code=="B","Q",
-                                              re_code=="C","R",
-                                              re_code=="D","S",
-                                              re_code=="E","T",
-                                              re_code=="F","U",
-                                              re_code=="G","V",
-                                              default = re_code_HvL)]
+           tr_hhRelI[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(tr_rel_match_id)]]
+tr_hhRelI[,("matched_R"):=
+            tr_hhRelR[.SD,list(re_code),on=.(tr_rel_match_id)]]
+#26682 not matching because of code_7 lost info for over_64
+tr_hhRelR[re_code=="A"&is.na(re_code_HvL),("tr_rel1_match_id"):=
+            paste0(GEOID,household,role_7,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role_7,sex,alone,age_range_2,over_64)]
+tr_hhRelI[is.na(matched_R),("tr_rel1_match_id"):=
+            paste0(GEOID,household,role_7,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role_7,sex,alone,age_range_2,over_64)]
+tr_hhRelR[re_code=="A"&is.na(re_code_HvL),c("re_code_HvL","codom_hhRelRE"):=
+            tr_hhRelI[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(tr_rel1_match_id)]]
+tr_hhRelI[is.na(matched_R),("matched_R"):=
+            tr_hhRelR[.SD,list(re_code),on=.(tr_rel1_match_id)]]
+tr_hhRelR[,("re_code_HvL"):=fcase(re_code=="A"&is.na(re_code_HvL),"P",default = re_code_HvL)]
+#nrow(tr_hhRelR[re_code=="A"&is.na(re_code_HvL)])==0
+#make them all the HvL re_code to match within, below
+#tr_hhRelR[re_code!="A",("re_code_HvL"):=fcase(re_code=="B","Q",
+#                                              re_code=="C","R",
+#                                              re_code=="D","S",
+#                                              re_code=="E","T",
+#                                              re_code=="F","U",
+#                                              re_code=="G","V",
+#                                              default = re_code_HvL)]
+#
 #at this point, tr_hhRelR has I and P correctly
 #match for IvP back to tr_hhRelH, so that we have only the non-White Hispanics in H
 tr_hhRelH <- tr_hhRelRE[re_code=="H"]
 #match all the H's to the P's and take them out
 tr_hhRelR[re_code_HvL=="P",("bg_relH_match_id"):=
-            paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
-          by=.(GEOID,household,role,sex,alone,age_range_2)]
+            paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
 tr_hhRelH[,("bg_relH_match_id"):=
-            paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
-          by=.(GEOID,household,role,sex,alone,age_range_2)]
+            paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
 tr_hhRelH[,("re_code_HvL"):=
             tr_hhRelR[.SD,list(re_code_HvL),on=.(bg_relH_match_id)]]
+tr_hhRelR[re_code_HvL=="P",("matchedI_HvL"):=
+            tr_hhRelH[.SD,list(re_code),on=.(bg_relH_match_id)]]
+#7473 not matched; assuming it's because of role_7 mismatches
+tr_hhRelR[is.na(matchedI_HvL)&re_code_HvL=="P",("bg_relH1_match_id"):=
+            paste0(GEOID,household,role_7,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role_7,sex,alone,age_range_2,over_64)]
+tr_hhRelH[is.na(re_code_HvL),("bg_relH1_match_id"):=
+            paste0(GEOID,household,role_7,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role_7,sex,alone,age_range_2,over_64)]
+tr_hhRelH[is.na(re_code_HvL),("re_code_HvL"):=
+            tr_hhRelR[.SD,list(re_code_HvL),on=.(bg_relH1_match_id)]]
+tr_hhRelR[is.na(matchedI_HvL)&re_code_HvL=="P",("matchedI_HvL"):=
+            tr_hhRelH[.SD,list(re_code),on=.(bg_relH1_match_id)]]
+#nrow(tr_hhRelR[is.na(matchedI_HvL)&re_code_HvL=="P"])==0
 #save data for Hispanic v Latino, but not white
 tr_hhRelHnotP <- tr_hhRelH[is.na(re_code_HvL)]
 #will finish matching, below, after getting bg distribution by Q-V
@@ -280,20 +310,66 @@ tr_hhRelHnotP <- tr_hhRelH[is.na(re_code_HvL)]
 bg_hhRel[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 bg_hhTypeRE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 
-#match the HvL, not P, to the bg_hhRel; will then match it within bg_hhTypeRE, then match rest (after getting all codomains, will sort and match)
+#match the HvL, not P, to the bg_hhRel (i.e., Q-V); will then match it within bg_hhTypeRE, then match rest (after getting all codomains, will sort and match)
+#bg_hhRel does not have "over_64" - may be able to preserve with the codom_
 tr_hhRelHnotP[,("bg_HnotP_match_id"):=
             paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
           by=.(GEOID,household,role,sex,alone,age_range_2)]
 bg_hhRel[,("bg_HnotP_match_id"):=
            paste0(tract,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
          by=.(tract,household,role,sex,alone,age_range_2)]
-bg_hhRel[,c("copath_HvL","codom_hhRelH"):=
-           tr_hhRelHnotP[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(bg_HnotP_match_id)]]
-tr_hhRelHnotP[,c("match_HvL","match_role"):=
-                bg_hhRel[.SD,c(list(household),list(role)),on=.(bg_HnotP_match_id)]]
-rm(tr_hhRelH)
-rm(tr_hhRelI)
-rm(tr_hhRelHnotP)
+bg_hhRel[,c("copath_HvL","copath_over_64","codom_hhRelH","codom_tr_hh65RelRE"):=
+           tr_hhRelHnotP[.SD,c(list(re_code),list(over_64),list(codom_hhRelRE),list(codom_tr_hh65RelRE)),on=.(bg_HnotP_match_id)]]
+#tr_hhRelHnotP[,c("match_HvL","match_role"):=
+#                bg_hhRel[.SD,c(list(household),list(role)),on=.(bg_HnotP_match_id)]]
+#nrow(bg_hhRel[!is.na(copath_HvL)])==nrow(tr_hhRelHnotP)
+
+#also get the I (tried with and without, and the matching by order seems to be same either way)
+tr_hhRelI[,("bg_I_match_id"):=
+                paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+              by=.(GEOID,household,role,sex,alone,age_range_2)]
+bg_hhRel[is.na(copath_HvL),("bg_I_match_id"):=
+           paste0(tract,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+         by=.(tract,household,role,sex,alone,age_range_2)]
+bg_hhRel[is.na(copath_HvL),c("copath_HvL","copath_over_64","codom_hhRelH","codom_tr_hh65RelRE"):=
+           tr_hhRelI[.SD,c(list(re_code),list(over_64),list(codom_hhRelRE),list(codom_tr_hh65RelRE)),on=.(bg_I_match_id)]]
+tr_hhRelI[,c("match_HvL","match_role"):=
+                bg_hhRel[.SD,c(list(household),list(role)),on=.(bg_I_match_id)]]
+#nrow(bg_hhRel[copath_HvL=="I"])==nrow(tr_hhRelI)
+#rm(tr_hhRelH)
+#rm(tr_hhRelI)
+#rm(tr_hhRelHnotP)
+
+#rest of re_code_HvL from tract level
+#bg_hhRel[,("copath_re_code"):=ifelse(!is.na(copath_HvL),"A","Not known")]
+tr_hhRelR[,("bg_notA_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2)]
+bg_hhRel[,("bg_notA_match_id"):=
+           paste0(tract,household,role,sex,alone,age_range_2,as.character(100000+sample(1:.N))),
+         by=.(tract,household,role,sex,alone,age_range_2)]
+bg_hhRel[,c("copath_re_AG","copath_over_64","codom_hhRelH","codom_tr_hh65RelRE"):=
+           tr_hhRelR[.SD,c(list(re_code),list(over_64),list(codom_hhRelRE),list(codom_tr_hh65RelRE)),on=.(bg_notA_match_id)]]
+tr_hhRelR[,c("match_HvL","match_role"):=
+            bg_hhRel[.SD,c(list(household),list(role)),on=.(bg_notA_match_id)]]
+#nrow(bg_hhRel[is.na(copath_re_AG)])
+#this just lets you compare 
+#bg_hhRel[,("copath_re_code_HvL"):=fcase(copath_HvL=="I","I",
+#                                        is.na(copath_HvL)&copath_re_AG=="B","J",
+#                                        is.na(copath_HvL)&copath_re_AG=="C","K",
+#                                        is.na(copath_HvL)&copath_re_AG=="D","L",
+#                                        is.na(copath_HvL)&copath_re_AG=="E","M",
+#                                        is.na(copath_HvL)&copath_re_AG=="F","N",
+#                                        is.na(copath_HvL)&copath_re_AG=="G","O",
+#                                        copath_HvL=="H"&copath_re_AG=="A","P",
+#                                        copath_HvL=="H"&copath_re_AG=="B","Q",
+#                                        copath_HvL=="H"&copath_re_AG=="C","R",
+#                                        copath_HvL=="H"&copath_re_AG=="D","S",
+#                                        copath_HvL=="H"&copath_re_AG=="E","T",
+#                                        copath_HvL=="H"&copath_re_AG=="F","U",
+#                                        copath_HvL=="H"&copath_re_AG=="G","V",
+#                                        default = "not matched")]
+#
 #get the little bits of overlap right...
 bg_hhTypeRE[,("alone"):=fcase(family_type=="Householder living alone","Living alone",
                               default = "Not living alone")]
@@ -304,14 +380,12 @@ bg_hhTypeRE[,("sex"):=fcase(no_spouse_sex=="Female householder, no spouse presen
 bg_hhTypeRE <- bg_hhTypeRE[order(GEOID,-re_code,alone,sex)]
 bg_hhRel <- bg_hhRel[order(GEOID,-copath_HvL,alone,sex)]
 
-#match P17 with P16, then back up to PCT9 - counting out, not sampling
+#Counting out, not sampling; could hold off for matching on codom later
 bg_hhTypeRE[,("bg_RT_match_id"):=
               paste0(GEOID,alone,sex,as.character(1:.N)),
-            #paste0(GEOID,alone,sex,as.character(100000+sample(1:.N))),
           by=.(GEOID,alone,sex)]
 bg_hhRel[role=="Householder",("bg_RT_match_id"):=
            paste0(GEOID,alone,sex,as.character(1:.N)),
-         #paste0(GEOID,alone,sex,as.character(100000+sample(1:.N))),
           by=.(GEOID,alone,sex)]
 #putting codom for re_code so we can order later numerically with cell sizes from codom_etc.; a co-path is the factor name with the codom
 bg_hhRel[role=="Householder",c("copath_re_code","copath_race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
@@ -325,25 +399,23 @@ bg_hhTypeRE[,("matched_rel"):=
 #same, without sex - basically distributing according to that remnant of not living alone without sex (married and some non-family)
 bg_hhTypeRE[is.na(matched_rel),("bg_RTA_match_id"):=
               paste0(GEOID,alone,as.character(1:.N)),
-            #paste0(GEOID,alone,as.character(100000+sample(1:.N))),
             by=.(GEOID,alone)]
 bg_hhRel[role=="Householder"&is.na(copath_re_code),("bg_RTA_match_id"):=
            paste0(GEOID,alone,as.character(1:.N)),
-         #paste0(GEOID,alone,as.character(100000+sample(1:.N))),
          by=.(GEOID,alone)]
 bg_hhRel[role=="Householder"&is.na(copath_re_code),c("copath_re_code","copath_race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
            bg_hhTypeRE[.SD,c(list(re_code),list(race),list(family),list(family_type),
                              list(no_spouse_sex),list(codom_hhTypeRE)),on=.(bg_RTA_match_id)]]
 bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
-              bg_hhRel[.SD,list(re_code),on=.(bg_RTA_match_id)]]
-#nrow(bg_hhRel[role=="Householder"])-nrow(bg_hhRel[!is.na(copath_re_code)]) #194975, less than two percent, but close to total diff. by bg for hh (207091)
+              bg_hhRel[.SD,list(copath_re_code),on=.(bg_RTA_match_id)]]
+#nrow(bg_hhRel[is.na(copath_re_code)]) #194975, less than two percent, but close to total diff. by bg for hh (207091)
 #need all of bg_hhTypeRE info to move over, but after getting the tract Relative data
 
 #test_bg_re_code <- table(bg_hhRel[,copath_re_code],bg_hhRel[,GEOID])-table(bg_hhTypeRE[,re_code],bg_hhTypeRE[,GEOID])
-#sum(test_bg_re_code) #-194858 #interesting; what's it say about difference from test_hh?
 #sum(abs(test_bg_re_code)) #194858
 #mean(abs(test_bg_re_code)) #.7467
 #max(abs(test_bg_re_code)) #72 - i.e., small amounts per re_code difference for each bg
+#sum(table(bg_hhTypeRE[,re_code])-(table(bg_hhRel[,copath_re_code])))+117==nrow(bg_hhRel[role=="Householder"])-nrow(bg_hhRel[!is.na(copath_re_code)])
 #table(bg_hhTypeRE[,re_code])/(table(bg_hhRel[,copath_re_code])) #(with ordering by copath_HvL)
 #remember it would never be a perfect fit b/c of householders being defined differently. 
 #       I        J        K        L        M        N        O        P        Q        R        S        T        U        V 
@@ -351,44 +423,126 @@ bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
 ##running it without reordering by copath_HvL is close for I, O, R, and U (even better, by a bit), but much better for most to have the order
 #without ordering:
 #       I        J        K        L        M        N        O        P        Q        R        S        T        U        V 
-#   1.002726 1.027935 1.569854 1.008784 1.451405 1.557237 1.000028 1.131656 1.493909 1.000034 1.011502 1.421596 1.000011 1.000169  
-#
+#   1.002726 1.027935 1.569854 1.008784 1.451405 1.557237 1.000028 1.131656 1.493909 1.000034 1.011502 1.421596 1.000011 1.000169 
+#just matching on the race without constraining on H is much worse, but you can still get an answer
 
-#match with re_code in; J-O should be just a subtraction based on non-matching
-#final matches should be able to order on the codomains
-tr_hhRelR[,("bg_R_match_id"):=
-            paste0(GEOID,household,role,sex,alone,age_range_2,re_code_HvL,as.character(100000+sample(1:.N))),
-          by=.(GEOID,household,role,sex,alone,age_range_2,re_code_HvL)]
-bg_hhRel[,("bg_R_match_id"):=
-           paste0(tract,household,role,sex,alone,age_range_2,copath_re_code,as.character(100000+sample(1:.N))),
-         by=.(tract,household,role,sex,alone,age_range_2,copath_re_code)]
-bg_hhRel[,c("re_code","re_code_HvL","race","codom_hhTypeRE"):=
-           tr_hhRelR[.SD,c(list(re_code),list(re_code_HvL),list(race),list(codom_hhTypeRE)),on=.(bg_R_match_id)]]
-tr_hhRelR[,("matched_bgRel"):=
-            bg_hhRel[.SD,list(codom_hhRel),on=.(bg_R_match_id)]]
-#expand tr_hhRelR's re_code_JtoO
-tr_hhRelR[,("re_code_HvL"):=fcase(is.na(matched_bgRel)&re_code_HvL=="Q","J",
-                                   is.na(matched_bgRel)&re_code_HvL=="R","K",
-                                   is.na(matched_bgRel)&re_code_HvL=="S","L",
-                                   is.na(matched_bgRel)&re_code_HvL=="T","M",
-                                   is.na(matched_bgRel)&re_code_HvL=="U","N",
-                                   is.na(matched_bgRel)&re_code_HvL=="V","O",
-                                   default = re_code_HvL)]
-#match on expanded J to O for re_code on tr_hhRelR
-tr_hhRelR[is.na(matched_bgRel),("bg_R1_match_id"):=
-            paste0(GEOID,household,role,sex,alone,age_range_2,re_code_HvL,as.character(100000+sample(1:.N))),
-          by=.(GEOID,household,role,sex,alone,age_range_2,re_code_HvL)]
-bg_hhRel[is.na(re_code),("bg_R1_match_id"):=
-           paste0(tract,household,role,sex,alone,age_range_2,copath_re_code,as.character(100000+sample(1:.N))),
-         by=.(tract,household,role,sex,alone,age_range_2,copath_re_code)]
-bg_hhRel[is.na(re_code),c("re_code","re_code_HvL","race","codom_hhTypeRE1"):=
-           tr_hhRelR[.SD,c(list(re_code),list(re_code_HvL),list(race),list(codom_hhTypeRE)),on=.(bg_R1_match_id)]]
-tr_hhRelR[is.na(matched_bgRel),("matched_bgRel"):=
-            bg_hhRel[.SD,list(codom_hhRel),on=.(bg_R1_match_id)]]
-nrow(bg_hhTypeRE)-nrow(bg_hhRel[!is.na(re_code_HvL)]) #2239878 How can we get that down??? Can we order and match from here???
-#order on codoms collected - need to think through which ones...
-#RECHECK ABOVE!!!
-#don't forget to compare re_code1 with re_code on bg_hhRel
+
+#how many of 194858 can be found just by moving to tract level? - might be good to wait on this, too? There are other bg tables, after all...
+bg_hhTypeRE[is.na(matched_rel),("tr_RTA_match_id"):=
+              paste0(tract,alone,as.character(1:.N)),
+            by=.(tract,alone)]
+bg_hhRel[role=="Householder"&is.na(copath_re_code),("tr_RTA_match_id"):=
+           paste0(tract,alone,as.character(1:.N)),
+         by=.(tract,alone)]
+bg_hhRel[role=="Householder"&is.na(copath_re_code),c("copath_re_code","copath_race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(re_code),list(race),list(family),list(family_type),
+                             list(no_spouse_sex),list(codom_hhTypeRE)),on=.(tr_RTA_match_id)]]
+bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
+              bg_hhRel[.SD,list(copath_re_code),on=.(tr_RTA_match_id)]]
+#nrow(bg_hhTypeRE[is.na(matched_rel)]) #66838
+#nrow(bg_hhRel[role=="Householder"&is.na(copath_re_code)]) #66955
+#table(bg_hhTypeRE[,re_code])/(table(bg_hhRel[,copath_re_code]))
+#     I        J        K        L        M        N        O        P        Q        R        S        T        U        V 
+#1.012974 1.001277 1.001835 1.000245 1.000864 1.001636 1.000411 1.001560 1.000043 1.000118 1.000000 1.000000 1.000026 1.000003
+
+#Leaving 66,955 unfinished, till we have some more paths to match
+
+#add own_kids with same race/eth trick
+groupname <- "PCT10" #FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN, race/eth
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhTypeOwnKidsRE_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hhTypeOwnKidsRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("family_2","family_type","own_kids","kid_age_2","re_code","race") 
+  tr_hhTypeOwnKidsRE_data_from_census[,("re_code") := substr(name,6,6)][
+    ,("race") := str_replace(concept,"FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN \\(","")][
+      ,("race") := str_replace(race,"\\)","")]
+  tr_hhTypeOwnKidsRE_data_from_census[,("label_4"):=ifelse(str_detect(label_1,"Married couple family"),label_3,label_4)]
+  tr_hhTypeOwnKidsRE_data_from_census[,("label_3"):=ifelse(str_detect(label_1,"Married couple family"),label_2,label_3)]
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hhTypeOwnKidsRE_data_from_census[!is.na(label_4) & str_detect(concept,"\\)") | 
+                                                           str_detect(label_3,"No own") & str_detect(concept,"\\)"),name]))
+  test_total_pop <- tests_download_data(tr_hhTypeOwnKidsRE_data_from_census,label_c1,row_c1,state=state)
+  tr_hhTypeOwnKidsRE_data <- relabel(tr_hhTypeOwnKidsRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhTypeOwnKidsRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhTypeOwnKidsRE_data <- tr_hhTypeOwnKidsRE_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhTypeOwnKidsRE_data[,.SD,.SDcols = startsWith(names(tr_hhTypeOwnKidsRE_data),state)])
+tr_hhTypeOwnKidsRE_melted <- melt(tr_hhTypeOwnKidsRE_data, id.vars = c("family_2","family_type","own_kids","kid_age_2","re_code","race"), measure.vars = Geoids,
+                                  value.name = "codom_tr_hhTypeOwnKidsRE", variable.name = "GEOID")
+tr_hhTypeOwnKidsRE <- as.data.table(lapply(tr_hhTypeOwnKidsRE_melted[,.SD],rep,tr_hhTypeOwnKidsRE_melted[,codom_tr_hhTypeOwnKidsRE]))
+tr_hhTypeOwnKidsR <- tr_hhTypeOwnKidsRE[!re_code %in% c("H","I")] #is right number...
+tr_hhTypeOwnKidsH <- tr_hhTypeOwnKidsRE[re_code == "H"]
+tr_hhTypeOwnKidsI <- tr_hhTypeOwnKidsRE[re_code == "I"]
+rm(tr_hhTypeOwnKidsRE_data_from_census)
+rm(tr_hhTypeOwnKidsRE_data)
+rm(tr_hhTypeOwnKidsRE_melted)
+
+#add I to R, 
+tr_hhTypeOwnKidsR[,("tr_ownkidsR_match_id"):=
+            paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
+          by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+tr_hhTypeOwnKidsI[,("tr_ownkidsR_match_id"):=
+           paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
+         by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+tr_hhTypeOwnKidsR[,c("copath_re_code","codom_tr_hhTypeOwnKidsRE"):=
+                    tr_hhTypeOwnKidsI[.SD,c(list(re_code),list(codom_tr_hhTypeOwnKidsRE)),on=.(tr_ownkidsR_match_id)]]
+tr_hhTypeOwnKidsI[,("match_R"):=
+                    tr_hhTypeOwnKidsR[.SD,list(re_code),on=.(tr_ownkidsR_match_id)]]
+tr_hhTypeOwnKidsR[,c("copath_re_code"):=ifelse(re_code=="A"&copath_re_code!="I","P",copath_re_code)]
+tr_hhTypeOwnKidsR[,c("copath_HvL"):=ifelse(re_code=="A"&copath_re_code!="I","H",copath_re_code)]
+#find HnotP
+tr_hhTypeOwnKidsH[,("tr_ownkidsH_match_id"):=
+                    paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+tr_hhTypeOwnKidsI[,("tr_ownkidsH_match_id"):=
+                    paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+tr_hhTypeOwnKidsH[,c("copath_re_code","codom_tr_hhTypeOwnKidsRE"):=
+                    tr_hhTypeOwnKidsI[.SD,c(list(re_code),list(codom_tr_hhTypeOwnKidsRE)),on=.(tr_ownkidsH_match_id)]]
+tr_hhTypeOwnKidsI[,("match_H"):=
+                    tr_hhTypeOwnKidsH[.SD,list(re_code),on=.(tr_ownkidsH_match_id)]]
+tr_hhTypeOwnKidsHnotP <- tr_hhTypeOwnKidsH[is.na(copath_re_code)]
+#add HnotP to R
+tr_hhTypeOwnKidsHnotP[,("tr_ownkidsHnotP_match_id"):=
+                    paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+tr_hhTypeOwnKidsR[,("tr_ownkidsHnotP_match_id"):=
+                    paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+tr_hhTypeOwnKidsR[,c("copath_re_code","codom_tr_hhTypeOwnKidsRE"):=
+                    tr_hhTypeOwnKidsHnotP[.SD,c(list(re_code),list(codom_tr_hhTypeOwnKidsRE)),on=.(tr_ownkidsHnotP_match_id)]]
+tr_hhTypeOwnKidsHnotP[,("match_HnotP"):=
+                    tr_hhTypeOwnKidsR[.SD,list(re_code),on=.(tr_ownkidsHnotP_match_id)]]
+#order bg_hhRel then join
+#LOOK AT FAMILY_TYPE for matches; order by kid_age_2...
+tr_hhTypeOwnKidsR[,("tr_TOK_match_id"):=
+              paste0(GEOID,alone,sex,as.character(1:.N)),
+            by=.(GEOID,alone,sex)]
+bg_hhRel[role=="Householder",("tr_TOK_match_id"):=
+           paste0(tract,alone,sex,as.character(1:.N)),
+         by=.(tract,alone,sex)]
+#putting codom for re_code so we can order later numerically with cell sizes from codom_etc.; a co-path is the factor name with the codom
+bg_hhRel[role=="Householder",c("copath_re_code","copath_race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
+           tr_hhTypeOwnKidsR[.SD,c(list(re_code),list(race),list(family),list(family_type),
+                             list(no_spouse_sex),list(codom_hhTypeRE)),on=.(tr_TOK_match_id)]]
+tr_hhTypeOwnKidsR[,("matched_rel"):=
+              bg_hhRel[.SD,list(copath_re_code),on=.(tr_TOK_match_id)]]
+#then add P20 to bg_hhRel?
+
+#then add PCT2
+
+#When do we pick up the missing ones and finish assigning? At very end?? Need other parts of ordering by codoms???
+
+
 
 
 
@@ -558,11 +712,9 @@ Geoids <- colnames(bg_hhTypeTenure_data[,.SD,.SDcols = startsWith(names(bg_hhTyp
 bg_hhTypeTenure_melted <- melt(bg_hhTypeTenure_data, id.vars = c("rent_own","family","family_type","no_spouse_sex","age_range_3"), measure.vars = Geoids,
                         value.name = "codom_hhTenure", variable.name = "GEOID")
 bg_hhTypeTenure <- as.data.table(lapply(bg_hhTypeTenure_melted[,.SD],rep,bg_hhTypeTenure_melted[,codom_hhTenure]))
-
-
-
-
-
+rm(bg_hhTypeTenure_data_from_census)
+rm(bg_hhTypeTenure_data)
+rm(bg_hhTypeTenure_melted)
 
 
 groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS; really only own-child and group quarter information
@@ -575,7 +727,7 @@ tr_hhRel18_data_from_census <-
                    api_type,path_suff)
 if(names(tr_hhRel18_data_from_census)[11]=="label_1"){
   #labels determined by hand
-  label_c1 <- c("household","child_role","age_range_adolescent") 
+  label_c1 <- c("household","child_role","kid_age_range") 
   #row_c1 by hand
   row_c1 <- c(unique(tr_hhRel18_data_from_census[!is.na(label_3),name]))
   test_total_pop <- tests_download_data(tr_hhRel18_data_from_census,label_c1,row_c1,state=state)
@@ -588,7 +740,7 @@ if(names(tr_hhRel18_data_from_census)[11]=="label_1"){
 }
 #reshape a bit and make list of individuals
 Geoids <- colnames(tr_hhRel18_data[,.SD,.SDcols = startsWith(names(tr_hhRel18_data),state)])
-tr_hhRel18_melted <- melt(tr_hhRel18_data, id.vars = c("household","child_role","age_range_adolescent"), measure.vars = Geoids,
+tr_hhRel18_melted <- melt(tr_hhRel18_data, id.vars = c("household","child_role","kid_age_range"), measure.vars = Geoids,
                            value.name = "codom_tr_hhRel18", variable.name = "GEOID")
 tr_hhRel18 <- as.data.table(lapply(tr_hhRel18_melted[,.SD],rep,tr_hhRel18_melted[,codom_tr_hhRel18]))
 rm(tr_hhRel18_data_from_census)
@@ -760,44 +912,7 @@ rm(tr_hh75SizeType_data_from_census)
 rm(tr_hh75SizeType_melted)
 rm(tr_hh75SizeType_data)
 
-groupname <- "PCT10" #FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN, race/eth
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhTypeOwnKidsRE_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hhTypeOwnKidsRE_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("family_2","family_type","own_kids","kid_age_2","re_code","race") 
-  tr_hhTypeOwnKidsRE_data_from_census[,("re_code") := substr(name,6,6)][
-    ,("race") := str_replace(concept,"FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN \\(","")][
-      ,("race") := str_replace(race,"\\)","")]
-  tr_hhTypeOwnKidsRE_data_from_census[,("label_4"):=ifelse(str_detect(label_1,"Married couple family"),label_3,label_4)]
-  tr_hhTypeOwnKidsRE_data_from_census[,("label_3"):=ifelse(str_detect(label_1,"Married couple family"),label_2,label_3)]
-  #row_c1 by hand
-  row_c1 <- c(unique(tr_hhTypeOwnKidsRE_data_from_census[!is.na(label_4) & str_detect(concept,"\\)") | 
-                                                           str_detect(label_3,"No own") & str_detect(concept,"\\)"),name]))
-  test_total_pop <- tests_download_data(tr_hhTypeOwnKidsRE_data_from_census,label_c1,row_c1,state=state)
-  tr_hhTypeOwnKidsRE_data <- relabel(tr_hhTypeOwnKidsRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhTypeOwnKidsRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hhTypeOwnKidsRE_data <- tr_hhTypeOwnKidsRE_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hhTypeOwnKidsRE_data[,.SD,.SDcols = startsWith(names(tr_hhTypeOwnKidsRE_data),state)])
-tr_hhTypeOwnKidsRE_melted <- melt(tr_hhTypeOwnKidsRE_data, id.vars = c("family_2","family_type","own_kids","kid_age_2","re_code","race"), measure.vars = Geoids,
-                            value.name = "codom_tr_hhTypeOwnKidsRE", variable.name = "GEOID")
-tr_hhTypeOwnKidsRE <- as.data.table(lapply(tr_hhTypeOwnKidsRE_melted[,.SD],rep,tr_hhTypeOwnKidsRE_melted[,codom_tr_hhTypeOwnKidsRE]))
-tr_hhTypeOwnKidsR <- tr_hhTypeOwnKidsRE[!re_code %in% c("H","I")] #is right number...
-tr_hhTypeOwnKidsE <- tr_hhTypeOwnKidsRE[re_code %in% c("H","I")]
-rm(tr_hhTypeOwnKidsRE_data_from_census)
-rm(tr_hhTypeOwnKidsRE_data)
-rm(tr_hhTypeOwnKidsRE_melted)
-rm(tr_hhTypeOwnKidsRE)
-
+#multigen is hard; having parent only counts if you also have kids; having grandkids only counts if their parents are there...
 groupname <- "PCT14" #PRESENCE OF MULTIGENERATIONAL HOUSEHOLDS, race/eth
 geo_type <- "tract"
 api_type <- "dec/dhc"
@@ -933,6 +1048,8 @@ bg_hhTenureRE <- as.data.table(lapply(bg_hhTenureRE_melted[,.SD],rep,bg_hhTenure
 rm(bg_hhTenureRE_data_from_census)
 rm(bg_hhTenureRE_data)
 rm(bg_hhTenureRE_melted)
+#tenure_1 and tenure are the same - weirdness about how they set up the table
+bg_hhTenureRE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")] #checked with HCT1, which has less info but same references
 
 groupname <- "H12" #TENURE BY HOUSEHOLD SIZE and race/eth
 api_type <- "dec/dhc"
@@ -1108,59 +1225,59 @@ rm(tr_hhTenureOwnKids_data)
 rm(tr_hhTenureOwnKids_melted)
 
 
-groupname <- "HCT1" #TENURE BY HISPANIC OR LATINO ORIGIN OF HOUSEHOLDER BY RACE OF HOUSEHOLDER - gives everything at tract keeps from guessing about race/eth
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhTenureRE_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hhTenureRE_data_from_census)[11]=="label_1"){
-  #labels determined by hand; didn't do re_code in name for some reason; owner_occupied, Latino, AIAN missing (about 33k in TX)
-  label_c1 <- c("tenure","HvL","race") 
-  #row_c1 by hand
-  tr_hhTenureRE_data_from_census[,"label_3":=fcase(label_1=="Owner occupied"&
-                                                     label_2=="Hispanic or Latino householder"&
-                                                     is.na(label_3),"Householder who is American Indian and Alaska Native alone",default = label_3)]
-  row_c1 <- c(unique(tr_hhTenureRE_data_from_census[!is.na(label_3),name]))
-  test_total_pop <- tests_download_data(tr_hhTenureRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
-  tr_hhTenureRE_data <- relabel(tr_hhTenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhTenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hhTenureRE_data <- tr_hhTenureRE_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hhTenureRE_data[,.SD,.SDcols = startsWith(names(tr_hhTenureRE_data),state)])
-tr_hhTenureRE_melted <- melt(tr_hhTenureRE_data, id.vars = c("tenure","HvL","race"), measure.vars = Geoids,
-                           value.name = "codom_tr_hhTenureRE", variable.name = "GEOID")
-tr_hhTenureRE_melted[,("codom_tr_hhTenureRE"):=fcase(tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
-                                                       race=="Householder who is American Indian and Alaska Native alone",
-                                                     as.numeric(.SD[tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
-                                                                      race=="Householder who is American Indian and Alaska Native alone",codom_tr_hhTenureRE])-
-                                                       sum(as.numeric(.SD[tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
-                                                                        race!="Householder who is American Indian and Alaska Native alone",codom_tr_hhTenureRE]),na.rm = TRUE),
-                                                     default=as.numeric(codom_tr_hhTenureRE)),by=.(GEOID)]
-tr_hhTenureRE <- as.data.table(lapply(tr_hhTenureRE_melted[,.SD],rep,tr_hhTenureRE_melted[,codom_tr_hhTenureRE])) #right number
-tr_hhTenureRE[,("re_code"):=fcase(HvL=="Hispanic or Latino householder"&race=="Householder who is White alone","P",
-                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is White alone","I",
-                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Black or African American alone","Q",
-                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Black or African American alone","J",
-                                  HvL=="Hispanic or Latino householder"&race=="Householder who is American Indian and Alaska Native alone","R",
-                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is American Indian and Alaska Native alone","K",
-                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Asian alone","S",
-                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Asian alone","L",
-                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Native Hawaiian and Other Pacific Islander alone","T",
-                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Native Hawaiian and Other Pacific Islander alone","M",
-                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Some Other Race alone","U",
-                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Some Other Race alone","N",
-                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Two or More Races","V",
-                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Two or More Races","O",
-                                  default = "not found")]
-rm(tr_hhTenureRE_data_from_census)
-rm(tr_hhTenureRE_data)
-rm(tr_hhTenureRE_melted)
+#groupname <- "HCT1" #TENURE BY HISPANIC OR LATINO ORIGIN OF HOUSEHOLDER BY RACE OF HOUSEHOLDER - gives everything at tract keeps from guessing about race/eth
+#geo_type <- "tract"
+#api_type <- "dec/dhc"
+#path_suff <- "est"
+#tr_hhTenureRE_data_from_census <- 
+#  census_tract_get(censusdir, vintage, state, censuskey, 
+#                   groupname,county = "*",
+#                   api_type,path_suff)
+#if(names(tr_hhTenureRE_data_from_census)[11]=="label_1"){
+#  #labels determined by hand; didn't do re_code in name for some reason; owner_occupied, Latino, AIAN missing (about 33k in TX)
+#  label_c1 <- c("tenure","HvL","race") 
+#  #row_c1 by hand
+#  tr_hhTenureRE_data_from_census[,"label_3":=fcase(label_1=="Owner occupied"&
+#                                                     label_2=="Hispanic or Latino householder"&
+#                                                     is.na(label_3),"Householder who is American Indian and Alaska Native alone",default = label_3)]
+#  row_c1 <- c(unique(tr_hhTenureRE_data_from_census[!is.na(label_3),name]))
+#  test_total_pop <- tests_download_data(tr_hhTenureRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
+#  tr_hhTenureRE_data <- relabel(tr_hhTenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+#  write_relabel(tr_hhTenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+#}else{
+#  print("Using already given labels; no rewrite.")
+#  tr_hhTenureRE_data <- tr_hhTenureRE_data_from_census
+#}
+##reshape a bit and make list of individuals
+#Geoids <- colnames(tr_hhTenureRE_data[,.SD,.SDcols = startsWith(names(tr_hhTenureRE_data),state)])
+#tr_hhTenureRE_melted <- melt(tr_hhTenureRE_data, id.vars = c("tenure","HvL","race"), measure.vars = Geoids,
+#                           value.name = "codom_tr_hhTenureRE", variable.name = "GEOID")
+#tr_hhTenureRE_melted[,("codom_tr_hhTenureRE"):=fcase(tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
+#                                                       race=="Householder who is American Indian and Alaska Native alone",
+#                                                     as.numeric(.SD[tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
+#                                                                      race=="Householder who is American Indian and Alaska Native alone",codom_tr_hhTenureRE])-
+#                                                       sum(as.numeric(.SD[tenure=="Owner occupied"&HvL=="Hispanic or Latino householder"&
+#                                                                        race!="Householder who is American Indian and Alaska Native alone",codom_tr_hhTenureRE]),na.rm = TRUE),
+#                                                     default=as.numeric(codom_tr_hhTenureRE)),by=.(GEOID)]
+#tr_hhTenureRE <- as.data.table(lapply(tr_hhTenureRE_melted[,.SD],rep,tr_hhTenureRE_melted[,codom_tr_hhTenureRE])) #right number
+#tr_hhTenureRE[,("re_code"):=fcase(HvL=="Hispanic or Latino householder"&race=="Householder who is White alone","P",
+#                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is White alone","I",
+#                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Black or African American alone","Q",
+#                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Black or African American alone","J",
+#                                  HvL=="Hispanic or Latino householder"&race=="Householder who is American Indian and Alaska Native alone","R",
+#                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is American Indian and Alaska Native alone","K",
+#                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Asian alone","S",
+#                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Asian alone","L",
+#                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Native Hawaiian and Other Pacific Islander alone","T",
+#                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Native Hawaiian and Other Pacific Islander alone","M",
+#                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Some Other Race alone","U",
+#                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Some Other Race alone","N",
+#                                  HvL=="Hispanic or Latino householder"&race=="Householder who is Two or More Races","V",
+#                                  HvL=="Not Hispanic or Latino householder"&race=="Householder who is Two or More Races","O",
+#                                  default = "not found")]
+#rm(tr_hhTenureRE_data_from_census)
+#rm(tr_hhTenureRE_data)
+#rm(tr_hhTenureRE_melted)
 
 #moved from schematic_sam.Rmd - moved to data.table only
 groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
