@@ -162,25 +162,22 @@ rm(tr_hhSizeTypeOwnKids_data)
 rm(tr_hhSizeTypeOwnKids_melted)
 
 tr_hhSizeTypeOwnKids[,("alone"):=fcase(hh_size_2=="1-person household","Living alone",
-                                       !str_detect(family,"householder"),"Not living alone",
-                                       default = "not found")]
+                                       default = "Not living alone")]
 tr_hhSizeTypeOwnKids[,("hh_type_3"):=fcase(family_type=="Married couple family",
                                            "Married couple",
-                                       alone=="Not living alone" & str_detect(family_type,"householder"),
+                                       !str_detect(family_type,"householder") &
+                                         family_type!="Married couple family",
                                           "Unmarried-partner",
-                                       family_type=="Other family" & str_detect(own_kids,"With"),
-                                          "Unmarried-partner", #better to have too many on this side, just need to keep match later
                                        default = "All others")]
+#hh_type_3 does not match with hh_couple, which is the ground truth for hh_type_3
 tr_hhSizeTypeOwnKids[,("family"):=str_replace(family,"holder","holder (solitary)")]
 tr_hhSizeTypeOwnKids[,("family_type"):=str_replace(family_type,"holder","holder (not alone)")]
-tr_hhCouple[,("sex"):=str_remove(sex," householder")]
-tr_hhCouple[,("sex"):=fcase(str_detect(couple_gender,"Male"),"Male",
-                            str_detect(couple_gender,"Female"),"Female",
-                            str_detect(sex,"ale"),sex,
+tr_hhCouple[,("sex"):=str_remove(sex," householder")] #at this point, sex is just for nonfamily
+tr_hhCouple[,("sex"):=fcase(str_detect(sex,"Male"),"Male",
+                            str_detect(sex,"Female"),"Female",
                             default = "Sex not known")]
 tr_hhCouple[,("hh_type_3"):=str_remove(hh_type_3," household")]
-tr_hhCouple[,("alone"):=fcase(hh_type_3=="Married couple" |
-                                hh_type_3=="Unmarried-partner",
+tr_hhCouple[,("alone"):=fcase(is.na(alone),
                               "Not living alone",default = alone)]
 #match on hh_type_3,alone,sex (will drop same_sex married couples); age_range with own_kids on P20 is only for seniors living alone
 #hh_over_64 has small number not living alone - the relatives files show people living with adult children, so can have that override later
@@ -195,21 +192,12 @@ tr_hhCouple[,c("hh_size_2","own_kids","family","family_type"):=
                                          list(family),list(family_type)),on=.(tr_STOK_match_id)]]
 tr_hhSizeTypeOwnKids[,("match_STOK"):=
           tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOK_match_id)]]
-nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#2311284
-#without sex
-tr_hhCouple[is.na(hh_size_2),("tr_STOKa_match_id"):=
-              paste0(GEOID,hh_type_3,alone,as.character(100000+sample(1:.N))),
-            by=.(GEOID,hh_type_3,alone)]
-tr_hhSizeTypeOwnKids[is.na(match_STOK),("tr_STOKa_match_id"):=
-                       paste0(GEOID,hh_type_3,alone,as.character(100000+sample(1:.N))),
-                     by=.(GEOID,hh_type_3,alone)]
-tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","sex"):=
-              tr_hhSizeTypeOwnKids[.SD,c(list(hh_size_2),list(own_kids),
-                                         list(family),list(family_type),list(sex)),on=.(tr_STOKa_match_id)]]
-tr_hhSizeTypeOwnKids[is.na(match_STOK),("match_STOK"):=
-                       tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOKa_match_id)]]
-nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#1632530
-#without hh_type_3
+nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#2189526 
+#we have sex for same_sex married couples
+tr_hhCouple[,("sex"):=fcase(str_detect(couple_gender,"Male"),"Male",
+                            str_detect(couple_gender,"Female"),"Female",
+                            default = sex)]
+#without hh_type_3 or sex
 tr_hhCouple[is.na(hh_size_2),("tr_STOKt_match_id"):=
               paste0(GEOID,alone,as.character(100000+sample(1:.N))),
             by=.(GEOID,alone)]
@@ -221,7 +209,7 @@ tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","se
                                          list(family),list(family_type),list(sex)),on=.(tr_STOKt_match_id)]]
 tr_hhSizeTypeOwnKids[is.na(match_STOK),("match_STOK"):=
                        tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOKt_match_id)]]
-nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#1540653
+nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#10456
 #just GEOID for those that are left...
 tr_hhCouple[is.na(hh_size_2),("tr_STOKts_match_id"):=
               paste0(GEOID,as.character(100000+sample(1:.N))),
@@ -229,16 +217,12 @@ tr_hhCouple[is.na(hh_size_2),("tr_STOKts_match_id"):=
 tr_hhSizeTypeOwnKids[is.na(match_STOK),("tr_STOKts_match_id"):=
                        paste0(GEOID,as.character(100000+sample(1:.N))),
                      by=.(GEOID)]
-tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","sex"):=
+tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","sex","alone"):=
               tr_hhSizeTypeOwnKids[.SD,c(list(hh_size_2),list(own_kids),
-                                         list(family),list(family_type),list(sex)),on=.(tr_STOKts_match_id)]]
+                                         list(family),list(family_type),list(sex),list(alone)),on=.(tr_STOKts_match_id)]]
 tr_hhSizeTypeOwnKids[is.na(match_STOK),("match_STOK"):=
                        tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOKts_match_id)]]
 nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#0
-#fix a few of the oddballs on tr_hhCouple - nothing more than 10k
-tr_hhCouple[,("alone"):=fcase(str_detect(family,"solitary"),"Living alone",
-                              !is.na(family_type),"Not living alone",
-                              default = alone)]
 rm(tr_hhSizeTypeOwnKids)
 #could tweak this distribution: table(tr_hhCouple[,own_kids],tr_hhCouple[,same_sex]) with national averages, but only a few thousand
 #https://www.statista.com/statistics/325049/same-sex-couples-in-the-us-by-age-of-householder/#:~:text=In%202022%2C%20about%2025.4%20percent,old%20in%20that%20same%20year.
@@ -288,13 +272,22 @@ bg_hhOwnKids_melted[,("codom_bg_hhOwnKids"):=ifelse(household_type_4=="Female ho
                                                       as.numeric(.SD[household_type_4=="Female householder, no spouse or partner present" & 
                                                                        rel_in_house=="Living alone" & 
                                                                        age_range_2_sr=="65 years and over",codom_bg_hhOwnKids]),codom_bg_hhOwnKids),by=.(GEOID)]
+bg_hhOwnKids_melted[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 bg_hhOwnKids <- as.data.table(lapply(bg_hhOwnKids_melted[,.SD],rep,bg_hhOwnKids_melted[,codom_bg_hhOwnKids]))
 rm(bg_hhOwnKids_data_from_census)
 rm(bg_hhOwnKids_melted)
 rm(bg_hhOwnKids_data)
 
 #make a hh_type_6 or 8 to capture the possible matches...
-
+tr_hhCouple[,("hh_type_4"):=fcase(str_detect(family,"Female") | str_detect(family_type,"Female"),
+                                    "Female householder, no spouse or partner present",
+                                  str_detect(family,"Male") | str_detect(family_type,"Male"),
+                                    "Male householder, no spouse or partner present",
+                                  hh_type_3=="Unmarried-partner",
+                                    "Cohabiting couple household",
+                                  hh_type_3=="Married couple",
+                                    "Married couple household",
+                                  default = hh_type_3)]
 
 
 
