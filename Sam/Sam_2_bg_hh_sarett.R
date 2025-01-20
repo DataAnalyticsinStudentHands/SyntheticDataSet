@@ -115,7 +115,11 @@ tr_hhCouple[hh_type_3=="All other households"&is.na(sex),c("sex","alone","hh_ove
 tr_nfhh[is.na(match_nf),("match_nf"):=
           tr_hhCouple[.SD,list(hh_type_3),on=.(county_couple_nf_match_id)]]
 #nrow(tr_nfhh[is.na(match_nf)]) #0
-#rm(tr_nfhh)
+rm(tr_nfhh)
+#test <- table(tr_nfhh[,GEOID],tr_nfhh[,sex],tr_nfhh[,alone],tr_nfhh[,age_range_2])-
+#  table(tr_hhCouple[hh_type_3=="All other households",GEOID],tr_hhCouple[hh_type_3=="All other households",sex],
+#        tr_hhCouple[hh_type_3=="All other households",alone],tr_hhCouple[hh_type_3=="All other households",hh_over_64])
+#length(test[test!=0]) #4259 (of 55168) or 93% of GEOIDS match completely; without GEOIDs, they all match on tables
 
 #add within; no loss around any power set since just ordering within
 groupname <- "PCT2" #HOUSEHOLD SIZE BY HOUSEHOLD TYPE BY PRESENCE OF OWN CHILDREN
@@ -169,7 +173,7 @@ tr_hhSizeTypeOwnKids[,("hh_type_3"):=fcase(family_type=="Married couple family",
                                          family_type!="Married couple family",
                                           "Unmarried-partner",
                                        default = "All others")]
-#hh_type_3 does not match with hh_couple, which is the ground truth for hh_type_3; extra unmarried-partners have to move to all others
+#hh_type_3 does not match with hh_couple, which is the ground truth for hh_type_3; extra "Unmarried-partners" have to move to "All others"
 tr_hhSizeTypeOwnKids[,("family"):=str_replace(family,"holder","holder (solitary)")]
 tr_hhSizeTypeOwnKids[,("family_type"):=str_replace(family_type,"holder","holder (not alone)")]
 tr_hhCouple[,("sex"):=str_remove(sex," householder")] #at this point, sex is just for nonfamily
@@ -192,8 +196,8 @@ tr_hhCouple[,c("hh_size_2","own_kids","family","family_type"):=
                                          list(family),list(family_type)),on=.(tr_STOK_match_id)]]
 tr_hhSizeTypeOwnKids[,("match_STOK"):=
           tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOK_match_id)]]
-nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#2177003 
-#we have sex for same_sex married couples
+#nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#2177003 
+#we have sex for same_sex married couples, but didn't want it to mess with matching on hh_type_3 first time
 tr_hhCouple[,("sex"):=fcase(str_detect(couple_gender,"Male"),"Male",
                             str_detect(couple_gender,"Female"),"Female",
                             default = sex)]
@@ -209,22 +213,33 @@ tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","se
                                          list(family),list(family_type),list(sex)),on=.(tr_STOKt_match_id)]]
 tr_hhSizeTypeOwnKids[is.na(match_STOK),("match_STOK"):=
                        tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOKt_match_id)]]
-nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#10546
+#nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#10518
 #table(tr_hhSizeTypeOwnKids[is.na(match_STOK),hh_type_3],tr_hhSizeTypeOwnKids[is.na(match_STOK),alone]) 
-#just GEOID for those that are left; will make sure it's not last value for individual
+#just GEOID for those that are left; will make sure it's not last value for individual; keep by county
+tr_hhSizeTypeOwnKids[,("county"):=substr(GEOID,1,5)]
 tr_hhCouple[is.na(hh_size_2),("tr_STOKts_match_id"):=
-              paste0(GEOID,as.character(100000+sample(1:.N))),
-            by=.(GEOID)]
+              paste0(county,alone,as.character(100000+sample(1:.N))),
+            by=.(county,alone)]
 tr_hhSizeTypeOwnKids[is.na(match_STOK),("tr_STOKts_match_id"):=
-                       paste0(GEOID,as.character(100000+sample(1:.N))),
-                     by=.(GEOID)]
+                       paste0(county,alone,as.character(100000+sample(1:.N))),
+                     by=.(county,alone)]
 tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","sex","alone"):=
               tr_hhSizeTypeOwnKids[.SD,c(list(hh_size_2),list(own_kids),
                                          list(family),list(family_type),list(sex),list(alone)),on=.(tr_STOKts_match_id)]]
 tr_hhSizeTypeOwnKids[is.na(match_STOK),("match_STOK"):=
                        tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOKts_match_id)]]
 nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#0
-#rm(tr_hhSizeTypeOwnKids)
+#test <- table(tr_hhCouple[,GEOID],tr_hhCouple[,own_kids],tr_hhCouple[,family_type],tr_hhCouple[,sex],tr_hhCouple[,alone])-
+#  table(tr_hhSizeTypeOwnKids[,GEOID],tr_hhSizeTypeOwnKids[,own_kids],tr_hhSizeTypeOwnKids[,family_type],
+#        tr_hhSizeTypeOwnKids[,sex],tr_hhSizeTypeOwnKids[,alone])
+#length(test[test!=0])#1311 on county; 39608 on GEOID;  when matched on GEOID, not alone in step 3, get 6604, (of 331008, or less than 2, without GEOID = 0)
+#a handful of sex don't match on table test...
+rm(tr_hhSizeTypeOwnKids)
+tr_hhCouple[,("family_type"):=fcase(hh_type_3=="Unmarried-partner"&family_type=="Other family"&sex=="Female",
+                                    "Female householder (not alone)",
+                                    hh_type_3=="Unmarried-partner"&family_type=="Other family"&sex=="Male",
+                                    "Male householder (not alone)",
+                                    default = family_type)]
 
 #could tweak this distribution: table(tr_hhCouple[,own_kids],tr_hhCouple[,same_sex]) with national averages, but only a few thousand
 #https://www.statista.com/statistics/325049/same-sex-couples-in-the-us-by-age-of-householder/#:~:text=In%202022%2C%20about%2025.4%20percent,old%20in%20that%20same%20year.
@@ -280,7 +295,7 @@ rm(bg_hhOwnKids_data_from_census)
 rm(bg_hhOwnKids_melted)
 rm(bg_hhOwnKids_data)
 
-#make a hh_type_6 or 8 to capture the possible matches...
+#make a hh_type_4 to capture the possible matches...
 tr_hhCouple[,("hh_type_4"):=fcase(str_detect(family,"Female") | str_detect(family_type,"Female") |
                                     sex=="Female" & hh_type_3=="All others", #i.e., nonfamily
                                     "Female householder, no spouse or partner present",
@@ -356,13 +371,15 @@ nrow(tr_hhCouple[is.na(match_OK)]) #0
 bg_hhOwnKids[,("sex"):=fcase(str_detect(household_type_4,"Female"),"Female",
              str_detect(household_type_4,"Male"),"Male",
              default = sex)]
-
-#what are you thinking???? Need some designation not self-reference!!
-bg_hhOwnKids[,("family_type"):=fcase(str_detect(household_type_4,"Female") & 
-                                       rel_in_house=="Living alone",
+#BROKEN: table(bg_hhOwnKids[,family_type],bg_hhOwnKids[,rel_in_house])!! Came from tr_hhCouple, which is already off by a bit...
+#maybe do a hh_type_5 to match with below?
+#bg_hhOwnKids[,("hh_type_5"):=fcase(family_type=="Other family",no_spouse_sex,
+#                                  default = family_type)]
+bg_hhOwnKids[,("family_type2"):=fcase(str_detect(household_type_4,"Female") & 
+                                       rel_in_house!="Living alone",
                                      "Female householder (not alone)",
                              str_detect(household_type_4,"Male") &
-                               rel_in_house=="Living alone",
+                               rel_in_house!="Living alone",
                              "Male householder (not alone)",
                              default = family_type)]
 bg_hhOwnKids[,("family"):=fcase(str_detect(household_type_4,"Female") & 
@@ -511,6 +528,10 @@ rm(bg_hhTypeRE_melted)
 #test <- table(bg_hhTypeRE[,GEOID],bg_hhTypeRE[,family])==
 #  table(bg_hhTypeTenure[,GEOID],bg_hhTypeTenure[,family])
 #length(test[test==FALSE])==0
+#clean up for matching
+bg_hhTypeRE[,("hh_type_5"):=fcase(family_type=="Other family",no_spouse_sex,
+                                  default = family_type)]
+
 #ARE THERE WAYS THAT THE CODOM STUFF WOULD ALLOW US 
 
 #move bg_hhTypeTenure over, with all previous
