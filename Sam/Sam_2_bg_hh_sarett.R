@@ -115,11 +115,11 @@ tr_hhCouple[hh_type_3=="All other households"&is.na(sex),c("sex","alone","hh_ove
 tr_nfhh[is.na(match_nf),("match_nf"):=
           tr_hhCouple[.SD,list(hh_type_3),on=.(county_couple_nf_match_id)]]
 #nrow(tr_nfhh[is.na(match_nf)]) #0
-rm(tr_nfhh)
 #test <- table(tr_nfhh[,GEOID],tr_nfhh[,sex],tr_nfhh[,alone],tr_nfhh[,age_range_2])-
 #  table(tr_hhCouple[hh_type_3=="All other households",GEOID],tr_hhCouple[hh_type_3=="All other households",sex],
 #        tr_hhCouple[hh_type_3=="All other households",alone],tr_hhCouple[hh_type_3=="All other households",hh_over_64])
 #length(test[test!=0]) #4259 (of 55168) or 93% of GEOIDS match completely; without GEOIDs, they all match on tables
+rm(tr_nfhh)
 
 #add within; no loss around any power set since just ordering within
 groupname <- "PCT2" #HOUSEHOLD SIZE BY HOUSEHOLD TYPE BY PRESENCE OF OWN CHILDREN
@@ -328,7 +328,10 @@ bg_hhOwnKids[,c("hh_type_3","same_sex","couple_gender","alone","family","family_
 tr_hhCouple[,("match_OK"):=
                        bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OK_match_id)]]
 nrow(tr_hhCouple[is.na(match_OK)])#9599449 
-#got almost all rel_in_house == "Living alone" and almost all hh_over_64
+#got almost all rel_in_house == "Living alone" and almost all hh_over_64; set them to something that keeps it from being lost??
+
+
+
 tr_hhCouple[is.na(match_OK),("bg_OKso_match_id"):=
               paste0(GEOID,hh_type_4,sex,own_kids,as.character(100000+sample(1:.N))),
             by=.(GEOID,hh_type_4,sex,own_kids)]
@@ -340,7 +343,7 @@ bg_hhOwnKids[is.na(hh_type_3),c("hh_type_3","same_sex","couple_gender","alone","
                                  list(family),list(family_type)),on=.(bg_OKso_match_id)]]
 tr_hhCouple[is.na(match_OK),("match_OK"):=
               bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OKso_match_id)]]
-nrow(tr_hhCouple[is.na(match_OK)])# 837555
+nrow(tr_hhCouple[is.na(match_OK)])# 694463
 #without sex to pick up couples with sex named, but move over where known; need to compare with originals
 tr_hhCouple[is.na(match_OK),("bg_OKs_match_id"):=
               paste0(GEOID,hh_type_4,own_kids,as.character(100000+sample(1:.N))),
@@ -371,7 +374,7 @@ nrow(tr_hhCouple[is.na(match_OK)]) #0
 bg_hhOwnKids[,("sex"):=fcase(str_detect(household_type_4,"Female"),"Female",
              str_detect(household_type_4,"Male"),"Male",
              default = sex)]
-#BROKEN: table(bg_hhOwnKids[,family_type],bg_hhOwnKids[,rel_in_house])!! Came from tr_hhCouple, which is already off by a bit...
+#BROKEN: table(bg_hhOwnKids[,family_type],bg_hhOwnKids[,rel_in_house])#!! Came from tr_hhCouple, which is already off by a bit...
 #maybe do a hh_type_5 to match with below?
 #bg_hhOwnKids[,("hh_type_5"):=fcase(family_type=="Other family",no_spouse_sex,
 #                                  default = family_type)]
