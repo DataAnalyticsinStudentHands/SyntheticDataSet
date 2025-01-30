@@ -327,10 +327,23 @@ bg_hhOwnKids[,c("hh_type_3","same_sex","couple_gender","alone","family","family_
                                          list(family),list(family_type)),on=.(bg_OK_match_id)]]
 tr_hhCouple[,("match_OK"):=
                        bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OK_match_id)]]
-nrow(tr_hhCouple[is.na(match_OK)])#9599449 
-#got almost all rel_in_house == "Living alone" and almost all hh_over_64; set them to something that keeps it from being lost??
+#nrow(tr_hhCouple[is.na(match_OK)])#9599449 
 
-
+#nrow(bg_hhOwnKids[is.na(hh_type_3)&hh_over_64=="Householder 65 years and over"]) #863
+#taking out hh_over_64
+tr_hhCouple[is.na(match_OK),("bg_OKso_match_id"):=
+              paste0(GEOID,hh_type_4,alone,sex,own_kids,as.character(100000+sample(1:.N))),
+            by=.(GEOID,hh_type_4,alone,sex,own_kids)]
+bg_hhOwnKids[is.na(hh_type_3),("bg_OKso_match_id"):=
+               paste0(tract,household_type_4,rel_in_house,sex,own_kids,as.character(100000+sample(1:.N))),
+             by=.(tract,household_type_4,rel_in_house,sex,own_kids)]
+bg_hhOwnKids[is.na(hh_type_3),c("hh_type_3","same_sex","couple_gender","alone","family","family_type"):=
+               tr_hhCouple[.SD,c(list(hh_type_3),list(same_sex),list(couple_gender),list(alone),
+                                 list(family),list(family_type)),on=.(bg_OKso_match_id)]]
+tr_hhCouple[is.na(match_OK),("match_OK"):=
+              bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OKso_match_id)]]
+#nrow(tr_hhCouple[is.na(match_OK)])#7883453
+#nrow(tr_hhCouple[is.na(match_OK)&alone=="Living alone"]) #5217
 
 tr_hhCouple[is.na(match_OK),("bg_OKso_match_id"):=
               paste0(GEOID,hh_type_4,sex,own_kids,as.character(100000+sample(1:.N))),
@@ -343,7 +356,7 @@ bg_hhOwnKids[is.na(hh_type_3),c("hh_type_3","same_sex","couple_gender","alone","
                                  list(family),list(family_type)),on=.(bg_OKso_match_id)]]
 tr_hhCouple[is.na(match_OK),("match_OK"):=
               bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OKso_match_id)]]
-nrow(tr_hhCouple[is.na(match_OK)])# 694463
+#nrow(tr_hhCouple[is.na(match_OK)])# 694463
 #without sex to pick up couples with sex named, but move over where known; need to compare with originals
 tr_hhCouple[is.na(match_OK),("bg_OKs_match_id"):=
               paste0(GEOID,hh_type_4,own_kids,as.character(100000+sample(1:.N))),
@@ -356,7 +369,7 @@ bg_hhOwnKids[is.na(hh_type_3),c("hh_type_3","sex","same_sex","couple_gender","al
                                  list(family),list(family_type)),on=.(bg_OKs_match_id)]]
 tr_hhCouple[is.na(match_OK),("match_OK"):=
               bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OKs_match_id)]]
-nrow(tr_hhCouple[is.na(match_OK)])# 247080 is 2.4% of whole not matching on own children 
+#nrow(tr_hhCouple[is.na(match_OK)])# 639952 is 6% of whole not matching on own children 
 #using bg_hhOwnKids as ground, matching own_kids
 tr_hhCouple[is.na(match_OK),("bg_OKo_match_id"):=
               paste0(GEOID,own_kids,as.character(100000+sample(1:.N))),
@@ -369,29 +382,44 @@ bg_hhOwnKids[is.na(hh_type_3),c("hh_type_3","sex","same_sex","couple_gender","al
                                  list(family),list(family_type)),on=.(bg_OKo_match_id)]]
 tr_hhCouple[is.na(match_OK),("match_OK"):=
               bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OKo_match_id)]]
-nrow(tr_hhCouple[is.na(match_OK)]) #0
-#fix rogue matches (68k) on sex for no spouse present households; prioritizing bg_hhOwnKids distribution
+#nrow(tr_hhCouple[is.na(match_OK)]) #5050
+#finish up last .05%
+tr_hhCouple[is.na(match_OK),("bg_OKo_match_id"):=
+              paste0(GEOID,as.character(100000+sample(1:.N))),
+            by=.(GEOID)]
+bg_hhOwnKids[is.na(hh_type_3),("bg_OKo_match_id"):=
+               paste0(tract,as.character(100000+sample(1:.N))),
+             by=.(tract)]
+bg_hhOwnKids[is.na(hh_type_3),c("hh_type_3","sex","same_sex","couple_gender","alone","family","family_type"):=
+               tr_hhCouple[.SD,c(list(hh_type_3),list(sex),list(same_sex),list(couple_gender),list(alone),
+                                 list(family),list(family_type)),on=.(bg_OKo_match_id)]]
+tr_hhCouple[is.na(match_OK),("match_OK"):=
+              bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OKo_match_id)]]
+#nrow(tr_hhCouple[is.na(match_OK)]) #0
+#fix rogue matches (just 11 of them) on sex for no spouse present households; prioritizing bg_hhOwnKids distribution
 bg_hhOwnKids[,("sex"):=fcase(str_detect(household_type_4,"Female"),"Female",
              str_detect(household_type_4,"Male"),"Male",
              default = sex)]
-#BROKEN: table(bg_hhOwnKids[,family_type],bg_hhOwnKids[,rel_in_house])#!! Came from tr_hhCouple, which is already off by a bit...
-#maybe do a hh_type_5 to match with below?
-#bg_hhOwnKids[,("hh_type_5"):=fcase(family_type=="Other family",no_spouse_sex,
-#                                  default = family_type)]
-bg_hhOwnKids[,("family_type2"):=fcase(str_detect(household_type_4,"Female") & 
-                                       rel_in_house!="Living alone",
-                                     "Female householder (not alone)",
-                             str_detect(household_type_4,"Male") &
-                               rel_in_house!="Living alone",
-                             "Male householder (not alone)",
-                             default = family_type)]
-bg_hhOwnKids[,("family"):=fcase(str_detect(household_type_4,"Female") & 
+#table(bg_hhOwnKids[,family_type],bg_hhOwnKids[,rel_in_house]) #abuot 5k off total
+bg_hhOwnKids[,("rel_in_house"):=fcase(str_detect(family_type,"not")&rel_in_house=="Living alone",
+                                      "With own children under 18",
+                                      default = rel_in_house)]
+rm(tr_hhCouple)
+#fix up a few stragglers and create a better combined family_type
+#table(bg_hhOwnKids[,household_type_4],bg_hhOwnKids[,family_type])# (16 wrongly assigned)
+bg_hhOwnKids[,("family_type"):=fcase(str_detect(household_type_4,"Female") & 
                                   rel_in_house!="Living alone",
                                 "Female householder (not alone)",
                                 str_detect(household_type_4,"Male") &
                                   rel_in_house!="Living alone",
                                 "Male householder (not alone)",
                                 default = family)]
+bg_hhOwnKids[,("family_type_7"):=fcase(str_detect(family,"Nonfamily"),
+                                     family_type,
+                             family_type=="Other family",
+                             household_type_4,
+                             default = family)]
+
 
 #add tenure here, where it should be floating pretty well, still....
 groupname <- "H14" #HOUSEHOLDER TYPE / TENURE
