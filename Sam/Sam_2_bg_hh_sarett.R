@@ -413,12 +413,20 @@ bg_hhOwnKids[,("family_type"):=fcase(str_detect(household_type_4,"Female") &
                                 str_detect(household_type_4,"Male") &
                                   rel_in_house!="Living alone",
                                 "Male householder (not alone)",
-                                default = family)]
-bg_hhOwnKids[,("family_type_7"):=fcase(str_detect(family,"Nonfamily"),
+                                default = family_type)]
+#table(bg_hhOwnKids[,household_type_4],bg_hhOwnKids[,family])#about 1k off
+bg_hhOwnKids[,("family"):=fcase(str_detect(family,"solitary") & 
+                                       household_type_4=="Cohabiting couple household",
+                                     "Nonfamily households",
+                                     default = family)]
+bg_hhOwnKids[,("family_type_7"):=fcase(str_detect(family,"Nonfamily") | 
+                                         family_type=="Married couple family",
                                      family_type,
                              family_type=="Other family",
                              household_type_4,
                              default = family)]
+#table(bg_hhOwnKids[,household_type_4],bg_hhOwnKids[,family_type_7])
+#there's a weird overlap between cohabiting couple household and family households that could be figured out, but maybe just work around...
 
 
 #add tenure here, where it should be floating pretty well, still....
@@ -456,17 +464,21 @@ rm(bg_hhTypeTenure_data_from_census)
 rm(bg_hhTypeTenure_data)
 rm(bg_hhTypeTenure_melted)
 #clean up a little for matching with bg_hhOwnKids
-bg_hhOwnKids[,("family_type2"):=fcase(str_detect(family,"Female") | str_detect(family_type,"Female"),
-                                      "Female householder",
-                                      str_detect(family,"Male") | str_detect(family_type,"Male"),
-                                      "Male householder",
-                                      family_type=="Married couple family",
-                                      "Married couple",
-                                      default = family_type)]
-#test <- table(bg_hhOwnKids[,GEOID],bg_hhOwnKids[,family_type2])==
-#  table(bg_hhOwnKids[,GEOID],bg_hhOwnKids[,family_type2])
-#length(test[test==FALSE])==0
-#this test worked both with and without the fixes for sex, family_type, and family above - so all the switches had been inside GEOID (I think)
+#bg_hhOwnKids f_t6, needs 7, with Family Households broken out to Married and ...?
+#needs to match on family_type...
+bg_hhTypeTenure[,("family_type_7"):=fcase(str_detect(family_type,"Female")&
+                                            no_spouse_sex=="Living alone",
+                                          "Female householder (solitary)",
+                                          str_detect(family_type,"Male")&
+                                            no_spouse_sex=="Living alone",
+                                          "Male householder (solitary)",
+                                          no_spouse_sex=="Female householder, no spouse present",
+                                          "Female householder (not alone)",
+                                          no_spouse_sex=="Male householder, no spouse present",
+                                          "Male householder (not alone)",
+                                          family_type=="Married couple",
+                                          "Married couple family",
+                                          default = family_type)]
 
 #do with hh_over_64 first; keeping bg_hhTypeTenure age_range for end...
 bg_hhTypeTenure[,("bg_TT_match_id"):=
