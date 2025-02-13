@@ -504,7 +504,7 @@ bg_hhTypeTenure[,c("hh_type_3","hh_type_4","rel_in_house","own_kids",
 bg_hhOwnKids[,("match_TT"):=
                   bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TT_match_id)]]
 nrow(bg_hhOwnKids[is.na(match_TT)])#9597807 #within a couple dozen of all hh_over_64 matched
-#then without age
+#then without age 
 bg_hhTypeTenure[is.na(hh_type_3),("bg_TTa_match_id"):=
                   paste0(GEOID,family,family_type_7,sex_match,as.character(100000+sample(1:.N))),
                 by=.(GEOID,family,family_type_7,sex_match)]
@@ -519,6 +519,24 @@ bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_k
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
                bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TTa_match_id)]]
 nrow(bg_hhOwnKids[is.na(match_TT)])#2858433
+#same at tract level
+bg_hhOwnKids[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+bg_hhTypeTenure[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+bg_hhTypeTenure[is.na(hh_type_3),("tr_TTa_match_id"):=
+                  paste0(tract,family,family_type_7,sex_match,as.character(100000+sample(1:.N))),
+                by=.(tract,family,family_type_7,sex_match)]
+bg_hhOwnKids[is.na(match_TT),("tr_TTa_match_id"):=
+               paste0(tract,family_2,family_type_7,sex,as.character(100000+sample(1:.N))),
+             by=.(tract,family_2,family_type_7,sex)]
+bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_kids",
+                                   "sex","same_sex","couple_gender","alone","family_4","family_type_4"):=
+                  bg_hhOwnKids[.SD,c(list(hh_type_3),list(household_type_4),list(rel_in_house),list(own_kids),
+                                     list(sex),list(same_sex),list(couple_gender),list(alone),
+                                     list(family),list(family_type)),on=.(tr_TTa_match_id)]]
+bg_hhOwnKids[is.na(match_TT),("match_TT"):=
+               bg_hhTypeTenure[.SD,list(hh_type_3),on=.(tr_TTa_match_id)]]
+nrow(bg_hhOwnKids[is.na(match_TT)])#2858433
+
 #make a match on family_type - catches "Other family" only, because there's something weird about who is called "family"
 bg_hhOwnKids[,("family_type"):=str_remove_all(family_type,"\\(not alone\\)")] #these don't match anyway???
 bg_hhTypeTenure[is.na(hh_type_3),("bg_TTft_match_id"):=
@@ -534,6 +552,21 @@ bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_k
                                      list(family),list(family_type)),on=.(bg_TTft_match_id)]]
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
                bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TTft_match_id)]]
+nrow(bg_hhOwnKids[is.na(match_TT)])#2858433
+#at tract
+bg_hhTypeTenure[is.na(hh_type_3),("tr_TTft_match_id"):=
+                  paste0(tract,family,family_type,sex_match,as.character(100000+sample(1:.N))),
+                by=.(tract,family,family_type,sex_match)]
+bg_hhOwnKids[is.na(match_TT),("tr_TTft_match_id"):=
+               paste0(tract,family_2,family_type,sex,as.character(100000+sample(1:.N))),
+             by=.(tract,family_2,family_type,sex)]
+bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_kids",
+                                   "sex","same_sex","couple_gender","alone","family_4","family_type_4"):=
+                  bg_hhOwnKids[.SD,c(list(hh_type_3),list(household_type_4),list(rel_in_house),list(own_kids),
+                                     list(sex),list(same_sex),list(couple_gender),list(alone),
+                                     list(family),list(family_type)),on=.(tr_TTft_match_id)]]
+bg_hhOwnKids[is.na(match_TT),("match_TT"):=
+               bg_hhTypeTenure[.SD,list(hh_type_3),on=.(tr_TTft_match_id)]]
 nrow(bg_hhOwnKids[is.na(match_TT)])#2858433
 
 #what happened with sex added? all the "sex not known" have matched already; do once with sex, then get rest of sex not known
@@ -552,6 +585,7 @@ bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_k
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
                bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TTbg_match_id)]]
 nrow(bg_hhOwnKids[is.na(match_TT)])#2288810 (sex not known = 2224433) 
+#at tract?
 #without sex
 bg_hhTypeTenure[is.na(hh_type_3),("bg_TTbg_match_id"):=
                   paste0(GEOID,family,as.character(100000+sample(1:.N))),
@@ -568,7 +602,6 @@ bg_hhOwnKids[is.na(match_TT),("match_TT"):=
                bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TTbg_match_id)]]
 nrow(bg_hhOwnKids[is.na(match_TT)])#91808 
 #table(bg_hhOwnKids[is.na(match_TT),family_2]) - completely backwards with 45904 not matched on each side
-#do county, but with more of the matches again??? or maybe at tract first?
 
 
 #add to P16, then put in relations
