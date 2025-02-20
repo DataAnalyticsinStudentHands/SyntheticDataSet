@@ -84,6 +84,11 @@ tr_nfhh <- as.data.table(lapply(tr_nfhh_melted[,.SD],rep,tr_nfhh_melted[,codom_t
 rm(tr_nfhh_data_from_census)
 rm(tr_nfhh_data)
 rm(tr_nfhh_melted)
+tr_nfhh[,("sex"):=str_remove(sex," householder")] #at this point, sex is just for nonfamily
+tr_hhCouple[,("sex"):=fcase(str_detect(couple_gender,"Male"),"Male",
+                            str_detect(couple_gender,"Female"),"Female",
+                            str_detect(same_sex,"Opposite"),"Male",
+                            default = "Sex not known")]
 
 #just distribute inside of hh_type_3=="All other households", since there are no power set combinations excluded
 tr_hhCouple[hh_type_3=="All other households",("tr_couple_nf_match_id"):=
@@ -104,13 +109,13 @@ tr_nfhh[,("match_nf"):=
 #just to distribute all of them, create a county
 tr_nfhh[,("county"):=substr(GEOID,1,5)]
 tr_hhCouple[,("county"):=substr(GEOID,1,5)]
-tr_hhCouple[hh_type_3=="All other households"&is.na(sex),("county_couple_nf_match_id"):=
+tr_hhCouple[hh_type_3=="All other households"&is.na(alone),("county_couple_nf_match_id"):=
               paste0(county,as.character(100000+sample(1:.N))),
             by=.(county)]
 tr_nfhh[is.na(match_nf),("county_couple_nf_match_id"):=
           paste0(county,as.character(100000+sample(1:.N))),
         by=.(county)]
-tr_hhCouple[hh_type_3=="All other households"&is.na(sex),c("sex","alone","hh_over_64"):=
+tr_hhCouple[hh_type_3=="All other households"&is.na(alone),c("sex","alone","hh_over_64"):=
               tr_nfhh[.SD,c(list(sex),list(alone),list(age_range_2)),on=.(county_couple_nf_match_id)]]
 tr_nfhh[is.na(match_nf),("match_nf"):=
           tr_hhCouple[.SD,list(hh_type_3),on=.(county_couple_nf_match_id)]]
@@ -166,20 +171,18 @@ rm(tr_hhSizeTypeOwnKids_data)
 rm(tr_hhSizeTypeOwnKids_melted)
 
 tr_hhSizeTypeOwnKids[,("alone"):=fcase(hh_size_2=="1-person household","Living alone",
+                                       hh_size_2=="2-or-more-person household" &
+                                         family=="Nonfamily households",
+                                       "Not living alone",
                                        default = "Not living alone")]
 tr_hhSizeTypeOwnKids[,("hh_type_3"):=fcase(family_type=="Married couple family",
                                            "Married couple",
-                                       !str_detect(family_type,"householder") &
-                                         family_type!="Married couple family",
-                                          "Unmarried-partner",
+                                       str_detect(family_type,"householder"), #not alone
+                                          "Unmarried-partner", #11253 short of unmarried partners in couples?
                                        default = "All others")]
 #hh_type_3 does not match with hh_couple, which is the ground truth for hh_type_3; extra "Unmarried-partners" have to move to "All others"
 tr_hhSizeTypeOwnKids[,("family"):=str_replace(family,"holder","holder (solitary)")]
 tr_hhSizeTypeOwnKids[,("family_type"):=str_replace(family_type,"holder","holder (not alone)")]
-tr_hhCouple[,("sex"):=str_remove(sex," householder")] #at this point, sex is just for nonfamily
-tr_hhCouple[,("sex"):=fcase(str_detect(sex,"Male"),"Male",
-                            str_detect(sex,"Female"),"Female",
-                            default = "Sex not known")]
 tr_hhCouple[,("hh_type_3"):=str_remove(hh_type_3," household")]
 tr_hhCouple[,("alone"):=fcase(is.na(alone),
                               "Not living alone",default = alone)]
@@ -196,12 +199,20 @@ tr_hhCouple[,c("hh_size_2","own_kids","family","family_type"):=
                                          list(family),list(family_type)),on=.(tr_STOK_match_id)]]
 tr_hhSizeTypeOwnKids[,("match_STOK"):=
           tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOK_match_id)]]
-#nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#2177003 
-#we have sex for same_sex married couples, but didn't want it to mess with matching on hh_type_3 first time
-tr_hhCouple[,("sex"):=fcase(str_detect(couple_gender,"Male"),"Male",
-                            str_detect(couple_gender,"Female"),"Female",
-                            default = sex)]
-#without hh_type_3 or sex
+#nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#6954885 #not matching sex on married couples and overdeterm on unmarried partners
+#without sex, top pick up the married couples, including same_sex
+tr_hhCouple[is.na(hh_size_2),("tr_STOKta_match_id"):=
+              paste0(GEOID,hh_type_3,alone,as.character(100000+sample(1:.N))),
+            by=.(GEOID,hh_type_3,alone)]
+tr_hhSizeTypeOwnKids[is.na(match_STOK),("tr_STOKta_match_id"):=
+                       paste0(GEOID,hh_type_3,alone,as.character(100000+sample(1:.N))),
+                     by=.(GEOID,hh_type_3,alone)]
+tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","sex"):=
+              tr_hhSizeTypeOwnKids[.SD,c(list(hh_size_2),list(own_kids),
+                                         list(family),list(family_type),list(sex)),on=.(tr_STOKta_match_id)]]
+tr_hhSizeTypeOwnKids[is.na(match_STOK),("match_STOK"):=
+                       tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOKta_match_id)]]
+#nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#205566 #without sex
 tr_hhCouple[is.na(hh_size_2),("tr_STOKt_match_id"):=
               paste0(GEOID,alone,as.character(100000+sample(1:.N))),
             by=.(GEOID,alone)]
@@ -213,7 +224,7 @@ tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","se
                                          list(family),list(family_type),list(sex)),on=.(tr_STOKt_match_id)]]
 tr_hhSizeTypeOwnKids[is.na(match_STOK),("match_STOK"):=
                        tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOKt_match_id)]]
-#nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#10518
+#nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#10484
 #table(tr_hhSizeTypeOwnKids[is.na(match_STOK),hh_type_3],tr_hhSizeTypeOwnKids[is.na(match_STOK),alone]) 
 #just GEOID for those that are left; will make sure it's not last value for individual; keep by county
 tr_hhSizeTypeOwnKids[,("county"):=substr(GEOID,1,5)]
@@ -228,7 +239,7 @@ tr_hhCouple[is.na(hh_size_2),c("hh_size_2","own_kids","family","family_type","se
                                          list(family),list(family_type),list(sex),list(alone)),on=.(tr_STOKts_match_id)]]
 tr_hhSizeTypeOwnKids[is.na(match_STOK),("match_STOK"):=
                        tr_hhCouple[.SD,list(hh_type_3),on=.(tr_STOKts_match_id)]]
-nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#0
+#nrow(tr_hhSizeTypeOwnKids[is.na(match_STOK)])#0
 #test <- table(tr_hhCouple[,GEOID],tr_hhCouple[,own_kids],tr_hhCouple[,family_type],tr_hhCouple[,sex],tr_hhCouple[,alone])-
 #  table(tr_hhSizeTypeOwnKids[,GEOID],tr_hhSizeTypeOwnKids[,own_kids],tr_hhSizeTypeOwnKids[,family_type],
 #        tr_hhSizeTypeOwnKids[,sex],tr_hhSizeTypeOwnKids[,alone])
@@ -295,7 +306,9 @@ rm(bg_hhOwnKids_data_from_census)
 rm(bg_hhOwnKids_melted)
 rm(bg_hhOwnKids_data)
 
-#make a hh_type_4 to capture the possible matches...
+#make a hh_type_4 to capture the possible matches... - redo with more categories, if needed
+#what if make all married couples male hh, then back out for the ones that are same_sex female after fail to match?
+#this is broken!!!!!!
 tr_hhCouple[,("hh_type_4"):=fcase(str_detect(family,"Female") | str_detect(family_type,"Female") |
                                     sex=="Female" & hh_type_3=="All others", #i.e., nonfamily
                                     "Female householder, no spouse or partner present",
@@ -480,9 +493,9 @@ bg_hhTypeTenure[,("family_type_7"):=fcase(str_detect(family_type,"Female")&
                                             no_spouse_sex=="Living alone",
                                           "Male householder (solitary)",
                                           no_spouse_sex=="Female householder, no spouse present",
-                                          "Female householder (nonfamily, not alone)", #b/c it deals with family households in a funny way
+                                          "Female householder (family, no spouse, not alone)", #b/c it deals with family households in a funny way
                                           no_spouse_sex=="Male householder, no spouse present",
-                                          "Male householder (nonfamily, not alone)",
+                                          "Male householder (family, no spouse, not alone)",
                                           family_type=="Married couple",
                                           "Married couple family",
                                           str_detect(family_type,"householder")&
@@ -611,9 +624,10 @@ bg_hhTypeTenure[,("alone"):=fcase(str_detect(family_type_7,"solitary"),"Living a
                                   str_detect(family_type_7,"Married"),"Not living alone",
                                   default = alone)]
 #table(bg_hhTypeTenure[,family_type_4],bg_hhTypeTenure[,family_type_7])
+#seems to be something wrong with hh_type_4
 #family_type_4, hh_type, etc. has a few things that don't match: mostly a couple of dozen some closer to 800 off.
 #some of the other hh_type things are further off; have to think about the strategy for retrieving them... is it codom? or just redo?
-#need to draw out what needs to be saved
+#need to draw out what needs to be saved; what if the ones that don't match are considered clues for secondary elements in the ordering/matching?
 rm(bg_hhOwnKids)
 
 #add to P16, then put in relations
