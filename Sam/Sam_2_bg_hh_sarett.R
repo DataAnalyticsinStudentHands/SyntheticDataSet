@@ -676,28 +676,33 @@ rm(bg_hhTypeRE_melted)
 #  table(bg_hhTypeTenure[,GEOID],bg_hhTypeTenure[,family])
 #length(test[test==FALSE])==0
 #clean up for matching
-bg_hhTypeRE[,("hh_type_5"):=fcase(family_type=="Other family",no_spouse_sex,
-                                  default = family_type)]
-
-#ARE THERE WAYS THAT THE CODOM STUFF WOULD ALLOW US 
+bg_hhTypeRE[,("match_type_5"):=fcase(family_type=="Other family",no_spouse_sex,
+                                     family_type=="Householder not living alone",
+                                     "Not living alone",
+                                     family_type=="Householder living alone",
+                                     "Living alone",
+                                     family_type=="Married couple family",
+                                     "Married couple",
+                                  default = "family_type")]
 
 #move bg_hhTypeTenure over, with all previous
 bg_hhTypeTenure[,("bg_TTre_match_id"):=
-                  paste0(GEOID,family_type,age_range_3,as.character(100000+sample(1:.N))),
-                by=.(GEOID,family_type,age_range_3)]
+                  paste0(GEOID,no_spouse_sex,as.character(100000+sample(1:.N))),
+                by=.(GEOID,no_spouse_sex)]
 bg_hhTypeRE[,("bg_TTre_match_id"):=
-               paste0(GEOID,family_type2,hh_over_64,as.character(100000+sample(1:.N))),
-             by=.(GEOID,family_type2,hh_over_64)]
-bg_hhTypeRE[,c("hh_type_3","hh_type_4","rel_in_house","own_kids",
-                   "sex","same_sex","couple_gender","alone","family","family_type_4"):=
-              bg_hhTypeTenure[.SD,c(list(hh_type_3),list(household_type_4),list(rel_in_house),list(own_kids),
+               paste0(GEOID,match_type_5,as.character(100000+sample(1:.N))),
+             by=.(GEOID,match_type_5)]
+bg_hhTypeRE[,c("rent_own","rel_in_house","own_kids","age_range_3",
+                   "sex","same_sex","couple_gender","alone","family",
+                   "family_type_4","family_type_7"):=
+              bg_hhTypeTenure[.SD,c(list(rent_own),list(rel_in_house),list(own_kids),list(age_range_3),
                                      list(sex),list(same_sex),list(couple_gender),list(alone),
-                                     list(family),list(family_type)),on=.(bg_TTre_match_id)]]
+                                     list(family),list(family_type),list(family_type_7)),on=.(bg_TTre_match_id)]]
 bg_hhTypeTenure[,("match_TTre"):=
-               bg_hhTypeRE[.SD,list(hh_type_3),on=.(bg_TTre_match_id)]]
-nrow(bg_hhTypeTenure[is.na(match_TTre)])#9597807 
+               bg_hhTypeRE[.SD,list(match_type_5),on=.(bg_TTre_match_id)]]
+nrow(bg_hhTypeTenure[is.na(match_TTre)]) #0
 
-#add own_kids with race/eth ordered 
+#add own_kids with race/eth and family_type ordered 
 groupname <- "PCT10" #FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN, race/eth
 geo_type <- "tract"
 api_type <- "dec/dhc"
