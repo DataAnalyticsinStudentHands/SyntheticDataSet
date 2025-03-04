@@ -686,6 +686,9 @@ bg_hhTypeRE[,("match_type_5"):=fcase(family_type=="Other family",no_spouse_sex,
                                   default = "family_type")]
 
 #move bg_hhTypeTenure over, with all previous
+#matches completely with no consideration of race. 
+#This means that the codomains match and it's just a question of ordering inside of them
+#We'll skip this, and then rank race/eth by codomain
 bg_hhTypeTenure[,("bg_TTre_match_id"):=
                   paste0(GEOID,no_spouse_sex,as.character(100000+sample(1:.N))),
                 by=.(GEOID,no_spouse_sex)]
