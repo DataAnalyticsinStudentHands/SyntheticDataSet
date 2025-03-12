@@ -687,25 +687,24 @@ bg_hhTypeRE[,("match_type_5"):=fcase(family_type=="Other family",no_spouse_sex,
 
 #move bg_hhTypeTenure over, with all previous
 #matches completely with no consideration of race. 
-#This means that the codomains match and it's just a question of ordering inside of them
-#We'll skip this, and then rank race/eth by codomain
-bg_hhTypeTenure[,("bg_TTre_match_id"):=
-                  paste0(GEOID,no_spouse_sex,as.character(100000+sample(1:.N))),
-                by=.(GEOID,no_spouse_sex)]
-bg_hhTypeRE[,("bg_TTre_match_id"):=
-               paste0(GEOID,match_type_5,as.character(100000+sample(1:.N))),
-             by=.(GEOID,match_type_5)]
-bg_hhTypeRE[,c("rent_own","rel_in_house","own_kids","age_range_3",
-                   "sex","same_sex","couple_gender","alone","family",
-                   "family_type_4","family_type_7"):=
-              bg_hhTypeTenure[.SD,c(list(rent_own),list(rel_in_house),list(own_kids),list(age_range_3),
-                                     list(sex),list(same_sex),list(couple_gender),list(alone),
-                                     list(family),list(family_type),list(family_type_7)),on=.(bg_TTre_match_id)]]
-bg_hhTypeTenure[,("match_TTre"):=
-               bg_hhTypeRE[.SD,list(match_type_5),on=.(bg_TTre_match_id)]]
-nrow(bg_hhTypeTenure[is.na(match_TTre)]) #0
+#This means that the codomains match and it's just a question of ordering inside of them; but skip for now, to make a more coherent match, below
+#bg_hhTypeTenure[,("bg_TTre_match_id"):=
+#                  paste0(GEOID,no_spouse_sex,as.character(100000+sample(1:.N))),
+#                by=.(GEOID,no_spouse_sex)]
+#bg_hhTypeRE[,("bg_TTre_match_id"):=
+#               paste0(GEOID,match_type_5,as.character(100000+sample(1:.N))),
+#             by=.(GEOID,match_type_5)]
+#bg_hhTypeRE[,c("rent_own","rel_in_house","own_kids","age_range_3",
+#                   "sex","same_sex","couple_gender","alone","family",
+#                   "family_type_4","family_type_7"):=
+#              bg_hhTypeTenure[.SD,c(list(rent_own),list(rel_in_house),list(own_kids),list(age_range_3),
+#                                     list(sex),list(same_sex),list(couple_gender),list(alone),
+#                                     list(family),list(family_type),list(family_type_7)),on=.(bg_TTre_match_id)]]
+#bg_hhTypeTenure[,("match_TTre"):=
+#               bg_hhTypeRE[.SD,list(match_type_5),on=.(bg_TTre_match_id)]]
+#nrow(bg_hhTypeTenure[is.na(match_TTre)]) #0
 
-#add own_kids with race/eth and family_type ordered 
+#get own_kids with race/eth and family_type; will create a codomain 
 groupname <- "PCT10" #FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN, race/eth
 geo_type <- "tract"
 api_type <- "dec/dhc"
@@ -1228,7 +1227,7 @@ bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
               bg_hhRel[.SD,list(re_code),on=.(bg_RTF_match_id)]]
 
 
-#match on relations for rest of bg
+#match all the way back up to bg_hhTypeTenure
 
 
 #match rest of H to the Hispanic or Latino, then bg will pull out the ones that don't match
