@@ -1176,7 +1176,7 @@ bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
 
 #Leaving 66,955 unfinished, till we have some more paths to match
 
-
+#broken, below here...
 #order bg_hhRel then join
 #family_type nudges for matches; order by kid_age_2...
 #because only families, tr_hhTypeOwnKidsR[,family_2] matches with bg_hhRel[,family_type]
