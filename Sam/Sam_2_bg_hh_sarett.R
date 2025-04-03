@@ -1030,13 +1030,20 @@ tr_hhRelHnotP <- tr_hhRelH[is.na(re_code_HvL)]
 #will finish matching, below, after getting bg distribution by Q-V
 #annoyingly, bg by household don't match fro bg_hhTypeRE (all households) and bg_hhRel (everyone in hh, including "Householders")
 #point is to get a directional match and then make sure final is taken from exact matches where possible; hh is really off!!
-#test_hh <- table(bg_hhRel[role=="Householder",GEOID])-table(bg_hhTypeRE[,GEOID])
-#sum(test_hh) #117
-#sum(abs(test_hh)) #207091
-#mean(abs(test_hh)) #11.1112
-#max(abs(test_hh)) #107
-#will need tract on bg_hhRel
+test_hh <- table(bg_hhRel[role=="Householder",GEOID])-table(bg_hhTypeRE[,GEOID])
+sum(test_hh) #117
+sum(abs(test_hh)) #207091
+mean(abs(test_hh)) #11.1112
+max(abs(test_hh)) #107
+#tract is not perfect, but fewer problems... still need an overall approach; doing first 100000 because they don't have same tracts (non-conformable arrays)
+#will need tract on bg_hhRel in any case, so test here
 bg_hhRel[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+#test_hhT <- table(bg_hhTypeRE[,tract][1:100000])-table(bg_hhRel[role=="Householder",tract][1:100000])
+#sum(test_hhT) #0
+#sum(abs(test_hhT)) #432
+#mean(abs(test_hhT)) #6.857143
+#max(abs(test_hhT)) #88
+
 
 
 #match the HvL, not P, to the bg_hhRel (i.e., Q-V); will then match it within bg_hhTypeRE, then match rest (after getting all codomains, will sort and match)
@@ -1137,7 +1144,7 @@ bg_hhRel[role=="Householder"&is.na(copath_re_code),c("copath_re_code","copath_ra
                              list(no_spouse_sex),list(codom_hhTypeRE)),on=.(bg_RTA_match_id)]]
 bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
               bg_hhRel[.SD,list(copath_re_code),on=.(bg_RTA_match_id)]]
-#nrow(bg_hhRel[is.na(copath_re_code)]) #194975, less than two percent, but close to total diff. by bg for hh (207091)
+#nrow(bg_hhTypeRE[is.na(matched_rel)]) #194858, less than two percent, but close to total diff. by bg for hh (207091)
 #need all of bg_hhTypeRE info to move over, but after getting the tract Relative data, so it lines up with households
 
 #test_bg_re_code <- table(bg_hhRel[,copath_re_code],bg_hhRel[,GEOID])-table(bg_hhTypeRE[,re_code],bg_hhTypeRE[,GEOID])
@@ -1176,7 +1183,16 @@ bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
 
 #Leaving 66,955 unfinished, till we have some more paths to match
 
+rm(tr_hhRelH)
+rm(tr_hhRelHnotP)
+rm(tr_hhRelI)
+rm(tr_hhRelR)
+rm(tr_hhRelRE)
+
 #broken, below here...
+
+
+
 #order bg_hhRel then join
 #family_type nudges for matches; order by kid_age_2...
 #because only families, tr_hhTypeOwnKidsR[,family_2] matches with bg_hhRel[,family_type]
@@ -1196,7 +1212,11 @@ bg_hhRel[role=="Householder",c("copath_re_code","copath_race","family","family_t
 tr_hhTypeOwnKidsR[,("matched_rel"):=
               bg_hhRel[.SD,list(copath_re_code),on=.(tr_TOK_match_id)]]
 
-
+rm(tr_hhTypeOwnKidsH)
+rm(tr_hhTypeOwnKidsI)
+rm(tr_hhTypeOwnKidsR)
+rm(tr_hhTypeOwnKidsHnotP)
+rm(tr_hhTypeOwnKidsRE)
 
 #then add P20 to bg_hhRel?
 
@@ -1228,6 +1248,22 @@ bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
 
 
 #match all the way back up to bg_hhTypeTenure
+#bg_hhTypeTenure[,("bg_TTre_match_id"):=
+#                  paste0(GEOID,no_spouse_sex,as.character(100000+sample(1:.N))),
+#                by=.(GEOID,no_spouse_sex)]
+#bg_hhTypeRE[,("bg_TTre_match_id"):=
+#               paste0(GEOID,match_type_5,as.character(100000+sample(1:.N))),
+#             by=.(GEOID,match_type_5)]
+#bg_hhTypeRE[,c("rent_own","rel_in_house","own_kids","age_range_3",
+#                   "sex","same_sex","couple_gender","alone","family",
+#                   "family_type_4","family_type_7"):=
+#              bg_hhTypeTenure[.SD,c(list(rent_own),list(rel_in_house),list(own_kids),list(age_range_3),
+#                                     list(sex),list(same_sex),list(couple_gender),list(alone),
+#                                     list(family),list(family_type),list(family_type_7)),on=.(bg_TTre_match_id)]]
+#bg_hhTypeTenure[,("match_TTre"):=
+#               bg_hhTypeRE[.SD,list(match_type_5),on=.(bg_TTre_match_id)]]
+#nrow(bg_hhTypeTenure[is.na(match_TTre)])
+
 
 
 #match rest of H to the Hispanic or Latino, then bg will pull out the ones that don't match
@@ -1326,22 +1362,22 @@ tr_hhSARE[,("hh_age_range_9"):=fcase(age_range_23=="15 to 17 years" |
                                        age_range_23=="18 and 19 years" |
                                        age_range_23=="20 years" |
                                        age_range_23=="21 years" |
-                                       age_range_23=="22 to 24 years","Householder 15 to 24 years",
+                                       age_range_23=="22 to 24 years","15 to 24 years",
                                      age_range_23=="25 to 29 years" |
-                                       age_range_23=="30 to 34 years","Householder 25 to 34 years",
+                                       age_range_23=="30 to 34 years","25 to 34 years",
                                      age_range_23=="35 to 39 years" |
-                                       age_range_23=="40 to 44 years","Householder 35 to 44 years",
+                                       age_range_23=="40 to 44 years","35 to 44 years",
                                      age_range_23=="45 to 49 years" |
-                                       age_range_23=="50 to 54 years","Householder 45 to 54 years",
-                                     age_range_23=="55 to 59 years","Householder 55 to 59 years",
+                                       age_range_23=="50 to 54 years","45 to 54 years",
+                                     age_range_23=="55 to 59 years","55 to 59 years",
                                      age_range_23=="60 and 61 years" |
-                                       age_range_23=="62 to 64 years","Householder 60 to 64 years",
+                                       age_range_23=="62 to 64 years","60 to 64 years",
                                      age_range_23=="65 and 66 years" |
                                        age_range_23=="67 to 69 years" |
-                                       age_range_23=="70 to 74 years","Householder 65 to 74 years",
+                                       age_range_23=="70 to 74 years","65 to 74 years",
                                      age_range_23=="75 to 79 years" |
-                                       age_range_23=="80 to 84 years","Householder 75 to 84 years",
-                                     age_range_23=="85 years and over","Householder 85 years and over",default="not householder")]
+                                       age_range_23=="80 to 84 years","75 to 84 years",
+                                     age_range_23=="85 years and over","85 years and over",default="not householder")]
 #why doesn't it have same number total as tr_hhRelRE? (check for whether it's just GQ...)still 99921 different for households (no GQ)
 #should we bias 15-24 towards older for matching on hh???
 #tr_hhSAR <- tr_hhSARE[!re_code %in% c("H","I")]
