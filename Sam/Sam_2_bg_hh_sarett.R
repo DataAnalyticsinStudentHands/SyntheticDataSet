@@ -1419,7 +1419,7 @@ rm(tr_hhRel18_melted)
 rm(tr_hhRel18_data)
 
 
-
+#do through the multi-gen as a group, then add to above
 
 groupname <- "P19" #HOUSEHOLDS BY PRESENCE OF PEOPLE 65 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
 geo_type <- "block_group"
