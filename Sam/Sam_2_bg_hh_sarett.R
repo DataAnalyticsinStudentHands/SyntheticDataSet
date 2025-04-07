@@ -1578,7 +1578,7 @@ rm(tr_hhMultiGenRE_melted)
 rm(tr_hhMultiGenRE)
 
 
-#there's a general strategy of counting out new .Ns and reordering that we could deploy...
+#Put tenure re_code_14 and size_tenure together, then order on re_code_14 for multi_gen with size decreasing by order
 
 #then H4 to start assigning the full re_code_14
 groupname <- "H4" #Tenure - by race and mortgage
@@ -1616,7 +1616,6 @@ rm(bg_hhTenureRE_data)
 rm(bg_hhTenureRE_melted)
 #tenure_1 and tenure are the same - weirdness about how they set up the table
 bg_hhTenureRE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")] #checked with HCT1, which has less info but same references
-
 
 
 groupname <- "H12" #TENURE BY HOUSEHOLD SIZE and race/eth
