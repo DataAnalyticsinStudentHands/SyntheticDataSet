@@ -817,7 +817,7 @@ bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households",("kid_age_2"):=
               tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match_id)]]
 tr_hhTypeOwnKidsR[!is.na(copath_re_code),("match_bg"):=
                         bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsHnotP_match_id)]]
-nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)&is.na(match_bg)]) #151690, which is better than one might expect given that the source of own_kids (P20) didn't have RE
+nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)]) #151690, which is better than one might expect given that the source of own_kids (P20) didn't have RE
 #distribute again, writing over the own_kids on bg_hhTypeRE
 tr_hhTypeOwnKidsR[!is.na(copath_re_code)&is.na(match_bg),("tr_ownkidsHnotP_match2_id"):=
                         paste0(GEOID,family_type_7,as.character(100000+sample(1:.N))),
@@ -829,7 +829,10 @@ bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households"&is.na(kid_age_2),(
               tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match2_id)]]
 tr_hhTypeOwnKidsR[!is.na(copath_re_code)&is.na(match_bg),("match_bg"):=
                         bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsHnotP_match2_id)]]
-nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)&is.na(match_bg)])==0
+nrow(tr_hhTypeOwnKidsR[is.na(match_bg)])-nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)])
+
+#IT'S READING MATCH_BG AS AN DATAFRAME; REDO THAT PART, FINISH MATCHING OWN KIDS OVER
+
 
 #stopped here, need to work through with rest for matching by re_code (need to create an copath_re_code for re_code_14 match)
 
