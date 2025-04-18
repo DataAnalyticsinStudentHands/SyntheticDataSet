@@ -807,6 +807,7 @@ nrow(tr_hhTypeOwnKidsHnotP[is.na(match_bg)])==0
 rm(tr_hhTypeOwnKidsHnotP)
 
 #distribute for I and P
+#nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)])==nrow(bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households"])
 tr_hhTypeOwnKidsR[!is.na(copath_re_code),("tr_ownkidsHnotP_match_id"):=
                         paste0(GEOID,family_type_7,own_kids,as.character(100000+sample(1:.N))),
                       by=.(GEOID,family_type_7,own_kids)]
@@ -815,9 +816,9 @@ bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households",("tr_ownkidsHnotP_
             by=.(tract,family_type_7,own_kids)]
 bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households",("kid_age_2"):=
               tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match_id)]]
-tr_hhTypeOwnKidsR[!is.na(copath_re_code),("match_bg"):=
-                        bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsHnotP_match_id)]]
-nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)]) #151690, which is better than one might expect given that the source of own_kids (P20) didn't have RE
+tr_hhTypeOwnKidsR[!is.na(copath_re_code),("match_bgIP"):=
+                        bg_hhTypeRE[.SD,list(re_code),on=.(tr_ownkidsHnotP_match_id)]]
+#nrow(tr_hhTypeOwnKidsR[!is.na(bg1)]) #151690, which is better than one might expect given that the source of own_kids (P20) didn't have RE
 #distribute again, writing over the own_kids on bg_hhTypeRE
 tr_hhTypeOwnKidsR[!is.na(copath_re_code)&is.na(match_bg),("tr_ownkidsHnotP_match2_id"):=
                         paste0(GEOID,family_type_7,as.character(100000+sample(1:.N))),
