@@ -780,26 +780,26 @@ tr_hhTypeOwnKidsHnotP <- tr_hhTypeOwnKidsH[is.na(copath_re_code)]
 #matches total for Q-V family households in bg_hhTypeRE
 rm(tr_hhTypeOwnKidsH)
 
-#add HnotP to bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&family=="Family households"]
+#add HnotP to bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V") #need to check that family_type_7 replaces: &family=="Family households"]
 tr_hhTypeOwnKidsHnotP[,("tr_ownkidsHnotP_match_id"):=
                         paste0(GEOID,family_type_7,own_kids,as.character(100000+sample(1:.N))),
                       by=.(GEOID,family_type_7,own_kids)]
-bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&family=="Family households",("tr_ownkidsHnotP_match_id"):=
+bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V"),("tr_ownkidsHnotP_match_id"):=
               paste0(tract,family_type_7,own_kids,as.character(100000+sample(1:.N))),
             by=.(tract,family_type_7,own_kids)]
-bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&family=="Family households",("kid_age_2"):=
+bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V"),("kid_age_2"):=
               tr_hhTypeOwnKidsHnotP[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match_id)]]
 tr_hhTypeOwnKidsHnotP[,("match_bg"):=
                         bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsHnotP_match_id)]]
-nrow(tr_hhTypeOwnKidsHnotP[is.na(match_bg)]) #151690, which is better than one might expect given that the source of own_kids (P20) didn't have RE
+nrow(tr_hhTypeOwnKidsHnotP[is.na(match_bg)]) #151348, which is better than one might expect given that the source of own_kids (P20) didn't have RE
 #distribute again, writing over the own_kids on bg_hhTypeRE
 tr_hhTypeOwnKidsHnotP[is.na(match_bg),("tr_ownkidsHnotP_match2_id"):=
                         paste0(GEOID,family_type_7,as.character(100000+sample(1:.N))),
                       by=.(GEOID,family_type_7)]
-bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&family=="Family households"&is.na(kid_age_2),("tr_ownkidsHnotP_match2_id"):=
+bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&is.na(kid_age_2),("tr_ownkidsHnotP_match2_id"):=
               paste0(tract,family_type_7,as.character(100000+sample(1:.N))),
             by=.(tract,family_type_7)]
-bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&family=="Family households"&is.na(kid_age_2),("kid_age_2"):=
+bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&is.na(kid_age_2),("kid_age_2"):=
               tr_hhTypeOwnKidsHnotP[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match2_id)]]
 tr_hhTypeOwnKidsHnotP[is.na(match_bg),("match_bg"):=
                         bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsHnotP_match2_id)]]
@@ -808,36 +808,156 @@ rm(tr_hhTypeOwnKidsHnotP)
 
 #distribute for I and P
 #nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)])==nrow(bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households"])
-tr_hhTypeOwnKidsR[!is.na(copath_re_code),("tr_ownkidsHnotP_match_id"):=
+tr_hhTypeOwnKidsR[re_code=="A",("tr_ownkidsIP_match_id"):=
                         paste0(GEOID,family_type_7,own_kids,as.character(100000+sample(1:.N))),
                       by=.(GEOID,family_type_7,own_kids)]
-bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households",("tr_ownkidsHnotP_match_id"):=
+bg_hhTypeRE[re_code%in%c("I","P"),("tr_ownkidsIP_match_id"):=
               paste0(tract,family_type_7,own_kids,as.character(100000+sample(1:.N))),
             by=.(tract,family_type_7,own_kids)]
-bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households",("kid_age_2"):=
-              tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match_id)]]
-tr_hhTypeOwnKidsR[!is.na(copath_re_code),("match_bgIP"):=
-                        bg_hhTypeRE[.SD,list(re_code),on=.(tr_ownkidsHnotP_match_id)]]
-#nrow(tr_hhTypeOwnKidsR[!is.na(bg1)]) #151690, which is better than one might expect given that the source of own_kids (P20) didn't have RE
+bg_hhTypeRE[re_code%in%c("I","P"),("kid_age_2"):=
+              tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsIP_match_id)]]
+tr_hhTypeOwnKidsR[re_code=="A",("match_bgIP"):=
+                        bg_hhTypeRE[.SD,list(re_code),on=.(tr_ownkidsIP_match_id)]]
+nrow(tr_hhTypeOwnKidsR[re_code=="A"])-nrow(tr_hhTypeOwnKidsR[!is.na(match_bgIP)]) #170226, which is better than one might expect given that the source of own_kids (P20) didn't have RE
 #distribute again, writing over the own_kids on bg_hhTypeRE
-tr_hhTypeOwnKidsR[!is.na(copath_re_code)&is.na(match_bg),("tr_ownkidsHnotP_match2_id"):=
+tr_hhTypeOwnKidsR[re_code=="A"&is.na(match_bgIP),("tr_ownkidsIP_match2_id"):=
                         paste0(GEOID,family_type_7,as.character(100000+sample(1:.N))),
                       by=.(GEOID,family_type_7)]
-bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households"&is.na(kid_age_2),("tr_ownkidsHnotP_match2_id"):=
+bg_hhTypeRE[re_code%in%c("I","P")&is.na(kid_age_2),("tr_ownkidsIP_match2_id"):=
               paste0(tract,family_type_7,as.character(100000+sample(1:.N))),
             by=.(tract,family_type_7)]
-bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households"&is.na(kid_age_2),("kid_age_2"):=
-              tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match2_id)]]
-tr_hhTypeOwnKidsR[!is.na(copath_re_code)&is.na(match_bg),("match_bg"):=
-                        bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsHnotP_match2_id)]]
-nrow(tr_hhTypeOwnKidsR[is.na(match_bg)])-nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)])
+bg_hhTypeRE[re_code%in%c("I","P")&is.na(kid_age_2),("kid_age_2"):=
+              tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsIP_match2_id)]]
+tr_hhTypeOwnKidsR[re_code=="A"&is.na(match_bgIP),("match_bgIP"):=
+                        bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsIP_match2_id)]]
+nrow(tr_hhTypeOwnKidsR[re_code=="A"])-nrow(tr_hhTypeOwnKidsR[!is.na(match_bgIP)]) 
+rm(tr_hhTypeOwnKidsR)
+rm(tr_hhTypeOwnKidsRE)
 
-#IT'S READING MATCH_BG AS AN DATAFRAME; REDO THAT PART, FINISH MATCHING OWN KIDS OVER
+groupname <- "H13" #HOUSEHOLDER AGE / TENURE / RACE / ETHx2
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_hhTenureARE_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+#tract level with same groupname does not have more categories
+if(names(bg_hhTenureARE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("rent_own","age_range_9")
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(bg_hhTenureARE_data_from_census[!is.na(label_2) & concept!="TENURE BY AGE OF HOUSEHOLDER",name])) #test with:  & !str_detect(concept,"HISPANIC")
+  #test_total_pop <- tests_download_data(bg_hhTenureARE_data_from_census,label_c1,row_c1,state=state)
+  #do this with HvL, to divide later, since don't have whole population by both
+  bg_hhTenureARE_data <- relabel(bg_hhTenureARE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhTenureARE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhTenureARE_data <- bg_hhTenureARE_data_from_census
+}
+bg_hhTenureARE_data[,("re_code") := substr(name,4,4)][
+  ,("race") := str_replace(concept,"TENURE BY AGE OF HOUSEHOLDER \\(","")][
+    ,("race") := str_replace(race,"\\)","")]
 
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhTenureARE_data[,.SD,.SDcols = startsWith(names(bg_hhTenureARE_data),state)])
+bg_hhTenureARE_melted <- melt(bg_hhTenureARE_data, id.vars = c("re_code","race","rent_own","age_range_9"), measure.vars = Geoids,
+                              value.name = "codom_hhAge", variable.name = "GEOID")
+bg_hhTenureARE <- as.data.table(lapply(bg_hhTenureARE_melted[,.SD],rep,bg_hhTenureARE_melted[,codom_hhAge]))
+rm(bg_hhTenureARE_data)
+rm(bg_hhTenureARE_data_from_census)
+rm(bg_hhTenureARE_melted)
+bg_hhTenureARE[,("age_range_3"):=fcase(as.numeric(substr(age_range_9,13,14))<35,
+                                       "Householder 15 to 34 years",
+                                       as.numeric(substr(age_range_9,13,14))>34&as.numeric(substr(age_range_9,13,14))<65,
+                                       "Householder 35 to 64 years",
+                                       default = "Householder 65 years and over")]
+bg_hhTenureARE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+bg_hhTenureAR <- bg_hhTenureARE[!re_code %in% c("H","I")]
+bg_hhTenureAE <- bg_hhTenureARE[re_code %in% c("H","I")]
+rm(bg_hhTenureARE)
 
-#stopped here, need to work through with rest for matching by re_code (need to create an copath_re_code for re_code_14 match)
+#move I over to R
+bg_hhTenureAR[re_code=="A",("bg_hhTenureRI_match_id"):=
+                    paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,rent_own,age_range_9)]
+bg_hhTenureAE[re_code=="I",("bg_hhTenureRI_match_id"):=
+              paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
+            by=.(GEOID,rent_own,age_range_9)]
+bg_hhTenureAR[re_code=="A",("re_code_14"):=
+                bg_hhTenureAE[.SD,list(re_code),on=.(bg_hhTenureRI_match_id)]]
+bg_hhTenureAE[re_code=="I",("match_bgTIR"):=
+                bg_hhTenureAR[.SD,list(re_code),on=.(bg_hhTenureRI_match_id)]]
+nrow(bg_hhTenureAE[re_code=="I"])-nrow(bg_hhTenureAE[!is.na(match_bgTIR)])==0
+#maybe not do that step, since it is easier to make all the HvL on bg_hhType
+bg_hhTenureAR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_14),"P",default = re_code_14)]
+#have to still distribute H at end
+bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),TRUE,default = FALSE)]
 
-
+#move P out of H
+bg_hhTenureAR[re_code_14=="P",("bg_hhTenureRH_match_id"):=
+                paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
+              by=.(GEOID,rent_own,age_range_9)]
+bg_hhTenureAE[re_code=="H",("bg_hhTenureRH_match_id"):=
+                paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
+              by=.(GEOID,rent_own,age_range_9)]
+bg_hhTenureAR[re_code_14=="P",("HvL"):=
+                bg_hhTenureAE[.SD,list(re_code),on=.(bg_hhTenureRH_match_id)]]
+bg_hhTenureAE[re_code=="H",("match_bgTH"):=
+                bg_hhTenureAR[.SD,list(re_code),on=.(bg_hhTenureRH_match_id)]]
+nrow(bg_hhTenureAR[re_code_14=="P"])-nrow(bg_hhTenureAE[!is.na(match_bgTH)])==0
+#move over to bg_hhTypeRE, then tract
+bg_hhTenureAR[,("bg_hhTTIP_match_id"):=
+                paste0(GEOID,re_code_14,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+              by=.(GEOID,re_code_14,rent_own,age_range_3)]
+bg_hhTypeRE[,("bg_hhTTIP_match_id"):=
+                paste0(GEOID,re_code,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+              by=.(GEOID,re_code,rent_own,age_range_3)]
+bg_hhTenureAR[,("match_bgIP"):=
+                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTIP_match_id)]]
+bg_hhTypeRE[,c("re_code_7","age_range_9"):=
+                bg_hhTenureAR[.SD,c(list(re_code),list(age_range_9)),on=.(bg_hhTTIP_match_id)]]
+nrow(bg_hhTenureAR[!is.na(re_code_14)])-nrow(bg_hhTypeRE[!is.na(re_code_7)])
+#almost 10% don't match; have to think about what to write over
+#table(bg_hhTenureAR[is.na(match_bgIP),age_range_3],bg_hhTenureAR[is.na(match_bgIP),re_code_14]) #seems worse on 65 over and I
+#tract
+bg_hhTenureAR[is.na(match_bgIP),("tr_hhTTIP_match_id"):=
+                paste0(tract,re_code_14,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+              by=.(tract,re_code_14,rent_own,age_range_3)]
+bg_hhTypeRE[is.na(re_code_7),("tr_hhTTIP_match_id"):=
+              paste0(tract,re_code,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+            by=.(tract,re_code,rent_own,age_range_3)]
+bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
+                bg_hhTypeRE[.SD,list(re_code),on=.(tr_hhTTIP_match_id)]]
+bg_hhTypeRE[is.na(re_code_7),c("re_code_7","age_range_9"):=
+              bg_hhTenureAR[.SD,c(list(re_code),list(age_range_9)),on=.(tr_hhTTIP_match_id)]]
+nrow(bg_hhTenureAR[!is.na(re_code_14)])-nrow(bg_hhTypeRE[!is.na(re_code_7)]) #389008, only fraction of the 483254 matched at tract?
+#maybe do rest, then match on tract before writing over anything?
+#do with bg_hhTenureAE on HvL on TypeRE
+bg_hhTenureAE[is.na(match_bgTH),("bg_hhTTH_match_id"):=
+                paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+              by=.(GEOID,rent_own,age_range_3)]
+bg_hhTypeRE[HvL==TRUE,("bg_hhTTH_match_id"):=
+              paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+            by=.(GEOID,rent_own,age_range_3)]
+bg_hhTenureAE[is.na(match_bgTH),("match_bgTH"):=
+                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTH_match_id)]]
+bg_hhTypeRE[HvL==TRUE,c("HvL_match","age_range_9"):=
+              bg_hhTenureAE[.SD,c(list(re_code),list(age_range_9)),on=.(bg_hhTTH_match_id)]]
+nrow(bg_hhTypeRE[HvL==TRUE])-nrow(bg_hhTenureAE[!is.na(match_bgTH)&re_code!="I"])
+#tract
+bg_hhTenureAE[is.na(match_bgTH),("tr_hhTTH_match_id"):=
+                paste0(tract,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+              by=.(tract,rent_own,age_range_3)]
+bg_hhTypeRE[HvL==TRUE&is.na(age_range_9),("tr_hhTTH_match_id"):=
+              paste0(tract,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+            by=.(tract,rent_own,age_range_3)]
+bg_hhTenureAE[is.na(match_bgTH),("match_bgTH"):=
+                bg_hhTypeRE[.SD,list(re_code),on=.(tr_hhTTH_match_id)]]
+bg_hhTypeRE[HvL==TRUE&is.na(age_range_9),c("HvL_match","age_range_9"):=
+              bg_hhTenureAE[.SD,c(list(re_code),list(age_range_9)),on=.(tr_hhTTH_match_id)]]
+nrow(bg_hhTypeRE[HvL==TRUE])-nrow(bg_hhTenureAE[!is.na(match_bgTH)&re_code!="I"]) #373368
 
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ
@@ -1347,40 +1467,7 @@ bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
 
 #nrow(bg_hhTypeRE)-nrow(tr_hhRelRE[re_code%in%c(LETTERS[1:7])&role_7=="Householder"]) 117 different??? - see above
 
-groupname <- "H13" #HOUSEHOLDER AGE / TENURE / RACE / ETHx2
-geo_type <- "block_group"
-api_type <- "dec/dhc"
-path_suff <- "est"
-bg_hhTenureARE_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-#tract level with same groupname does not have more categories
-if(names(bg_hhTenureARE_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("rent_own","age_range_9")
-  #row_c1 determined by hand 
-  row_c1 <- c(unique(bg_hhTenureARE_data_from_census[!is.na(label_2) & concept!="TENURE BY AGE OF HOUSEHOLDER",name])) #test with:  & !str_detect(concept,"HISPANIC")
-  #test_total_pop <- tests_download_data(bg_hhTenureARE_data_from_census,label_c1,row_c1,state=state)
-  #do this with HvL, to divide later, since don't have whole population by both
-  bg_hhTenureARE_data <- relabel(bg_hhTenureARE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bg_hhTenureARE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  bg_hhTenureARE_data <- bg_hhTenureARE_data_from_census
-}
-bg_hhTenureARE_data[,("re_code") := substr(name,4,4)][
-  ,("race") := str_replace(concept,"TENURE BY AGE OF HOUSEHOLDER \\(","")][
-    ,("race") := str_replace(race,"\\)","")]
 
-#reshape a bit and make list of individuals
-Geoids <- colnames(bg_hhTenureARE_data[,.SD,.SDcols = startsWith(names(bg_hhTenureARE_data),state)])
-bg_hhTenureARE_melted <- melt(bg_hhTenureARE_data, id.vars = c("re_code","race","rent_own","age_range_9"), measure.vars = Geoids,
-                        value.name = "codom_hhAge", variable.name = "GEOID")
-bg_hhTenureARE <- as.data.table(lapply(bg_hhTenureARE_melted[,.SD],rep,bg_hhTenureARE_melted[,codom_hhAge]))
-#bg_hhTenureARER <- bg_hhTenureARE[!re_code %in% c("H","I")]
-#bg_hhTenureAREE <- bg_hhTenureARE[re_code %in% c("H","I")]
-#put ethnicity on all
 
 #tract level for PCT13 - more ages
 groupname <- "PCT13" # SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS (Race/eth x 2) #total pop - group quarters
