@@ -878,6 +878,7 @@ bg_hhTenureAR <- bg_hhTenureARE[!re_code %in% c("H","I")]
 bg_hhTenureAE <- bg_hhTenureARE[re_code %in% c("H","I")]
 rm(bg_hhTenureARE)
 
+#NEED TO RETHINK A BIT OF BELOW!!!
 #move I over to R
 bg_hhTenureAR[re_code=="A",("bg_hhTenureRI_match_id"):=
                     paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
@@ -893,21 +894,55 @@ nrow(bg_hhTenureAE[re_code=="I"])-nrow(bg_hhTenureAE[!is.na(match_bgTIR)])==0
 #maybe not do that step, since it is easier to make all the HvL on bg_hhType
 bg_hhTenureAR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_14),"P",default = re_code_14)]
 #have to still distribute H at end
-bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),TRUE,default = FALSE)]
+bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),"H",default = "not known")]
+bg_hhTypeRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
+                                  re_code%in%c("J","Q"),"B",
+                                  re_code%in%c("K","R"),"C",
+                                  re_code%in%c("L","S"),"D",
+                                  re_code%in%c("M","T"),"E",
+                                  re_code%in%c("N","U"),"F",
+                                  re_code%in%c("O","V"),"G",
+                                  default = "Not given")]
 
 #move P out of H
-bg_hhTenureAR[re_code_14=="P",("bg_hhTenureRH_match_id"):=
+bg_hhTenureAR[re_code_14=="P",("bg_hhTenureRP_match_id"):=
                 paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
               by=.(GEOID,rent_own,age_range_9)]
-bg_hhTenureAE[re_code=="H",("bg_hhTenureRH_match_id"):=
+bg_hhTenureAE[re_code=="H",("bg_hhTenureRP_match_id"):=
                 paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
               by=.(GEOID,rent_own,age_range_9)]
 bg_hhTenureAR[re_code_14=="P",("HvL"):=
-                bg_hhTenureAE[.SD,list(re_code),on=.(bg_hhTenureRH_match_id)]]
+                bg_hhTenureAE[.SD,list(re_code),on=.(bg_hhTenureRP_match_id)]]
 bg_hhTenureAE[re_code=="H",("match_bgTH"):=
-                bg_hhTenureAR[.SD,list(re_code),on=.(bg_hhTenureRH_match_id)]]
+                bg_hhTenureAR[.SD,list(re_code),on=.(bg_hhTenureRP_match_id)]]
 nrow(bg_hhTenureAR[re_code_14=="P"])-nrow(bg_hhTenureAE[!is.na(match_bgTH)])==0
-#move over to bg_hhTypeRE, then tract
+#move over rest of H to Q, R, S, T, U, V
+bg_hhTenureAR[re_code!="A",("bg_hhTenureRH_match_id"):=
+                paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
+              by=.(GEOID,rent_own,age_range_9)]
+bg_hhTenureAE[re_code=="H" & is.na(match_bgTH),("bg_hhTenureRH_match_id"):=
+                paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
+              by=.(GEOID,rent_own,age_range_9)]
+bg_hhTenureAR[re_code!="A",("HvL"):=
+                bg_hhTenureAE[.SD,list(re_code),on=.(bg_hhTenureRH_match_id)]]
+bg_hhTenureAE[re_code=="H" & is.na(match_bgTH),("match_bgTH"):=
+                bg_hhTenureAR[.SD,list(re_code),on=.(bg_hhTenureRH_match_id)]]
+bg_hhTenureAR[,("re_code_14"):=fcase(!is.na(HvL)&re_code=="B","Q",
+                                     !is.na(HvL)&re_code=="C","R",
+                                     !is.na(HvL)&re_code=="D","S",
+                                     !is.na(HvL)&re_code=="E","T",
+                                     !is.na(HvL)&re_code=="F","U",
+                                     !is.na(HvL)&re_code=="G","V",
+                                     is.na(HvL)&re_code=="B","J",
+                                     is.na(HvL)&re_code=="C","K",
+                                     is.na(HvL)&re_code=="D","L",
+                                     is.na(HvL)&re_code=="E","M",
+                                     is.na(HvL)&re_code=="F","N",
+                                     is.na(HvL)&re_code=="G","O",
+                                     default = re_code_14)]
+table(bg_hhTenureAR[,re_code_14])
+
+#move over to bg_hhTypeRE; want to keep the bg_hhTenure for rent_own by age and race, but need the codom for family_type
 bg_hhTenureAR[,("bg_hhTTIP_match_id"):=
                 paste0(GEOID,re_code_14,rent_own,age_range_3,as.character(100000+sample(1:.N))),
               by=.(GEOID,re_code_14,rent_own,age_range_3)]
@@ -916,48 +951,23 @@ bg_hhTypeRE[,("bg_hhTTIP_match_id"):=
               by=.(GEOID,re_code,rent_own,age_range_3)]
 bg_hhTenureAR[,("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTIP_match_id)]]
-bg_hhTypeRE[,c("re_code_7","age_range_9"):=
-                bg_hhTenureAR[.SD,c(list(re_code),list(age_range_9)),on=.(bg_hhTTIP_match_id)]]
-nrow(bg_hhTenureAR[!is.na(re_code_14)])-nrow(bg_hhTypeRE[!is.na(re_code_7)])
-#almost 10% don't match; have to think about what to write over
-#table(bg_hhTenureAR[is.na(match_bgIP),age_range_3],bg_hhTenureAR[is.na(match_bgIP),re_code_14]) #seems worse on 65 over and I
-#tract
-bg_hhTenureAR[is.na(match_bgIP),("tr_hhTTIP_match_id"):=
-                paste0(tract,re_code_14,rent_own,age_range_3,as.character(100000+sample(1:.N))),
-              by=.(tract,re_code_14,rent_own,age_range_3)]
-bg_hhTypeRE[is.na(re_code_7),("tr_hhTTIP_match_id"):=
-              paste0(tract,re_code,rent_own,age_range_3,as.character(100000+sample(1:.N))),
-            by=.(tract,re_code,rent_own,age_range_3)]
-bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
-                bg_hhTypeRE[.SD,list(re_code),on=.(tr_hhTTIP_match_id)]]
-bg_hhTypeRE[is.na(re_code_7),c("re_code_7","age_range_9"):=
-              bg_hhTenureAR[.SD,c(list(re_code),list(age_range_9)),on=.(tr_hhTTIP_match_id)]]
-nrow(bg_hhTenureAR[!is.na(re_code_14)])-nrow(bg_hhTypeRE[!is.na(re_code_7)]) #389008, only fraction of the 483254 matched at tract?
-#maybe do rest, then match on tract before writing over anything?
-#do with bg_hhTenureAE on HvL on TypeRE
-bg_hhTenureAE[is.na(match_bgTH),("bg_hhTTH_match_id"):=
+bg_hhTypeRE[,("age_range_9"):=
+                bg_hhTenureAR[.SD,list(age_range_9),on=.(bg_hhTTIP_match_id)]]
+nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1916820/10491147 = .18 not matching
+nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046
+#without matching on re_code, but keeping the one on bg_hhTypeRE as base
+bg_hhTenureAR[is.na(match_bgIP),("bg_hhTT_match_id"):=
                 paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
               by=.(GEOID,rent_own,age_range_3)]
-bg_hhTypeRE[HvL==TRUE,("bg_hhTTH_match_id"):=
+bg_hhTypeRE[is.na(age_range_9),("bg_hhTT_match_id"):=
               paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
             by=.(GEOID,rent_own,age_range_3)]
-bg_hhTenureAE[is.na(match_bgTH),("match_bgTH"):=
-                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTH_match_id)]]
-bg_hhTypeRE[HvL==TRUE,c("HvL_match","age_range_9"):=
-              bg_hhTenureAE[.SD,c(list(re_code),list(age_range_9)),on=.(bg_hhTTH_match_id)]]
-nrow(bg_hhTypeRE[HvL==TRUE])-nrow(bg_hhTenureAE[!is.na(match_bgTH)&re_code!="I"])
-#tract
-bg_hhTenureAE[is.na(match_bgTH),("tr_hhTTH_match_id"):=
-                paste0(tract,rent_own,age_range_3,as.character(100000+sample(1:.N))),
-              by=.(tract,rent_own,age_range_3)]
-bg_hhTypeRE[HvL==TRUE&is.na(age_range_9),("tr_hhTTH_match_id"):=
-              paste0(tract,rent_own,age_range_3,as.character(100000+sample(1:.N))),
-            by=.(tract,rent_own,age_range_3)]
-bg_hhTenureAE[is.na(match_bgTH),("match_bgTH"):=
-                bg_hhTypeRE[.SD,list(re_code),on=.(tr_hhTTH_match_id)]]
-bg_hhTypeRE[HvL==TRUE&is.na(age_range_9),c("HvL_match","age_range_9"):=
-              bg_hhTenureAE[.SD,c(list(re_code),list(age_range_9)),on=.(tr_hhTTH_match_id)]]
-nrow(bg_hhTypeRE[HvL==TRUE])-nrow(bg_hhTenureAE[!is.na(match_bgTH)&re_code!="I"]) #373368
+bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
+                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTT_match_id)]]
+bg_hhTypeRE[is.na(age_range_9),("age_range_9"):=
+              bg_hhTenureAR[.SD,list(age_range_9),on=.(bg_hhTT_match_id)]]
+nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) == 0
+
 
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ
