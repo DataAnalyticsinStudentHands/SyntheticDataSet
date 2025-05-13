@@ -894,7 +894,7 @@ nrow(bg_hhTenureAE[re_code=="I"])-nrow(bg_hhTenureAE[!is.na(match_bgTIR)])==0
 #maybe not do that step, since it is easier to make all the HvL on bg_hhType
 bg_hhTenureAR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_14),"P",default = re_code_14)]
 #have to still distribute H at end
-bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),"H",default = "not known")]
+bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),"H",default = re_code)]
 bg_hhTypeRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
                                   re_code%in%c("J","Q"),"B",
                                   re_code%in%c("K","R"),"C",
@@ -955,20 +955,68 @@ bg_hhTypeRE[,("age_range_9"):=
                 bg_hhTenureAR[.SD,list(age_range_9),on=.(bg_hhTTIP_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1916820/10491147 = .18 not matching
 nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046
-#without matching on re_code, but keeping the one on bg_hhTypeRE as base
-bg_hhTenureAR[is.na(match_bgIP),("bg_hhTT_match_id"):=
+#without matching on re_code; move AR over, since TypeRE was assigned with some error
+#if just rent_own, age_range_3, can finish matching in one step.
+#with re_code_7 (is there a rationale for Hvl first?)
+bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTr_match_id"):=
+                paste0(GEOID,re_code,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+              by=.(GEOID,re_code,rent_own,age_range_3)]
+bg_hhTypeRE[is.na(age_range_9),("bg_hhTTr_match_id"):=
+              paste0(GEOID,re_code_7,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+            by=.(GEOID,re_code_7,rent_own,age_range_3)]
+bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
+                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTr_match_id)]]
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","HvL"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL)),on=.(bg_hhTTr_match_id)]]
+nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1011303
+
+#with HvL
+bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTe_match_id"):=
+                paste0(GEOID,HvL,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+              by=.(GEOID,HvL,rent_own,age_range_3)]
+bg_hhTypeRE[is.na(age_range_9),("bg_hhTTe_match_id"):=
+              paste0(GEOID,HvL,rent_own,age_range_3,as.character(100000+sample(1:.N))),
+            by=.(GEOID,HvL,rent_own,age_range_3)]
+bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
+                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTe_match_id)]]
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","re_code_7"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(re_code)),on=.(bg_hhTTe_match_id)]]
+nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113
+#just rent_own and age
+bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTa_match_id"):=
                 paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
               by=.(GEOID,rent_own,age_range_3)]
-bg_hhTypeRE[is.na(age_range_9),("bg_hhTT_match_id"):=
+bg_hhTypeRE[is.na(age_range_9),("bg_hhTTa_match_id"):=
               paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
             by=.(GEOID,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
-                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTT_match_id)]]
-bg_hhTypeRE[is.na(age_range_9),("age_range_9"):=
-              bg_hhTenureAR[.SD,list(age_range_9),on=.(bg_hhTT_match_id)]]
+                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTa_match_id)]]
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","re_code_7","HvL"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(re_code),list(HvL)),on=.(bg_hhTTa_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) == 0
-
-
+#need to reset re_code on bg_hhTypeRE to match...
+bg_hhTypeRE[,("re_code_14"):=fcase(HvL=="H"&re_code=="B","Q",
+                                     HvL=="H"&re_code=="C","R",
+                                     HvL=="H"&re_code=="D","S",
+                                     HvL=="H"&re_code=="E","T",
+                                     HvL=="H"&re_code=="F","U",
+                                     HvL=="H"&re_code=="G","V",
+                                     HvL!="H"&re_code=="B","J",
+                                     HvL!="H"&re_code=="C","K",
+                                     HvL!="H"&re_code=="D","L",
+                                     HvL!="H"&re_code=="E","M",
+                                     HvL!="H"&re_code=="F","N",
+                                     HvL!="H"&re_code=="G","O",
+                                     default = re_code)]
+#test <- table(bg_hhTypeRE[,GEOID],
+#              bg_hhTypeRE[,re_code_7],
+#              bg_hhTypeRE[,rent_own],
+#              bg_hhTypeRE[,age_range_9])==
+#  table(bg_hhTenureAR[,GEOID],
+#        bg_hhTenureAR[,re_code],
+#        bg_hhTenureAR[,rent_own],
+#        bg_hhTenureAR[,age_range_9])
+#length(test[test==FALSE])==0
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ
 geo_type <- "tract"
@@ -1361,12 +1409,12 @@ bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
 #bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
 #              bg_hhRel[.SD,list(copath_re_code),on=.(tr_RTA_match_id)]]
 #nrow(bg_hhTypeRE[is.na(matched_rel)]) #66838
-#nrow(bg_hhRel[role=="Householder"&is.na(copath_re_code)]) #66955
+#nrow(bg_hhRel[role=="Householder"&is.na(copath_re_code)]) #194975
 #table(bg_hhTypeRE[,re_code])/(table(bg_hhRel[,copath_re_code]))
 #     I        J        K        L        M        N        O        P        Q        R        S        T        U        V 
 #1.012974 1.001277 1.001835 1.000245 1.000864 1.001636 1.000411 1.001560 1.000043 1.000118 1.000000 1.000000 1.000026 1.000003
 
-#Leaving 66,955 unfinished, till we have some more paths to match
+#Leaving 194975 unfinished, till we have some more paths to match
 
 rm(tr_hhRelH)
 rm(tr_hhRelHnotP)
@@ -1377,47 +1425,7 @@ rm(tr_hhRelRE)
 #broken, below here...
 
 
-
-#order bg_hhRel then join
-#family_type nudges for matches; order by kid_age_2...
-#because only families, tr_hhTypeOwnKidsR[,family_2] matches with bg_hhRel[,family_type]
-tr_hhTypeOwnKidsR[,("sex"):=fcase(family_type=="Female householder, no spouse present","Female",
-                                  family_type=="Male householder, no spouse present","Male",
-                                  default = "Not known")]
-tr_hhTypeOwnKidsR[,("tr_TOK_match_id"):=
-              paste0(GEOID,re_code,copath_re_code,copath_HvL,family_2,sex,as.character(1:.N)),
-            by=.(GEOID,alone,sex)]
-bg_hhRel[role=="Householder"&family=="Family households",("tr_TOK_match_id"):=
-           paste0(tract,alone,sex,as.character(1:.N)),
-         by=.(tract,alone,sex)]
-#putting codom for re_code so we can order later numerically with cell sizes from codom_etc.; a co-path is the factor name with the codom
-bg_hhRel[role=="Householder",c("copath_re_code","copath_race","family","family_type","no_spouse_sex","codom_hhTypeRE"):=
-           tr_hhTypeOwnKidsR[.SD,c(list(re_code),list(race),list(family),list(family_type),
-                             list(no_spouse_sex),list(codom_hhTypeRE)),on=.(tr_TOK_match_id)]]
-tr_hhTypeOwnKidsR[,("matched_rel"):=
-              bg_hhRel[.SD,list(copath_re_code),on=.(tr_TOK_match_id)]]
-
-rm(tr_hhTypeOwnKidsH)
-rm(tr_hhTypeOwnKidsI)
-rm(tr_hhTypeOwnKidsR)
-rm(tr_hhTypeOwnKidsHnotP)
-rm(tr_hhTypeOwnKidsRE)
-
-#then add P20 to bg_hhRel?
-
-#then add PCT2
-
-#When do we pick up the missing ones and finish assigning? At very end?? Need other parts of ordering by codoms???
-
-#at some point, go back to bg_hhTypeRE to determine the missing ones and get HH done
-
-
-
-
-#table(tr_hhRelR[,role])-table(tr_hhRelR[is.na(matched_bgRel),role]) #only householders matched so far; maybe get bgSARE for matching the rest??
-
-
-#move rest of householders over 
+#move rest of householders over - this is broken
 bg_hhTypeRE[is.na(matched_rel),("bg_RTF_match_id"):=
               paste0(GEOID,alone,as.character(100000+sample(1:.N))),
             by=.(GEOID,alone)]
