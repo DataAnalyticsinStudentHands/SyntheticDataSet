@@ -894,7 +894,13 @@ nrow(bg_hhTenureAE[re_code=="I"])-nrow(bg_hhTenureAE[!is.na(match_bgTIR)])==0
 #maybe not do that step, since it is easier to make all the HvL on bg_hhType
 bg_hhTenureAR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_14),"P",default = re_code_14)]
 #have to still distribute H at end
-bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),"H",default = re_code)]
+
+
+
+#HvL is broken!!! maybe before this, too!!!!
+
+
+bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),"H",default = "Not H")]
 bg_hhTypeRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
                                   re_code%in%c("J","Q"),"B",
                                   re_code%in%c("K","R"),"C",
@@ -941,6 +947,78 @@ bg_hhTenureAR[,("re_code_14"):=fcase(!is.na(HvL)&re_code=="B","Q",
                                      is.na(HvL)&re_code=="G","O",
                                      default = re_code_14)]
 table(bg_hhTenureAR[,re_code_14])
+#add to H4 here, to get re_code_14 right and then add to bg_hhTypeRE
+#then H4 to start assigning the full re_code_14
+groupname <- "H4" #Tenure - by race and mortgage
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_hhTenureRE_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_hhTenureRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("tenure_1","tenure","re_code","race") 
+  bg_hhTenureRE_data_from_census[,("re_code") := substr(name,3,3)][
+    ,("race") := str_replace(concept,"TENURE \\(","")][
+      ,("race") := str_replace(race,"\\)","")]
+  #row_c1 by hand
+  row_c1 <- c(unique(bg_hhTenureRE_data_from_census[label!="!!" & label!="Geography" & 
+                                                      concept!="TENURE (HISPANIC OR LATINO HOUSEHOLDER)" & 
+                                                      concept!="TENURE" & str_detect(concept,"HISP"),name]))
+  test_total_pop <- tests_download_data(bg_hhTenureRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
+  bg_hhTenureRE_data <- relabel(bg_hhTenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhTenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhTenureRE_data <- bg_hhTenureRE_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhTenureRE_data[,.SD,.SDcols = startsWith(names(bg_hhTenureRE_data),state)])
+bg_hhTenureRE_melted <- melt(bg_hhTenureRE_data, id.vars = c("tenure_1","tenure","re_code","race"), measure.vars = Geoids,
+                             value.name = "codom_bg_hhTenureRE", variable.name = "GEOID")
+bg_hhTenureRE <- as.data.table(lapply(bg_hhTenureRE_melted[,.SD],rep,bg_hhTenureRE_melted[,codom_bg_hhTenureRE])) #all re_codes
+rm(bg_hhTenureRE_data_from_census)
+rm(bg_hhTenureRE_data)
+rm(bg_hhTenureRE_melted)
+#tenure_1 and tenure are the same - weirdness about how they set up the table
+bg_hhTenureRE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")] #checked with HCT1, which has less info but same references
+bg_hhTenureRE[,("rent_own"):=fcase(str_detect(tenure,"Renter"),"Renter occupied",
+                                   default = "Owner occupied")]
+bg_hhTenureRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
+                                  re_code%in%c("J","Q"),"B",
+                                  re_code%in%c("K","R"),"C",
+                                  re_code%in%c("L","S"),"D",
+                                  re_code%in%c("M","T"),"E",
+                                  re_code%in%c("N","U"),"F",
+                                  re_code%in%c("O","V"),"G",
+                                  default = "Not given")]
+
+bg_hhTenureAR[,("bg_hhTTARE_match_id"):=
+                paste0(GEOID,re_code_14,rent_own,as.character(100000+sample(1:.N))),
+              by=.(GEOID,re_code_14,rent_own)]
+bg_hhTenureRE[,("bg_hhTTARE_match_id"):=
+              paste0(GEOID,re_code,rent_own,as.character(100000+sample(1:.N))),
+            by=.(GEOID,re_code,rent_own)]
+bg_hhTenureAR[,("tenure"):=
+                bg_hhTenureRE[.SD,list(tenure),on=.(bg_hhTTARE_match_id)]]
+bg_hhTenureRE[,("match_bgTenure"):=
+              bg_hhTenureAR[.SD,list(re_code_14),on=.(bg_hhTTARE_match_id)]]
+nrow(bg_hhTenureAR[is.na(tenure)]) #got ~90%
+#table(bg_hhTenureAR[is.na(tenure),re_code_14]) #I and P are fully matched
+#write ground re_code_14 from TenureRE, but may have loss of some age details by re_code
+bg_hhTenureAR[is.na(tenure),("bg_hhTTARE1_match_id"):=
+                paste0(GEOID,re_code,rent_own,as.character(100000+sample(1:.N))),
+              by=.(GEOID,re_code,rent_own)]
+bg_hhTenureRE[is.na(match_bgTenure),("bg_hhTTARE1_match_id"):=
+                paste0(GEOID,re_code_7,rent_own,as.character(100000+sample(1:.N))),
+              by=.(GEOID,re_code_7,rent_own)]
+bg_hhTenureAR[is.na(tenure),c("tenure","re_code_14"):=
+                bg_hhTenureRE[.SD,c(list(tenure),list(re_code)),on=.(bg_hhTTARE1_match_id)]]
+bg_hhTenureRE[is.na(match_bgTenure),("match_bgTenure"):=
+                bg_hhTenureAR[.SD,list(re_code_14),on=.(bg_hhTTARE1_match_id)]]
+nrow(bg_hhTenureAR[is.na(tenure)])==0
 
 #move over to bg_hhTypeRE; want to keep the bg_hhTenure for rent_own by age and race, but need the codom for family_type
 bg_hhTenureAR[,("bg_hhTTIP_match_id"):=
@@ -953,8 +1031,8 @@ bg_hhTenureAR[,("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTIP_match_id)]]
 bg_hhTypeRE[,("age_range_9"):=
                 bg_hhTenureAR[.SD,list(age_range_9),on=.(bg_hhTTIP_match_id)]]
-nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1916820/10491147 = .18 not matching
-nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046
+nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1235318/10491147 = .117 not matching; when not doing the re_code from bg_hhTenureRE, it was 18%
+nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046; basically same with and without bg_hhTenureRE
 #without matching on re_code; move AR over, since TypeRE was assigned with some error
 #if just rent_own, age_range_3, can finish matching in one step.
 #with re_code_7 (is there a rationale for Hvl first?)
@@ -981,7 +1059,7 @@ bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTe_match_id)]]
 bg_hhTypeRE[is.na(age_range_9),c("age_range_9","re_code_7"):=
               bg_hhTenureAR[.SD,c(list(age_range_9),list(re_code)),on=.(bg_hhTTe_match_id)]]
-nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113
+nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113 / became 412215 with bg_hhTenureRE
 #just rent_own and age
 bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTa_match_id"):=
                 paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
@@ -994,19 +1072,20 @@ bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
 bg_hhTypeRE[is.na(age_range_9),c("age_range_9","re_code_7","HvL"):=
               bg_hhTenureAR[.SD,c(list(age_range_9),list(re_code),list(HvL)),on=.(bg_hhTTa_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) == 0
-#need to reset re_code on bg_hhTypeRE to match...
-bg_hhTypeRE[,("re_code_14"):=fcase(HvL=="H"&re_code=="B","Q",
-                                     HvL=="H"&re_code=="C","R",
-                                     HvL=="H"&re_code=="D","S",
-                                     HvL=="H"&re_code=="E","T",
-                                     HvL=="H"&re_code=="F","U",
-                                     HvL=="H"&re_code=="G","V",
-                                     HvL!="H"&re_code=="B","J",
-                                     HvL!="H"&re_code=="C","K",
-                                     HvL!="H"&re_code=="D","L",
-                                     HvL!="H"&re_code=="E","M",
-                                     HvL!="H"&re_code=="F","N",
-                                     HvL!="H"&re_code=="G","O",
+#need to reset re_code on bg_hhTypeRE to match each other -
+
+bg_hhTypeRE[,("re_code_14"):=fcase(HvL=="H"&re_code_7=="B","Q",
+                                     HvL=="H"&re_code_7=="C","R",
+                                     HvL=="H"&re_code_7=="D","S",
+                                     HvL=="H"&re_code_7=="E","T",
+                                     HvL=="H"&re_code_7=="F","U",
+                                     HvL=="H"&re_code_7=="G","V",
+                                     HvL!="H"&re_code_7=="B","J",
+                                     HvL!="H"&re_code_7=="C","K",
+                                     HvL!="H"&re_code_7=="D","L",
+                                     HvL!="H"&re_code_7=="E","M",
+                                     HvL!="H"&re_code_7=="F","N",
+                                     HvL!="H"&re_code_7=="G","O",
                                      default = re_code)]
 #test <- table(bg_hhTypeRE[,GEOID],
 #              bg_hhTypeRE[,re_code_7],
@@ -1017,8 +1096,174 @@ bg_hhTypeRE[,("re_code_14"):=fcase(HvL=="H"&re_code=="B","Q",
 #        bg_hhTenureAR[,rent_own],
 #        bg_hhTenureAR[,age_range_9])
 #length(test[test==FALSE])==0
+#
+#test <- table(bg_hhTenureRE[,GEOID],
+#              bg_hhTenureRE[,re_code],
+#              bg_hhTenureRE[,rent_own])==
+#  table(bg_hhTenureAR[,GEOID],
+#        bg_hhTenureAR[,re_code_14],
+#        bg_hhTenureAR[,rent_own])
+#length(test[test==FALSE])==0
 
-groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ
+test <- table(bg_hhTypeRE[,GEOID],
+              bg_hhTypeRE[,re_code_14],
+              bg_hhTypeRE[,rent_own])==
+  table(bg_hhTenureRE[,GEOID],
+        bg_hhTenureRE[,re_code],
+        bg_hhTenureRE[,rent_own])
+length(test[test==FALSE]) #265800 (521864 cells) totals are right, but lots not matching in GEOID  
+
+test <- table(bg_hhTypeRE[,re_code_7],
+              bg_hhTypeRE[,rent_own])==
+  table(bg_hhTenureRE[,re_code_7],
+        bg_hhTenureRE[,rent_own])
+length(test[test==FALSE])==0
+
+test <- table(bg_hhTypeRE[,re_code],
+              bg_hhTypeRE[,rent_own])==
+  table(bg_hhTenureAR[,re_code_14],
+        bg_hhTenureAR[,rent_own])
+length(test[test==FALSE]) #28 wrong of 28...
+
+groupname <- "H12" #TENURE BY HOUSEHOLD SIZE and race/eth
+api_type <- "dec/dhc"
+geo_type <- "block_group"
+path_suff <- "est"
+bg_hhSizeTenureRE_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_hhSizeTenureRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("rent_own","size")
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(bg_hhSizeTenureRE_data_from_census[!is.na(label_2) & concept!="TENURE BY HOUSEHOLD SIZE",name])) 
+  bg_hhSizeTenureRE_data <- relabel(bg_hhSizeTenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hhSizeTenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hhSizeTenureRE_data <- bg_hhSizeTenureRE_data_from_census
+}
+bg_hhSizeTenureRE_data[,("re_code") := substr(name,4,4)][
+  ,("race") := str_replace(concept,"TENURE BY HOUSEHOLD SIZE \\(","")][
+    ,("race") := str_replace(race,"\\)","")]
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hhSizeTenureRE_data[,.SD,.SDcols = startsWith(names(bg_hhSizeTenureRE_data),state)])
+bg_hhSizeTenureRE_melted <- melt(bg_hhSizeTenureRE_data, id.vars = c("re_code","race","rent_own","size"), measure.vars = Geoids,
+                                 value.name = "codom_bg_hhSizeTenureRE", variable.name = "GEOID")
+bg_hhSizeTenureRE <- as.data.table(lapply(bg_hhSizeTenureRE_melted[,.SD],rep,bg_hhSizeTenureRE_melted[,codom_bg_hhSizeTenureRE]))
+bg_hhSizeTenureR <- bg_hhSizeTenureRE[!re_code %in% c("H","I")]
+bg_hhSizeTenureE <- bg_hhSizeTenureRE[re_code %in% c("H","I")]
+rm(bg_hhSizeTenureRE_data_from_census)
+rm(bg_hhSizeTenureRE_data)
+rm(bg_hhSizeTenureRE_melted)
+rm(bg_hhSizeTenureRE)
+
+groupname <- "PCT7" #HOUSEHOLD TYPE BY HOUSEHOLD SIZE, race/eth
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhTypeSizeRE_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hhTypeSizeRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("family","hh_size")
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(tr_hhTypeSizeRE_data_from_census[!is.na(label_2) & concept!="HOUSEHOLD TYPE BY HOUSEHOLD SIZE",name])) 
+  tr_hhTypeSizeRE_data <- relabel(tr_hhTypeSizeRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhTypeSizeRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhTypeSizeRE_data <- tr_hhTypeSizeRE_data_from_census
+}
+tr_hhTypeSizeRE_data[,("re_code") := substr(name,5,5)][
+  ,("race") := str_replace(concept,"HOUSEHOLD TYPE BY HOUSEHOLD SIZE \\(","")][
+    ,("race") := str_replace(race,"\\)","")]
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhTypeSizeRE_data[,.SD,.SDcols = startsWith(names(tr_hhTypeSizeRE_data),state)])
+tr_hhTypeSizeRE_melted <- melt(tr_hhTypeSizeRE_data, id.vars = c("re_code","race","family","hh_size"), measure.vars = Geoids,
+                               value.name = "codom_tr_hhTypeSizeRE", variable.name = "GEOID")
+tr_hhTypeSizeRE <- as.data.table(lapply(tr_hhTypeSizeRE_melted[,.SD],rep,tr_hhTypeSizeRE_melted[,codom_tr_hhTypeSizeRE]))
+tr_hhTypeSizeR <- tr_hhTypeSizeRE[!re_code %in% c("H","I")]
+tr_hhTypeSizeE <- tr_hhTypeSizeRE[re_code %in% c("H","I")]
+rm(tr_hhTypeSizeRE_data_from_census)
+rm(tr_hhTypeSizeRE_data)
+rm(tr_hhTypeSizeRE_melted)
+rm(tr_hhTypeSizeRE)
+
+
+
+groupname <- "H15" #TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
+api_type <- "dec/dhc"
+geo_type <- "block_group"
+path_suff <- "est"
+bg_hh18Tenure_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_hh18Tenure_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("tenure","kid_18") 
+  row_c1 <- c(unique(bg_hh18Tenure_data_from_census[!is.na(label_2),name]))
+  test_total_pop <- tests_download_data(bg_hh18Tenure_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
+  bg_hh18Tenure_data <- relabel(bg_hh18Tenure_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hh18Tenure_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hh18Tenure_data <- bg_hh18Tenure_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hh18Tenure_data[,.SD,.SDcols = startsWith(names(bg_hh18Tenure_data),state)])
+bg_hh18Tenure_melted <- melt(bg_hh18Tenure_data, id.vars = c("tenure","kid_18"), measure.vars = Geoids,
+                             value.name = "codom_bg_hh18Tenure", variable.name = "GEOID")
+bg_hh18Tenure <- as.data.table(lapply(bg_hh18Tenure_melted[,.SD],rep,bg_hh18Tenure_melted[,codom_bg_hh18Tenure]))
+rm(bg_hh18Tenure_data_from_census)
+rm(bg_hh18Tenure_data)
+rm(bg_hh18Tenure_melted)
+
+groupname <- "HCT2" #TENURE BY PRESENCE AND AGE OF OWN CHILDREN (more categories)
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhTenureOwnKids_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+#for some reason, doesn't include 6-17 years only for renters, which is largest category.
+if(names(tr_hhTenureOwnKids_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("tenure","kid_18","kid_age_range_3") 
+  tr_hhTenureOwnKids_data_from_census[,("label_3"):=fcase(str_detect(label_2,"No"),label_2,
+                                                          name=="HCT2_009N","6 to 17 years only",
+                                                          default=label_3)]
+  row_c1 <- c(unique(tr_hhTenureOwnKids_data_from_census[!is.na(label_3),name]))
+  test_total_pop <- tests_download_data(tr_hhTenureOwnKids_data_from_census,label_c1,row_c1,state=state) #not right total b/c 6-17 for renters, fixed below
+  tr_hhTenureOwnKids_data <- relabel(tr_hhTenureOwnKids_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhTenureOwnKids_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhTenureOwnKids_data <- tr_hhTenureOwnKids_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhTenureOwnKids_data[,.SD,.SDcols = startsWith(names(tr_hhTenureOwnKids_data),state)])
+tr_hhTenureOwnKids_melted <- melt(tr_hhTenureOwnKids_data, id.vars = c("tenure","kid_18","kid_age_range_3"), measure.vars = Geoids,
+                                  value.name = "codom_tr_hhTenureOwnKids", variable.name = "GEOID")
+tr_hhTenureOwnKids_melted[,("codom_tr_hhTenureOwnKids"):=fcase(tenure=="Renter occupied"&kid_age_range_3=="6 to 17 years only",
+                                                               as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="6 to 17 years only",codom_tr_hhTenureOwnKids])-
+                                                                 as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="Under 6 years and 6 to 17 years",codom_tr_hhTenureOwnKids])-
+                                                                 as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="Under 6 years only",codom_tr_hhTenureOwnKids]),
+                                                               default=as.numeric(codom_tr_hhTenureOwnKids)),by=.(GEOID)]
+tr_hhTenureOwnKids <- as.data.table(lapply(tr_hhTenureOwnKids_melted[,.SD],rep,tr_hhTenureOwnKids_melted[,codom_tr_hhTenureOwnKids]))
+rm(tr_hhTenureOwnKids_data_from_census)
+rm(tr_hhTenureOwnKids_data)
+rm(tr_hhTenureOwnKids_melted)
+
+
+groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ and individual roles
 geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
@@ -1047,8 +1292,8 @@ Geoids <- colnames(tr_hh65RelRE_data[,.SD,.SDcols = startsWith(names(tr_hh65RelR
 tr_hh65RelRE_melted <- melt(tr_hh65RelRE_data, id.vars = c("household","role","alone","sex","re_code","race"), measure.vars = Geoids,
                             value.name = "codom_tr_hh65RelRE", variable.name = "GEOID")
 tr_hh65RelRE <- as.data.table(lapply(tr_hh65RelRE_melted[,.SD],rep,tr_hh65RelRE_melted[,codom_tr_hh65RelRE]))
-#tr_hh65RelR <- tr_hh65RelRE[!re_code %in% c("H","I")]
-#tr_hh65RelE <- tr_hh65RelRE[re_code %in% c("H","I")]
+tr_hh65RelR <- tr_hh65RelRE[!re_code %in% c("H","I")]
+tr_hh65RelE <- tr_hh65RelRE[re_code %in% c("H","I")]
 #seems to be 44k off on the totals (state-wide) from test_total_pop???? Not at all obvious what is missing...
 rm(tr_hh65RelRE_data_from_census)
 rm(tr_hh65RelRE_data)
@@ -1761,180 +2006,6 @@ rm(tr_hhMultiGenRE)
 
 #Put tenure re_code_14 and size_tenure together, then order on re_code_14 for multi_gen with size decreasing by order
 
-#then H4 to start assigning the full re_code_14
-groupname <- "H4" #Tenure - by race and mortgage
-geo_type <- "block_group"
-api_type <- "dec/dhc"
-path_suff <- "est"
-bg_hhTenureRE_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-if(names(bg_hhTenureRE_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("tenure_1","tenure","re_code","race") 
-  bg_hhTenureRE_data_from_census[,("re_code") := substr(name,3,3)][
-    ,("race") := str_replace(concept,"TENURE \\(","")][
-      ,("race") := str_replace(race,"\\)","")]
-  #row_c1 by hand
-  row_c1 <- c(unique(bg_hhTenureRE_data_from_census[label!="!!" & label!="Geography" & 
-                                                      concept!="TENURE (HISPANIC OR LATINO HOUSEHOLDER)" & 
-                                                      concept!="TENURE" & str_detect(concept,"HISP"),name]))
-  test_total_pop <- tests_download_data(bg_hhTenureRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
-  bg_hhTenureRE_data <- relabel(bg_hhTenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bg_hhTenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  bg_hhTenureRE_data <- bg_hhTenureRE_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(bg_hhTenureRE_data[,.SD,.SDcols = startsWith(names(bg_hhTenureRE_data),state)])
-bg_hhTenureRE_melted <- melt(bg_hhTenureRE_data, id.vars = c("tenure_1","tenure","re_code","race"), measure.vars = Geoids,
-                             value.name = "codom_bg_hhTenureRE", variable.name = "GEOID")
-bg_hhTenureRE <- as.data.table(lapply(bg_hhTenureRE_melted[,.SD],rep,bg_hhTenureRE_melted[,codom_bg_hhTenureRE])) #all re_codes
-rm(bg_hhTenureRE_data_from_census)
-rm(bg_hhTenureRE_data)
-rm(bg_hhTenureRE_melted)
-#tenure_1 and tenure are the same - weirdness about how they set up the table
-bg_hhTenureRE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")] #checked with HCT1, which has less info but same references
-
-
-groupname <- "H12" #TENURE BY HOUSEHOLD SIZE and race/eth
-api_type <- "dec/dhc"
-geo_type <- "block_group"
-path_suff <- "est"
-bg_hhSizeTenureRE_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-if(names(bg_hhSizeTenureRE_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("rent_own","size")
-  #row_c1 determined by hand 
-  row_c1 <- c(unique(bg_hhSizeTenureRE_data_from_census[!is.na(label_2) & concept!="TENURE BY HOUSEHOLD SIZE",name])) 
-  bg_hhSizeTenureRE_data <- relabel(bg_hhSizeTenureRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bg_hhSizeTenureRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  bg_hhSizeTenureRE_data <- bg_hhSizeTenureRE_data_from_census
-}
-bg_hhSizeTenureRE_data[,("re_code") := substr(name,4,4)][
-  ,("race") := str_replace(concept,"TENURE BY HOUSEHOLD SIZE \\(","")][
-    ,("race") := str_replace(race,"\\)","")]
-
-#reshape a bit and make list of individuals
-Geoids <- colnames(bg_hhSizeTenureRE_data[,.SD,.SDcols = startsWith(names(bg_hhSizeTenureRE_data),state)])
-bg_hhSizeTenureRE_melted <- melt(bg_hhSizeTenureRE_data, id.vars = c("re_code","race","rent_own","size"), measure.vars = Geoids,
-                        value.name = "codom_bg_hhSizeTenureRE", variable.name = "GEOID")
-bg_hhSizeTenureRE <- as.data.table(lapply(bg_hhSizeTenureRE_melted[,.SD],rep,bg_hhSizeTenureRE_melted[,codom_bg_hhSizeTenureRE]))
-bg_hhSizeTenureR <- bg_hhSizeTenureRE[!re_code %in% c("H","I")]
-bg_hhSizeTenureE <- bg_hhSizeTenureRE[re_code %in% c("H","I")]
-rm(bg_hhSizeTenureRE_data_from_census)
-rm(bg_hhSizeTenureRE_data)
-rm(bg_hhSizeTenureRE_melted)
-rm(bg_hhSizeTenureRE)
-
-groupname <- "PCT7" #HOUSEHOLD TYPE BY HOUSEHOLD SIZE, race/eth
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhTypeSizeRE_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hhTypeSizeRE_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("family","hh_size")
-  #row_c1 determined by hand 
-  row_c1 <- c(unique(tr_hhTypeSizeRE_data_from_census[!is.na(label_2) & concept!="HOUSEHOLD TYPE BY HOUSEHOLD SIZE",name])) 
-  tr_hhTypeSizeRE_data <- relabel(tr_hhTypeSizeRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhTypeSizeRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hhTypeSizeRE_data <- tr_hhTypeSizeRE_data_from_census
-}
-tr_hhTypeSizeRE_data[,("re_code") := substr(name,5,5)][
-  ,("race") := str_replace(concept,"HOUSEHOLD TYPE BY HOUSEHOLD SIZE \\(","")][
-    ,("race") := str_replace(race,"\\)","")]
-
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hhTypeSizeRE_data[,.SD,.SDcols = startsWith(names(tr_hhTypeSizeRE_data),state)])
-tr_hhTypeSizeRE_melted <- melt(tr_hhTypeSizeRE_data, id.vars = c("re_code","race","family","hh_size"), measure.vars = Geoids,
-                                 value.name = "codom_tr_hhTypeSizeRE", variable.name = "GEOID")
-tr_hhTypeSizeRE <- as.data.table(lapply(tr_hhTypeSizeRE_melted[,.SD],rep,tr_hhTypeSizeRE_melted[,codom_tr_hhTypeSizeRE]))
-tr_hhTypeSizeR <- tr_hhTypeSizeRE[!re_code %in% c("H","I")]
-tr_hhTypeSizeE <- tr_hhTypeSizeRE[re_code %in% c("H","I")]
-rm(tr_hhTypeSizeRE_data_from_census)
-rm(tr_hhTypeSizeRE_data)
-rm(tr_hhTypeSizeRE_melted)
-rm(tr_hhTypeSizeRE)
-
-
-
-groupname <- "H15" #TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
-api_type <- "dec/dhc"
-geo_type <- "block_group"
-path_suff <- "est"
-bg_hh18Tenure_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-if(names(bg_hh18Tenure_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("tenure","kid_18") 
-  row_c1 <- c(unique(bg_hh18Tenure_data_from_census[!is.na(label_2),name]))
-  test_total_pop <- tests_download_data(bg_hh18Tenure_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
-  bg_hh18Tenure_data <- relabel(bg_hh18Tenure_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bg_hh18Tenure_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  bg_hh18Tenure_data <- bg_hh18Tenure_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(bg_hh18Tenure_data[,.SD,.SDcols = startsWith(names(bg_hh18Tenure_data),state)])
-bg_hh18Tenure_melted <- melt(bg_hh18Tenure_data, id.vars = c("tenure","kid_18"), measure.vars = Geoids,
-                           value.name = "codom_bg_hh18Tenure", variable.name = "GEOID")
-bg_hh18Tenure <- as.data.table(lapply(bg_hh18Tenure_melted[,.SD],rep,bg_hh18Tenure_melted[,codom_bg_hh18Tenure]))
-rm(bg_hh18Tenure_data_from_census)
-rm(bg_hh18Tenure_data)
-rm(bg_hh18Tenure_melted)
-
-groupname <- "HCT2" #TENURE BY PRESENCE AND AGE OF OWN CHILDREN (more categories)
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhTenureOwnKids_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-#for some reason, doesn't include 6-17 years only for renters, which is largest category.
-if(names(tr_hhTenureOwnKids_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("tenure","kid_18","kid_age_range_3") 
-  tr_hhTenureOwnKids_data_from_census[,("label_3"):=fcase(str_detect(label_2,"No"),label_2,
-                                                          name=="HCT2_009N","6 to 17 years only",
-                                                          default=label_3)]
-  row_c1 <- c(unique(tr_hhTenureOwnKids_data_from_census[!is.na(label_3),name]))
-  test_total_pop <- tests_download_data(tr_hhTenureOwnKids_data_from_census,label_c1,row_c1,state=state) #not right total b/c 6-17 for renters, fixed below
-  tr_hhTenureOwnKids_data <- relabel(tr_hhTenureOwnKids_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhTenureOwnKids_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hhTenureOwnKids_data <- tr_hhTenureOwnKids_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hhTenureOwnKids_data[,.SD,.SDcols = startsWith(names(tr_hhTenureOwnKids_data),state)])
-tr_hhTenureOwnKids_melted <- melt(tr_hhTenureOwnKids_data, id.vars = c("tenure","kid_18","kid_age_range_3"), measure.vars = Geoids,
-                             value.name = "codom_tr_hhTenureOwnKids", variable.name = "GEOID")
-tr_hhTenureOwnKids_melted[,("codom_tr_hhTenureOwnKids"):=fcase(tenure=="Renter occupied"&kid_age_range_3=="6 to 17 years only",
-                                                 as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="6 to 17 years only",codom_tr_hhTenureOwnKids])-
-                                                   as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="Under 6 years and 6 to 17 years",codom_tr_hhTenureOwnKids])-
-                                                   as.numeric(.SD[tenure=="Renter occupied"&kid_age_range_3=="Under 6 years only",codom_tr_hhTenureOwnKids]),
-                                                 default=as.numeric(codom_tr_hhTenureOwnKids)),by=.(GEOID)]
-tr_hhTenureOwnKids <- as.data.table(lapply(tr_hhTenureOwnKids_melted[,.SD],rep,tr_hhTenureOwnKids_melted[,codom_tr_hhTenureOwnKids]))
-rm(tr_hhTenureOwnKids_data_from_census)
-rm(tr_hhTenureOwnKids_data)
-rm(tr_hhTenureOwnKids_melted)
 
 #redundant with H4, which has by block_group
 #groupname <- "HCT1" #TENURE BY HISPANIC OR LATINO ORIGIN OF HOUSEHOLDER BY RACE OF HOUSEHOLDER - gives everything at tract keeps from guessing about race/eth
