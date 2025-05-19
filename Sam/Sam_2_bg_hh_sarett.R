@@ -878,7 +878,6 @@ bg_hhTenureAR <- bg_hhTenureARE[!re_code %in% c("H","I")]
 bg_hhTenureAE <- bg_hhTenureARE[re_code %in% c("H","I")]
 rm(bg_hhTenureARE)
 
-#NEED TO RETHINK A BIT OF BELOW!!!
 #move I over to R
 bg_hhTenureAR[re_code=="A",("bg_hhTenureRI_match_id"):=
                     paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
@@ -894,11 +893,7 @@ nrow(bg_hhTenureAE[re_code=="I"])-nrow(bg_hhTenureAE[!is.na(match_bgTIR)])==0
 #maybe not do that step, since it is easier to make all the HvL on bg_hhType
 bg_hhTenureAR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_14),"P",default = re_code_14)]
 #have to still distribute H at end
-
-
-
-#HvL is broken!!! maybe before this, too!!!!
-
+table(bg_hhTenureAR[,re_code_14]) == table(bg_hhTypeRE[re_code%in%c("I","P"),re_code])
 
 bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),"H",default = "Not H")]
 bg_hhTypeRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
@@ -909,7 +904,7 @@ bg_hhTypeRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
                                   re_code%in%c("N","U"),"F",
                                   re_code%in%c("O","V"),"G",
                                   default = "Not given")]
-
+table(bg_hhTypeRE[,re_code_7])==table(bg_hhTenureAR[,re_code])
 #move P out of H
 bg_hhTenureAR[re_code_14=="P",("bg_hhTenureRP_match_id"):=
                 paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
@@ -933,7 +928,7 @@ bg_hhTenureAR[re_code!="A",("HvL"):=
                 bg_hhTenureAE[.SD,list(re_code),on=.(bg_hhTenureRH_match_id)]]
 bg_hhTenureAE[re_code=="H" & is.na(match_bgTH),("match_bgTH"):=
                 bg_hhTenureAR[.SD,list(re_code),on=.(bg_hhTenureRH_match_id)]]
-bg_hhTenureAR[,("re_code_14"):=fcase(!is.na(HvL)&re_code=="B","Q",
+bg_hhTenureAR[re_code!="A",("re_code_14"):=fcase(!is.na(HvL)&re_code=="B","Q",
                                      !is.na(HvL)&re_code=="C","R",
                                      !is.na(HvL)&re_code=="D","S",
                                      !is.na(HvL)&re_code=="E","T",
@@ -946,7 +941,7 @@ bg_hhTenureAR[,("re_code_14"):=fcase(!is.na(HvL)&re_code=="B","Q",
                                      is.na(HvL)&re_code=="F","N",
                                      is.na(HvL)&re_code=="G","O",
                                      default = re_code_14)]
-table(bg_hhTenureAR[,re_code_14])
+#table(bg_hhTenureAR[,re_code_14])==table(bg_hhTypeRE[,re_code]) #not a great match
 #add to H4 here, to get re_code_14 right and then add to bg_hhTypeRE
 #then H4 to start assigning the full re_code_14
 groupname <- "H4" #Tenure - by race and mortgage
@@ -994,7 +989,7 @@ bg_hhTenureRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
                                   re_code%in%c("N","U"),"F",
                                   re_code%in%c("O","V"),"G",
                                   default = "Not given")]
-
+#table(bg_hhTenureRE[,re_code_7])==table(bg_hhTenureAR[,re_code])
 bg_hhTenureAR[,("bg_hhTTARE_match_id"):=
                 paste0(GEOID,re_code_14,rent_own,as.character(100000+sample(1:.N))),
               by=.(GEOID,re_code_14,rent_own)]
@@ -1019,7 +1014,9 @@ bg_hhTenureAR[is.na(tenure),c("tenure","re_code_14"):=
 bg_hhTenureRE[is.na(match_bgTenure),("match_bgTenure"):=
                 bg_hhTenureAR[.SD,list(re_code_14),on=.(bg_hhTTARE1_match_id)]]
 nrow(bg_hhTenureAR[is.na(tenure)])==0
-
+#give bg_hhTenureAR correct HvL
+bg_hhTenureAR[,("HvL"):=fcase(re_code_14%in%c("P","Q","R","S","T","U","V"),"H",default = "Not H")]
+#table(bg_hhTypeRE[,HvL])==table(bg_hhTenureAR[,HvL])
 #move over to bg_hhTypeRE; want to keep the bg_hhTenure for rent_own by age and race, but need the codom for family_type
 bg_hhTenureAR[,("bg_hhTTIP_match_id"):=
                 paste0(GEOID,re_code_14,rent_own,age_range_3,as.character(100000+sample(1:.N))),
@@ -1029,26 +1026,34 @@ bg_hhTypeRE[,("bg_hhTTIP_match_id"):=
               by=.(GEOID,re_code,rent_own,age_range_3)]
 bg_hhTenureAR[,("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTIP_match_id)]]
-bg_hhTypeRE[,("age_range_9"):=
-                bg_hhTenureAR[.SD,list(age_range_9),on=.(bg_hhTTIP_match_id)]]
+bg_hhTypeRE[,c("age_range_9","HvL","re_code"):=
+                bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14)),
+                              on=.(bg_hhTTIP_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1235318/10491147 = .117 not matching; when not doing the re_code from bg_hhTenureRE, it was 18%
 nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046; basically same with and without bg_hhTenureRE
 #without matching on re_code; move AR over, since TypeRE was assigned with some error
 #if just rent_own, age_range_3, can finish matching in one step.
-#with re_code_7 (is there a rationale for Hvl first?)
-bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTr_match_id"):=
+bg_hhTenureAR[is.na(match_bgIP),("bg_TTr_match_id"):=
                 paste0(GEOID,re_code,rent_own,age_range_3,as.character(100000+sample(1:.N))),
               by=.(GEOID,re_code,rent_own,age_range_3)]
-bg_hhTypeRE[is.na(age_range_9),("bg_hhTTr_match_id"):=
+bg_hhTypeRE[is.na(age_range_9),("bg_TTr_match_id"):=
               paste0(GEOID,re_code_7,rent_own,age_range_3,as.character(100000+sample(1:.N))),
             by=.(GEOID,re_code_7,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
-                bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTr_match_id)]]
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","HvL"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL)),on=.(bg_hhTTr_match_id)]]
-nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1011303
+                bg_hhTypeRE[.SD,list(re_code),on=.(bg_TTr_match_id)]]
+table(bg_hhTypeRE[is.na(age_range_9),HvL])
+table(bg_hhTypeRE[is.na(age_range_9),re_code])
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","HvL","re_code"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14)),
+                            on=.(bg_TTr_match_id)]]
+#bg_hhTypeRE[is.na(age_range_9),("age_range_9"):=
+#              bg_hhTenureAR[.SD,list(age_range_9),
+#                            on=.(bg_TTr_match_id)]]
+table(bg_hhTypeRE[is.na(age_range_9),re_code])
+table(bg_hhTypeRE[is.na(age_range_9),HvL])
+nrow(bg_hhTypeRE[is.na(age_range_9)]) #1011303
 
-#with HvL
+#with HvL ???Not matching any????
 bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTe_match_id"):=
                 paste0(GEOID,HvL,rent_own,age_range_3,as.character(100000+sample(1:.N))),
               by=.(GEOID,HvL,rent_own,age_range_3)]
@@ -1057,8 +1062,12 @@ bg_hhTypeRE[is.na(age_range_9),("bg_hhTTe_match_id"):=
             by=.(GEOID,HvL,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTe_match_id)]]
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","re_code_7"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(re_code)),on=.(bg_hhTTe_match_id)]]
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","HvL","re_code"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14)),
+                            on=.(bg_hhTTe_match_id)]]
+#bg_hhTypeRE[is.na(age_range_9),("age_range_9"):=
+#              bg_hhTenureAR[.SD,list(age_range_9),
+#                            on=.(bg_hhTTe_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113 / became 412215 with bg_hhTenureRE
 #just rent_own and age
 bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTa_match_id"):=
@@ -1069,8 +1078,9 @@ bg_hhTypeRE[is.na(age_range_9),("bg_hhTTa_match_id"):=
             by=.(GEOID,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTa_match_id)]]
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","re_code_7","HvL"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(re_code),list(HvL)),on=.(bg_hhTTa_match_id)]]
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","HvL","re_code"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14)),
+                            on=.(bg_hhTTa_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) == 0
 #need to reset re_code on bg_hhTypeRE to match each other -
 
