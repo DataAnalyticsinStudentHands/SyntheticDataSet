@@ -1025,8 +1025,9 @@ bg_hhTypeRE[,("bg_hhTTIP_match_id"):=
               by=.(GEOID,re_code,rent_own,age_range_3)]
 bg_hhTenureAR[,("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTIP_match_id)]]
-bg_hhTypeRE[,c("age_range_9","Latino","re_code_14","race"):=
-                bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),list(race)),
+bg_hhTypeRE[,c("age_range_9","Latino","re_code_14","race","tenure"):=
+                bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),
+                                    list(race),list(tenure)),
                               on=.(bg_hhTTIP_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1235318/10491147 = .117 not matching; when not doing the re_code from bg_hhTenureRE, it was 18%
 nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046; basically same with and without bg_hhTenureRE
@@ -1042,12 +1043,10 @@ bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_TTr_match_id)]]
 table(bg_hhTypeRE[is.na(age_range_9),HvL])
 table(bg_hhTypeRE[is.na(age_range_9),re_code])
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),list(race)),
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race","tenure"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),
+                                  list(race),list(tenure)),
                             on=.(bg_TTr_match_id)]]
-#bg_hhTypeRE[is.na(age_range_9),("age_range_9"):=
-#              bg_hhTenureAR[.SD,list(age_range_9),
-#                            on=.(bg_TTr_match_id)]]
 table(bg_hhTypeRE[is.na(age_range_9),re_code])
 table(bg_hhTypeRE[is.na(age_range_9),HvL])
 nrow(bg_hhTypeRE[is.na(age_range_9)]) #1011303
@@ -1061,12 +1060,10 @@ bg_hhTypeRE[is.na(age_range_9),("bg_hhTTe_match_id"):=
             by=.(GEOID,HvL,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTe_match_id)]]
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),list(race)),
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race","tenure"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),
+                                  list(race),list(tenure)),
                             on=.(bg_hhTTe_match_id)]]
-#bg_hhTypeRE[is.na(age_range_9),("age_range_9"):=
-#              bg_hhTenureAR[.SD,list(age_range_9),
-#                            on=.(bg_hhTTe_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113 / became 418247 with bg_hhTenureRE
 #just rent_own and age
 bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTa_match_id"):=
@@ -1077,8 +1074,9 @@ bg_hhTypeRE[is.na(age_range_9),("bg_hhTTa_match_id"):=
             by=.(GEOID,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTa_match_id)]]
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),list(race)),
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race","tenure"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),
+                                  list(race),list(tenure)),
                             on=.(bg_hhTTa_match_id)]]
 nrow(bg_hhTypeRE[is.na(age_range_9)]) == 0
 test<-abs(table(bg_hhTypeRE[,GEOID],
@@ -1146,7 +1144,7 @@ bg_hhTypeRE[,("re_code_7"):=fcase(re_code_14%in%c("I","P"),"A",
 #        bg_hhTenureRE[,rent_own])
 #length(test[test==FALSE])==0
 
-
+#add H12 to PCT7
 groupname <- "H12" #TENURE BY HOUSEHOLD SIZE and race/eth
 api_type <- "dec/dhc"
 geo_type <- "block_group"
@@ -1175,12 +1173,11 @@ Geoids <- colnames(bg_hhSizeTenureRE_data[,.SD,.SDcols = startsWith(names(bg_hhS
 bg_hhSizeTenureRE_melted <- melt(bg_hhSizeTenureRE_data, id.vars = c("re_code","race","rent_own","size"), measure.vars = Geoids,
                                  value.name = "codom_bg_hhSizeTenureRE", variable.name = "GEOID")
 bg_hhSizeTenureRE <- as.data.table(lapply(bg_hhSizeTenureRE_melted[,.SD],rep,bg_hhSizeTenureRE_melted[,codom_bg_hhSizeTenureRE]))
-bg_hhSizeTenureR <- bg_hhSizeTenureRE[!re_code %in% c("H","I")]
-bg_hhSizeTenureE <- bg_hhSizeTenureRE[re_code %in% c("H","I")]
+bg_hhSizeTenureRE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 rm(bg_hhSizeTenureRE_data_from_census)
 rm(bg_hhSizeTenureRE_data)
 rm(bg_hhSizeTenureRE_melted)
-rm(bg_hhSizeTenureRE)
+#rm(bg_hhSizeTenureRE)
 
 groupname <- "PCT7" #HOUSEHOLD TYPE BY HOUSEHOLD SIZE, race/eth
 geo_type <- "tract"
@@ -1210,13 +1207,96 @@ Geoids <- colnames(tr_hhTypeSizeRE_data[,.SD,.SDcols = startsWith(names(tr_hhTyp
 tr_hhTypeSizeRE_melted <- melt(tr_hhTypeSizeRE_data, id.vars = c("re_code","race","family","hh_size"), measure.vars = Geoids,
                                value.name = "codom_tr_hhTypeSizeRE", variable.name = "GEOID")
 tr_hhTypeSizeRE <- as.data.table(lapply(tr_hhTypeSizeRE_melted[,.SD],rep,tr_hhTypeSizeRE_melted[,codom_tr_hhTypeSizeRE]))
-tr_hhTypeSizeR <- tr_hhTypeSizeRE[!re_code %in% c("H","I")]
-tr_hhTypeSizeE <- tr_hhTypeSizeRE[re_code %in% c("H","I")]
+#tr_hhTypeSizeR <- tr_hhTypeSizeRE[!re_code %in% c("H","I")]
+#tr_hhTypeSizeE <- tr_hhTypeSizeRE[re_code %in% c("H","I")]
 rm(tr_hhTypeSizeRE_data_from_census)
 rm(tr_hhTypeSizeRE_data)
 rm(tr_hhTypeSizeRE_melted)
-rm(tr_hhTypeSizeRE)
+#rm(tr_hhTypeSizeRE)
 
+#join H12 and PCT7, moving family/non-family over to H12
+bg_hhSizeTenureRE[,("bgtr_hhSZ_match_id"):=
+                paste0(tract,re_code,size,as.character(100000+sample(1:.N))),
+              by=.(tract,re_code,size)]
+tr_hhTypeSizeRE[,("bgtr_hhSZ_match_id"):=
+              paste0(GEOID,re_code,hh_size,as.character(100000+sample(1:.N))),
+            by=.(GEOID,re_code,hh_size)]
+bg_hhSizeTenureRE[,("family"):=
+                tr_hhTypeSizeRE[.SD,list(family),on=.(bgtr_hhSZ_match_id)]]
+tr_hhTypeSizeRE[,("rent_own"):=
+                  bg_hhSizeTenureRE[.SD,list(rent_own),
+                            on=.(bgtr_hhSZ_match_id)]]
+nrow(bg_hhSizeTenureRE[is.na(family)]) #10045 (all missing have re_code=="H" and seem to not have a family designation)
+#can't fix last 10k
+#table(bg_hhSizeTenureRE[is.na(family),re_code])
+#nrow(tr_hhTypeSizeRE[is.na(rent_own)])==0
+#join H and I into re_code_7
+bg_hhSizeTenureR <- bg_hhSizeTenureRE[!re_code %in% c("H","I")]
+bg_hhSizeTenureE <- bg_hhSizeTenureRE[re_code %in% c("H","I")]
+bg_hhSizeTenureR[re_code=="A",("bgtr_hhRE_match_id"):=
+                    paste0(GEOID,size,rent_own,family,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,size,rent_own,family)]
+bg_hhSizeTenureE[re_code=="I",("bgtr_hhRE_match_id"):=
+                  paste0(GEOID,size,rent_own,family,as.character(100000+sample(1:.N))),
+                by=.(GEOID,size,rent_own,family)]
+bg_hhSizeTenureR[re_code=="A",("re_code_HI"):=
+                   bg_hhSizeTenureE[.SD,list(re_code),on=.(bgtr_hhRE_match_id)]]
+bg_hhSizeTenureE[re_code=="I",("matched_E"):=
+                  bg_hhSizeTenureR[.SD,list(re_code),
+                                    on=.(bgtr_hhRE_match_id)]]
+nrow(bg_hhSizeTenureE[re_code=="I"])-nrow(bg_hhSizeTenureR[re_code_HI=="I"]) #58748
+#HnotP
+bg_hhSizeTenureR[re_code=="A"&is.na(re_code_HI),("bgtr_hhHnotP_match_id"):=
+                   paste0(GEOID,size,rent_own,family,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,size,rent_own,family)]
+bg_hhSizeTenureE[re_code=="H",("bgtr_hhHnotP_match_id"):=
+                   paste0(GEOID,size,rent_own,family,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,size,rent_own,family)]
+bg_hhSizeTenureR[re_code=="A"&is.na(re_code_HI),("re_code_HI"):=
+                   bg_hhSizeTenureE[.SD,list(re_code),on=.(bgtr_hhHnotP_match_id)]]
+bg_hhSizeTenureE[re_code=="H",("matched_E"):=
+                   bg_hhSizeTenureR[.SD,list(re_code),
+                                    on=.(bgtr_hhHnotP_match_id)]]
+nrow(bg_hhSizeTenureE[re_code=="H"])-nrow(bg_hhSizeTenureR[re_code_HI=="H"]) #2445796
+nrow(bg_hhSizeTenureR[re_code=="A"])-nrow(bg_hhSizeTenureR[!is.na(re_code_HI)]) #45220 #0.77%
+#rest of H
+bg_hhSizeTenureR[re_code!="A"&is.na(re_code_HI),("bgtr_hhH_match_id"):=
+                   paste0(GEOID,size,rent_own,family,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,size,rent_own,family)]
+bg_hhSizeTenureE[re_code=="H"&is.na(matched_E),("bgtr_hhH_match_id"):=
+                   paste0(GEOID,size,rent_own,family,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,size,rent_own,family)]
+bg_hhSizeTenureR[re_code!="A"&is.na(re_code_HI),("re_code_HI"):=
+                   bg_hhSizeTenureE[.SD,list(re_code),on=.(bgtr_hhH_match_id)]]
+bg_hhSizeTenureE[re_code=="H"&is.na(matched_E),("matched_E"):=
+                   bg_hhSizeTenureR[.SD,list(re_code),
+                                    on=.(bgtr_hhH_match_id)]]
+
+#table(bg_hhSizeTenureE[,re_code])-table(bg_hhSizeTenureR[,re_code_HI])
+#leaving some not matched
+rm(bg_hhSizeTenureE)
+rm(bg_hhSizeTenureRE)
+#join to bg_hhTypeRE
+test <- table(bg_hhSizeTenureR[,GEOID], 
+              #bg_hhSizeTenureR[,family],
+              bg_hhSizeTenureR[,rent_own])==
+  table(bg_hhTypeRE[,GEOID], 
+        #bg_hhTypeRE[,family],
+        bg_hhTypeRE[,rent_own])
+length(test[test==F])
+#family and rent_own should be kept from bg_hhTypeRE
+#moving size over from bg_hhSizeTenure
+bg_hhSizeTenureR[,("bg_hhSizeR_match_id"):=
+                   paste0(GEOID,re_code,family,rent_own,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,re_code,family,rent_own)]
+bg_hhTypeRE[,("bg_hhSizeR_match_id"):=
+                   paste0(GEOID,re_code,family,rent_own,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,re_code,family,rent_own)]
+bg_hhSizeTenureR[,("re_code_HI"):=
+                   bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhSizeR_match_id)]]
+bg_hhTypeRE[,("hh_size_7"):=
+                   bg_hhSizeTenureR[.SD,list(size),
+                                    on=.(bg_hhSizeR_match_id)]]
 
 
 groupname <- "H15" #TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
@@ -1283,6 +1363,22 @@ tr_hhTenureOwnKids <- as.data.table(lapply(tr_hhTenureOwnKids_melted[,.SD],rep,t
 rm(tr_hhTenureOwnKids_data_from_census)
 rm(tr_hhTenureOwnKids_data)
 rm(tr_hhTenureOwnKids_melted)
+
+#check to see how different from bg_hhType; 
+#table(tr_hhTenureOwnKids[,tenure]) == table(bg_hhTypeRE[,rent_own])
+#table(tr_hhTenureOwnKids[,kid_18]) == table(bg_hhTypeRE[,own_kids])
+#good on top line numbers; crosstabs are not that far off
+test <- table(#tr_hhTenureOwnKids[,GEOID], #there are 41 tracts with no population listed!!
+              tr_hhTenureOwnKids[,tenure],
+              tr_hhTenureOwnKids[,kid_18])-
+  table(#bg_hhTypeRE[,tract], #there are a handful with only one, two or three, but have to go to 175 to get 41 tracts...
+        bg_hhTypeRE[,rent_own],
+        bg_hhTypeRE[,own_kids])
+#off by about 7.5% on crosstabs
+
+
+
+#add bg to tr - H15 to HCT2 
 
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ and individual roles
