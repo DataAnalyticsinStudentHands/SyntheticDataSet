@@ -308,7 +308,6 @@ rm(bg_hhOwnKids_data)
 
 #make a hh_type_4 to capture the possible matches... - redo with more categories, if needed
 #what if make all married couples male hh, then back out for the ones that are same_sex female after fail to match?
-#this is broken!!!!!!
 tr_hhCouple[,("hh_type_4"):=fcase(str_detect(family,"Female") | str_detect(family_type,"Female") |
                                     sex=="Female" & hh_type_3=="All others", #i.e., nonfamily
                                     "Female householder, no spouse or partner present",
@@ -996,8 +995,8 @@ bg_hhTenureAR[,("bg_hhTTARE_match_id"):=
 bg_hhTenureRE[,("bg_hhTTARE_match_id"):=
               paste0(GEOID,re_code,rent_own,as.character(100000+sample(1:.N))),
             by=.(GEOID,re_code,rent_own)]
-bg_hhTenureAR[,("tenure"):=
-                bg_hhTenureRE[.SD,list(tenure),on=.(bg_hhTTARE_match_id)]]
+bg_hhTenureAR[,c("tenure","race"):=
+                bg_hhTenureRE[.SD,c(list(tenure),list(race)),on=.(bg_hhTTARE_match_id)]]
 bg_hhTenureRE[,("match_bgTenure"):=
               bg_hhTenureAR[.SD,list(re_code_14),on=.(bg_hhTTARE_match_id)]]
 nrow(bg_hhTenureAR[is.na(tenure)]) #got ~90%
@@ -1009,8 +1008,8 @@ bg_hhTenureAR[is.na(tenure),("bg_hhTTARE1_match_id"):=
 bg_hhTenureRE[is.na(match_bgTenure),("bg_hhTTARE1_match_id"):=
                 paste0(GEOID,re_code_7,rent_own,as.character(100000+sample(1:.N))),
               by=.(GEOID,re_code_7,rent_own)]
-bg_hhTenureAR[is.na(tenure),c("tenure","re_code_14"):=
-                bg_hhTenureRE[.SD,c(list(tenure),list(re_code)),on=.(bg_hhTTARE1_match_id)]]
+bg_hhTenureAR[is.na(tenure),c("tenure","re_code_14","race"):=
+                bg_hhTenureRE[.SD,c(list(tenure),list(re_code),list(race)),on=.(bg_hhTTARE1_match_id)]]
 bg_hhTenureRE[is.na(match_bgTenure),("match_bgTenure"):=
                 bg_hhTenureAR[.SD,list(re_code_14),on=.(bg_hhTTARE1_match_id)]]
 nrow(bg_hhTenureAR[is.na(tenure)])==0
@@ -1026,8 +1025,8 @@ bg_hhTypeRE[,("bg_hhTTIP_match_id"):=
               by=.(GEOID,re_code,rent_own,age_range_3)]
 bg_hhTenureAR[,("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTIP_match_id)]]
-bg_hhTypeRE[,c("age_range_9","HvL","re_code"):=
-                bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14)),
+bg_hhTypeRE[,c("age_range_9","Latino","re_code_14","race"):=
+                bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),list(race)),
                               on=.(bg_hhTTIP_match_id)]]
 nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1235318/10491147 = .117 not matching; when not doing the re_code from bg_hhTenureRE, it was 18%
 nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046; basically same with and without bg_hhTenureRE
@@ -1043,8 +1042,8 @@ bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_TTr_match_id)]]
 table(bg_hhTypeRE[is.na(age_range_9),HvL])
 table(bg_hhTypeRE[is.na(age_range_9),re_code])
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","HvL","re_code"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14)),
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),list(race)),
                             on=.(bg_TTr_match_id)]]
 #bg_hhTypeRE[is.na(age_range_9),("age_range_9"):=
 #              bg_hhTenureAR[.SD,list(age_range_9),
@@ -1053,7 +1052,7 @@ table(bg_hhTypeRE[is.na(age_range_9),re_code])
 table(bg_hhTypeRE[is.na(age_range_9),HvL])
 nrow(bg_hhTypeRE[is.na(age_range_9)]) #1011303
 
-#with HvL ???Not matching any????
+#with HvL
 bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTe_match_id"):=
                 paste0(GEOID,HvL,rent_own,age_range_3,as.character(100000+sample(1:.N))),
               by=.(GEOID,HvL,rent_own,age_range_3)]
@@ -1062,13 +1061,13 @@ bg_hhTypeRE[is.na(age_range_9),("bg_hhTTe_match_id"):=
             by=.(GEOID,HvL,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTe_match_id)]]
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","HvL","re_code"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14)),
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),list(race)),
                             on=.(bg_hhTTe_match_id)]]
 #bg_hhTypeRE[is.na(age_range_9),("age_range_9"):=
 #              bg_hhTenureAR[.SD,list(age_range_9),
 #                            on=.(bg_hhTTe_match_id)]]
-nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113 / became 412215 with bg_hhTenureRE
+nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113 / became 418247 with bg_hhTenureRE
 #just rent_own and age
 bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTa_match_id"):=
                 paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
@@ -1078,25 +1077,43 @@ bg_hhTypeRE[is.na(age_range_9),("bg_hhTTa_match_id"):=
             by=.(GEOID,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhTTa_match_id)]]
-bg_hhTypeRE[is.na(age_range_9),c("age_range_9","HvL","re_code"):=
-              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14)),
+bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race"):=
+              bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),list(race)),
                             on=.(bg_hhTTa_match_id)]]
-nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) == 0
-#need to reset re_code on bg_hhTypeRE to match each other -
+nrow(bg_hhTypeRE[is.na(age_range_9)]) == 0
+test<-abs(table(bg_hhTypeRE[,GEOID],
+            bg_hhTypeRE[,rent_own],
+            bg_hhTypeRE[,re_code])-
+  table(bg_hhTypeRE[,GEOID],
+        bg_hhTypeRE[,rent_own],
+        bg_hhTypeRE[,re_code_14]))/
+  abs(table(bg_hhTypeRE[,GEOID],
+        bg_hhTypeRE[,rent_own],
+        bg_hhTypeRE[,re_code_14]))
+mean(test[1:14]) #.07 - all attributable to bad match on re_code with Type
+test<-table(bg_hhTenureAR[,GEOID],
+      bg_hhTenureAR[,rent_own],
+      bg_hhTenureAR[,HvL],
+      bg_hhTenureAR[,re_code_14])==
+  table(bg_hhTypeRE[,GEOID],
+        bg_hhTypeRE[,rent_own],
+        bg_hhTypeRE[,Latino],
+        bg_hhTypeRE[,re_code_14])
+length(test[test==F])==0
+#bg_hhTypeRE[,("re_code"):=NULL]
+#bg_hhTypeRE[,("HvL"):=NULL]
+#need to reset re_code_7 on bg_hhTypeRE to match correctly; how far off are rent_own, etc.?
+bg_hhTypeRE[,("re_code_7"):=fcase(re_code_14%in%c("I","P"),"A",
+                                    re_code_14%in%c("J","Q"),"B",
+                                    re_code_14%in%c("K","R"),"C",
+                                    re_code_14%in%c("L","S"),"D",
+                                    re_code_14%in%c("M","T"),"E",
+                                    re_code_14%in%c("N","U"),"F",
+                                    re_code_14%in%c("O","V"),"G",
+                                    default = "Not given")]
+#table(bg_hhTypeRE[,re_code_7],bg_hhTypeRE[,re_code_14])
 
-bg_hhTypeRE[,("re_code_14"):=fcase(HvL=="H"&re_code_7=="B","Q",
-                                     HvL=="H"&re_code_7=="C","R",
-                                     HvL=="H"&re_code_7=="D","S",
-                                     HvL=="H"&re_code_7=="E","T",
-                                     HvL=="H"&re_code_7=="F","U",
-                                     HvL=="H"&re_code_7=="G","V",
-                                     HvL!="H"&re_code_7=="B","J",
-                                     HvL!="H"&re_code_7=="C","K",
-                                     HvL!="H"&re_code_7=="D","L",
-                                     HvL!="H"&re_code_7=="E","M",
-                                     HvL!="H"&re_code_7=="F","N",
-                                     HvL!="H"&re_code_7=="G","O",
-                                     default = re_code)]
+
 #test <- table(bg_hhTypeRE[,GEOID],
 #              bg_hhTypeRE[,re_code_7],
 #              bg_hhTypeRE[,rent_own],
@@ -1114,26 +1131,21 @@ bg_hhTypeRE[,("re_code_14"):=fcase(HvL=="H"&re_code_7=="B","Q",
 #        bg_hhTenureAR[,re_code_14],
 #        bg_hhTenureAR[,rent_own])
 #length(test[test==FALSE])==0
+#
+#test <- table(bg_hhTypeRE[,GEOID],
+#              bg_hhTypeRE[,re_code_14],
+#              bg_hhTypeRE[,rent_own])==
+#  table(bg_hhTenureRE[,GEOID],
+#        bg_hhTenureRE[,re_code],
+#        bg_hhTenureRE[,rent_own])
+#length(test[test==FALSE])==0
+#
+#test <- table(bg_hhTypeRE[,re_code_7],
+#              bg_hhTypeRE[,rent_own])==
+#  table(bg_hhTenureRE[,re_code_7],
+#        bg_hhTenureRE[,rent_own])
+#length(test[test==FALSE])==0
 
-test <- table(bg_hhTypeRE[,GEOID],
-              bg_hhTypeRE[,re_code_14],
-              bg_hhTypeRE[,rent_own])==
-  table(bg_hhTenureRE[,GEOID],
-        bg_hhTenureRE[,re_code],
-        bg_hhTenureRE[,rent_own])
-length(test[test==FALSE]) #265800 (521864 cells) totals are right, but lots not matching in GEOID  
-
-test <- table(bg_hhTypeRE[,re_code_7],
-              bg_hhTypeRE[,rent_own])==
-  table(bg_hhTenureRE[,re_code_7],
-        bg_hhTenureRE[,rent_own])
-length(test[test==FALSE])==0
-
-test <- table(bg_hhTypeRE[,re_code],
-              bg_hhTypeRE[,rent_own])==
-  table(bg_hhTenureAR[,re_code_14],
-        bg_hhTenureAR[,rent_own])
-length(test[test==FALSE]) #28 wrong of 28...
 
 groupname <- "H12" #TENURE BY HOUSEHOLD SIZE and race/eth
 api_type <- "dec/dhc"
