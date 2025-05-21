@@ -1088,7 +1088,7 @@ test<-abs(table(bg_hhTypeRE[,GEOID],
   abs(table(bg_hhTypeRE[,GEOID],
         bg_hhTypeRE[,rent_own],
         bg_hhTypeRE[,re_code_14]))
-mean(test[1:14]) #.07 - all attributable to bad match on re_code with Type
+mean(test[1:14]) #.038 - all attributable to bad match on re_code with Type
 test<-table(bg_hhTenureAR[,GEOID],
       bg_hhTenureAR[,rent_own],
       bg_hhTenureAR[,HvL],
@@ -1285,19 +1285,48 @@ test <- table(bg_hhSizeTenureR[,GEOID],
         bg_hhTypeRE[,rent_own])
 length(test[test==F])
 #family and rent_own should be kept from bg_hhTypeRE
+bg_hhSizeTenureR[,("alone"):=fcase(size=="1-person household","Living alone",
+                                   default = "Not living alone")]
+#some of "solitary for family_type_7 are listed as having own kids - need to be mindful in final
+bg_hhTypeRE[,("size_3"):=fcase(alone=="Living alone","1-person",
+                               own_kids=="With own children under 18 years"&
+                                 match_type_5=="Married couple","3-person",
+                               match_type_5!="Living alone","2-person",
+                               default = "unknown")]
+bg_hhSizeTenureR[,("size_3"):=fcase(as.numeric(substr(size,1,1))<4,size,
+                                    default = "unknown")]
 #moving size over from bg_hhSizeTenure
-bg_hhSizeTenureR[,("bg_hhSizeR_match_id"):=
-                   paste0(GEOID,re_code,family,rent_own,as.character(100000+sample(1:.N))),
-                 by=.(GEOID,re_code,family,rent_own)]
-bg_hhTypeRE[,("bg_hhSizeR_match_id"):=
-                   paste0(GEOID,re_code,family,rent_own,as.character(100000+sample(1:.N))),
-                 by=.(GEOID,re_code,family,rent_own)]
-bg_hhSizeTenureR[,("re_code_HI"):=
-                   bg_hhTypeRE[.SD,list(re_code),on=.(bg_hhSizeR_match_id)]]
-bg_hhTypeRE[,("hh_size_7"):=
+bg_hhSizeTenureR[re_code_HI!="H",("bg_hhSizeR_match_id"):=
+                   paste0(GEOID,size_3,re_code,family,rent_own,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,size_3,re_code,family,rent_own)]
+bg_hhTypeRE[Latino!="H",("bg_hhSizeR_match_id"):=
+                   paste0(GEOID,size_3,re_code_7,family,rent_own,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,size_3,re_code_7,family,rent_own)]
+bg_hhSizeTenureR[re_code_HI!="H",("match_R"):=
+                   bg_hhTypeRE[.SD,list(re_code_14),on=.(bg_hhSizeR_match_id)]]
+bg_hhTypeRE[Latino!="H",("hh_size_7"):=
                    bg_hhSizeTenureR[.SD,list(size),
                                     on=.(bg_hhSizeR_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_size_7)]) #5750137
+nrow(bg_hhSizeTenureR[re_code_HI!="H"])-nrow(bg_hhSizeTenureR[!is.na(match_R)]) #147997 (3%)
 
+#for H (and other not matches)
+bg_hhSizeTenureR[is.na(match_R),("bg_hhSizeTE_match_id"):=
+                   paste0(GEOID,size_3,re_code,family,rent_own,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,size_3,re_code,family,rent_own)]
+bg_hhTypeRE[is.na(hh_size_7),("bg_hhSizeTE_match_id"):=
+              paste0(GEOID,size_3,re_code_7,family,rent_own,as.character(100000+sample(1:.N))),
+            by=.(GEOID,size_3,re_code_7,family,rent_own)]
+bg_hhSizeTenureR[is.na(match_R),("match_R"):=
+                   bg_hhTypeRE[.SD,list(re_code_14),on=.(bg_hhSizeTE_match_id)]]
+bg_hhTypeRE[is.na(hh_size_7),("hh_size_7"):=
+              bg_hhSizeTenureR[.SD,list(size),
+                               on=.(bg_hhSizeTE_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_size_7)]) #466067 (4%)
+table(bg_hhTypeRE[is.na(hh_size_7),family]) #exactly even seems suspicious
+table(bg_hhSizeTenureR[is.na(match_E) | is.na(match_R),size])
+#then make size_3 adjustments so it's flexible... will have to adjust after own_kids matches, too?
+#maybe do the matches that we can on next few hh tables, then make explicit?
 
 groupname <- "H15" #TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
 api_type <- "dec/dhc"
