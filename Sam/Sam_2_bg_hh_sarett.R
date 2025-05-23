@@ -1468,6 +1468,7 @@ bg_hh18Tenure <- as.data.table(lapply(bg_hh18Tenure_melted[,.SD],rep,bg_hh18Tenu
 rm(bg_hh18Tenure_data_from_census)
 rm(bg_hh18Tenure_data)
 rm(bg_hh18Tenure_melted)
+bg_hh18Tenure[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 
 groupname <- "HCT2" #TENURE BY PRESENCE AND AGE OF OWN CHILDREN (more categories)
 geo_type <- "tract"
@@ -1506,18 +1507,79 @@ rm(tr_hhTenureOwnKids_data_from_census)
 rm(tr_hhTenureOwnKids_data)
 rm(tr_hhTenureOwnKids_melted)
 
+#fix weirdness on kid_18
+bg_hh18Tenure[,("kid_18"):=str_replace(kid_18," children"," own children")]
+#remove empty tracts from tr_hhTenureOwnKids??
+#same totals, but different number of tracts!!!! ugh
+
+
+tr_hhTenureOwnKids[,("tr_18_match_id"):=
+                 paste0(GEOID,tenure,kid_18,as.character(100000+sample(1:.N))),
+               by=.(GEOID,tenure,kid_18)]
+bg_hh18Tenure[,("tr_18_match_id"):=
+              paste0(tract,tenure,kid_18,as.character(100000+sample(1:.N))),
+            by=.(tract,tenure,kid_18)]
+tr_hhTenureOwnKids[,("match_18"):=
+                 bg_hh18Tenure[.SD,list(tenure),on=.(tr_18_match_id)]]
+bg_hh18Tenure[,("kid_age_range_3"):=
+                tr_hhTenureOwnKids[.SD,list(kid_age_range_3),
+                             on=.(tr_18_match_id)]]
+nrow(bg_hh18Tenure[is.na(kid_age_range_3)]) #472010 ~5% - check
+#table(bg_hh18Tenure[,kid_age_range_3])-table(tr_hhTenureOwnKids[,kid_age_range_3]) #!?? all for No own children?
+bg_hh18Tenure[,("kid_18"):=fcase(is.na(kid_age_range_3),
+                                          "No own children under 18 years",
+                                        default = kid_18)]
+bg_hh18Tenure[,("kid_age_range_3"):=fcase(is.na(kid_age_range_3),
+                                          "No own children under 18 years",
+                                          default = kid_age_range_3)]
+#weird on matching across tracts! length(unique()) gets same number of tracts,
+#but length(table()) shows more tracts for tr_hhTenureOwnKids; looks like 41 rows without data
+#didn't effect outcome
+
+#test <- table(bg_hh18Tenure[,tract])==table(tr_hhTenureOwnKids[,GEOID])
+
+
 #check to see how different from bg_hhType; 
 #table(tr_hhTenureOwnKids[,tenure]) == table(bg_hhTypeRE[,rent_own])
 #table(tr_hhTenureOwnKids[,kid_18]) == table(bg_hhTypeRE[,own_kids])
 #good on top line numbers; crosstabs are not that far off
-test <- table(#tr_hhTenureOwnKids[,GEOID], #there are 41 tracts with no population listed!!
-              tr_hhTenureOwnKids[,tenure],
-              tr_hhTenureOwnKids[,kid_18])-
-  table(#bg_hhTypeRE[,tract], #there are a handful with only one, two or three, but have to go to 175 to get 41 tracts...
+test <- table(#bg_hh18Tenure[,GEOID], #there are 41 tracts with no population listed!!
+              bg_hh18Tenure[,tenure],
+              bg_hh18Tenure[,kid_18])-
+  table(#bg_hhTypeRE[,GEOID], #there are a handful with only one, two or three, but have to go to 175 to get 41 tracts...
         bg_hhTypeRE[,rent_own],
         bg_hhTypeRE[,own_kids])
-#off by about 7.5% on crosstabs
-
+#mean(test[test>0]) #12.3 
+#keep the rent_own to kid_18 from bg_hh18Tenure
+bg_hhTypeRE[,("bg_18_match_id"):=
+                     paste0(GEOID,rent_own,own_kids,as.character(100000+sample(1:.N))),
+                   by=.(GEOID,rent_own,own_kids)]
+bg_hh18Tenure[,("bg_18_match_id"):=
+                paste0(GEOID,tenure,kid_18,as.character(100000+sample(1:.N))),
+              by=.(GEOID,tenure,kid_18)]
+bg_hh18Tenure[,("match_18TRE"):=
+                bg_hhTypeRE[.SD,list(rent_own),on=.(bg_18_match_id)]]
+bg_hhTypeRE[,("kid_age_range_3"):=
+              bg_hh18Tenure[.SD,list(kid_age_range_3),
+                                   on=.(bg_18_match_id)]]
+nrow(bg_hhTypeRE[is.na(kid_age_range_3)])
+bg_hhTypeRE[,("bg_18_match2_id"):=
+              paste0(GEOID,own_kids,as.character(100000+sample(1:.N))),
+            by=.(GEOID,own_kids)]
+bg_hh18Tenure[,("bg_18_match2_id"):=
+                paste0(GEOID,kid_18,as.character(100000+sample(1:.N))),
+              by=.(GEOID,kid_18)]
+bg_hh18Tenure[is.na(match_18TRE),("match_18TRE"):=
+                bg_hhTypeRE[.SD,list(rent_own),on=.(bg_18_match2_id)]]
+bg_hhTypeRE[,c("kid_age_range_3","rent_own"):=
+              bg_hh18Tenure[.SD,c(list(kid_age_range_3),list(tenure)),
+                            on=.(bg_18_match2_id)]]
+test <- table(#bg_hh18Tenure[,GEOID], #there are 41 tracts with no population listed!!
+  bg_hh18Tenure[,tenure],
+  bg_hh18Tenure[,kid_18])-
+  table(#bg_hhTypeRE[,GEOID], #there are a handful with only one, two or three, but have to go to 175 to get 41 tracts...
+    bg_hhTypeRE[,rent_own],
+    bg_hhTypeRE[,own_kids])
 
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ and individual roles
