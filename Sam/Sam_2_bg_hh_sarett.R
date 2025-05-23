@@ -1285,13 +1285,13 @@ test <- table(bg_hhSizeTenureR[,GEOID],
         bg_hhTypeRE[,rent_own])
 length(test[test==F])
 #family and rent_own should be kept from bg_hhTypeRE
-bg_hhSizeTenureR[,("alone"):=fcase(size=="1-person household","Living alone",
-                                   default = "Not living alone")]
+#bg_hhSizeTenureR[,("alone"):=fcase(size=="1-person household","Living alone",
+#                                   default = "Not living alone")]
 #some of "solitary for family_type_7 are listed as having own kids - need to be mindful in final
-bg_hhTypeRE[,("size_3"):=fcase(alone=="Living alone","1-person",
+bg_hhTypeRE[,("size_3"):=fcase(alone=="Living alone","1-person household",
                                own_kids=="With own children under 18 years"&
-                                 match_type_5=="Married couple","3-person",
-                               match_type_5!="Living alone","2-person",
+                                 match_type_5=="Married couple","3-person household",
+                               match_type_5!="Living alone","2-person household",
                                default = "unknown")]
 bg_hhSizeTenureR[,("size_3"):=fcase(as.numeric(substr(size,1,1))<4,size,
                                     default = "unknown")]
@@ -1322,12 +1322,125 @@ bg_hhSizeTenureR[is.na(match_R),("match_R"):=
 bg_hhTypeRE[is.na(hh_size_7),("hh_size_7"):=
               bg_hhSizeTenureR[.SD,list(size),
                                on=.(bg_hhSizeTE_match_id)]]
-nrow(bg_hhTypeRE[is.na(hh_size_7)]) #466067 (4%)
-table(bg_hhTypeRE[is.na(hh_size_7),family]) #exactly even seems suspicious
-table(bg_hhSizeTenureR[is.na(match_E) | is.na(match_R),size])
+nrow(bg_hhTypeRE[is.na(hh_size_7)]) #3599735
+table(bg_hhTypeRE[is.na(hh_size_7),family]) 
+table(bg_hhSizeTenureR[is.na(match_R),size])
 #then make size_3 adjustments so it's flexible... will have to adjust after own_kids matches, too?
 #maybe do the matches that we can on next few hh tables, then make explicit?
 
+#adding multi-gen, since it has RE, then going back to finish out the size...
+#multigen is hard; having parent only counts if you also have kids; having grandkids only counts if their parents are there...
+groupname <- "PCT14" #PRESENCE OF MULTIGENERATIONAL HOUSEHOLDS, race/eth
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhMultiGenRE_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hhMultiGenRE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("multi_gen_hh","multi_gen_3","re_code","race") 
+  tr_hhMultiGenRE_data_from_census[,("re_code") := substr(name,6,6)][
+    ,("race") := str_replace(concept,"PRESENCE OF MULTIGENERATIONAL HOUSEHOLDS \\(","")][
+      ,("race") := str_replace(race,"\\)","")]
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hhMultiGenRE_data_from_census[str_detect(label_1,"generations") & str_detect(concept,"\\)"),name]))
+  test_total_pop <- tests_download_data(tr_hhMultiGenRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
+  tr_hhMultiGenRE_data <- relabel(tr_hhMultiGenRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhMultiGenRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhMultiGenRE_data <- tr_hhMultiGenRE_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhMultiGenRE_data[,.SD,.SDcols = startsWith(names(tr_hhMultiGenRE_data),state)])
+tr_hhMultiGenRE_melted <- melt(tr_hhMultiGenRE_data, id.vars = c("multi_gen_hh","multi_gen_3","re_code","race"), measure.vars = Geoids,
+                               value.name = "codom_tr_hhMultiGenRE", variable.name = "GEOID")
+tr_hhMultiGenRE <- as.data.table(lapply(tr_hhMultiGenRE_melted[,.SD],rep,tr_hhMultiGenRE_melted[,codom_tr_hhMultiGenRE]))
+tr_hhMultiGenR <- tr_hhMultiGenRE[!re_code %in% c("H","I")] #is right number...
+tr_hhMultiGenE <- tr_hhMultiGenRE[re_code %in% c("H","I")]
+rm(tr_hhMultiGenRE_data_from_census)
+rm(tr_hhMultiGenRE_data)
+rm(tr_hhMultiGenRE_melted)
+rm(tr_hhMultiGenRE)
+#rejoin GenE, with H and notP, etc. ; re_code_14 should have I and P on it, then do with other H
+tr_hhMultiGenR[re_code=="A",("tr_hhMG_AI_match_id"):=
+                   paste0(GEOID,multi_gen_hh,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,multi_gen_hh)]
+tr_hhMultiGenE[re_code=="I",("tr_hhMG_AI_match_id"):=
+                   paste0(GEOID,multi_gen_hh,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,multi_gen_hh)]
+tr_hhMultiGenR[re_code=="A",("re_code_14"):=
+                 tr_hhMultiGenE[.SD,list(re_code),on=.(tr_hhMG_AI_match_id)]]
+tr_hhMultiGenE[re_code=="I",("matched_E"):=
+                 tr_hhMultiGenR[.SD,list(re_code),
+                                    on=.(tr_hhMG_AI_match_id)]]
+nrow(tr_hhMultiGenE[re_code=="I"])-nrow(tr_hhMultiGenR[re_code_14=="I"]) #58748
+#HnotP
+tr_hhMultiGenR[re_code=="A"&is.na(re_code_14),("tr_hhMG_notP_match_id"):=
+                   paste0(GEOID,multi_gen_hh,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,multi_gen_hh)]
+tr_hhMultiGenE[re_code=="H",("tr_hhMG_notP_match_id"):=
+                   paste0(GEOID,multi_gen_hh,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,multi_gen_hh)]
+tr_hhMultiGenR[re_code=="A"&is.na(re_code_14),("re_code_14"):=
+                 tr_hhMultiGenE[.SD,list(re_code),on=.(tr_hhMG_notP_match_id)]]
+tr_hhMultiGenE[re_code=="H",("matched_E"):=
+                 tr_hhMultiGenR[.SD,list(re_code),
+                                    on=.(tr_hhMG_notP_match_id)]]
+nrow(tr_hhMultiGenE[re_code=="H"])-nrow(tr_hhMultiGenR[re_code_14=="H"]) #2445796
+nrow(tr_hhMultiGenR[re_code=="A"])-nrow(tr_hhMultiGenR[!is.na(re_code_14)]) #45220 #0.77%
+tr_hhMultiGenR[,("re_code_14"):=fcase(re_code_14=="H","P",default = re_code_14)]
+#rest of H
+tr_hhMultiGenR[re_code!="A"&is.na(re_code_14),("tr_hhMG_H_match_id"):=
+                   paste0(GEOID,multi_gen_hh,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,multi_gen_hh)]
+tr_hhMultiGenE[re_code=="H"&is.na(matched_E),("tr_hhMG_H_match_id"):=
+                   paste0(GEOID,multi_gen_hh,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,multi_gen_hh)]
+tr_hhMultiGenR[re_code!="A"&is.na(re_code_14),("re_code_14"):=
+                 tr_hhMultiGenE[.SD,list(re_code),on=.(tr_hhMG_H_match_id)]]
+tr_hhMultiGenE[re_code=="H"&is.na(matched_E),("matched_E"):=
+                 tr_hhMultiGenR[.SD,list(re_code),
+                                    on=.(tr_hhMG_H_match_id)]]
+nrow(tr_hhMultiGenR[!is.na(re_code_14)])==nrow(tr_hhMultiGenE)
+table(tr_hhMultiGenR[,re_code_14])
+
+#join, only with own kids for I and P
+tr_hhMultiGenR[,("tr_multigenTypeIP_match_id"):=
+                   paste0(GEOID,re_code_14,as.character(100000+sample(1:.N))),
+                 by=.(GEOID,re_code_14)]
+bg_hhTypeRE[,("tr_multigenTypeIP_match_id"):=
+              paste0(tract,re_code_14,as.character(100000+sample(1:.N))),
+            by=.(tract,re_code_14)]
+tr_hhMultiGenR[,("match_R"):=
+                   bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenTypeIP_match_id)]]
+bg_hhTypeRE[,("multigen_hh"):=
+              tr_hhMultiGenR[.SD,list(multi_gen_hh),
+                               on=.(tr_multigenTypeIP_match_id)]]
+nrow(bg_hhTypeRE[is.na(multigen_hh)]) #4640871
+nrow(bg_hhTypeRE[is.na(multigen_hh)]) + nrow(bg_hhTypeRE[re_code_7=="A"])==nrow(bg_hhTypeRE)
+
+#make an H / Not H to match with Latino
+tr_hhMultiGenR[,("Latino"):=fcase(re_code_14!="H" | is.na(re_code_14),"Not H",
+                                      default = re_code_14)]
+table(tr_hhMultiGenR[,Latino])
+tr_hhMultiGenR[is.na(match_R),("tr_multigenTypeRE_match_id"):=
+                 paste0(GEOID,Latino,as.character(100000+sample(1:.N))),
+               by=.(GEOID,Latino)]
+bg_hhTypeRE[re_code_7!="A",("tr_multigenTypeRE_match_id"):=
+              paste0(tract,Latino,as.character(100000+sample(1:.N))),
+            by=.(tract,Latino)]
+tr_hhMultiGenR[is.na(match_R),("match_R"):=
+                 bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenTypeRE_match_id)]]
+bg_hhTypeRE[re_code_7!="A",("multigen_hh"):=
+              tr_hhMultiGenR[.SD,list(multi_gen_hh),
+                             on=.(tr_multigenTypeRE_match_id)]]
+nrow(bg_hhTypeRE[is.na(multigen_hh)])
+
+#get the rest of the info we have on kids and seniors in households, not forgetting to finish up size_7
+#group H15, HCT2, then back to bg_hhTypeRE; then seniors, then back to main
 groupname <- "H15" #TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
 api_type <- "dec/dhc"
 geo_type <- "block_group"
@@ -1405,9 +1518,6 @@ test <- table(#tr_hhTenureOwnKids[,GEOID], #there are 41 tracts with no populati
         bg_hhTypeRE[,own_kids])
 #off by about 7.5% on crosstabs
 
-
-
-#add bg to tr - H15 to HCT2 
 
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ and individual roles
@@ -1971,7 +2081,7 @@ rm(tr_hhRel18_melted)
 rm(tr_hhRel18_data)
 
 
-#do through the multi-gen as a group, then add to above; doing tracts together first, then to block-group
+#doing tracts together first, then to block-group
 groupname <- "PCT4" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER BY HOUSEHOLD TYPE
 geo_type <- "tract"
 api_type <- "dec/dhc"
@@ -2114,41 +2224,7 @@ rm(bg_hh65SizeType_data)
 
 
 
-#multigen is hard; having parent only counts if you also have kids; having grandkids only counts if their parents are there...
-groupname <- "PCT14" #PRESENCE OF MULTIGENERATIONAL HOUSEHOLDS, race/eth
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhMultiGenRE_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hhMultiGenRE_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("multi_gen_hh","multi_gen_3","re_code","race") 
-  tr_hhMultiGenRE_data_from_census[,("re_code") := substr(name,6,6)][
-    ,("race") := str_replace(concept,"PRESENCE OF MULTIGENERATIONAL HOUSEHOLDS \\(","")][
-      ,("race") := str_replace(race,"\\)","")]
-  #row_c1 by hand
-  row_c1 <- c(unique(tr_hhMultiGenRE_data_from_census[str_detect(label_1,"generations") & str_detect(concept,"\\)"),name]))
-  test_total_pop <- tests_download_data(tr_hhMultiGenRE_data_from_census,label_c1,row_c1,state=state) #seems to not get right total row!!
-  tr_hhMultiGenRE_data <- relabel(tr_hhMultiGenRE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhMultiGenRE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hhMultiGenRE_data <- tr_hhMultiGenRE_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hhMultiGenRE_data[,.SD,.SDcols = startsWith(names(tr_hhMultiGenRE_data),state)])
-tr_hhMultiGenRE_melted <- melt(tr_hhMultiGenRE_data, id.vars = c("multi_gen_hh","multi_gen_3","re_code","race"), measure.vars = Geoids,
-                                  value.name = "codom_tr_hhMultiGenRE", variable.name = "GEOID")
-tr_hhMultiGenRE <- as.data.table(lapply(tr_hhMultiGenRE_melted[,.SD],rep,tr_hhMultiGenRE_melted[,codom_tr_hhMultiGenRE]))
-tr_hhMultiGenR <- tr_hhMultiGenRE[!re_code %in% c("H","I")] #is right number...
-tr_hhMultiGenE <- tr_hhMultiGenRE[re_code %in% c("H","I")]
-rm(tr_hhMultiGenRE_data_from_census)
-rm(tr_hhMultiGenRE_data)
-rm(tr_hhMultiGenRE_melted)
-rm(tr_hhMultiGenRE)
+
 
 
 #Put tenure re_code_14 and size_tenure together, then order on re_code_14 for multi_gen with size decreasing by order
