@@ -1307,8 +1307,7 @@ bg_hhSizeTenureR[re_code_HI!="H",("match_R"):=
 bg_hhTypeRE[Latino!="H",("hh_size_7"):=
                    bg_hhSizeTenureR[.SD,list(size),
                                     on=.(bg_hhSizeR_match_id)]]
-nrow(bg_hhTypeRE[is.na(hh_size_7)]) #5750137
-nrow(bg_hhSizeTenureR[re_code_HI!="H"])-nrow(bg_hhSizeTenureR[!is.na(match_R)]) #147997 (3%)
+#nrow(bg_hhTypeRE[is.na(hh_size_7)]) #5750137
 
 #for H (and other not matches)
 bg_hhSizeTenureR[is.na(match_R),("bg_hhSizeTE_match_id"):=
@@ -1322,9 +1321,9 @@ bg_hhSizeTenureR[is.na(match_R),("match_R"):=
 bg_hhTypeRE[is.na(hh_size_7),("hh_size_7"):=
               bg_hhSizeTenureR[.SD,list(size),
                                on=.(bg_hhSizeTE_match_id)]]
-nrow(bg_hhTypeRE[is.na(hh_size_7)]) #3599735
-table(bg_hhTypeRE[is.na(hh_size_7),family]) 
-table(bg_hhSizeTenureR[is.na(match_R),size])
+#nrow(bg_hhTypeRE[is.na(hh_size_7)]) #3599735
+#table(bg_hhTypeRE[is.na(hh_size_7),family]) 
+#table(bg_hhSizeTenureR[is.na(match_R),size])
 #then make size_3 adjustments so it's flexible... will have to adjust after own_kids matches, too?
 #maybe do the matches that we can on next few hh tables, then make explicit?
 
@@ -1376,7 +1375,7 @@ tr_hhMultiGenR[re_code=="A",("re_code_14"):=
 tr_hhMultiGenE[re_code=="I",("matched_E"):=
                  tr_hhMultiGenR[.SD,list(re_code),
                                     on=.(tr_hhMG_AI_match_id)]]
-nrow(tr_hhMultiGenE[re_code=="I"])-nrow(tr_hhMultiGenR[re_code_14=="I"]) #58748
+#nrow(tr_hhMultiGenE[re_code=="I"])==nrow(tr_hhMultiGenR[re_code_14=="I"]) 
 #HnotP
 tr_hhMultiGenR[re_code=="A"&is.na(re_code_14),("tr_hhMG_notP_match_id"):=
                    paste0(GEOID,multi_gen_hh,as.character(100000+sample(1:.N))),
@@ -1389,8 +1388,8 @@ tr_hhMultiGenR[re_code=="A"&is.na(re_code_14),("re_code_14"):=
 tr_hhMultiGenE[re_code=="H",("matched_E"):=
                  tr_hhMultiGenR[.SD,list(re_code),
                                     on=.(tr_hhMG_notP_match_id)]]
-nrow(tr_hhMultiGenE[re_code=="H"])-nrow(tr_hhMultiGenR[re_code_14=="H"]) #2445796
-nrow(tr_hhMultiGenR[re_code=="A"])-nrow(tr_hhMultiGenR[!is.na(re_code_14)]) #45220 #0.77%
+#nrow(tr_hhMultiGenE[re_code=="H"])-nrow(tr_hhMultiGenR[re_code_14=="H"]) #2445796
+#nrow(tr_hhMultiGenR[re_code=="A"])==nrow(tr_hhMultiGenR[!is.na(re_code_14)]) 
 tr_hhMultiGenR[,("re_code_14"):=fcase(re_code_14=="H","P",default = re_code_14)]
 #rest of H
 tr_hhMultiGenR[re_code!="A"&is.na(re_code_14),("tr_hhMG_H_match_id"):=
@@ -1543,12 +1542,12 @@ bg_hh18Tenure[,("kid_age_range_3"):=fcase(is.na(kid_age_range_3),
 #table(tr_hhTenureOwnKids[,tenure]) == table(bg_hhTypeRE[,rent_own])
 #table(tr_hhTenureOwnKids[,kid_18]) == table(bg_hhTypeRE[,own_kids])
 #good on top line numbers; crosstabs are not that far off
-test <- table(#bg_hh18Tenure[,GEOID], #there are 41 tracts with no population listed!!
-              bg_hh18Tenure[,tenure],
-              bg_hh18Tenure[,kid_18])-
-  table(#bg_hhTypeRE[,GEOID], #there are a handful with only one, two or three, but have to go to 175 to get 41 tracts...
-        bg_hhTypeRE[,rent_own],
-        bg_hhTypeRE[,own_kids])
+#test <- table(#bg_hh18Tenure[,GEOID], #there are 41 tracts with no population listed!!
+#              bg_hh18Tenure[,tenure],
+#              bg_hh18Tenure[,kid_18])-
+#  table(#bg_hhTypeRE[,GEOID], #there are a handful with only one, two or three, but have to go to 175 to get 41 tracts...
+#        bg_hhTypeRE[,rent_own],
+#        bg_hhTypeRE[,own_kids])
 #mean(test[test>0]) #12.3 
 #keep the rent_own to kid_18 from bg_hh18Tenure
 bg_hhTypeRE[,("bg_18_match_id"):=
@@ -1562,7 +1561,7 @@ bg_hh18Tenure[,("match_18TRE"):=
 bg_hhTypeRE[,("kid_age_range_3"):=
               bg_hh18Tenure[.SD,list(kid_age_range_3),
                                    on=.(bg_18_match_id)]]
-nrow(bg_hhTypeRE[is.na(kid_age_range_3)])
+#nrow(bg_hhTypeRE[is.na(kid_age_range_3)]) #434374
 bg_hhTypeRE[,("bg_18_match2_id"):=
               paste0(GEOID,own_kids,as.character(100000+sample(1:.N))),
             by=.(GEOID,own_kids)]
@@ -1574,12 +1573,342 @@ bg_hh18Tenure[is.na(match_18TRE),("match_18TRE"):=
 bg_hhTypeRE[,c("kid_age_range_3","rent_own"):=
               bg_hh18Tenure[.SD,c(list(kid_age_range_3),list(tenure)),
                             on=.(bg_18_match2_id)]]
-test <- table(#bg_hh18Tenure[,GEOID], #there are 41 tracts with no population listed!!
-  bg_hh18Tenure[,tenure],
-  bg_hh18Tenure[,kid_18])-
-  table(#bg_hhTypeRE[,GEOID], #there are a handful with only one, two or three, but have to go to 175 to get 41 tracts...
-    bg_hhTypeRE[,rent_own],
-    bg_hhTypeRE[,own_kids])
+#(table(#bg_hh18Tenure[,GEOID], #there are 41 tracts with no population listed!!
+#  bg_hh18Tenure[,tenure],
+#  bg_hh18Tenure[,kid_18])-
+#  table(#bg_hhTypeRE[,GEOID], #there are a handful with only one, two or three, but have to go to 175 to get 41 tracts...
+#    bg_hhTypeRE[,rent_own],
+#    bg_hhTypeRE[,own_kids]))/table(
+#      bg_hh18Tenure[,tenure],
+#      bg_hh18Tenure[,kid_18]) #about 1% off
+
+groupname <- "P19" #HOUSEHOLDS BY PRESENCE OF PEOPLE 65 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_hh65SizeType_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_hh65SizeType_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_65","hh_size_2","household") 
+  #row_c1 by hand
+  row_c1 <- c(unique(bg_hh65SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
+  test_total_pop <- tests_download_data(bg_hh65SizeType_data_from_census,label_c1,row_c1,state=state)
+  #this is 6k off for entire state - need to ensure we understand why different
+  bg_hh65SizeType_data <- relabel(bg_hh65SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bg_hh65SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bg_hh65SizeType_data <- bg_hh65SizeType_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(bg_hh65SizeType_data[,.SD,.SDcols = startsWith(names(bg_hh65SizeType_data),state)])
+bg_hh65SizeType_melted <- melt(bg_hh65SizeType_data, id.vars = c("household_65","hh_size_2","household"), measure.vars = Geoids,
+                               value.name = "codom_bg_hh65SizeType", variable.name = "GEOID")
+bg_hh65SizeType <- as.data.table(lapply(bg_hh65SizeType_melted[,.SD],rep,bg_hh65SizeType_melted[,codom_bg_hh65SizeType]))
+bg_hh65SizeType[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+rm(bg_hh65SizeType_data_from_census)
+rm(bg_hh65SizeType_melted)
+rm(bg_hh65SizeType_data)
+
+#doing tracts together first, then to block-group
+groupname <- "PCT4" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER BY HOUSEHOLD TYPE
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hh60Type_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hh60Type_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_60","family_type","household_type_5","spouse") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hh60Type_data_from_census[label_2=="Nonfamily households" | 
+                                                    label_3=="Married couple family" |
+                                                    !is.na(label_4),name]))
+  test_total_pop <- tests_download_data(tr_hh60Type_data_from_census,label_c1,row_c1,state=state)
+  #this is 2.5m off for entire state - need to ensure we understand why different; seems to be that there is no non-family without 60yo present, which is a close number
+  tr_hh60Type_data <- relabel(tr_hh60Type_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hh60Type_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hh60Type_data <- tr_hh60Type_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hh60Type_data[,.SD,.SDcols = startsWith(names(tr_hh60Type_data),state)])
+tr_hh60Type_melted <- melt(tr_hh60Type_data, id.vars = c("household_60","family_type","household_type_5","spouse"), measure.vars = Geoids,
+                           value.name = "codom_tr_hh60Type", variable.name = "GEOID")
+tr_hh60Type <- as.data.table(lapply(tr_hh60Type_melted[,.SD],rep,tr_hh60Type_melted[,codom_tr_hh60Type]))
+rm(tr_hh60Type_data_from_census)
+rm(tr_hh60Type_melted)
+rm(tr_hh60Type_data)
+
+groupname <- "PCT5" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hh60SizeType_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hh60SizeType_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_60","hh_size_2","household") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hh60SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
+  test_total_pop <- tests_download_data(tr_hh60SizeType_data_from_census,label_c1,row_c1,state=state)
+  tr_hh60SizeType_data <- relabel(tr_hh60SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hh60SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hh60SizeType_data <- tr_hh60SizeType_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hh60SizeType_data[,.SD,.SDcols = startsWith(names(tr_hh60SizeType_data),state)])
+tr_hh60SizeType_melted <- melt(tr_hh60SizeType_data, id.vars = c("household_60","hh_size_2","household"), measure.vars = Geoids,
+                               value.name = "codom_tr_hh60SizeType", variable.name = "GEOID")
+tr_hh60SizeType <- as.data.table(lapply(tr_hh60SizeType_melted[,.SD],rep,tr_hh60SizeType_melted[,codom_tr_hh60SizeType]))
+rm(tr_hh60SizeType_data_from_census)
+rm(tr_hh60SizeType_melted)
+rm(tr_hh60SizeType_data)
+
+groupname <- "PCT6" #HOUSEHOLDS BY PRESENCE OF PEOPLE 75 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hh75SizeType_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hh75SizeType_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household_75","hh_size_2","household") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hh75SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
+  test_total_pop <- tests_download_data(tr_hh75SizeType_data_from_census,label_c1,row_c1,state=state)
+  tr_hh75SizeType_data <- relabel(tr_hh75SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hh75SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hh75SizeType_data <- tr_hh75SizeType_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hh75SizeType_data[,.SD,.SDcols = startsWith(names(tr_hh75SizeType_data),state)])
+tr_hh75SizeType_melted <- melt(tr_hh75SizeType_data, id.vars = c("household_75","hh_size_2","household"), measure.vars = Geoids,
+                               value.name = "codom_tr_hh75SizeType", variable.name = "GEOID")
+tr_hh75SizeType <- as.data.table(lapply(tr_hh75SizeType_melted[,.SD],rep,tr_hh75SizeType_melted[,codom_tr_hh75SizeType]))
+rm(tr_hh75SizeType_data_from_census)
+rm(tr_hh75SizeType_melted)
+rm(tr_hh75SizeType_data)
+
+#put 60 and 75 together, since there should be no loss
+tr_hh60SizeType[household_60=="Households with one or more people 60 years and over",
+                ("tr_60_75_match_id"):=
+                  paste0(GEOID,hh_size_2,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,hh_size_2,household)]
+tr_hh75SizeType[household_75=="Households with one or more people 75 years and over",
+                ("tr_60_75_match_id"):=
+              paste0(GEOID,hh_size_2,household,as.character(100000+sample(1:.N))),
+            by=.(GEOID,hh_size_2,household)]
+tr_hh60SizeType[household_60=="Households with one or more people 60 years and over",
+                ("household_75"):=
+                  tr_hh75SizeType[.SD,list(household_75),on=.(tr_60_75_match_id)]]
+tr_hh75SizeType[household_75=="Households with one or more people 75 years and over",
+                ("match_60_75"):=
+              tr_hh60SizeType[.SD,list(hh_size_2),on=.(tr_60_75_match_id)]]
+nrow(tr_hh75SizeType[is.na(match_60_75)])==
+     nrow(tr_hh75SizeType[household_75=="Households with no people 75 years and over"])
+tr_hh60SizeType[,("household_75"):=fcase(is.na(household_75),
+                                         "Households with no people 75 years and over",
+                                         default = household_75)]
+table(tr_hh60SizeType[,household_75])==table(tr_hh75SizeType[,household_75])
+#if all household_75 have moved over, don't need to match any others
+
+#the missing folks from PCT4 are all from Non-family households, so it doesn't change any other factors
+#they also lost the nonfamily designation for a bunch of the tr_hh60SizeType
+#also want to catch matches for no_spouse, so be sure to get them
+#UGH - b/c it's important to know how many nonfamily householders are present, let's keep joining to larger group...
+#join tr_hh60SizeType to tr_hh60Type
+tr_hh60SizeType[,("tr_60ST_match_id"):=
+                  paste0(GEOID,household_60,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,household_60,household)]
+tr_hh60Type[,("tr_60ST_match_id"):=
+              paste0(GEOID,household_60,family_type,as.character(100000+sample(1:.N))),
+            by=.(GEOID,household_60,family_type)]
+tr_hh60SizeType[,c("family_type","no_spouse"):=
+                  tr_hh60Type[.SD,c(list(household_type_5),list(spouse)),on=.(tr_60ST_match_id)]]
+tr_hh60Type[,("match_60ST"):=
+              tr_hh60SizeType[.SD,list(hh_size_2),on=.(tr_60ST_match_id)]]
+#nrow(tr_hh60Type[is.na(match_60ST)]). #1162805
+#but tables show the ones we want have all moved over
+#table(tr_hh60Type[,spouse],tr_hh60Type[,household_type_5])==table(tr_hh60SizeType[,no_spouse],tr_hh60SizeType[,family_type])
+
+tr_hh60SizeType[,("family_type"):=fcase(household=="Nonfamily households",
+                                        "Nonfamily households",
+                                        default = family_type)]
+#which is equivalent to:
+#tr_hh60SizeType[is.na(family_type),("family_type"):="Nonfamily households"]
+
+#join 60_75 up to bg
+tr_hh60SizeType[household_75=="Households with one or more people 75 years and over",
+                ("bg_60_75_match_id"):=
+                  paste0(GEOID,hh_size_2,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,hh_size_2,household)]
+bg_hh65SizeType[household_65=="Households with one or more people 65 years and over",
+                ("bg_60_75_match_id"):=
+                  paste0(tract,hh_size_2,household,as.character(100000+sample(1:.N))),
+                by=.(tract,hh_size_2,household)]
+tr_hh60SizeType[household_75=="Households with one or more people 75 years and over",
+                ("match_bg_60_75"):=
+                  bg_hh65SizeType[.SD,list(hh_size_2),on=.(bg_60_75_match_id)]]
+bg_hh65SizeType[household_65=="Households with one or more people 65 years and over",
+                c("household_60","household_75","no_spouse"):=
+                  tr_hh60SizeType[.SD,c(list(household_60),list(household_75),
+                                        list(no_spouse)),on=.(bg_60_75_match_id)]]
+#nrow(bg_hh65SizeType[!is.na(household_75)])
+#table(bg_hh65SizeType[,household_60])
+#and then for 65 and up
+tr_hh60SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg_60_75),
+                ("bg_60_65_match_id"):=
+                  paste0(GEOID,hh_size_2,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,hh_size_2,household)]
+bg_hh65SizeType[household_65=="Households with one or more people 65 years and over" &
+                  is.na(household_60),
+                ("bg_60_65_match_id"):=
+                  paste0(tract,hh_size_2,household,as.character(100000+sample(1:.N))),
+                by=.(tract,hh_size_2,household)]
+tr_hh60SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg_60_75),
+                ("match_bg_60_75"):=
+                  bg_hh65SizeType[.SD,list(hh_size_2),on=.(bg_60_65_match_id)]]
+bg_hh65SizeType[household_65=="Households with one or more people 65 years and over" &
+                  is.na(household_60),
+                c("household_60","household_75","no_spouse"):=
+                  tr_hh60SizeType[.SD,c(list(household_60),list(household_75),
+                                        list(no_spouse)),on=.(bg_60_65_match_id)]]
+
+#nrow(bg_hh65SizeType[!is.na(household_60)])==nrow(bg_hh65SizeType[household_65=="Households with one or more people 65 years and over"])
+#move over 60-65
+#table(bg_hh65SizeType[,household_60])
+tr_hh60SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg_60_75),
+                ("bg_60_match_id"):=
+                  paste0(GEOID,hh_size_2,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,hh_size_2,household)]
+bg_hh65SizeType[is.na(household_60),
+                ("bg_60_match_id"):=
+                  paste0(tract,hh_size_2,household,as.character(100000+sample(1:.N))),
+                by=.(tract,hh_size_2,household)]
+tr_hh60SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg_60_75),
+                ("match_bg_60_75"):=
+                  bg_hh65SizeType[.SD,list(hh_size_2),on=.(bg_60_match_id)]]
+bg_hh65SizeType[is.na(household_60),
+                c("household_60","household_75","no_spouse"):=
+                  tr_hh60SizeType[.SD,c(list(household_60),list(household_75),
+                                        list(no_spouse)),on=.(bg_60_match_id)]]
+#table(bg_hh65SizeType[,household_60])
+#(nrow(tr_hh60SizeType[household_60=="Households with one or more people 60 years and over"])-
+#     nrow(bg_hh65SizeType[household_65=="Households with one or more people 65 years and over"]))
+
+#then back to bg_hhTypeRE; might need to make ages for householders include the non-family solitary seniors..
+
+#look for age of hh and start with them, since they have to be at least... the one...
+#as.numeric(substr(age_range_9,13,14)) - sort on no_spouse
+bg_hh65SizeType[,("household"):=fcase(is.na(household),"Nonfamily households",
+                                      default = household)]
+bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))>74,
+                ("bg_65T75_match_id"):=
+                  paste0(GEOID,no_spouse_sex,family,as.character(100000+sample(1:.N))),
+                by=.(GEOID,no_spouse_sex,family)]
+bg_hh65SizeType[household_75=="Households with one or more people 75 years and over",
+                ("bg_65T75_match_id"):=
+                  paste0(GEOID,no_spouse,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,no_spouse,household)]
+bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))>74,
+            c("household_60","household_65","household_75","no_spouse"):=
+                  bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
+                                        list(no_spouse)),on=.(bg_65T75_match_id)]]
+bg_hh65SizeType[household_75=="Households with one or more people 75 years and over",
+                ("match_bg60_75T"):=
+                  bg_hhTypeRE[.SD,list(re_code),on=.(bg_65T75_match_id)]]
+table(bg_hhTypeRE[,household_60])
+#for 65 and up
+bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))==65 & 
+              is.na(household_60),
+            ("bg_65T_match_id"):=
+              paste0(GEOID,no_spouse_sex,family,as.character(100000+sample(1:.N))),
+            by=.(GEOID,no_spouse_sex,family)]
+bg_hh65SizeType[household_65=="Households with one or more people 65 years and over" &
+                  is.na(match_bg60_75T),
+                ("bg_65T_match_id"):=
+                  paste0(GEOID,no_spouse,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,no_spouse,household)]
+bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))==65 &
+              is.na(household_60),
+            c("household_60","household_65","household_75","no_spouse"):=
+              bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
+                                    list(no_spouse)),on=.(bg_65T_match_id)]]
+bg_hh65SizeType[household_65=="Households with one or more people 65 years and over" &
+                  is.na(match_bg60_75T),
+                ("match_bg60_75T"):=
+                  bg_hhTypeRE[.SD,list(re_code),on=.(bg_65T_match_id)]]
+table(bg_hhTypeRE[,household_60])
+table(bg_hhTypeRE[,household_65])
+#and for 60 to 65
+bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))==60 & 
+              is.na(household_60),
+            ("bg_60T_match_id"):=
+              paste0(GEOID,no_spouse_sex,family,as.character(100000+sample(1:.N))),
+            by=.(GEOID,no_spouse_sex,family)]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("bg_60T_match_id"):=
+                  paste0(GEOID,no_spouse,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,no_spouse,household)]
+bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))==60 &
+              is.na(household_60),
+            c("household_60","household_65","household_75","no_spouse"):=
+              bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
+                                    list(no_spouse)),on=.(bg_60T_match_id)]]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("match_bg60_75T"):=
+                  bg_hhTypeRE[.SD,list(re_code),on=.(bg_60T_match_id)]]
+table(bg_hhTypeRE[,household_60])
+table(bg_hhTypeRE[,household_65]) #only last match picked up the "no people"
+#now for multi_gen to get times when over 60 is not householder
+bg_hhTypeRE[multigen_hh=="Household has three or more generations" & 
+              is.na(household_60),
+            ("bg_gen_match_id"):=
+              paste0(GEOID,family,as.character(100000+sample(1:.N))),
+            by=.(GEOID,family)]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("bg_gen_match_id"):=
+                  paste0(GEOID,household,as.character(100000+sample(1:.N))),
+                by=.(GEOID,household)]
+bg_hhTypeRE[multigen_hh=="Household has three or more generations" &
+              is.na(household_60),
+            c("household_60","household_65","household_75","no_spouse"):=
+              bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
+                                    list(no_spouse)),on=.(bg_gen_match_id)]]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("match_bg60_75T"):=
+                  bg_hhTypeRE[.SD,list(re_code),on=.(bg_gen_match_id)]]
+table(bg_hhTypeRE[,household_60])
+table(bg_hhTypeRE[,household_65])
+#? households with someone over 60 did not get found in bg_hhTypeRE / could be wife/husband or 2 generation
+table(bg_hhTypeRE[,multigen_hh],bg_hhTypeRE[,household_60])
+nrow(bg_hh65SizeType[!is.na(household_60)])-nrow(bg_hhTypeRE[!is.na(household_60)]) #
+#look at numbers again!!! Then tests on this...
+
+
 
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ and individual roles
@@ -2143,146 +2472,8 @@ rm(tr_hhRel18_melted)
 rm(tr_hhRel18_data)
 
 
-#doing tracts together first, then to block-group
-groupname <- "PCT4" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER BY HOUSEHOLD TYPE
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hh60Type_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hh60Type_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("household_60","family_type","household_type_5","spouse") 
-  #row_c1 by hand
-  row_c1 <- c(unique(tr_hh60Type_data_from_census[label_2=="Nonfamily households" | 
-                                                    label_3=="Married couple family" |
-                                                    !is.na(label_4),name]))
-  test_total_pop <- tests_download_data(tr_hh60Type_data_from_census,label_c1,row_c1,state=state)
-  #this is 2.5m off for entire state - need to ensure we understand why different; seems to be that there is no non-family without 60yo present, which is a close number
-  tr_hh60Type_data <- relabel(tr_hh60Type_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hh60Type_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hh60Type_data <- tr_hh60Type_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hh60Type_data[,.SD,.SDcols = startsWith(names(tr_hh60Type_data),state)])
-tr_hh60Type_melted <- melt(tr_hh60Type_data, id.vars = c("household_60","family_type","household_type_5","spouse"), measure.vars = Geoids,
-                           value.name = "codom_tr_hh60Type", variable.name = "GEOID")
-tr_hh60Type <- as.data.table(lapply(tr_hh60Type_melted[,.SD],rep,tr_hh60Type_melted[,codom_tr_hh60Type]))
-rm(tr_hh60Type_data_from_census)
-rm(tr_hh60Type_melted)
-rm(tr_hh60Type_data)
-
-groupname <- "PCT5" #HOUSEHOLDS BY PRESENCE OF PEOPLE 60 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hh60SizeType_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hh60SizeType_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("household_60","hh_size_2","household") 
-  #row_c1 by hand
-  row_c1 <- c(unique(tr_hh60SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
-  test_total_pop <- tests_download_data(tr_hh60SizeType_data_from_census,label_c1,row_c1,state=state)
-  tr_hh60SizeType_data <- relabel(tr_hh60SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hh60SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hh60SizeType_data <- tr_hh60SizeType_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hh60SizeType_data[,.SD,.SDcols = startsWith(names(tr_hh60SizeType_data),state)])
-tr_hh60SizeType_melted <- melt(tr_hh60SizeType_data, id.vars = c("household_60","hh_size_2","household"), measure.vars = Geoids,
-                               value.name = "codom_tr_hh60SizeType", variable.name = "GEOID")
-tr_hh60SizeType <- as.data.table(lapply(tr_hh60SizeType_melted[,.SD],rep,tr_hh60SizeType_melted[,codom_tr_hh60SizeType]))
-rm(tr_hh60SizeType_data_from_census)
-rm(tr_hh60SizeType_melted)
-rm(tr_hh60SizeType_data)
-
-#the missing folks from PCT4 are all from Non-family households, so it doesn't change any other factors
-#they also lost the nonfamily designation for a bunch of the tr_hh60SizeType
-tr_hh60SizeType[is.na(family_type),("family_type"):="Nonfamily households"]
-#also want to catch matches for no_spouse, so be sure to get them
-#UGH - b/c it's important to know how many nonfamily householders are present, let's keep joining to larger group...
-#join tr_hh60SizeType to tr_hh60Type
-tr_hh60SizeType[,("tr_60ST_match_id"):=
-                  paste0(GEOID,household_60,household,as.character(100000+sample(1:.N))),
-                by=.(GEOID,household_60,household)]
-tr_hh60Type[,("tr_60ST_match_id"):=
-               paste0(GEOID,household_60,family_type,as.character(100000+sample(1:.N))),
-             by=.(GEOID,household_60,family_type)]
-tr_hh60SizeType[,c("family_type","no_spouse"):=
-                  tr_hh60Type[.SD,c(list(household_type_5),list(spouse)),on=.(tr_60ST_match_id)]]
-tr_hh60Type[,("match_60ST"):=
-                  tr_hh60SizeType[.SD,list(hh_size_2),on=.(tr_60ST_match_id)]]
-nrow(tr_hh60Type[is.na(match_60ST)])
 
 
-groupname <- "PCT6" #HOUSEHOLDS BY PRESENCE OF PEOPLE 75 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hh75SizeType_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hh75SizeType_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("household_75","hh_size_2","household") 
-  #row_c1 by hand
-  row_c1 <- c(unique(tr_hh75SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
-  test_total_pop <- tests_download_data(tr_hh75SizeType_data_from_census,label_c1,row_c1,state=state)
-  tr_hh75SizeType_data <- relabel(tr_hh75SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hh75SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hh75SizeType_data <- tr_hh75SizeType_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hh75SizeType_data[,.SD,.SDcols = startsWith(names(tr_hh75SizeType_data),state)])
-tr_hh75SizeType_melted <- melt(tr_hh75SizeType_data, id.vars = c("household_75","hh_size_2","household"), measure.vars = Geoids,
-                               value.name = "codom_tr_hh75SizeType", variable.name = "GEOID")
-tr_hh75SizeType <- as.data.table(lapply(tr_hh75SizeType_melted[,.SD],rep,tr_hh75SizeType_melted[,codom_tr_hh75SizeType]))
-rm(tr_hh75SizeType_data_from_census)
-rm(tr_hh75SizeType_melted)
-rm(tr_hh75SizeType_data)
-
-
-groupname <- "P19" #HOUSEHOLDS BY PRESENCE OF PEOPLE 65 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
-geo_type <- "block_group"
-api_type <- "dec/dhc"
-path_suff <- "est"
-bg_hh65SizeType_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-if(names(bg_hh65SizeType_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("household_65","hh_size_2","household") 
-  #row_c1 by hand
-  row_c1 <- c(unique(bg_hh65SizeType_data_from_census[!is.na(label_3) | label_2=="1-person household",name]))
-  test_total_pop <- tests_download_data(bg_hh65SizeType_data_from_census,label_c1,row_c1,state=state)
-  #this is 6k off for entire state - need to ensure we understand why different
-  bg_hh65SizeType_data <- relabel(bg_hh65SizeType_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bg_hh65SizeType_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  bg_hh65SizeType_data <- bg_hh65SizeType_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(bg_hh65SizeType_data[,.SD,.SDcols = startsWith(names(bg_hh65SizeType_data),state)])
-bg_hh65SizeType_melted <- melt(bg_hh65SizeType_data, id.vars = c("household_65","hh_size_2","household"), measure.vars = Geoids,
-                          value.name = "codom_bg_hh65SizeType", variable.name = "GEOID")
-bg_hh65SizeType <- as.data.table(lapply(bg_hh65SizeType_melted[,.SD],rep,bg_hh65SizeType_melted[,codom_bg_hh65SizeType]))
-rm(bg_hh65SizeType_data_from_census)
-rm(bg_hh65SizeType_melted)
-rm(bg_hh65SizeType_data)
 
 
 
