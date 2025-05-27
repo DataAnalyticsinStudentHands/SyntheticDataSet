@@ -1837,9 +1837,10 @@ bg_hh65SizeType[household_75=="Households with one or more people 75 years and o
                 ("match_bg60_75T"):=
                   bg_hhTypeRE[.SD,list(re_code),on=.(bg_65T75_match_id)]]
 table(bg_hhTypeRE[,household_60])
+table(bg_hhTypeRE[,household_75])
 #for 65 and up
 bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))==65 & 
-              is.na(household_60),
+              is.na(household_65),
             ("bg_65T_match_id"):=
               paste0(GEOID,no_spouse_sex,family,as.character(100000+sample(1:.N))),
             by=.(GEOID,no_spouse_sex,family)]
@@ -1849,7 +1850,7 @@ bg_hh65SizeType[household_65=="Households with one or more people 65 years and o
                   paste0(GEOID,no_spouse,household,as.character(100000+sample(1:.N))),
                 by=.(GEOID,no_spouse,household)]
 bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))==65 &
-              is.na(household_60),
+              is.na(household_65),
             c("household_60","household_65","household_75","no_spouse"):=
               bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
                                     list(no_spouse)),on=.(bg_65T_match_id)]]
@@ -1859,9 +1860,10 @@ bg_hh65SizeType[household_65=="Households with one or more people 65 years and o
                   bg_hhTypeRE[.SD,list(re_code),on=.(bg_65T_match_id)]]
 table(bg_hhTypeRE[,household_60])
 table(bg_hhTypeRE[,household_65])
+table(bg_hhTypeRE[,household_75])
 #and for 60 to 65
 bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))==60 & 
-              is.na(household_60),
+              is.na(household_65),
             ("bg_60T_match_id"):=
               paste0(GEOID,no_spouse_sex,family,as.character(100000+sample(1:.N))),
             by=.(GEOID,no_spouse_sex,family)]
@@ -1871,7 +1873,7 @@ bg_hh65SizeType[household_60=="Households with one or more people 60 years and o
                   paste0(GEOID,no_spouse,household,as.character(100000+sample(1:.N))),
                 by=.(GEOID,no_spouse,household)]
 bg_hhTypeRE[as.numeric(substr(age_range_9,13,14))==60 &
-              is.na(household_60),
+              is.na(household_65),
             c("household_60","household_65","household_75","no_spouse"):=
               bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
                                     list(no_spouse)),on=.(bg_60T_match_id)]]
@@ -1881,9 +1883,10 @@ bg_hh65SizeType[household_60=="Households with one or more people 60 years and o
                   bg_hhTypeRE[.SD,list(re_code),on=.(bg_60T_match_id)]]
 table(bg_hhTypeRE[,household_60])
 table(bg_hhTypeRE[,household_65]) #only last match picked up the "no people"
+table(bg_hhTypeRE[,household_75])
 #now for multi_gen to get times when over 60 is not householder
 bg_hhTypeRE[multigen_hh=="Household has three or more generations" & 
-              is.na(household_60),
+              is.na(household_65),
             ("bg_gen_match_id"):=
               paste0(GEOID,family,as.character(100000+sample(1:.N))),
             by=.(GEOID,family)]
@@ -1893,7 +1896,7 @@ bg_hh65SizeType[household_60=="Households with one or more people 60 years and o
                   paste0(GEOID,household,as.character(100000+sample(1:.N))),
                 by=.(GEOID,household)]
 bg_hhTypeRE[multigen_hh=="Household has three or more generations" &
-              is.na(household_60),
+              is.na(household_65),
             c("household_60","household_65","household_75","no_spouse"):=
               bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
                                     list(no_spouse)),on=.(bg_gen_match_id)]]
@@ -1902,13 +1905,93 @@ bg_hh65SizeType[household_60=="Households with one or more people 60 years and o
                 ("match_bg60_75T"):=
                   bg_hhTypeRE[.SD,list(re_code),on=.(bg_gen_match_id)]]
 table(bg_hhTypeRE[,household_60])
-table(bg_hhTypeRE[,household_65])
+table(bg_hhTypeRE[,household_65]) 
+table(bg_hhTypeRE[,household_75])
+#on theory that almost all multi-gen have at least a 60 yr. old
+#continue with multigen_hh, but at tract level
+bg_hhTypeRE[multigen_hh=="Household has three or more generations" & 
+              is.na(household_65),
+            ("tr_gen_match_id"):=
+              paste0(tract,family,as.character(100000+sample(1:.N))),
+            by=.(tract,family)]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("tr_gen_match_id"):=
+                  paste0(tract,household,as.character(100000+sample(1:.N))),
+                by=.(tract,household)]
+bg_hhTypeRE[multigen_hh=="Household has three or more generations" &
+              is.na(household_65),
+            c("household_60","household_65","household_75","no_spouse"):=
+              bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
+                                    list(no_spouse)),on=.(tr_gen_match_id)]]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("match_bg60_75T"):=
+                  bg_hhTypeRE[.SD,list(re_code),on=.(tr_gen_match_id)]]
+
+table(bg_hhTypeRE[,household_60])
+table(bg_hhTypeRE[,household_65]) 
+table(bg_hhTypeRE[,household_75])
 #? households with someone over 60 did not get found in bg_hhTypeRE / could be wife/husband or 2 generation
 table(bg_hhTypeRE[,multigen_hh],bg_hhTypeRE[,household_60])
-nrow(bg_hh65SizeType[!is.na(household_60)])-nrow(bg_hhTypeRE[!is.na(household_60)]) #
 #look at numbers again!!! Then tests on this...
+#still missing 46k multi_gen (of 630k)
+#match at bg without family
+bg_hhTypeRE[multigen_hh=="Household has three or more generations" & 
+              is.na(household_65),
+            ("bg_gen2_match_id"):=
+              paste0(GEOID,as.character(100000+sample(1:.N))),
+            by=.(GEOID)]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("bg_gen2_match_id"):=
+                  paste0(GEOID,as.character(100000+sample(1:.N))),
+                by=.(GEOID)]
+bg_hhTypeRE[multigen_hh=="Household has three or more generations" &
+              is.na(household_65),
+            c("household_60","household_65","household_75","no_spouse"):=
+              bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
+                                    list(no_spouse)),on=.(bg_gen2_match_id)]]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("match_bg60_75T"):=
+                  bg_hhTypeRE[.SD,list(re_code),on=.(bg_gen2_match_id)]]
+
+table(bg_hhTypeRE[,household_60],bg_hhTypeRE[,multigen_hh]) 
+table(bg_hhTypeRE[,household_65],bg_hhTypeRE[,multigen_hh]) 
+table(bg_hhTypeRE[,household_75],bg_hhTypeRE[,multigen_hh]) 
+
+#and then the rest - just distributing as extras
+bg_hhTypeRE[hh_size_7!="1-person household" & is.na(household_65),
+            ("bg_1person_match_id"):=
+              paste0(GEOID,as.character(100000+sample(1:.N))),
+            by=.(GEOID)]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("bg_1person_match_id"):=
+                  paste0(GEOID,as.character(100000+sample(1:.N))),
+                by=.(GEOID)]
+bg_hhTypeRE[hh_size_7!="1-person household" & is.na(household_65),
+            c("household_60","household_65","household_75","no_spouse"):=
+              bg_hh65SizeType[.SD,c(list(household_60),list(household_65),list(household_75),
+                                    list(no_spouse)),on=.(bg_1person_match_id)]]
+bg_hh65SizeType[household_60=="Households with one or more people 60 years and over" &
+                  is.na(match_bg60_75T),
+                ("match_bg60_75T"):=
+                  bg_hhTypeRE[.SD,list(re_code),on=.(bg_1person_match_id)]]
+table(bg_hhTypeRE[,household_60]) #still 32 short?
+table(bg_hhTypeRE[,household_65]) #25 short
+table(bg_hhTypeRE[,household_75]) #2 short
 
 
+#still need to go through combos for sanity checks and floating weirdness.
+#save file and move to Sam_3_bg_rel 
+#need to get this logic straight
+file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",
+                             groupname="bg_hhSARETT",path_suff="wrk")
+#"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
+if(file.exists(file_path)){file.remove(file_path)}
+saveRDS(bg_hhTypeRE,file_path)
 
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ and individual roles

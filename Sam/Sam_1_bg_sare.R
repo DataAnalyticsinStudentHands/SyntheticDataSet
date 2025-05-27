@@ -585,3 +585,9 @@ length(test[test==F])
 #could add PCT12 SEX BY SINGLE YEAR AGE with race/eth at tract level
 #PCT13 sex by age for the population in households with race/eth could fill in gaps for GQ? Need to see after doing GQ if needed...
 
+#save file to read into Sam_3
+file_path <- valid_file_path(censusdir,vintage,state,county = "*",api_type="dec",geo_type = "block_group",
+                             groupname="bgSARE",path_suff="wrk.RDS")
+if(file.exists(file_path))
+  {file.remove(file_path)}
+saveRDS(bgSARE,file_path)
