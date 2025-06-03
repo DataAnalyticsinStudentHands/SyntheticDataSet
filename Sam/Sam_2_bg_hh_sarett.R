@@ -303,8 +303,6 @@ rm(bg_hhOwnKids_data_from_census)
 rm(bg_hhOwnKids_melted)
 rm(bg_hhOwnKids_data)
 
-#need to redo all the ones that have potential loss to rematch with the ground, etc.
-#just spend the time
 #make a hh_type_4 to capture the possible matches... - redo with more categories, if needed
 #what if make all married couples male hh, then back out for the ones that are same_sex female after fail to match?
 tr_hhCouple[,("hh_type_4"):=fcase(str_detect(family,"Female") | str_detect(family_type,"Female") |
@@ -327,6 +325,7 @@ bg_hhOwnKids[,("own_kids"):=fcase(rel_in_house=="With own children under 18","Wi
 bg_hhOwnKids[,("sex"):=fcase(household_type_4=="Female householder, no spouse or partner present","Female",
                              household_type_4=="Male householder, no spouse or partner present","Male",
                              default = "Sex not known")]
+#alone and rel_in_house match on "Living alone" only
 tr_hhCouple[,("bg_OK_match_id"):=
               paste0(GEOID,hh_type_4,alone,sex,hh_over_64,own_kids,as.character(100000+sample(1:.N))),
             by=.(GEOID,hh_type_4,alone,sex,hh_over_64,own_kids)]
@@ -355,6 +354,8 @@ tr_hhCouple[is.na(match_OK),("match_OK"):=
               bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OKso_match_id)]]
 #nrow(tr_hhCouple[is.na(match_OK)])#7883453
 #nrow(tr_hhCouple[is.na(match_OK)&alone=="Living alone"]) #5217
+#table(bg_hhOwnKids[,alone],bg_hhOwnKids[,rel_in_house])==c(2607590,0,0,0,0)
+#table(bg_hhOwnKids[,alone],bg_hhOwnKids[,household_type_4])==c(0,1360582,1247008,0)
 
 tr_hhCouple[is.na(match_OK),("bg_OKso_match_id"):=
               paste0(GEOID,hh_type_4,sex,own_kids,as.character(100000+sample(1:.N))),
@@ -368,6 +369,8 @@ bg_hhOwnKids[is.na(hh_type_3),c("hh_type_3","same_sex","couple_gender","alone","
 tr_hhCouple[is.na(match_OK),("match_OK"):=
               bg_hhOwnKids[.SD,list(household_type_4),on=.(bg_OKso_match_id)]]
 #nrow(tr_hhCouple[is.na(match_OK)])# 694463
+#table(bg_hhOwnKids[,alone],bg_hhOwnKids[,rel_in_house],bg_hhOwnKids[,family])
+#need to decide what to do!! - less than 1% for the most part...
 #without sex to pick up couples with sex named, but move over where known; need to compare with originals
 tr_hhCouple[is.na(match_OK),("bg_OKs_match_id"):=
               paste0(GEOID,hh_type_4,own_kids,as.character(100000+sample(1:.N))),
@@ -411,19 +414,24 @@ tr_hhCouple[is.na(match_OK),("match_OK"):=
 bg_hhOwnKids[,("sex"):=fcase(str_detect(household_type_4,"Female"),"Female",
              str_detect(household_type_4,"Male"),"Male",
              default = sex)]
-#table(bg_hhOwnKids[,family_type],bg_hhOwnKids[,rel_in_house]) #abuot 5k off total
-bg_hhOwnKids[,("rel_in_house"):=fcase(str_detect(family_type,"not")&rel_in_house=="Living alone",
-                                      "With own children under 18",
-                                      default = rel_in_house)]
-rm(tr_hhCouple)
-#fix up a few stragglers and create a better combined family_type
+#should we try to fix ad hoc?
+#table(bg_hhOwnKids[,family_type],bg_hhOwnKids[,rel_in_house]) # ~5k off total
+#table(bg_hhOwnKids[,family_type],bg_hhOwnKids[,alone])
+#table(bg_hhOwnKids[,rel_in_house],bg_hhOwnKids[,alone])
+#bg_hhOwnKids[,("rel_in_house"):=fcase(str_detect(family_type,"not")&rel_in_house=="Living alone",
+#                                      "With own children under 18",
+#                                      default = rel_in_house)]
+#
+
+#rm(tr_hhCouple) - keep for now, in case better (non-ad hoc) way of matching later...
+#create a better combined family_type
 #table(bg_hhOwnKids[,household_type_4],bg_hhOwnKids[,family_type])# (16 wrongly assigned)
 bg_hhOwnKids[,("family_type"):=fcase(str_detect(household_type_4,"Female") & 
                                   rel_in_house!="Living alone",
-                                "Female householder (not alone)",
+                                "Female householder (family, no spouse, not alone)",
                                 str_detect(household_type_4,"Male") &
                                   rel_in_house!="Living alone",
-                                "Male householder (not alone)",
+                                "Male householder (family, no spouse, not alone)",
                                 default = family_type)]
 #table(bg_hhOwnKids[,household_type_4],bg_hhOwnKids[,family])#about 1k off
 #cohabiting couples might have children, so not always nonfamily, but sometimes...
@@ -471,7 +479,8 @@ bg_hhTypeTenure[,("age_range_3"):=fcase(str_detect(no_spouse_sex,"years"),no_spo
                                         default = age_range_3)]
 bg_hhTypeTenure[,("no_spouse_sex"):=fcase(str_detect(no_spouse_sex,"years"),family_type,
                                           default = no_spouse_sex)]
-#bg_hhTypeTenure[,("alone"):=]
+bg_hhTypeTenure[,("alone"):=fcase(no_spouse_sex=="Living alone","Living alone",
+                                  default = "Not living alone")]
 rm(bg_hhTypeTenure_data_from_census)
 rm(bg_hhTypeTenure_data)
 rm(bg_hhTypeTenure_melted)
@@ -496,75 +505,79 @@ bg_hhTypeTenure[,("family_type_7"):=fcase(str_detect(family_type,"Female")&
                                           "Male householder (family, no spouse, not alone)",
                                           family_type=="Married couple",
                                           "Married couple family",
-                                          str_detect(family_type,"householder")&
-                                            no_spouse_sex=="Not living alone"&
-                                            family=="Family households",
-                                          "Family households",
+                                          #str_detect(family_type,"householder")&
+                                            #no_spouse_sex=="Not living alone"&
+                                          #  family=="Family households",
+                                         # "Family households",
                                           default = family_type)]
+#FAMILY_TYPE 7 is not matching very well!!! - seems like the "Other family" mix up may be problem
 
 #do with hh_over_64 first; keeping bg_hhTypeTenure age_range for end...
 bg_hhTypeTenure[,("bg_TT_match_id"):=
-              paste0(GEOID,family,family_type_7,sex_match,age_range_3,as.character(100000+sample(1:.N))),
-            by=.(GEOID,family,family_type_7,sex_match,age_range_3)]
+              paste0(GEOID,alone,family,family_type_7,sex_match,age_range_3,as.character(100000+sample(1:.N))),
+            by=.(GEOID,alone,family,family_type_7,sex_match,age_range_3)]
 bg_hhOwnKids[,("bg_TT_match_id"):=
-               paste0(GEOID,family_2,family_type_7,sex,hh_over_64,as.character(100000+sample(1:.N))),
-             by=.(GEOID,family_2,family_type_7,sex,hh_over_64)]
+               paste0(GEOID,alone,family_2,family_type_7,sex,hh_over_64,as.character(100000+sample(1:.N))),
+             by=.(GEOID,alone,family_2,family_type_7,sex,hh_over_64)]
 bg_hhTypeTenure[,c("hh_type_3","hh_type_4","rel_in_house","own_kids",
-                   "sex","same_sex","couple_gender","alone","family_4","family_type_4"):=
+                   "sex","same_sex","couple_gender","family_4","family_type_4"):=
                   bg_hhOwnKids[.SD,c(list(hh_type_3),list(household_type_4),list(rel_in_house),list(own_kids),
-                                     list(sex),list(same_sex),list(couple_gender),list(alone),
+                                     list(sex),list(same_sex),list(couple_gender),
                                  list(family),list(family_type)),on=.(bg_TT_match_id)]]
 bg_hhOwnKids[,("match_TT"):=
-                  bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TT_match_id)]]
-#nrow(bg_hhOwnKids[is.na(match_TT)])#9597807 #within a couple dozen of all hh_over_64 matched
+                  bg_hhTypeTenure[.SD,list(rent_own),on=.(bg_TT_match_id)]]
+#nrow(bg_hhOwnKids[is.na(match_TT)])#9597807 
+#nrow(bg_hhOwnKids[is.na(match_TT)&hh_over_64=="Householder 65 years and over"])#34
 #then without age 
 bg_hhTypeTenure[is.na(hh_type_3),("bg_TTa_match_id"):=
-                  paste0(GEOID,family,family_type_7,sex_match,as.character(100000+sample(1:.N))),
-                by=.(GEOID,family,family_type_7,sex_match)]
+                  paste0(GEOID,alone,family,family_type_7,sex_match,as.character(100000+sample(1:.N))),
+                by=.(GEOID,alone,family,family_type_7,sex_match)]
 bg_hhOwnKids[is.na(match_TT),("bg_TTa_match_id"):=
-               paste0(GEOID,family_2,family_type_7,sex,as.character(100000+sample(1:.N))),
-             by=.(GEOID,family_2,family_type_7,sex)]
+               paste0(GEOID,alone,family_2,family_type_7,sex,as.character(100000+sample(1:.N))),
+             by=.(GEOID,alone,family_2,family_type_7,sex)]
 bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_kids",
-                   "sex","same_sex","couple_gender","alone","family_4","family_type_4"):=
+                   "sex","same_sex","couple_gender","family_4","family_type_4"):=
                   bg_hhOwnKids[.SD,c(list(hh_type_3),list(household_type_4),list(rel_in_house),list(own_kids),
-                                     list(sex),list(same_sex),list(couple_gender),list(alone),
+                                     list(sex),list(same_sex),list(couple_gender),
                                      list(family),list(family_type)),on=.(bg_TTa_match_id)]]
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
-               bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TTa_match_id)]]
-#nrow(bg_hhOwnKids[is.na(match_TT)])#2858399
-bg_hhOwnKids[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
-bg_hhTypeTenure[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+               bg_hhTypeTenure[.SD,list(rent_own),on=.(bg_TTa_match_id)]]
+#nrow(bg_hhOwnKids[is.na(match_TT)])#2803919 #50k better by matching on alone as well
 ##same at tract level - for family_type_7 no additional matches by moving to tract! That's surprising, but looks like things just matched
+#looks like Nonfamily households living alone is exactly equal to family households == "Other family"!!
+#changing below to family_type_7, instead of family (might switch back)
 #just block group; get sex on householder for each that is available, then keep that part of the match?
 bg_hhTypeTenure[is.na(hh_type_3),("bg_TTbg_match_id"):=
-                  paste0(GEOID,family,sex_match,as.character(100000+sample(1:.N))),
-                by=.(GEOID,family,sex_match)]
+                  paste0(GEOID,alone,family,sex_match,as.character(100000+sample(1:.N))),
+                by=.(GEOID,alone,family,sex_match)]
 bg_hhOwnKids[is.na(match_TT),("bg_TTbg_match_id"):=
-               paste0(GEOID,family_2,sex,as.character(100000+sample(1:.N))),
-             by=.(GEOID,family_2,sex)]
+               paste0(GEOID,alone,family_2,sex,as.character(100000+sample(1:.N))),
+             by=.(GEOID,alone,family_2,sex)]
 bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_kids",
-                                   "sex","same_sex","couple_gender","alone","family_4","family_type_4"):=
+                                   "sex","same_sex","couple_gender","family_4","family_type_4"):=
                   bg_hhOwnKids[.SD,c(list(hh_type_3),list(household_type_4),list(rel_in_house),list(own_kids),
-                                     list(sex),list(same_sex),list(couple_gender),list(alone),
+                                     list(sex),list(same_sex),list(couple_gender),
                                      list(family),list(family_type)),on=.(bg_TTbg_match_id)]]
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
-               bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TTbg_match_id)]]
-#nrow(bg_hhOwnKids[is.na(match_TT)])#165682 
+               bg_hhTypeTenure[.SD,list(rent_own),on=.(bg_TTbg_match_id)]]
+#nrow(bg_hhOwnKids[is.na(match_TT)])#134069 
 #with sex, but at tract
+bg_hhOwnKids[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+bg_hhTypeTenure[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 bg_hhTypeTenure[is.na(hh_type_3),("tr_TTbg_match_id"):=
-                  paste0(tract,family,sex_match,as.character(100000+sample(1:.N))),
-                by=.(tract,family,sex_match)]
+                  paste0(tract,alone,family,sex_match,as.character(100000+sample(1:.N))),
+                by=.(tract,alone,family,sex_match)]
 bg_hhOwnKids[is.na(match_TT),("tr_TTbg_match_id"):=
-               paste0(tract,family_2,sex,as.character(100000+sample(1:.N))),
-             by=.(tract,family_2,sex)]
+               paste0(tract,alone,family_2,sex,as.character(100000+sample(1:.N))),
+             by=.(tract,alone,family_2,sex)]
 bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_kids",
-                                   "sex","same_sex","couple_gender","alone","family_4","family_type_4"):=
+                                   "sex","same_sex","couple_gender","family_4","family_type_4"):=
                   bg_hhOwnKids[.SD,c(list(hh_type_3),list(household_type_4),list(rel_in_house),list(own_kids),
-                                     list(sex),list(same_sex),list(couple_gender),list(alone),
+                                     list(sex),list(same_sex),list(couple_gender),
                                      list(family),list(family_type)),on=.(tr_TTbg_match_id)]]
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
-               bg_hhTypeTenure[.SD,list(hh_type_3),on=.(tr_TTbg_match_id)]]
-#nrow(bg_hhOwnKids[is.na(match_TT)])#60795
+               bg_hhTypeTenure[.SD,list(rent_own),on=.(tr_TTbg_match_id)]]
+#nrow(bg_hhOwnKids[is.na(match_TT)])#10670
 #without sex
 bg_hhTypeTenure[is.na(hh_type_3),("bg_TTbg_match_id"):=
                   paste0(GEOID,family,as.character(100000+sample(1:.N))),
@@ -578,8 +591,8 @@ bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_k
                                      list(sex),list(same_sex),list(couple_gender),list(alone),
                                      list(family),list(family_type)),on=.(bg_TTbg_match_id)]]
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
-               bg_hhTypeTenure[.SD,list(hh_type_3),on=.(bg_TTbg_match_id)]]
-#nrow(bg_hhOwnKids[is.na(match_TT)])#24314 
+               bg_hhTypeTenure[.SD,list(rent_own),on=.(bg_TTbg_match_id)]]
+#nrow(bg_hhOwnKids[is.na(match_TT)])#7158 
 #at tract
 bg_hhTypeTenure[is.na(hh_type_3),("tr_TTbg_match_id"):=
                   paste0(tract,family,as.character(100000+sample(1:.N))),
@@ -594,7 +607,7 @@ bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_k
                                      list(family),list(family_type)),on=.(tr_TTbg_match_id)]]
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
                bg_hhTypeTenure[.SD,list(hh_type_3),on=.(tr_TTbg_match_id)]]
-#nrow(bg_hhOwnKids[is.na(match_TT)])#10496
+#nrow(bg_hhOwnKids[is.na(match_TT)])#6260
 #table(bg_hhOwnKids[is.na(match_TT),family_2]) 
 #doing at tract - had 357 not match at block_group with no other match
 bg_hhTypeTenure[is.na(hh_type_3),("tr_TT_match_id"):=
@@ -610,23 +623,25 @@ bg_hhTypeTenure[is.na(hh_type_3),c("hh_type_3","hh_type_4","rel_in_house","own_k
                                      list(family),list(family_type)),on=.(tr_TT_match_id)]]
 bg_hhOwnKids[is.na(match_TT),("match_TT"):=
                bg_hhTypeTenure[.SD,list(hh_type_3),on=.(tr_TT_match_id)]]
-#nrow(bg_hhOwnKids[is.na(match_TT)])
+#nrow(bg_hhOwnKids[is.na(match_TT)])==0
 #need to do the little clean up on things that are weird
 #table(bg_hhTypeTenure[,sex],bg_hhTypeTenure[,family_type_7]) #almost 800 screwed up on sex 
 bg_hhTypeTenure[,("sex"):=fcase(str_detect(family_type_7,"Female"),"Female",
                                 str_detect(family_type_7,"Male"),"Male",
                                 default = sex)]
 #alone is broken in the several thousand range - also need it to account for rel_in_house!!
-bg_hhTypeTenure[,("alone"):=fcase(str_detect(family_type_7,"solitary"),"Living alone",
-                                  str_detect(family_type_7,"not alone"),"Not living alone",
-                                  str_detect(family_type_7,"Married"),"Not living alone",
-                                  default = alone)]
+#bg_hhTypeTenure[,("alone1"):=fcase(str_detect(family_type_7,"solitary"),"Living alone",
+#                                  str_detect(family_type_7,"not alone"),"Not living alone",
+#                                  str_detect(family_type_7,"Married"),"Not living alone",
+#                                  default = alone)]
+#table(bg_hhTypeTenure[,alone],bg_hhTypeTenure[,alone1]) #about 8k off
 #table(bg_hhTypeTenure[,family_type_4],bg_hhTypeTenure[,family_type_7])
 #seems to be something wrong with hh_type_4
 #family_type_4, hh_type, etc. has a few things that don't match: mostly a couple of dozen some closer to 800 off.
 #some of the other hh_type things are further off; have to think about the strategy for retrieving them... is it codom? or just redo?
 #need to draw out what needs to be saved; what if the ones that don't match are considered clues for secondary elements in the ordering/matching?
-rm(bg_hhOwnKids)
+
+#rm(bg_hhOwnKids)
 
 #add to P16, then put in relations
 #one of the two distributions with full race/eth
@@ -698,8 +713,9 @@ bg_hhTypeRE[,c("rent_own","rel_in_house","own_kids","age_range_3",
                                      list(family),list(family_type),list(family_type_7)),on=.(bg_TTre_match_id)]]
 bg_hhTypeTenure[,("match_TTre"):=
                bg_hhTypeRE[.SD,list(match_type_5),on=.(bg_TTre_match_id)]]
-nrow(bg_hhTypeTenure[is.na(match_TTre)])==0 #0
-rm(bg_hhTypeTenure)
+#nrow(bg_hhTypeTenure[is.na(match_TTre)])==0 #0
+
+#rm(bg_hhTypeTenure)
 
 #get own_kids with race/eth and family_type; will create a codomain 
 groupname <- "PCT10" #FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN, race/eth
@@ -712,7 +728,7 @@ tr_hhTypeOwnKidsRE_data_from_census <-
                    api_type,path_suff)
 if(names(tr_hhTypeOwnKidsRE_data_from_census)[11]=="label_1"){
   #labels determined by hand
-  label_c1 <- c("family_2","family_type","own_kids","kid_age_2","re_code","race") 
+  label_c1 <- c("family_2","family_type","own_kids","kid_age_range_3","re_code","race") 
   tr_hhTypeOwnKidsRE_data_from_census[,("re_code") := substr(name,6,6)][
     ,("race") := str_replace(concept,"FAMILY TYPE BY PRESENCE AND AGE OF OWN CHILDREN \\(","")][
       ,("race") := str_replace(race,"\\)","")]
@@ -728,9 +744,10 @@ if(names(tr_hhTypeOwnKidsRE_data_from_census)[11]=="label_1"){
   print("Using already given labels; no rewrite.")
   tr_hhTypeOwnKidsRE_data <- tr_hhTypeOwnKidsRE_data_from_census
 }
+#remember this is only families
 #reshape a bit and make list of individuals
 Geoids <- colnames(tr_hhTypeOwnKidsRE_data[,.SD,.SDcols = startsWith(names(tr_hhTypeOwnKidsRE_data),state)])
-tr_hhTypeOwnKidsRE_melted <- melt(tr_hhTypeOwnKidsRE_data, id.vars = c("family_2","family_type","own_kids","kid_age_2","re_code","race"), measure.vars = Geoids,
+tr_hhTypeOwnKidsRE_melted <- melt(tr_hhTypeOwnKidsRE_data, id.vars = c("family_2","family_type","own_kids","kid_age_range_3","re_code","race"), measure.vars = Geoids,
                                   value.name = "codom_tr_hhTypeOwnKidsRE", variable.name = "GEOID")
 tr_hhTypeOwnKidsRE <- as.data.table(lapply(tr_hhTypeOwnKidsRE_melted[,.SD],rep,tr_hhTypeOwnKidsRE_melted[,codom_tr_hhTypeOwnKidsRE]))
 #create a matching variable for bg_hhTypeRE, below
@@ -750,11 +767,11 @@ rm(tr_hhTypeOwnKidsRE_melted)
 
 #add I to the A in tr_hhTypeOwnKidsR, 
 tr_hhTypeOwnKidsR[re_code=="A",("tr_ownkidsRI_match_id"):=
-                    paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
-                  by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+                    paste0(GEOID,family_2,family_type,own_kids,kid_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,family_2,family_type,own_kids,kid_age_range_3)]
 tr_hhTypeOwnKidsI[,("tr_ownkidsRI_match_id"):=
-                    paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
-                  by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+                    paste0(GEOID,family_2,family_type,own_kids,kid_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,family_2,family_type,own_kids,kid_age_range_3)]
 tr_hhTypeOwnKidsR[re_code=="A",c("copath_re_code","codom_tr_hhTypeOwnKidsRE"):=
                     tr_hhTypeOwnKidsI[.SD,c(list(re_code),list(codom_tr_hhTypeOwnKidsRE)),on=.(tr_ownkidsRI_match_id)]]
 tr_hhTypeOwnKidsI[,("match_R"):=
@@ -765,11 +782,11 @@ tr_hhTypeOwnKidsR[,c("copath_re_code"):=fcase(re_code=="A"&is.na(copath_re_code)
 rm(tr_hhTypeOwnKidsI)
 #find HnotP for later ordering merge with re_code_14 distribution
 tr_hhTypeOwnKidsH[,("tr_ownkidsH_match_id"):=
-                    paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
-                  by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+                    paste0(GEOID,family_2,family_type,own_kids,kid_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,family_2,family_type,own_kids,kid_age_range_3)]
 tr_hhTypeOwnKidsR[copath_re_code=="P",("tr_ownkidsH_match_id"):=
-                    paste0(GEOID,family_2,family_type,own_kids,kid_age_2,as.character(100000+sample(1:.N))),
-                  by=.(GEOID,family_2,family_type,own_kids,kid_age_2)]
+                    paste0(GEOID,family_2,family_type,own_kids,kid_age_range_3,as.character(100000+sample(1:.N))),
+                  by=.(GEOID,family_2,family_type,own_kids,kid_age_range_3)]
 tr_hhTypeOwnKidsH[,c("copath_re_code","codom_tr_hhTypeOwnKidsRE"):=
                     tr_hhTypeOwnKidsR[.SD,c(list(copath_re_code),list(codom_tr_hhTypeOwnKidsRE)),on=.(tr_ownkidsH_match_id)]]
 tr_hhTypeOwnKidsR[copath_re_code=="P",("match_H"):= #just for housekeeping, mixes re_code_14
@@ -785,28 +802,27 @@ tr_hhTypeOwnKidsHnotP[,("tr_ownkidsHnotP_match_id"):=
 bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V"),("tr_ownkidsHnotP_match_id"):=
               paste0(tract,family_type_7,own_kids,as.character(100000+sample(1:.N))),
             by=.(tract,family_type_7,own_kids)]
-bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V"),("kid_age_2"):=
-              tr_hhTypeOwnKidsHnotP[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match_id)]]
+bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V"),("kid_age_range_3"):=
+              tr_hhTypeOwnKidsHnotP[.SD,list(kid_age_range_3),on=.(tr_ownkidsHnotP_match_id)]]
 tr_hhTypeOwnKidsHnotP[,("match_bg"):=
                         bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsHnotP_match_id)]]
-nrow(tr_hhTypeOwnKidsHnotP[is.na(match_bg)]) #151348, which is better than one might expect given that the source of own_kids (P20) didn't have RE
-#first kid_age_2 test - where are we losing several thousands? maybe a problem with match..
-table(bg_hhTypeRE[,kid_age_2])
+#nrow(tr_hhTypeOwnKidsHnotP[is.na(match_bg)]) #151348, which is better than one might expect given that the source of own_kids (P20) didn't have RE
+#first kid_age_range_3 test - where are we losing several thousands? maybe a problem with match..
+#table(bg_hhTypeRE[,kid_age_range_3])# family_type7 ensures that only family match
 #distribute again, writing over the own_kids on bg_hhTypeRE
 tr_hhTypeOwnKidsHnotP[is.na(match_bg),("tr_ownkidsHnotP_match2_id"):=
                         paste0(GEOID,family_type_7,as.character(100000+sample(1:.N))),
                       by=.(GEOID,family_type_7)]
-bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&is.na(kid_age_2),("tr_ownkidsHnotP_match2_id"):=
+bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&is.na(kid_age_range_3),("tr_ownkidsHnotP_match2_id"):=
               paste0(tract,family_type_7,as.character(100000+sample(1:.N))),
             by=.(tract,family_type_7)]
-bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&is.na(kid_age_2),("kid_age_2"):=
-              tr_hhTypeOwnKidsHnotP[.SD,list(kid_age_2),on=.(tr_ownkidsHnotP_match2_id)]]
+bg_hhTypeRE[re_code%in%c("Q","R","S","T","U","V")&is.na(kid_age_range_3),("kid_age_range_3"):=
+              tr_hhTypeOwnKidsHnotP[.SD,list(kid_age_range_3),on=.(tr_ownkidsHnotP_match2_id)]]
 tr_hhTypeOwnKidsHnotP[is.na(match_bg),("match_bg"):=
                         bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsHnotP_match2_id)]]
-nrow(tr_hhTypeOwnKidsHnotP[is.na(match_bg)])==0
+#nrow(tr_hhTypeOwnKidsHnotP[is.na(match_bg)])==0
 rm(tr_hhTypeOwnKidsHnotP)
-#second kid_age_2 test - where are we losing several thousands? maybe a problem with match..
-table(bg_hhTypeRE[,kid_age_2])
+#second kid_age_range_3 test - where are we losing several thousands? maybe a problem with match..
 
 #distribute for I and P
 #nrow(tr_hhTypeOwnKidsR[!is.na(copath_re_code)])==nrow(bg_hhTypeRE[re_code%in%c("I","P")&family=="Family households"])
@@ -816,25 +832,27 @@ tr_hhTypeOwnKidsR[re_code=="A",("tr_ownkidsIP_match_id"):=
 bg_hhTypeRE[re_code%in%c("I","P"),("tr_ownkidsIP_match_id"):=
               paste0(tract,family_type_7,own_kids,as.character(100000+sample(1:.N))),
             by=.(tract,family_type_7,own_kids)]
-bg_hhTypeRE[re_code%in%c("I","P"),("kid_age_2"):=
-              tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsIP_match_id)]]
+bg_hhTypeRE[re_code%in%c("I","P"),("kid_age_range_3"):=
+              tr_hhTypeOwnKidsR[.SD,list(kid_age_range_3),on=.(tr_ownkidsIP_match_id)]]
 tr_hhTypeOwnKidsR[re_code=="A",("match_bgIP"):=
                         bg_hhTypeRE[.SD,list(re_code),on=.(tr_ownkidsIP_match_id)]]
 nrow(tr_hhTypeOwnKidsR[re_code=="A"])-nrow(tr_hhTypeOwnKidsR[!is.na(match_bgIP)]) #170226, which is better than one might expect given that the source of own_kids (P20) didn't have RE
-#third kid_age_2 test - where are we losing several thousands? maybe a problem with match..
-table(bg_hhTypeRE[,kid_age_2])
+#third kid_age_range_3 test - where are we losing several thousands? maybe a problem with match..
+table(bg_hhTypeRE[,kid_age_range_3])
 #distribute again, writing over the own_kids on bg_hhTypeRE
 tr_hhTypeOwnKidsR[re_code=="A"&is.na(match_bgIP),("tr_ownkidsIP_match2_id"):=
                         paste0(GEOID,family_type_7,as.character(100000+sample(1:.N))),
                       by=.(GEOID,family_type_7)]
-bg_hhTypeRE[re_code%in%c("I","P")&is.na(kid_age_2),("tr_ownkidsIP_match2_id"):=
+bg_hhTypeRE[re_code%in%c("I","P")&is.na(kid_age_range_3),("tr_ownkidsIP_match2_id"):=
               paste0(tract,family_type_7,as.character(100000+sample(1:.N))),
             by=.(tract,family_type_7)]
-bg_hhTypeRE[re_code%in%c("I","P")&is.na(kid_age_2),("kid_age_2"):=
-              tr_hhTypeOwnKidsR[.SD,list(kid_age_2),on=.(tr_ownkidsIP_match2_id)]]
+bg_hhTypeRE[re_code%in%c("I","P")&is.na(kid_age_range_3),("kid_age_range_3"):=
+              tr_hhTypeOwnKidsR[.SD,list(kid_age_range_3),on=.(tr_ownkidsIP_match2_id)]]
 tr_hhTypeOwnKidsR[re_code=="A"&is.na(match_bgIP),("match_bgIP"):=
                         bg_hhTypeRE[.SD,list(family_type_7),on=.(tr_ownkidsIP_match2_id)]]
-nrow(tr_hhTypeOwnKidsR[re_code=="A"])-nrow(tr_hhTypeOwnKidsR[!is.na(match_bgIP)]) 
+#nrow(tr_hhTypeOwnKidsR[re_code=="A"])-nrow(tr_hhTypeOwnKidsR[!is.na(match_bgIP)]) 
+#table(bg_hhTypeRE[,family],bg_hhTypeRE[,kid_age_range_3])
+
 rm(tr_hhTypeOwnKidsR)
 rm(tr_hhTypeOwnKidsRE)
 
@@ -894,11 +912,11 @@ bg_hhTenureAR[re_code=="A",("re_code_14"):=
                 bg_hhTenureAE[.SD,list(re_code),on=.(bg_hhTenureRI_match_id)]]
 bg_hhTenureAE[re_code=="I",("match_bgTIR"):=
                 bg_hhTenureAR[.SD,list(re_code),on=.(bg_hhTenureRI_match_id)]]
-nrow(bg_hhTenureAE[re_code=="I"])-nrow(bg_hhTenureAE[!is.na(match_bgTIR)])==0
+#nrow(bg_hhTenureAE[re_code=="I"])-nrow(bg_hhTenureAE[!is.na(match_bgTIR)])==0
 #maybe not do that step, since it is easier to make all the HvL on bg_hhType
 bg_hhTenureAR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_14),"P",default = re_code_14)]
 #have to still distribute H at end
-table(bg_hhTenureAR[,re_code_14]) == table(bg_hhTypeRE[re_code%in%c("I","P"),re_code])
+#table(bg_hhTenureAR[,re_code_14]) == table(bg_hhTypeRE[re_code%in%c("I","P"),re_code])
 
 bg_hhTypeRE[,("HvL"):=fcase(re_code%in%c("P","Q","R","S","T","U","V"),"H",default = "Not H")]
 bg_hhTypeRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
@@ -909,7 +927,7 @@ bg_hhTypeRE[,("re_code_7"):=fcase(re_code%in%c("I","P"),"A",
                                   re_code%in%c("N","U"),"F",
                                   re_code%in%c("O","V"),"G",
                                   default = "Not given")]
-table(bg_hhTypeRE[,re_code_7])==table(bg_hhTenureAR[,re_code])
+#table(bg_hhTypeRE[,re_code_7])==table(bg_hhTenureAR[,re_code])
 #move P out of H
 bg_hhTenureAR[re_code_14=="P",("bg_hhTenureRP_match_id"):=
                 paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
@@ -921,7 +939,7 @@ bg_hhTenureAR[re_code_14=="P",("HvL"):=
                 bg_hhTenureAE[.SD,list(re_code),on=.(bg_hhTenureRP_match_id)]]
 bg_hhTenureAE[re_code=="H",("match_bgTH"):=
                 bg_hhTenureAR[.SD,list(re_code),on=.(bg_hhTenureRP_match_id)]]
-nrow(bg_hhTenureAR[re_code_14=="P"])-nrow(bg_hhTenureAE[!is.na(match_bgTH)])==0
+#nrow(bg_hhTenureAR[re_code_14=="P"])-nrow(bg_hhTenureAE[!is.na(match_bgTH)])==0
 #move over rest of H to Q, R, S, T, U, V
 bg_hhTenureAR[re_code!="A",("bg_hhTenureRH_match_id"):=
                 paste0(GEOID,rent_own,age_range_9,as.character(100000+sample(1:.N))),
@@ -1005,7 +1023,7 @@ bg_hhTenureAR[,c("tenure","race"):=
                 bg_hhTenureRE[.SD,c(list(tenure),list(race)),on=.(bg_hhTTARE_match_id)]]
 bg_hhTenureRE[,("match_bgTenure"):=
               bg_hhTenureAR[.SD,list(re_code_14),on=.(bg_hhTTARE_match_id)]]
-nrow(bg_hhTenureAR[is.na(tenure)]) #got ~90%
+#nrow(bg_hhTenureAR[is.na(tenure)]) #got ~90% #1123846/10491147
 #table(bg_hhTenureAR[is.na(tenure),re_code_14]) #I and P are fully matched
 #write ground re_code_14 from TenureRE, but may have loss of some age details by re_code
 bg_hhTenureAR[is.na(tenure),("bg_hhTTARE1_match_id"):=
@@ -1018,7 +1036,7 @@ bg_hhTenureAR[is.na(tenure),c("tenure","re_code_14","race"):=
                 bg_hhTenureRE[.SD,c(list(tenure),list(re_code),list(race)),on=.(bg_hhTTARE1_match_id)]]
 bg_hhTenureRE[is.na(match_bgTenure),("match_bgTenure"):=
                 bg_hhTenureAR[.SD,list(re_code_14),on=.(bg_hhTTARE1_match_id)]]
-nrow(bg_hhTenureAR[is.na(tenure)])==0
+#nrow(bg_hhTenureAR[is.na(tenure)])==0
 #give bg_hhTenureAR correct HvL
 bg_hhTenureAR[,("HvL"):=fcase(re_code_14%in%c("P","Q","R","S","T","U","V"),"H",default = "Not H")]
 #table(bg_hhTypeRE[,HvL])==table(bg_hhTenureAR[,HvL])
@@ -1035,8 +1053,8 @@ bg_hhTypeRE[,c("age_range_9","Latino","re_code_14","race","tenure"):=
                 bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),
                                     list(race),list(tenure)),
                               on=.(bg_hhTTIP_match_id)]]
-nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1235318/10491147 = .117 not matching; when not doing the re_code from bg_hhTenureRE, it was 18%
-nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046; basically same with and without bg_hhTenureRE
+#nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #1235318/10491147 = .117 not matching; when not doing the re_code from bg_hhTenureRE, it was 18%
+#nrow(bg_hhTenureAR[re_code=="A"])-nrow(bg_hhTypeRE[re_code_7=="A" & !is.na(age_range_9)]) #482137/10491147 = .046; basically same with and without bg_hhTenureRE
 #without matching on re_code; move AR over, since TypeRE was assigned with some error
 #if just rent_own, age_range_3, can finish matching in one step.
 bg_hhTenureAR[is.na(match_bgIP),("bg_TTr_match_id"):=
@@ -1047,15 +1065,15 @@ bg_hhTypeRE[is.na(age_range_9),("bg_TTr_match_id"):=
             by=.(GEOID,re_code_7,rent_own,age_range_3)]
 bg_hhTenureAR[is.na(match_bgIP),("match_bgIP"):=
                 bg_hhTypeRE[.SD,list(re_code),on=.(bg_TTr_match_id)]]
-table(bg_hhTypeRE[is.na(age_range_9),HvL])
-table(bg_hhTypeRE[is.na(age_range_9),re_code])
+#table(bg_hhTypeRE[is.na(age_range_9),HvL])
+#table(bg_hhTypeRE[is.na(age_range_9),re_code])
 bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race","tenure"):=
               bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),
                                   list(race),list(tenure)),
                             on=.(bg_TTr_match_id)]]
-table(bg_hhTypeRE[is.na(age_range_9),re_code])
-table(bg_hhTypeRE[is.na(age_range_9),HvL])
-nrow(bg_hhTypeRE[is.na(age_range_9)]) #1011303
+#table(bg_hhTypeRE[is.na(age_range_9),re_code])
+#table(bg_hhTypeRE[is.na(age_range_9),HvL])
+#nrow(bg_hhTypeRE[is.na(age_range_9)]) #1011303
 
 #with HvL
 bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTe_match_id"):=
@@ -1070,7 +1088,7 @@ bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race","ten
               bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),
                                   list(race),list(tenure)),
                             on=.(bg_hhTTe_match_id)]]
-nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113 / became 418247 with bg_hhTenureRE
+#nrow(bg_hhTenureAR)-nrow(bg_hhTypeRE[!is.na(age_range_9)]) #431113 / became 416166 with bg_hhTenureRE
 #just rent_own and age
 bg_hhTenureAR[is.na(match_bgIP),("bg_hhTTa_match_id"):=
                 paste0(GEOID,rent_own,age_range_3,as.character(100000+sample(1:.N))),
@@ -1084,26 +1102,26 @@ bg_hhTypeRE[is.na(age_range_9),c("age_range_9","Latino","re_code_14","race","ten
               bg_hhTenureAR[.SD,c(list(age_range_9),list(HvL),list(re_code_14),
                                   list(race),list(tenure)),
                             on=.(bg_hhTTa_match_id)]]
-nrow(bg_hhTypeRE[is.na(age_range_9)]) == 0
-test<-abs(table(bg_hhTypeRE[,GEOID],
-            bg_hhTypeRE[,rent_own],
-            bg_hhTypeRE[,re_code])-
-  table(bg_hhTypeRE[,GEOID],
-        bg_hhTypeRE[,rent_own],
-        bg_hhTypeRE[,re_code_14]))/
-  abs(table(bg_hhTypeRE[,GEOID],
-        bg_hhTypeRE[,rent_own],
-        bg_hhTypeRE[,re_code_14]))
-mean(test[1:14]) #.038 - all attributable to bad match on re_code with Type
-test<-table(bg_hhTenureAR[,GEOID],
-      bg_hhTenureAR[,rent_own],
-      bg_hhTenureAR[,HvL],
-      bg_hhTenureAR[,re_code_14])==
-  table(bg_hhTypeRE[,GEOID],
-        bg_hhTypeRE[,rent_own],
-        bg_hhTypeRE[,Latino],
-        bg_hhTypeRE[,re_code_14])
-length(test[test==F])==0
+#nrow(bg_hhTypeRE[is.na(age_range_9)]) == 0
+#test<-abs(table(bg_hhTypeRE[,GEOID],
+#            bg_hhTypeRE[,rent_own],
+#            bg_hhTypeRE[,re_code])-
+#  table(bg_hhTypeRE[,GEOID],
+#        bg_hhTypeRE[,rent_own],
+#        bg_hhTypeRE[,re_code_14]))/
+#  abs(table(bg_hhTypeRE[,GEOID],
+#        bg_hhTypeRE[,rent_own],
+#        bg_hhTypeRE[,re_code_14]))
+#mean(test[1:14]) #.045 - all attributable to bad match on re_code with Type
+#test<-table(bg_hhTenureAR[,GEOID],
+#      bg_hhTenureAR[,rent_own],
+#      bg_hhTenureAR[,HvL],
+#      bg_hhTenureAR[,re_code_14])==
+#  table(bg_hhTypeRE[,GEOID],
+#        bg_hhTypeRE[,rent_own],
+#        bg_hhTypeRE[,Latino],
+#        bg_hhTypeRE[,re_code_14])
+#length(test[test==F])==0
 #bg_hhTypeRE[,("re_code"):=NULL]
 #bg_hhTypeRE[,("HvL"):=NULL]
 #need to reset re_code_7 on bg_hhTypeRE to match correctly; how far off are rent_own, etc.?
@@ -1232,7 +1250,7 @@ bg_hhSizeTenureRE[,("family"):=
 tr_hhTypeSizeRE[,("rent_own"):=
                   bg_hhSizeTenureRE[.SD,list(rent_own),
                             on=.(bgtr_hhSZ_match_id)]]
-nrow(bg_hhSizeTenureRE[is.na(family)]) #10045 (all missing have re_code=="H" and seem to not have a family designation)
+#nrow(bg_hhSizeTenureRE[is.na(family)]) #10045 (all missing have re_code=="H" and seem to not have a family designation)
 #can't fix last 10k
 #table(bg_hhSizeTenureRE[is.na(family),re_code])
 #nrow(tr_hhTypeSizeRE[is.na(rent_own)])==0
@@ -1250,7 +1268,7 @@ bg_hhSizeTenureR[re_code=="A",("re_code_HI"):=
 bg_hhSizeTenureE[re_code=="I",("matched_E"):=
                   bg_hhSizeTenureR[.SD,list(re_code),
                                     on=.(bgtr_hhRE_match_id)]]
-nrow(bg_hhSizeTenureE[re_code=="I"])-nrow(bg_hhSizeTenureR[re_code_HI=="I"]) #58748
+#nrow(bg_hhSizeTenureE[re_code=="I"])-nrow(bg_hhSizeTenureR[re_code_HI=="I"]) #58748
 #HnotP
 bg_hhSizeTenureR[re_code=="A"&is.na(re_code_HI),("bgtr_hhHnotP_match_id"):=
                    paste0(GEOID,size,rent_own,family,as.character(100000+sample(1:.N))),
@@ -1263,8 +1281,8 @@ bg_hhSizeTenureR[re_code=="A"&is.na(re_code_HI),("re_code_HI"):=
 bg_hhSizeTenureE[re_code=="H",("matched_E"):=
                    bg_hhSizeTenureR[.SD,list(re_code),
                                     on=.(bgtr_hhHnotP_match_id)]]
-nrow(bg_hhSizeTenureE[re_code=="H"])-nrow(bg_hhSizeTenureR[re_code_HI=="H"]) #2445796
-nrow(bg_hhSizeTenureR[re_code=="A"])-nrow(bg_hhSizeTenureR[!is.na(re_code_HI)]) #45220 #0.77%
+#nrow(bg_hhSizeTenureE[re_code=="H"])-nrow(bg_hhSizeTenureR[re_code_HI=="H"]) #2445796
+#nrow(bg_hhSizeTenureR[re_code=="A"])-nrow(bg_hhSizeTenureR[!is.na(re_code_HI)]) #45220 #0.77%
 #rest of H
 bg_hhSizeTenureR[re_code!="A"&is.na(re_code_HI),("bgtr_hhH_match_id"):=
                    paste0(GEOID,size,rent_own,family,as.character(100000+sample(1:.N))),
@@ -1283,13 +1301,13 @@ bg_hhSizeTenureE[re_code=="H"&is.na(matched_E),("matched_E"):=
 rm(bg_hhSizeTenureE)
 rm(bg_hhSizeTenureRE)
 #join to bg_hhTypeRE
-test <- table(bg_hhSizeTenureR[,GEOID], 
-              #bg_hhSizeTenureR[,family],
-              bg_hhSizeTenureR[,rent_own])==
-  table(bg_hhTypeRE[,GEOID], 
-        #bg_hhTypeRE[,family],
-        bg_hhTypeRE[,rent_own])
-length(test[test==F])
+#test <- table(bg_hhSizeTenureR[,GEOID], 
+#              #bg_hhSizeTenureR[,family],
+#              bg_hhSizeTenureR[,rent_own])==
+#  table(bg_hhTypeRE[,GEOID], 
+#        #bg_hhTypeRE[,family],
+#        bg_hhTypeRE[,rent_own])
+#length(test[test==F])
 #family and rent_own should be kept from bg_hhTypeRE
 #bg_hhSizeTenureR[,("alone"):=fcase(size=="1-person household","Living alone",
 #                                   default = "Not living alone")]
@@ -1298,7 +1316,7 @@ bg_hhTypeRE[,("size_3"):=fcase(alone=="Living alone","1-person household",
                                own_kids=="With own children under 18 years"&
                                  match_type_5=="Married couple","3-person household",
                                match_type_5!="Living alone","2-person household",
-                               default = "unknown")]
+                               default = "3-person household")]
 bg_hhSizeTenureR[,("size_3"):=fcase(as.numeric(substr(size,1,1))<3,size,
                                     default = "3-person household")] #to get all more than 3 and distribute 
 #moving size over from bg_hhSizeTenure
@@ -1409,40 +1427,46 @@ tr_hhMultiGenR[re_code!="A"&is.na(re_code_14),("re_code_14"):=
 tr_hhMultiGenE[re_code=="H"&is.na(matched_E),("matched_E"):=
                  tr_hhMultiGenR[.SD,list(re_code),
                                     on=.(tr_hhMG_H_match_id)]]
-nrow(tr_hhMultiGenR[!is.na(re_code_14)])==nrow(tr_hhMultiGenE)
-table(tr_hhMultiGenR[,re_code_14])
+#nrow(tr_hhMultiGenR[!is.na(re_code_14)])==nrow(tr_hhMultiGenE)
+#table(tr_hhMultiGenR[,re_code_14])
 
-#join, only with own kids for I and P
-tr_hhMultiGenR[,("tr_multigenTypeIP_match_id"):=
+#join, only with size_3=="3-person-household"
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",
+               ("tr_multigenTypeIP_match_id"):=
                    paste0(GEOID,re_code_14,as.character(100000+sample(1:.N))),
                  by=.(GEOID,re_code_14)]
-bg_hhTypeRE[,("tr_multigenTypeIP_match_id"):=
+bg_hhTypeRE[size_3=="3-person household",("tr_multigenTypeIP_match_id"):=
               paste0(tract,re_code_14,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14)]
-tr_hhMultiGenR[,("match_R"):=
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",
+               ("match_R"):=
                    bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenTypeIP_match_id)]]
-bg_hhTypeRE[,("multigen_hh"):=
+bg_hhTypeRE[size_3=="3-person household",("multigen_hh"):=
               tr_hhMultiGenR[.SD,list(multi_gen_hh),
                                on=.(tr_multigenTypeIP_match_id)]]
-nrow(bg_hhTypeRE[is.na(multigen_hh)]) #4640871
+nrow(bg_hhTypeRE[is.na(multigen_hh)]) #9262730 with size_3 #4640871 w/ re_code_14 only
+
+
+
 nrow(bg_hhTypeRE[is.na(multigen_hh)]) + nrow(bg_hhTypeRE[re_code_7=="A"])==nrow(bg_hhTypeRE)
 
-#make an H / Not H to match with Latino
+#make an H / Not H to match with Latino (HvL is having a weird write-over problem)
 tr_hhMultiGenR[,("Latino"):=fcase(re_code_14!="H" | is.na(re_code_14),"Not H",
                                       default = re_code_14)]
 table(tr_hhMultiGenR[,Latino])
 tr_hhMultiGenR[is.na(match_R),("tr_multigenTypeRE_match_id"):=
                  paste0(GEOID,Latino,as.character(100000+sample(1:.N))),
                by=.(GEOID,Latino)]
-bg_hhTypeRE[re_code_7!="A",("tr_multigenTypeRE_match_id"):=
+bg_hhTypeRE[re_code_7!="A"&size_3=="3-person household",("tr_multigenTypeRE_match_id"):=
               paste0(tract,Latino,as.character(100000+sample(1:.N))),
             by=.(tract,Latino)]
 tr_hhMultiGenR[is.na(match_R),("match_R"):=
                  bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenTypeRE_match_id)]]
-bg_hhTypeRE[re_code_7!="A",("multigen_hh"):=
+bg_hhTypeRE[re_code_7!="A"&size_3=="3-person household",("multigen_hh"):=
               tr_hhMultiGenR[.SD,list(multi_gen_hh),
                              on=.(tr_multigenTypeRE_match_id)]]
 nrow(bg_hhTypeRE[is.na(multigen_hh)])
+table(bg_hhTypeRE[,multigen_hh],bg_hhTypeRE[,alone]) 
 
 #get the rest of the info we have on kids and seniors in households, not forgetting to finish up size_7
 #group H15, HCT2, then back to bg_hhTypeRE; then seniors, then back to main
@@ -1555,13 +1579,14 @@ bg_hh18Tenure[,("kid_age_range_3"):=fcase(is.na(kid_age_range_3),
 #        bg_hhTypeRE[,rent_own],
 #        bg_hhTypeRE[,own_kids])
 #mean(test[test>0]) #12.3 
-#keep the rent_own to kid_18 from bg_hh18Tenure
+#keep the rent_own to kid_18 from bg_hh18Tenure; own_kids and kid_age_range_3 on bg_hhTypeRE are only families now
+#STEP THROUGH!!!
 bg_hhTypeRE[,("bg_18_match_id"):=
-                     paste0(GEOID,rent_own,own_kids,as.character(100000+sample(1:.N))),
-                   by=.(GEOID,rent_own,own_kids)]
+                     paste0(GEOID,rent_own,own_kids,kid_age_range_3,as.character(100000+sample(1:.N))),
+                   by=.(GEOID,rent_own,own_kids,kid_age_range_3)]
 bg_hh18Tenure[,("bg_18_match_id"):=
-                paste0(GEOID,tenure,kid_18,as.character(100000+sample(1:.N))),
-              by=.(GEOID,tenure,kid_18)]
+                paste0(GEOID,tenure,kid_18,kid_age_range_3,as.character(100000+sample(1:.N))),
+              by=.(GEOID,tenure,kid_18,kid_age_range_3)]
 bg_hh18Tenure[,("match_18TRE"):=
                 bg_hhTypeRE[.SD,list(rent_own),on=.(bg_18_match_id)]]
 bg_hhTypeRE[,("kid_age_range_3"):=
@@ -1569,11 +1594,11 @@ bg_hhTypeRE[,("kid_age_range_3"):=
                                    on=.(bg_18_match_id)]]
 #nrow(bg_hhTypeRE[is.na(kid_age_range_3)]) #434374
 bg_hhTypeRE[,("bg_18_match2_id"):=
-              paste0(GEOID,own_kids,as.character(100000+sample(1:.N))),
-            by=.(GEOID,own_kids)]
+              paste0(GEOID,own_kids,kid_age_range_3,as.character(100000+sample(1:.N))),
+            by=.(GEOID,own_kids,kid_age_range_3)]
 bg_hh18Tenure[,("bg_18_match2_id"):=
-                paste0(GEOID,kid_18,as.character(100000+sample(1:.N))),
-              by=.(GEOID,kid_18)]
+                paste0(GEOID,kid_18,kid_age_range_3,as.character(100000+sample(1:.N))),
+              by=.(GEOID,kid_18,kid_age_range_3)]
 bg_hh18Tenure[is.na(match_18TRE),("match_18TRE"):=
                 bg_hhTypeRE[.SD,list(rent_own),on=.(bg_18_match2_id)]]
 bg_hhTypeRE[,c("kid_age_range_3","rent_own"):=
@@ -1587,9 +1612,9 @@ bg_hhTypeRE[,c("kid_age_range_3","rent_own"):=
 #    bg_hhTypeRE[,own_kids]))/table(
 #      bg_hh18Tenure[,tenure],
 #      bg_hh18Tenure[,kid_18]) #about 1% off
-#add "No own children under 18 years" to kid_age_2 to match with kid_age_range_3; but have to get nonfamily with kids first!!
-bg_hhTypeRE[,("kid_age_2"):=fcase(is.na(kid_age_2),"No own children under 18 years",
-                                  default = kid_age_2)]
+#add "No own children under 18 years" to kid_age_range_3 to match with kid_age_range_3; but have to get nonfamily with kids first!!
+bg_hhTypeRE[,("kid_age_range_3"):=fcase(is.na(kid_age_range_3),"No own children under 18 years",
+                                  default = kid_age_range_3)]
 
 groupname <- "P19" #HOUSEHOLDS BY PRESENCE OF PEOPLE 65 YEARS AND OVER, HOUSEHOLD SIZE, AND HOUSEHOLD TYPE
 geo_type <- "block_group"
@@ -2004,11 +2029,28 @@ bg_hhTypeRE[,("household_75"):=fcase(is.na(household_75),
 #need to finish out hh_size matches by re_codes
 #need to redo hh_size matches - give a numeric value then sort by and match...
 #rel_in_house; alone; couple_gender; hh_type=married_couple; multi_gen; kid_age_range_3; no_spouse_sex; own_kids 
-bg_hhTypeRE[,("size_4"):=fcase()]
-
+bg_hhTypeRE[,("size_6"):=fcase(alone=="Living alone", 1,
+                               multigen_hh=="Household has three or more generations" &
+                                 kid_age_range_3=="Under 6 years and 6 to 17 years", 6,
+                               multigen_hh=="Household has three or more generations" &
+                                 kid_age_range_3!="Under 6 years and 6 to 17 years", 5,
+                               multigen_hh!="Household has three or more generations" &
+                                 kid_age_range_3=="Under 6 years and 6 to 17 years", 5,
+                               multigen_hh!="Household has three or more generations" &
+                                 kid_age_range_3!="Under 6 years and 6 to 17 years", 3,
+                               multigen_hh!="Household has three or more generations" &
+                                 family_type=="Married couple family" &
+                                 kid_age_range_3=="No own children under 18 years", 2,
+                               default = 3)]
+bg_hhSizeTenureR[,("size_6"):=fcase(substr(size,1,1)=="7",6,
+                                    default = as.numeric(substr(size,1,1)))]
+#table(bg_hhSizeTenureR[,size_6])
+#table(bg_hhTypeRE[,size_6])
+#table(bg_hhTypeRE[,multigen_hh],bg_hhTypeRE[,alone])# – 125k alone but with three generations!!!
 
 nrow(bg_hhTypeRE[is.na(hh_size_7)])#2810617
 nrow(bg_hhSizeTenureR[is.na(match_R)])#2810617
+#ORDER BY size_6, then do the match without size_3??
 bg_hhTypeRE[Latino=="H"&is.na(hh_size_7),("bgSizeTH_match_id"):=
               paste0(GEOID,re_code_7,family,rent_own,size_3,as.character(100000+sample(1:.N))),
             by=.(GEOID,re_code_7,family,rent_own,size_3)]
