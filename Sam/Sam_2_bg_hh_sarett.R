@@ -302,6 +302,10 @@ bg_hhOwnKids <- as.data.table(lapply(bg_hhOwnKids_melted[,.SD],rep,bg_hhOwnKids_
 rm(bg_hhOwnKids_data_from_census)
 rm(bg_hhOwnKids_melted)
 rm(bg_hhOwnKids_data)
+length(table(bg_hhOwnKids[,tract])) #6855  
+length(table(tr_hhCouple[,GEOID])) #6896.  Fix!!! Looks like the matching is fine, but can't do the checks by table
+length(unique(bg_hhOwnKids[,tract])) #6855
+length(unique(tr_hhCouple[,GEOID])) #6855
 
 #make a hh_type_4 to capture the possible matches... - redo with more categories, if needed
 #what if make all married couples male hh, then back out for the ones that are same_sex female after fail to match?
@@ -1315,8 +1319,11 @@ rm(bg_hhSizeTenureRE)
 bg_hhTypeRE[,("size_3"):=fcase(alone=="Living alone","1-person household",
                                own_kids=="With own children under 18 years"&
                                  match_type_5=="Married couple","3-person household",
-                               match_type_5!="Living alone","2-person household",
-                               default = "3-person household")]
+                               own_kids=="No own children under 18 years"&
+                                 match_type_5=="Married couple","2-person household", #although might have others...
+                               own_kids=="With own children under 18 years"&
+                                 alone!="Living alone","3-person household",
+                               default = "3-person household")] #changed to make more available for multi-gen
 bg_hhSizeTenureR[,("size_3"):=fcase(as.numeric(substr(size,1,1))<3,size,
                                     default = "3-person household")] #to get all more than 3 and distribute 
 #moving size over from bg_hhSizeTenure
@@ -1351,6 +1358,7 @@ bg_hhTypeRE[is.na(hh_size_7),("hh_size_7"):=
 #then make size_3 adjustments so it's flexible... will have to adjust after own_kids matches, too?
 #maybe do the matches that we can on next few hh tables, then make explicit?
 
+#write to multigen, sorting by re_code_14 and size_3, but then just count out and match
 #adding multi-gen, since it has RE, then going back to finish out the size...
 #multigen is hard; having parent only counts if you also have kids; having grandkids only counts if their parents are there...
 groupname <- "PCT14" #PRESENCE OF MULTIGENERATIONAL HOUSEHOLDS, race/eth
@@ -1428,45 +1436,85 @@ tr_hhMultiGenE[re_code=="H"&is.na(matched_E),("matched_E"):=
                  tr_hhMultiGenR[.SD,list(re_code),
                                     on=.(tr_hhMG_H_match_id)]]
 #nrow(tr_hhMultiGenR[!is.na(re_code_14)])==nrow(tr_hhMultiGenE)
-#table(tr_hhMultiGenR[,re_code_14])
+#table(tr_hhMultiGenR[,re_code_14]) #only has HIP
+#test to make sure cells will be right size for matching
+#for some reason length(table(bg_hhTypeRE[,tract]))==6855 and length(table(tr_hhMultiGenR[,GEOID]))==6896
+#test <- table(tr_hhMultiGenR[,GEOID],tr_hhMultiGenR[,re_code])==
+#  table(bg_hhTypeRE[,tract],bg_hhTypeRE[,re_code_7])
 
-#join, only with size_3=="3-person-household"
-tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",
-               ("tr_multigenTypeIP_match_id"):=
-                   paste0(GEOID,re_code_14,as.character(100000+sample(1:.N))),
-                 by=.(GEOID,re_code_14)]
-bg_hhTypeRE[size_3=="3-person household",("tr_multigenTypeIP_match_id"):=
-              paste0(tract,re_code_14,as.character(100000+sample(1:.N))),
-            by=.(tract,re_code_14)]
-tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",
-               ("match_R"):=
-                   bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenTypeIP_match_id)]]
-bg_hhTypeRE[size_3=="3-person household",("multigen_hh"):=
+#try without re_code_14 - would that work for then having the multigenE match, instead? Or just do it, as if a second time?
+tr_hhMultiGenR[,("re_code_14"):=fcase(is.na(re_code_14),"NA",default = re_code_14)]
+tr_hhMultiGenR[,("re_code_14"):=factor(tr_hhMultiGenR[,re_code_14],levels=c("I","NA","P","H"))] #where are NA?
+#tr_hhMultiGenR <- tr_hhMultiGenR[order(-multi_gen_hh,re_code,re_code_14)]
+tr_hhMultiGenR <- tr_hhMultiGenR[order(re_code,re_code_14,multi_gen_hh)]
+#bg_hhTypeRE <- bg_hhTypeRE[order(-size_3,re_code_7,re_code_14)]
+bg_hhTypeRE <- bg_hhTypeRE[order(re_code_7,re_code_14,size_3)]
+#join across tracts but ordered by size and re_code
+tr_hhMultiGenR[,("tr_multigenType_match_id"):=
+                   paste0(GEOID,re_code,as.character(100000+(1:.N))),
+                 by=.(GEOID,re_code)]
+bg_hhTypeRE[,("tr_multigenType_match_id"):=
+              paste0(tract,re_code_7,as.character(100000+(1:.N))),
+            by=.(tract,re_code_7)]
+tr_hhMultiGenR[,("match_R"):=
+                   bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenType_match_id)]]
+bg_hhTypeRE[,("multi_gen_hh"):=
               tr_hhMultiGenR[.SD,list(multi_gen_hh),
-                               on=.(tr_multigenTypeIP_match_id)]]
-nrow(bg_hhTypeRE[is.na(multigen_hh)]) #9262730 with size_3 #4640871 w/ re_code_14 only
+                               on=.(tr_multigenType_match_id)]]
+#nrow(bg_hhTypeRE[is.na(multi_gen_hh)]) == 0
+#table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,family_type],useNA = "ifany")
+#table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,size_3],useNA = "ifany")
+#table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_7],useNA = "ifany")
+#table(tr_hhMultiGenR[,multi_gen_hh],tr_hhMultiGenR[,re_code],useNA = "ifany")
+#table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_14],useNA = "ifany")
+#table(tr_hhMultiGenR[,multi_gen_hh],tr_hhMultiGenR[,re_code_14],useNA = "ifany")
 
-
-
-nrow(bg_hhTypeRE[is.na(multigen_hh)]) + nrow(bg_hhTypeRE[re_code_7=="A"])==nrow(bg_hhTypeRE)
-
-#make an H / Not H to match with Latino (HvL is having a weird write-over problem)
-tr_hhMultiGenR[,("Latino"):=fcase(re_code_14!="H" | is.na(re_code_14),"Not H",
-                                      default = re_code_14)]
-table(tr_hhMultiGenR[,Latino])
-tr_hhMultiGenR[is.na(match_R),("tr_multigenTypeRE_match_id"):=
-                 paste0(GEOID,Latino,as.character(100000+sample(1:.N))),
-               by=.(GEOID,Latino)]
-bg_hhTypeRE[re_code_7!="A"&size_3=="3-person household",("tr_multigenTypeRE_match_id"):=
-              paste0(tract,Latino,as.character(100000+sample(1:.N))),
-            by=.(tract,Latino)]
-tr_hhMultiGenR[is.na(match_R),("match_R"):=
-                 bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenTypeRE_match_id)]]
-bg_hhTypeRE[re_code_7!="A"&size_3=="3-person household",("multigen_hh"):=
-              tr_hhMultiGenR[.SD,list(multi_gen_hh),
-                             on=.(tr_multigenTypeRE_match_id)]]
-nrow(bg_hhTypeRE[is.na(multigen_hh)])
-table(bg_hhTypeRE[,multigen_hh],bg_hhTypeRE[,alone]) 
+#gets re_code 7 and 14 right (with some smaller Latino group exceptions), but has 
+#~50k in "1 and 2-person households" but with 3 generations - maybe match again since it's a result
+#of earlier misses?? 0.5%, but still... Have to think about whether to fix a bunch at end....
+#> table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,family_type],useNA = "ifany")
+#
+#Householder living alone Householder not living alone
+#Household does not have three or more generations                  2598017                       588429
+#Household has three or more generations                              14894                        40240
+#
+#Married couple family Other family
+#Household does not have three or more generations               4822388      1854207
+#Household has three or more generations                          257250       315722
+#> table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,size_3],useNA = "ifany")
+#
+#1-person household 2-person household 3-person household
+#Household does not have three or more generations            2598032            2857282            4407727
+#Household has three or more generations                        14879              36031             577196
+#> table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_7],useNA = "ifany")
+#
+#A       B       C       D       E       F       G
+#Household does not have three or more generations 5601079 1234427   84980  478293    8786 1015428 1440048
+#Household has three or more generations            249197   90896    6950   38883     837  109219  132124
+#> table(tr_hhMultiGenR[,multi_gen_hh],tr_hhMultiGenR[,re_code],useNA = "ifany")
+#
+#A       B       C       D       E       F       G
+#Household does not have three or more generations 5601079 1234427   84980  478293    8786 1015428 1440048
+#Household has three or more generations            249197   90896    6950   38883     837  109219  132124
+#> table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_14],useNA = "ifany")
+#
+#I       J       K       L       M       N       O
+#Household does not have three or more generations 4778344 1211142   28949  472503    7371   19535  253405
+#Household has three or more generations            168387   90882    3806   38869     738   18432   36187
+#
+#P       Q       R       S       T       U       V
+#Household does not have three or more generations  822735   23285   56031    5790    1415  995893 1186643
+#Household has three or more generations             80810      14    3144      14      99   90787   95937
+#> table(tr_hhMultiGenR[,multi_gen_hh],tr_hhMultiGenR[,re_code_14],useNA = "ifany")
+#
+#I      NA       P       H
+#Household does not have three or more generations 4778344 2036253  822735 2225709
+#Household has three or more generations            168387  145566   80810  233343
+#> table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,alone],useNA = "ifany")
+#
+#Living alone Not living alone
+#Household does not have three or more generations      2598032          7265009
+#Household has three or more generations                  14879           613227
 
 #get the rest of the info we have on kids and seniors in households, not forgetting to finish up size_7
 #group H15, HCT2, then back to bg_hhTypeRE; then seniors, then back to main
@@ -1563,7 +1611,7 @@ bg_hh18Tenure[,("kid_age_range_3"):=fcase(is.na(kid_age_range_3),
                                           default = kid_age_range_3)]
 #weird on matching across tracts! length(unique()) gets same number of tracts,
 #but length(table()) shows more tracts for tr_hhTenureOwnKids; looks like 41 rows without data
-#didn't effect outcome
+#didn't affect outcome
 
 #test <- table(bg_hh18Tenure[,tract])==table(tr_hhTenureOwnKids[,GEOID])
 
