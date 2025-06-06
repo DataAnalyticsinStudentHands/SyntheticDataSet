@@ -1320,7 +1320,9 @@ bg_hhTypeRE[,("size_3"):=fcase(alone=="Living alone","1-person household",
                                own_kids=="With own children under 18 years"&
                                  match_type_5=="Married couple","3-person household",
                                own_kids=="No own children under 18 years"&
-                                 match_type_5=="Married couple","2-person household", #although might have others...
+                                 match_type_5=="Married couple" &
+                                 as.numeric(substr(age_range_3,13,14))>44, #if grandparents are the hh
+                               "2-person household", #although might have others...
                                own_kids=="With own children under 18 years"&
                                  alone!="Living alone","3-person household",
                                default = "3-person household")] #changed to make more available for multi-gen
@@ -1461,17 +1463,17 @@ tr_hhMultiGenR[,("match_R"):=
 bg_hhTypeRE[,("multi_gen_hh"):=
               tr_hhMultiGenR[.SD,list(multi_gen_hh),
                                on=.(tr_multigenType_match_id)]]
-#nrow(bg_hhTypeRE[is.na(multi_gen_hh)]) == 0
-#table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,family_type],useNA = "ifany")
-#table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,size_3],useNA = "ifany")
-#table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_7],useNA = "ifany")
-#table(tr_hhMultiGenR[,multi_gen_hh],tr_hhMultiGenR[,re_code],useNA = "ifany")
-#table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_14],useNA = "ifany")
-#table(tr_hhMultiGenR[,multi_gen_hh],tr_hhMultiGenR[,re_code_14],useNA = "ifany")
+nrow(bg_hhTypeRE[is.na(multi_gen_hh)]) == 0
+table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,family_type],useNA = "ifany")
+table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,size_3],useNA = "ifany")
+table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_7],useNA = "ifany")
+table(tr_hhMultiGenR[,multi_gen_hh],tr_hhMultiGenR[,re_code],useNA = "ifany")
+table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_14],useNA = "ifany")
+table(tr_hhMultiGenR[,multi_gen_hh],tr_hhMultiGenR[,re_code_14],useNA = "ifany")
 
 #gets re_code 7 and 14 right (with some smaller Latino group exceptions), but has 
-#~50k in "1 and 2-person households" but with 3 generations - maybe match again since it's a result
-#of earlier misses?? 0.5%, but still... Have to think about whether to fix a bunch at end....
+#~16k in "1 and 2-person households" but with 3 generations - maybe match again since it's a result
+#of earlier misses?? 0.15%, but still... Have to think about whether to fix a bunch at end....
 #> table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,family_type],useNA = "ifany")
 #
 #Householder living alone Householder not living alone
@@ -1516,7 +1518,12 @@ bg_hhTypeRE[,("multi_gen_hh"):=
 #Household does not have three or more generations      2598032          7265009
 #Household has three or more generations                  14879           613227
 
+
+#because multi_gen is used in some of the stuff, below, clean up that ~50k problem
+
 #get the rest of the info we have on kids and seniors in households, not forgetting to finish up size_7
+
+
 #group H15, HCT2, then back to bg_hhTypeRE; then seniors, then back to main
 groupname <- "H15" #TENURE BY PRESENCE OF PEOPLE UNDER 18 YEARS (EXCLUDING HOUSEHOLDERS, SPOUSES, AND UNMARRIED PARTNERS)
 api_type <- "dec/dhc"
