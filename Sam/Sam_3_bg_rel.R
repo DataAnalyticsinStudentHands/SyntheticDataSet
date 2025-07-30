@@ -431,6 +431,7 @@ rm(tr_hh65RelE)
 rm(tr_hh65RelR)
 #broken, below here...
 
+#bgSARE has 23 age-groups, re_code is 14, and 2 for sex - move bg_hhRel and household stuff over?? Need a plan!!!
 
 #move rest of householders over - this is broken
 bg_hhTypeRE[is.na(matched_rel),("bg_RTF_match_id"):=

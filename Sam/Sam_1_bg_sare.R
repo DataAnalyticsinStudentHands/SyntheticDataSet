@@ -588,6 +588,7 @@ length(test[test==F])
 #save file to read into Sam_3
 file_path <- valid_file_path(censusdir,vintage,state,county = "*",api_type="dec",geo_type = "block_group",
                              groupname="bgSARE",path_suff="wrk")
+#"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bgSARE_wrk.RDS"
 if(file.exists(file_path))
   {file.remove(file_path)}
 saveRDS(bgSARE,file_path)
