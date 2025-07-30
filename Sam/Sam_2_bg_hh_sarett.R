@@ -2045,32 +2045,99 @@ tr_hhMultiGenE[re_code=="H"&is.na(matched_E),("matched_E"):=
 #  table(bg_hhTypeRE[,tract],bg_hhTypeRE[,re_code_7])
 
 #try without re_code_14 - would that work for then having the multigenE match, instead? Or just do it, as if a second time?
-tr_hhMultiGenR[,("re_code_14"):=fcase(is.na(re_code_14),"NA",default = re_code_14)]
-tr_hhMultiGenR[,("re_code_14"):=factor(tr_hhMultiGenR[,re_code_14],levels=c("I","NA","P","H"))] #where are NA?
-#tr_hhMultiGenR <- tr_hhMultiGenR[order(-multi_gen_hh,re_code,re_code_14)]
-tr_hhMultiGenR <- tr_hhMultiGenR[order(re_code,re_code_14,multi_gen_hh)]
-#bg_hhTypeRE <- bg_hhTypeRE[order(-size_3,re_code_7,re_code_14)]
-bg_hhTypeRE <- bg_hhTypeRE[order(re_code_7,re_code_14,size_3)]
+#tr_hhMultiGenR[,("re_code_14"):=fcase(is.na(re_code_14),"NA",default = re_code_14)]
+#tr_hhMultiGenR[,("re_code_14"):=factor(tr_hhMultiGenR[,re_code_14],levels=c("I","NA","P","H"))] #where are NA?
+##tr_hhMultiGenR <- tr_hhMultiGenR[order(-multi_gen_hh,re_code,re_code_14)]
+#tr_hhMultiGenR <- tr_hhMultiGenR[order(re_code,re_code_14,multi_gen_hh)]
+##bg_hhTypeRE <- bg_hhTypeRE[order(-size_3,re_code_7,re_code_14)]
+#bg_hhTypeRE <- bg_hhTypeRE[order(re_code_7,re_code_14,size_3)]
 #join across tracts but ordered by size and re_code; only for multi_gen households
-tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",("tr_multigenType_match_id"):=
-                 paste0(GEOID,re_code,as.character(100000+(1:.N))),
-               by=.(GEOID,re_code)]
-bg_hhTypeRE[as.numeric(substr(hh_size_7,1,1))>3 & 
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",("tr_multigenType14_match_id"):=
+                 paste0(GEOID,re_code_14,as.character(100000+(1:.N))),
+               by=.(GEOID,re_code_14)]
+bg_hhTypeRE[as.numeric(substr(hh_size_7,1,1))>2 & 
               anyone_60=="Households with one or more people 60 years and over" &
               all_kid_18=="With children under 18 years",
-            ("tr_multigenType_match_id"):=
-              paste0(tract,re_code_7,as.character(100000+(1:.N))),
-            by=.(tract,re_code_7)]
+            ("tr_multigenType14_match_id"):=
+              paste0(tract,re_code_14,as.character(100000+(1:.N))),
+            by=.(tract,re_code_14)]
 tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",("match_R"):=
-                 bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenType_match_id)]]
+                 bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenType14_match_id)]]
 bg_hhTypeRE[as.numeric(substr(hh_size_7,1,1))>3 & 
               anyone_60=="Households with one or more people 60 years and over" &
               all_kid_18=="With children under 18 years",
             ("multi_gen_hh"):=
               tr_hhMultiGenR[.SD,list(multi_gen_hh),
-                             on=.(tr_multigenType_match_id)]]
+                             on=.(tr_multigenType14_match_id)]]
 nrow(bg_hhTypeRE[multi_gen_hh=="Household has three or more generations"]) #== 
-  nrow(tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations"])
+nrow(tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations"])
+#for rest of re_code
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations" & is.na(match_R),
+                 ("tr_multigenType7_match_id"):=
+                 paste0(GEOID,re_code,as.character(100000+(1:.N))),
+               by=.(GEOID,re_code)]
+bg_hhTypeRE[is.na(multi_gen_hh) & as.numeric(substr(hh_size_7,1,1))>2 & 
+              anyone_60=="Households with one or more people 60 years and over" &
+              all_kid_18=="With children under 18 years",
+            ("tr_multigenType14_match_id"):=
+              paste0(tract,re_code_7,as.character(100000+(1:.N))),
+            by=.(tract,re_code_7)]
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations" & is.na(match_R),
+               ("match_R"):=
+                 bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenType7_match_id)]]
+bg_hhTypeRE[is.na(multi_gen_hh) & as.numeric(substr(hh_size_7,1,1))>3 & 
+              anyone_60=="Households with one or more people 60 years and over" &
+              all_kid_18=="With children under 18 years",
+            ("multi_gen_hh"):=
+              tr_hhMultiGenR[.SD,list(multi_gen_hh),
+                             on=.(tr_multigenType7_match_id)]]
+nrow(bg_hhTypeRE[multi_gen_hh=="Household has three or more generations"]) #== 
+nrow(tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations"])
+#fill in some with just 3 people
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",("tr_multigenTypeA_match_id"):=
+                 paste0(GEOID,re_code,as.character(100000+(1:.N))),
+               by=.(GEOID,re_code)]
+bg_hhTypeRE[as.numeric(substr(hh_size_7,1,1))>2 & 
+              anyone_60=="Households with one or more people 60 years and over" &
+              all_kid_18=="With children under 18 years",
+            ("tr_multigenTypeA_match_id"):=
+              paste0(tract,re_code_7,as.character(100000+(1:.N))),
+            by=.(tract,re_code_7)]
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations",("match_R"):=
+                 bg_hhTypeRE[.SD,list(re_code_14),on=.(tr_multigenTypeA_match_id)]]
+bg_hhTypeRE[as.numeric(substr(hh_size_7,1,1))>2 & 
+              anyone_60=="Households with one or more people 60 years and over" &
+              all_kid_18=="With children under 18 years",
+            ("multi_gen_hh"):=
+              tr_hhMultiGenR[.SD,list(multi_gen_hh),
+                             on=.(tr_multigenTypeA_match_id)]]
+nrow(bg_hhTypeRE[multi_gen_hh=="Household has three or more generations"]) #== 
+nrow(tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations"]) #still 93k short!!!
+
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations" & is.na(match_R),
+               ("tr_multigenType_noRE_match_id"):=
+                 paste0(GEOID,as.character(100000+(1:.N))),
+               by=.(GEOID)]
+bg_hhTypeRE[as.numeric(substr(hh_size_7,1,1))>3  & is.na(multi_gen_hh) & 
+              anyone_60=="Households with one or more people 60 years and over" &
+              all_kid_18=="With children under 18 years",
+            ("tr_multigenType_noRE_match_id"):=
+              paste0(tract,as.character(100000+(1:.N))),
+            by=.(tract)]
+tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations" & is.na(match_R),
+               c("match_R","re_code_match_14","re_code_match_7"):=
+                 bg_hhTypeRE[.SD,c(list(re_code_14),list(re_code_14),list(re_code_7)),
+                             on=.(tr_multigenType_noRE_match_id)]]
+bg_hhTypeRE[as.numeric(substr(hh_size_7,1,1))>3 & is.na(multi_gen_hh) &
+              anyone_60=="Households with one or more people 60 years and over" &
+              all_kid_18=="With children under 18 years",
+            ("multi_gen_hh"):=
+              tr_hhMultiGenR[.SD,list(multi_gen_hh),
+                             on=.(tr_multigenType_noRE_match_id)]]
+nrow(bg_hhTypeRE[multi_gen_hh=="Household has three or more generations"]) #== 
+nrow(tr_hhMultiGenR[multi_gen_hh=="Household has three or more generations"])
+#losing almost 20% of information about race/ethnicity on multi-gen households!!!!
+
 #table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,family_type],useNA = "ifany")
 #table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,size_3],useNA = "ifany")
 #table(bg_hhTypeRE[,multi_gen_hh],bg_hhTypeRE[,re_code_7],useNA = "ifany")
