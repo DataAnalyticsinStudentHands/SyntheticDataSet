@@ -12,6 +12,7 @@ tract = "*"
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 
 #https://api.census.gov/data/2020/dec/dhc/variables.html
+#THE REL STUFF MATCHES WITH ITSELF BUT IS WAY OFF ON THE AGES FOR OTHERS!!! - tr_hhSARE and bg_SARE agree...
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ and individual roles
 geo_type <- "tract"
@@ -50,7 +51,7 @@ rm(tr_hh65RelRE_data)
 rm(tr_hh65RelRE_melted)
 #rm(tr_hh65RelRE)
 
-groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETHx2 
+groupname <- "PCT17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP WITH RACE/ETHx2 (includes group quarters)
 geo_type <- "tract"
 api_type <- "dec/dhc"
 path_suff <- "est"
@@ -82,7 +83,7 @@ if(names(tr_hhRelRE_data_from_census)[11]=="label_1"){
 Geoids <- colnames(tr_hhRelRE_data[,.SD,.SDcols = startsWith(names(tr_hhRelRE_data),state)])
 tr_hhRelRE_melted <- melt(tr_hhRelRE_data, id.vars = c("household","role","sex","alone","age_range_2","re_code","race"), measure.vars = Geoids,
                         value.name = "codom_hhRelRE", variable.name = "GEOID")
-#clean up to get right number #by GEOID and RACE
+#clean up to get right number #by GEOID and RACE / the whole thing has to be rearranged and factor names have to be changed as merged into other tables
 tr_hhRelRE_melted[,("codom_hhRelRE"):=ifelse(role=="Stepchild" & age_range_2=="over_17",
                                          as.numeric(.SD[role=="Stepchild" & age_range_2=="over_17",codom_hhRelRE])-
                                            as.numeric(.SD[role=="Stepchild" & age_range_2=="under_18",codom_hhRelRE]),codom_hhRelRE),by=.(GEOID,re_code)]
@@ -102,8 +103,8 @@ tr_hhRelRE_melted[,("role_7"):=fcase(str_detect(role,"Par"),"Parent or parent-in
                                    str_detect(role,"Other rel") | str_detect(role,"or sister"),"Other relatives",
                                    default = role)]
 tr_hhRelRE <- as.data.table(lapply(tr_hhRelRE_melted[,.SD],rep,tr_hhRelRE_melted[,codom_hhRelRE]))
-#tr_hhRelR <- tr_hhRel[!re_code %in% c("H","I")]
-#tr_hhRelE <- tr_hhRel[re_code %in% c("H","I")]
+#tr_hhRelR <- tr_hhRelRE[!re_code %in% c("H","I")]
+#tr_hhRelE <- tr_hhRelRE[re_code %in% c("H","I")]
 #sum(as.numeric(test_total_pop[,.SD,.SDcols = Geoids]),na.rm = TRUE)#==nrow(tr_hhRelR) - seems like it's all individuals.
 #rm(tr_hhRel)
 rm(tr_hhRelRE_data)
@@ -122,7 +123,166 @@ tr_hhRelRE[,c("over_64","codom_tr_hh65RelRE"):=
 #table(tr_hhRelRE[,over_64])==table(tr_hh65RelRE[,re_code]) #using re_code to test all moved over
 #nrow(tr_hhRelRE[!is.na(over_64)])==nrow(tr_hh65RelRE)
 tr_hhRelRE[,("over_64"):=fcase(!is.na(over_64),"over_64",default = "under_65")]
+#age in sex is better than in age_range_2 (roles like householders may have under 18 that are not listed)
+tr_hhRelRE[,("age_range_4"):=fcase(is.na(sex) & age_range_2!="under_18","Over 17 years, but role is child",
+                                sex=="Under 18 years","Under 18 years",
+                                over_64=="over_64","Over 64 years",
+                                #over_64=="under_65","Under 65 years and over 17",
+                                default = "Under 65 years and over 17")]
+tr_hhRelRE[,("age_range_3"):=fcase(age_range_4=="Under 18 years","Under 18 years",
+                                   age_range_4=="Over 64 years","65 years and over",
+                                   default = "18 to 64 years")]
 rm(tr_hh65RelRE)
+
+#add in specific age information for RelRE, then move to P17 with age - this is missing some data, so just pull in bgSARE already?
+#groupname <- "PCT13" # SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS (Race/eth x 2) #total pop - group quarters
+#geo_type <- "tract"
+#api_type <- "dec/dhc"
+#path_suff <- "est"
+#tr_hhSARE_data_from_census <- 
+#  census_tract_get(censusdir, vintage, state, censuskey, 
+#                   groupname,county = "*",
+#                   api_type,path_suff)
+#if(names(tr_hhSARE_data_from_census)[11]=="label_1"){
+#  #labels determined by hand
+#  label_c1 <- c("sex","age_range_23")
+#  #row_c1 determined by hand 
+#  row_c1 <- c(unique(tr_hhSARE_data_from_census[!is.na(label_2) & concept!="SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS",name]))
+#  #test_total_pop <- tests_download_data(tr_hhSARE_data_from_census,label_c1,row_c1,state=state)
+#  #do this with HvL, to divide later, since don't have whole population by both
+#  tr_hhSARE_data <- relabel(tr_hhSARE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+#  write_relabel(tr_hhSARE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+#}else{
+#  print("Using already given labels; no rewrite.")
+#  tr_hhSARE_data <- tr_hhSARE_data_from_census
+#}
+#tr_hhSARE_data[,("re_code") := substr(name,6,6)][
+#  ,("race") := str_replace(concept,"SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS \\(","")][
+#    ,("race") := str_replace(race,"\\)","")]
+#
+##reshape a bit and make list of individuals
+#Geoids <- colnames(tr_hhSARE_data[,.SD,.SDcols = startsWith(names(tr_hhSARE_data),state)])
+#tr_hhSARE_melted <- melt(tr_hhSARE_data, id.vars = c("re_code","race","sex","age_range_23"), measure.vars = Geoids,
+#                         value.name = "codom_tr_hhAge", variable.name = "GEOID")
+#tr_hhSARE <- as.data.table(lapply(tr_hhSARE_melted[,.SD],rep,tr_hhSARE_melted[,codom_tr_hhAge]))
+#nrow(tr_hhSARE)==nrow(tr_hhRelRE[household=="In households"]) #FALSE!!!
+##problem is missing Females 60 and 61 with re_code of H (99921 in Texas 2020)
+#
+##match with GQ for later
+#tr_hhSARE[,("age_range_3"):=fcase(age_range_23=="Under 5 years" |
+#                                       age_range_23=="5 to 9 years" |
+#                                       age_range_23=="10 to 14 years" |
+#                                       age_range_23=="15 to 17 years","Under 18 years",
+#                                     age_range_23=="18 and 19 years" |
+#                                    age_range_23=="20 years" |
+#                                    age_range_23=="21 years" |
+#                                    age_range_23=="22 to 24 years" |
+#                                    age_range_23=="25 to 29 years" |
+#                                    age_range_23=="30 to 34 years" |
+#                                    age_range_23=="35 to 39 years" |
+#                                    age_range_23=="40 to 44 years" |
+#                                    age_range_23=="45 to 49 years" |
+#                                    age_range_23=="50 to 54 years" |
+#                                    age_range_23=="55 to 59 years" |
+#                                    age_range_23=="60 and 61 years" |
+#                                    age_range_23=="62 to 64 years","18 to 64 years",
+#                                     default="65 years and over")]
+##table(tr_hhSARE[,age_range_3],useNA = "ifany")-table(tr_hhRelRE[,age_range_3],useNA = "ifany")
+##off b/c Rel is getting very approximate ages on some of the roles and also still has GQ
+##tr_hhSAR <- tr_hhSARE[!re_code %in% c("H","I")]
+##tr_hhSAE <- tr_hhSARE[re_code %in% c("H","I")]
+#rm(tr_hhSARE_data_from_census)
+#rm(tr_hhSARE_data)
+#rm(tr_hhSARE_melted)
+#
+##sex only for householders in tr_hhRelRE and doesn't match how it would work for bg_hhTypeRE (or general claim that head is male, if present, no matter what else)
+##sex, age, race for hh living alone don't match up correctly - it's like they just threw sex at the sample... just ignore?
+##age_range is way off, too!!!
+
+#pull in bg_SARE for matching by age / created by Sam_1_bg_sare.R
+file_path <- valid_file_path(censusdir,vintage,state,county = "*",api_type="dec",geo_type = "block_group",
+                             groupname="bgSARE",path_suff="wrk")
+#"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bgSARE_wrk.RDS"
+bg_SARE <- readRDS(file_path)
+
+groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS; really only own-child and group quarter information
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhRel18_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hhRel18_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("household","child_role","kid_age_range") 
+  #row_c1 by hand
+  row_c1 <- c(unique(tr_hhRel18_data_from_census[!is.na(label_3),name]))
+  test_total_pop <- tests_download_data(tr_hhRel18_data_from_census,label_c1,row_c1,state=state)
+  #this is 6k off for entire state - need to ensure we understand why different
+  tr_hhRel18_data <- relabel(tr_hhRel18_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhRel18_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhRel18_data <- tr_hhRel18_data_from_census
+}
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhRel18_data[,.SD,.SDcols = startsWith(names(tr_hhRel18_data),state)])
+tr_hhRel18_melted <- melt(tr_hhRel18_data, id.vars = c("household","child_role","kid_age_range"), measure.vars = Geoids,
+                          value.name = "codom_tr_hhRel18", variable.name = "GEOID")
+tr_hhRel18 <- as.data.table(lapply(tr_hhRel18_melted[,.SD],rep,tr_hhRel18_melted[,codom_tr_hhRel18]))
+rm(tr_hhRel18_data_from_census)
+rm(tr_hhRel18_melted)
+rm(tr_hhRel18_data)
+
+table(tr_hhRel18[,child_role])
+
+groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_gq_age_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_gq_age_data_from_census)[11]=="label_1"){ #not sure what they changed to make it at 11, not 6
+  #labels determined by hand
+  label_c1 <- c("sex","age_range","gq_institution","gq_type")
+  #row_c1 determined by hand
+  row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
+  test_total_pop <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,state=state)
+  bgGQ_data <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bgGQ_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bgGQ_data <- bg_gq_age_data_from_census
+}
+#if(!test_total_pop){test_total_pop<-sum(bgGQ_data[,total],na.rm = TRUE)}
+rm(bg_gq_age_data_from_census)
+bgGQ_data[,("gq_type_6"):=fcase(str_detect(gq_type,"College"), #catching some idiosyncratic capitalization
+                                "College/University student housing",
+                                str_detect(gq_type,"Nursing"),
+                                "Nursing facilities",
+                                gq_type=="Correctional facilities for adults (101-106)",
+                                "Correctional facilities for adults",
+                                gq_type=="Juvenile facilities (201-203)",
+                                "Juvenile facilities",
+                                gq_type=="Other institutional facilities (401-405)",
+                                "Other institutional facilities",
+                                gq_type=="Other noninstitutional facilities (701-702, 704, 706, 801-802, 900-901, 903-904)",
+                                "Other noninstitutional facilities")]
+#reshape a bit and make list of individuals 
+Geoids <- colnames(bgGQ_data[,15:(ncol(bgGQ_data)-2)]) #check if it may be -2
+bgGQ_melted <- melt(bgGQ_data, id.vars = c("sex","age_range","gq_institution","gq_type","gq_type_6"), measure.vars = Geoids,
+                    value.name = "codom_GQSAT", variable.name = "GEOID")
+bgGQ <- as.data.table(lapply(bgGQ_melted[,.SD],rep,bgGQ_melted[,codom_GQSAT]))
+rm(bgGQ_data)
+rm(bgGQ_melted)
+bgGQ[,("beg_age_gq"):=fcase(age_range=="Under 18 years", as.numeric(0),
+                            age_range=="18 to 64 years", as.numeric(18),
+                            age_range=="65 years and over", as.numeric(65))]
+
+#once we have ages and GQ added to bg_hhRel, will want to order by age on Rel and Type
 
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
 geo_type <- "block_group"
@@ -136,7 +296,7 @@ if(names(bg_hhRel_data_from_census)[11]=="label_1"){
   #labels determined by hand
   label_c1 <- c("household","role","sex","alone","age_range_2") 
   #arrange things to get the totals right
-  bg_hhRel_data_from_census[str_detect(label_2,"child")&is.na(label_3),("label_5"):="over_17"]
+  bg_hhRel_data_from_census[str_detect(label_2,"child")&is.na(label_3),("label_5"):="over_17"] #some of these are wrong
   bg_hhRel_data_from_census[label_3=="Under 18 years",("label_5"):="under_18"] #foster child doesn't have under_18
   #row_c1 by hand
   row_c1 <- c(unique(bg_hhRel_data_from_census[!is.na(label_2) & is.na(label_3) & name!="P17_003N" | !is.na(label_4) | !is.na(label_5),name]))
@@ -191,6 +351,9 @@ rm(bg_hhRel_melted)
 #P 903545   WHITE ALONE, HISPANIC OR LATINO HOUSEHOLDER [A (5850183) is all White Alone (should've been 5850276), 93 more in bg]
 #I 4946731  WHITE ALONE, NOT HISPANIC OR LATINO HOUSEHOLDER [in both (4946645 in bg, 86 fewer)]
 #nrow(bg_hhTypeRE)-nrow(tr_hhRelRE[re_code%in%c(LETTERS[1:7])&role_7=="Householder"]) 117 different??? 
+
+#do without sex, but with age_range_23...
+#for every role with a child in it, is.na(sex) should equal over_18
 
 #move the ethnicity over with the codom info for sorting
 tr_hhRelR <- tr_hhRelRE[re_code%in%c(LETTERS[1:7])]
@@ -331,11 +494,13 @@ tr_hhRelR[,c("match_HvL","match_role"):=
 #                                        default = "not matched")]
 #
 
+
+
 #get bg_hhSARETT
 file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",
                              groupname="bg_hhSARETT",path_suff="wrk")
 #"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
-if(file.exists(file_path)){bg_hhTypeRE <- readRDS(file_path)}
+if(file.exists(file_path)){bg_hhTypeRE <- readRDS(file_path)}else{print("bg_hhTypeRE does not exist at this location")}
 
 #test_hh <- table(bg_hhRel[role=="Householder",GEOID])-table(bg_hhTypeRE[,GEOID])
 #sum(test_hh) #117
@@ -343,13 +508,319 @@ if(file.exists(file_path)){bg_hhTypeRE <- readRDS(file_path)}
 #mean(abs(test_hh)) #11.1112
 #max(abs(test_hh)) #107
 
-#get the little bits of overlap right...
-bg_hhTypeRE[,("alone"):=fcase(family_type=="Householder living alone","Living alone",
-                              default = "Not living alone")]
-bg_hhTypeRE[,("sex"):=fcase(no_spouse_sex=="Female householder, no spouse present","Female",
-                            no_spouse_sex=="Male householder, no spouse present","Male",
-                              default = "Not known")]
+#do we need these for alone and sex?
+#about 5k na coming in on bg_hhTypeRE$alone, but all should be "Living alone"
+bg_hhTypeRE[,("alone"):=fcase(is.na(alone),"Living alone",
+                              default = alone)]
+bg_hhTypeRE[,("copath_over_64"):=fcase(age_range_3=="Householder 65 years and over",
+                                       "over_64",default = "under_65")]
+bg_hhTypeRE[,("sex"):=fcase(sex=="Sex not known","Male",default = sex)] #up through 2020, hh head is assumed male unless told otherwise
+table(bg_hhRel[role=="Householder",sex]) #doesn't work! way off other tables provided by decennial!
+#Female    Male 
+#5088692 5402572
+table(bg_hhTypeRE[,alone],bg_hhTypeRE[,age_range_3])
+table(bg_hhRel[role=="Householder",alone],bg_hhRel[role=="Householder",copath_over_64])
+
 #age_range_2 in bg_hhRel is under 18 and only for roles associated with children, not for hh
+#losing householders under 18
+#match on re_code_14 letters for copath_re_code in Rel, leftovers being the HvL? Don't have to do the ordering...
+#bg_hhRel[,("copath_re_code_14"):=lapply(copath_re_AG,function(x) LETTERS[which(LETTERS==x)+9])] #super slow
+bg_hhRel[,("re_code_14"):=fcase(copath_re_AG=="A","I",
+                                     copath_re_AG=="B","J",
+                                     copath_re_AG=="C","K",
+                                     copath_re_AG=="D","L",
+                                     copath_re_AG=="E","M",
+                                     copath_re_AG=="F","N",
+                                     copath_re_AG=="G","O",
+                              default = copath_re_AG)]
+#could try to give the ids some inherent order, but at this point leaning into random
+bg_hhTypeRE[,("hh_id"):=paste0(paste0(GEOID,as.character(100000+sample(1:.N)))),
+            by=.(GEOID)]
+bg_hhRel[,("individual_id"):=paste0(paste0(GEOID,as.character(100000+sample(1:.N)))), #largest block_group has 19522 individuals
+         by=.(GEOID)]
+#match on re_code_14 first, then rest will be the leftover with HvL
+#test <- table(bg_hhTypeRE[,GEOID])-table(bg_hhRel[role=="Householder",GEOID])
+#max(test)
+#] 72
+#min(test)
+#] -107
+#mean(test)
+#] -0.006277498
+#median(test)
+#] 0
+#length(test[test==0])
+#] 721
+#length(test)
+#] 18638
+#test <- table(bg_hhTypeRE[,GEOID],bg_hhTypeRE[,re_code_7])-table(bg_hhRel[role=="Householder",GEOID],bg_hhRel[role=="Householder",copath_re_AG])
+#max(test)
+#] 302
+#min(test)
+#] -301
+#mean(test)
+#] -0.0008967854
+#median(test)
+#] 0
+#length(test[test==0])
+#] 20081 #i.e., 15% are exact matches...
+#length(test)
+#] 130466
+
+#order on age for both
+
+bg_hhRel[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
+bg_hhTypeRE[,("bg_RT14_match_id"):=
+              paste0(GEOID,re_code_14,copath_over_64,alone,sex,as.character(1:.N)),
+            by=.(GEOID,re_code_14,copath_over_64,alone,sex)]
+bg_hhRel[role=="Householder",("bg_RT14_match_id"):=
+           paste0(GEOID,re_code_14,copath_over_64,alone,sex,as.character(1:.N)),
+         by=.(GEOID,re_code_14,copath_over_64,alone,sex)]
+bg_hhRel[role=="Householder",c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                               "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                               "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                               "age_range_3","age_range_9","anyone_60",
+                               "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RT14_match_id)]]
+bg_hhTypeRE[,("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RT14_match_id)]]
+nrow(bg_hhRel[role=="Householder"])-nrow(bg_hhTypeRE) #missing 117
+table(bg_hhTypeRE[is.na(hh_individual_id),re_code_14]) #looking through O
+table(bg_hhTypeRE[is.na(hh_individual_id),re_code_14],bg_hhTypeRE[is.na(hh_individual_id),no_spouse_sex],bg_hhTypeRE[is.na(hh_individual_id),copath_over_64])
+
+#now for re_code_7
+bg_hhTypeRE[is.na(hh_individual_id),("bg_RT7_match_id"):=
+              paste0(GEOID,re_code_7,copath_over_64,alone,sex,as.character(1:.N)),
+            by=.(GEOID,re_code_7,copath_over_64,alone,sex)]
+bg_hhRel[role=="Householder" & is.na(hh_id),("bg_RT7_match_id"):=
+           paste0(GEOID,copath_re_AG,copath_over_64,alone,sex,as.character(1:.N)),
+         by=.(GEOID,copath_re_AG,copath_over_64,alone,sex)]
+bg_hhRel[role=="Householder" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                               "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                               "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                               "age_range_3","age_range_9","anyone_60",
+                               "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RT7_match_id)]]
+bg_hhTypeRE[is.na(hh_individual_id),("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RT7_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_individual_id)]) #5382406
+#table(bg_hhTypeRE[is.na(hh_individual_id),re_code_14]) #looking through O; seems pretty balanced what's missing
+#table(bg_hhTypeRE[is.na(hh_individual_id),re_code_14],bg_hhTypeRE[is.na(hh_individual_id),no_spouse_sex],bg_hhTypeRE[is.na(hh_individual_id),copath_over_64])
+#table(bg_hhTypeRE[,copath_over_64])
+
+#re_code_7 without sex and at tract level
+bg_hhTypeRE[is.na(hh_individual_id),("bg_RT7s_match_id"):=
+              paste0(tract,re_code_7,copath_over_64,alone,as.character(1:.N)),
+            by=.(tract,re_code_7,copath_over_64,alone)]
+bg_hhRel[role=="Householder" & is.na(hh_id),("bg_RT7s_match_id"):=
+           paste0(tract,copath_re_AG,copath_over_64,alone,as.character(1:.N)),
+         by=.(tract,copath_re_AG,copath_over_64,alone)]
+bg_hhRel[role=="Householder" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RT7s_match_id)]]
+bg_hhTypeRE[is.na(hh_individual_id),("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RT7s_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_individual_id)]) #GEOID - 1134554 / tract - 456618 / 4.35%
+
+#no re_code
+bg_hhTypeRE[is.na(hh_individual_id),("bg_RT0_match_id"):=
+              paste0(tract,copath_over_64,alone,as.character(1:.N)),
+            by=.(tract,copath_over_64,alone)]
+bg_hhRel[role=="Householder" & is.na(hh_id),("bg_RT0_match_id"):=
+           paste0(tract,copath_over_64,alone,as.character(1:.N)),
+         by=.(tract,copath_over_64,alone)]
+bg_hhRel[role=="Householder" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RT0_match_id)]]
+bg_hhTypeRE[is.na(hh_individual_id),("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RT0_match_id)]]
+#need all householders to match - check
+nrow(bg_hhTypeRE[is.na(hh_individual_id)]) #168223 / 1.6%
+
+#no over_64
+bg_hhTypeRE[is.na(hh_individual_id),("bg_RTa_match_id"):=
+              paste0(tract,alone,as.character(1:.N)),
+            by=.(tract,alone)]
+bg_hhRel[role=="Householder" & is.na(hh_id),("bg_RTa_match_id"):=
+           paste0(tract,alone,as.character(1:.N)),
+         by=.(tract,alone)]
+bg_hhRel[role=="Householder" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RTa_match_id)]]
+bg_hhTypeRE[is.na(hh_individual_id),("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RTa_match_id)]]
+#need all householders to match - check
+nrow(bg_hhTypeRE[is.na(hh_individual_id)]) #66838 / .06%
+
+#tract only
+bg_hhTypeRE[is.na(hh_individual_id),("bg_RTt_match_id"):=
+              paste0(tract,as.character(1:.N)),
+            by=.(tract)]
+bg_hhRel[role=="Householder" & is.na(hh_id),("bg_RTt_match_id"):=
+           paste0(tract,as.character(1:.N)),
+         by=.(tract)]
+bg_hhRel[role=="Householder" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RTt_match_id)]]
+bg_hhTypeRE[is.na(hh_individual_id),("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RTt_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_individual_id)]) #19278 / .018%
+
+#go ahead and pick them up at county level?
+bg_hhTypeRE[,("county"):=substr(tract,1,5)]
+bg_hhRel[,("county"):=substr(tract,1,5)]
+bg_hhTypeRE[is.na(hh_individual_id),("bg_RTc_match_id"):=
+              paste0(county,as.character(1:.N)),
+            by=.(county)]
+bg_hhRel[role=="Householder" & is.na(hh_id),("bg_RTc_match_id"):=
+           paste0(county,as.character(1:.N)),
+         by=.(county)]
+bg_hhRel[role=="Householder" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RTc_match_id)]]
+bg_hhTypeRE[is.na(hh_individual_id),("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RTc_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_individual_id)]) #1151 / .01%
+#test <- table(bg_hhRel[role=="Householder",county])-table(bg_hhTypeRE[,county])
+#then just to get them all
+bg_hhTypeRE[is.na(hh_individual_id),("bg_RToa_match_id"):=
+              paste0(alone,as.character(1:.N)),
+            by=.(alone)]
+bg_hhRel[role=="Householder" & is.na(hh_id),("bg_RToa_match_id"):=
+           paste0(alone,as.character(1:.N)),
+         by=.(alone)]
+bg_hhRel[role=="Householder" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RToa_match_id)]]
+bg_hhTypeRE[is.na(hh_individual_id),("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RToa_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_individual_id)])
+table(bg_hhTypeRE[is.na(hh_individual_id),alone])
+
+#Get last, with assumption that point is to get everyone matches with bg_hhTypeRE as ground
+bg_hhTypeRE[is.na(hh_individual_id),("bg_RTca_match_id"):=
+              paste0(as.character(1:.N)),
+            by=.()]
+bg_hhRel[role=="Householder" & is.na(hh_id),("bg_RTca_match_id"):=
+           paste0(as.character(1:.N)),
+         by=.()]
+bg_hhRel[role=="Householder" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RTca_match_id)]]
+bg_hhTypeRE[is.na(hh_individual_id),("hh_individual_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RTca_match_id)]]
+#nrow(bg_hhTypeRE[is.na(hh_individual_id)])==0
+
+#table(bg_hhRel[,role])
+#test <- table(bg_hhTypeRE[same_sex=="Same-sex unmarried partner households",GEOID])-table(bg_hhRel[role=="Same-sex unmarried partner",GEOID])
+#length(test[test==0])#5012
+#length(test)#18638
+
+#for Same-sex unmarried partner
+bg_hhTypeRE[same_sex=="Same-sex unmarried partner households",("bg_RTssup_match_id"):=
+              paste0(alone,as.character(1:.N)),
+            by=.(alone)]
+bg_hhRel[role=="Same-sex unmarried partner",("bg_RTssup_match_id"):=
+           paste0(alone,as.character(1:.N)),
+         by=.(alone)]
+bg_hhRel[role=="Same-sex unmarried partner",c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RTssup_match_id)]]
+bg_hhTypeRE[same_sex=="Same-sex unmarried partner households",("hh_partner_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RTssup_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_partner_id)])
+#get rest
+
+#for Opposite-sex unmarried partner
+bg_hhTypeRE[same_sex=="Opposite-sex unmarried partner household" & is.na(hh_partner_id),("bg_RTssup_match_id"):=
+              paste0(alone,as.character(1:.N)),
+            by=.(alone)]
+bg_hhRel[role=="Opposite-sex unmarried partner" & is.na(hh_id),("bg_RTssup_match_id"):=
+           paste0(alone,as.character(1:.N)),
+         by=.(alone)]
+bg_hhRel[role=="Opposite-sex unmarried partner" & is.na(hh_id),c("hh_id","hh_race","hh_family","hh_family_type","hh_no_spouse_sex",
+                                              "hh_match_type_5","hh_rent_own","hh_rel_in_house","own_kids",
+                                              "hh_sex","hh_same_sex","couple_gender","hh_size_7","tenure_mortgage",
+                                              "age_range_3","age_range_9","anyone_60",
+                                              "codom_hhTypeRE"):=
+           bg_hhTypeRE[.SD,c(list(hh_id),list(race),list(family),list(family_type),list(no_spouse_sex),
+                             list(match_type_5),list(rent_own),list(rel_in_house),list(own_kids),
+                             list(sex),list(same_sex),list(couple_gender),list(hh_size_7),list(tenure),
+                             list(age_range_3),list(age_range_9),list(anyone_60),
+                             list(codom_hhTypeRE)),on=.(bg_RTssup_match_id)]]
+bg_hhTypeRE[same_sex=="Opposite-sex unmarried partner household" & is.na(hh_partner_id),("hh_partner_id"):=
+              bg_hhRel[.SD,list(individual_id),on=.(bg_RTssup_match_id)]]
+nrow(bg_hhTypeRE[is.na(hh_partner_id)])
+
+
+
+
+
+
+
 #table(bg_hhRel[,role],bg_hhRel[,age_range_2])
 #order by HvL then not HvL (letters follow already) #sometimes seems to not order if only in i
 bg_hhTypeRE <- bg_hhTypeRE[order(GEOID,-re_code_14,alone,sex)]
@@ -495,98 +966,7 @@ bg_hhTypeRE[is.na(matched_rel),("matched_rel"):=
 
 
 
-#tract level for PCT13 - more ages
-groupname <- "PCT13" # SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS (Race/eth x 2) #total pop - group quarters
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhSARE_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hhSARE_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("sex","age_range_23")
-  #row_c1 determined by hand 
-  row_c1 <- c(unique(tr_hhSARE_data_from_census[!is.na(label_2) & concept!="SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS",name]))
-  #test_total_pop <- tests_download_data(tr_hhSARE_data_from_census,label_c1,row_c1,state=state)
-  #do this with HvL, to divide later, since don't have whole population by both
-  tr_hhSARE_data <- relabel(tr_hhSARE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhSARE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hhSARE_data <- tr_hhSARE_data_from_census
-}
-tr_hhSARE_data[,("re_code") := substr(name,6,6)][
-  ,("race") := str_replace(concept,"SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS \\(","")][
-    ,("race") := str_replace(race,"\\)","")]
 
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hhSARE_data[,.SD,.SDcols = startsWith(names(tr_hhSARE_data),state)])
-tr_hhSARE_melted <- melt(tr_hhSARE_data, id.vars = c("re_code","race","sex","age_range_23"), measure.vars = Geoids,
-                        value.name = "codom_tr_hhAge", variable.name = "GEOID")
-tr_hhSARE <- as.data.table(lapply(tr_hhSARE_melted[,.SD],rep,tr_hhSARE_melted[,codom_tr_hhAge]))
-tr_hhSARE[,("hh_age_range_9"):=fcase(age_range_23=="15 to 17 years" |
-                                       age_range_23=="18 and 19 years" |
-                                       age_range_23=="20 years" |
-                                       age_range_23=="21 years" |
-                                       age_range_23=="22 to 24 years","15 to 24 years",
-                                     age_range_23=="25 to 29 years" |
-                                       age_range_23=="30 to 34 years","25 to 34 years",
-                                     age_range_23=="35 to 39 years" |
-                                       age_range_23=="40 to 44 years","35 to 44 years",
-                                     age_range_23=="45 to 49 years" |
-                                       age_range_23=="50 to 54 years","45 to 54 years",
-                                     age_range_23=="55 to 59 years","55 to 59 years",
-                                     age_range_23=="60 and 61 years" |
-                                       age_range_23=="62 to 64 years","60 to 64 years",
-                                     age_range_23=="65 and 66 years" |
-                                       age_range_23=="67 to 69 years" |
-                                       age_range_23=="70 to 74 years","65 to 74 years",
-                                     age_range_23=="75 to 79 years" |
-                                       age_range_23=="80 to 84 years","75 to 84 years",
-                                     age_range_23=="85 years and over","85 years and over",default="not householder")]
-#why doesn't it have same number total as tr_hhRelRE? (check for whether it's just GQ...)still 99921 different for households (no GQ)
-#should we bias 15-24 towards older for matching on hh???
-#tr_hhSAR <- tr_hhSARE[!re_code %in% c("H","I")]
-#tr_hhSAE <- tr_hhSARE[re_code %in% c("H","I")]
-rm(tr_hhSARE_data_from_census)
-rm(tr_hhSARE_data)
-rm(tr_hhSARE_melted)
-
-
-
-groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS; really only own-child and group quarter information
-geo_type <- "tract"
-api_type <- "dec/dhc"
-path_suff <- "est"
-tr_hhRel18_data_from_census <- 
-  census_tract_get(censusdir, vintage, state, censuskey, 
-                   groupname,county = "*",
-                   api_type,path_suff)
-if(names(tr_hhRel18_data_from_census)[11]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("household","child_role","kid_age_range") 
-  #row_c1 by hand
-  row_c1 <- c(unique(tr_hhRel18_data_from_census[!is.na(label_3),name]))
-  test_total_pop <- tests_download_data(tr_hhRel18_data_from_census,label_c1,row_c1,state=state)
-  #this is 6k off for entire state - need to ensure we understand why different
-  tr_hhRel18_data <- relabel(tr_hhRel18_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(tr_hhRel18_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  tr_hhRel18_data <- tr_hhRel18_data_from_census
-}
-#reshape a bit and make list of individuals
-Geoids <- colnames(tr_hhRel18_data[,.SD,.SDcols = startsWith(names(tr_hhRel18_data),state)])
-tr_hhRel18_melted <- melt(tr_hhRel18_data, id.vars = c("household","child_role","kid_age_range"), measure.vars = Geoids,
-                           value.name = "codom_tr_hhRel18", variable.name = "GEOID")
-tr_hhRel18 <- as.data.table(lapply(tr_hhRel18_melted[,.SD],rep,tr_hhRel18_melted[,codom_tr_hhRel18]))
-rm(tr_hhRel18_data_from_census)
-rm(tr_hhRel18_melted)
-rm(tr_hhRel18_data)
-
-table(tr_hhRel18[,child_role])
 
 
 
@@ -654,48 +1034,4 @@ table(tr_hhRel18[,child_role])
 #rm(tr_hhTenureRE_melted)
 
 #moved from schematic_sam.Rmd - moved to data.table only
-groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
-geo_type <- "block_group"
-api_type <- "dec/dhc"
-path_suff <- "est"
-bg_gq_age_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-if(names(bg_gq_age_data_from_census)[6]=="label_1"){
-  #labels determined by hand
-  label_c1 <- c("sex","age_range","gq_institution","gq_type")
-  #row_c1 determined by hand
-  row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
-  test_total_pop <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,state=state)
-  bgGQ_data <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bgGQ_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  bgGQ_data <- bg_gq_age_data_from_census
-}
-#if(!test_total_pop){test_total_pop<-sum(bgGQ_data[,total],na.rm = TRUE)}
-rm(bg_gq_age_data_from_census)
 
-bgGQ_data[,("beg_age_gq"):=fcase(age_range=="Under 18 years", as.numeric(0),
-                                 age_range=="18 to 64 years", as.numeric(18),
-                                 age_range=="65 years and over", as.numeric(65))]
-bgGQ_data[,("gq_type_6"):=fcase(str_detect(gq_type,"College"), #catching some idiosyncratic capitalization
-                                "College/University student housing",
-                                str_detect(gq_type,"Nursing"),
-                                "Nursing facilities",
-                                gq_type=="Correctional facilities for adults (101-106)",
-                                "Correctional facilities for adults",
-                                gq_type=="Juvenile facilities (201-203)",
-                                "Juvenile facilities",
-                                gq_type=="Other institutional facilities (401-405)",
-                                "Other institutional facilities",
-                                gq_type=="Other noninstitutional facilities (701-702, 704, 706, 801-802, 900-901, 903-904)",
-                                "Other noninstitutional facilities")]
-#reshape a bit and make list of individuals 
-Geoids <- colnames(bgGQ_data[,10:(ncol(bgGQ_data)-3)])
-bgGQ_melted <- melt(bgGQ_data, id.vars = c("sex","age_range","beg_age_gq","gq_institution","gq_type","gq_type_6"), measure.vars = Geoids,
-                    value.name = "codom_GQSAT", variable.name = "GEOID")
-bgGQ <- as.data.table(lapply(bgGQ_melted[,.SD],rep,bgGQ_melted[,codom_GQSAT]))
-rm(bgGQ_data)
-rm(bgGQ_melted)

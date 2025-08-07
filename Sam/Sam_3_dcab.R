@@ -1,4 +1,4 @@
-#FOR LATER - 
+#FOR LATER - not used because can't seem to get tract level
 
 source('Sam/get_tools.R')
 library(stringr)
