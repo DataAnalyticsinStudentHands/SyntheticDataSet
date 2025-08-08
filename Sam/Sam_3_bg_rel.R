@@ -12,7 +12,6 @@ tract = "*"
 censuskey <- readLines(paste0(censusdir, "2017", "/key"))
 
 #https://api.census.gov/data/2020/dec/dhc/variables.html
-#THE REL STUFF MATCHES WITH ITSELF BUT IS WAY OFF ON THE AGES FOR OTHERS!!! - tr_hhSARE and bg_SARE agree...
 
 groupname <- "PCT9" #HOUSEHOLD TYPE BY RELATIONSHIP FOR THE POPULATION 65 YEARS AND OVER, by race/eth, includes GQ and individual roles
 geo_type <- "tract"
@@ -134,66 +133,66 @@ tr_hhRelRE[,("age_range_3"):=fcase(age_range_4=="Under 18 years","Under 18 years
                                    default = "18 to 64 years")]
 rm(tr_hh65RelRE)
 
-#add in specific age information for RelRE, then move to P17 with age - this is missing some data, so just pull in bgSARE already?
-#groupname <- "PCT13" # SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS (Race/eth x 2) #total pop - group quarters
-#geo_type <- "tract"
-#api_type <- "dec/dhc"
-#path_suff <- "est"
-#tr_hhSARE_data_from_census <- 
-#  census_tract_get(censusdir, vintage, state, censuskey, 
-#                   groupname,county = "*",
-#                   api_type,path_suff)
-#if(names(tr_hhSARE_data_from_census)[11]=="label_1"){
-#  #labels determined by hand
-#  label_c1 <- c("sex","age_range_23")
-#  #row_c1 determined by hand 
-#  row_c1 <- c(unique(tr_hhSARE_data_from_census[!is.na(label_2) & concept!="SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS",name]))
-#  #test_total_pop <- tests_download_data(tr_hhSARE_data_from_census,label_c1,row_c1,state=state)
-#  #do this with HvL, to divide later, since don't have whole population by both
-#  tr_hhSARE_data <- relabel(tr_hhSARE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-#  write_relabel(tr_hhSARE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-#}else{
-#  print("Using already given labels; no rewrite.")
-#  tr_hhSARE_data <- tr_hhSARE_data_from_census
-#}
-#tr_hhSARE_data[,("re_code") := substr(name,6,6)][
-#  ,("race") := str_replace(concept,"SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS \\(","")][
-#    ,("race") := str_replace(race,"\\)","")]
-#
-##reshape a bit and make list of individuals
-#Geoids <- colnames(tr_hhSARE_data[,.SD,.SDcols = startsWith(names(tr_hhSARE_data),state)])
-#tr_hhSARE_melted <- melt(tr_hhSARE_data, id.vars = c("re_code","race","sex","age_range_23"), measure.vars = Geoids,
-#                         value.name = "codom_tr_hhAge", variable.name = "GEOID")
-#tr_hhSARE <- as.data.table(lapply(tr_hhSARE_melted[,.SD],rep,tr_hhSARE_melted[,codom_tr_hhAge]))
-#nrow(tr_hhSARE)==nrow(tr_hhRelRE[household=="In households"]) #FALSE!!!
-##problem is missing Females 60 and 61 with re_code of H (99921 in Texas 2020)
-#
-##match with GQ for later
-#tr_hhSARE[,("age_range_3"):=fcase(age_range_23=="Under 5 years" |
-#                                       age_range_23=="5 to 9 years" |
-#                                       age_range_23=="10 to 14 years" |
-#                                       age_range_23=="15 to 17 years","Under 18 years",
-#                                     age_range_23=="18 and 19 years" |
-#                                    age_range_23=="20 years" |
-#                                    age_range_23=="21 years" |
-#                                    age_range_23=="22 to 24 years" |
-#                                    age_range_23=="25 to 29 years" |
-#                                    age_range_23=="30 to 34 years" |
-#                                    age_range_23=="35 to 39 years" |
-#                                    age_range_23=="40 to 44 years" |
-#                                    age_range_23=="45 to 49 years" |
-#                                    age_range_23=="50 to 54 years" |
-#                                    age_range_23=="55 to 59 years" |
-#                                    age_range_23=="60 and 61 years" |
-#                                    age_range_23=="62 to 64 years","18 to 64 years",
-#                                     default="65 years and over")]
-##table(tr_hhSARE[,age_range_3],useNA = "ifany")-table(tr_hhRelRE[,age_range_3],useNA = "ifany")
-##off b/c Rel is getting very approximate ages on some of the roles and also still has GQ
-##tr_hhSAR <- tr_hhSARE[!re_code %in% c("H","I")]
-##tr_hhSAE <- tr_hhSARE[re_code %in% c("H","I")]
-#rm(tr_hhSARE_data_from_census)
-#rm(tr_hhSARE_data)
-#rm(tr_hhSARE_melted)
+#add in specific age information for RelRE, then move to P17 with age - PCT13 had a missing row in original table - Hispanic Women who are 61 or 62.
+groupname <- "PCT13" # SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS (Race/eth x 2) #total pop - group quarters
+geo_type <- "tract"
+api_type <- "dec/dhc"
+path_suff <- "est"
+tr_hhSARE_data_from_census <- 
+  census_tract_get(censusdir, vintage, state, censuskey, 
+                   groupname,county = "*",
+                   api_type,path_suff)
+if(names(tr_hhSARE_data_from_census)[11]=="label_1"){
+  #labels determined by hand
+  label_c1 <- c("sex","age_range_23")
+  #row_c1 determined by hand 
+  row_c1 <- c(unique(tr_hhSARE_data_from_census[!is.na(label_2) & concept!="SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS",name]))
+  #test_total_pop <- tests_download_data(tr_hhSARE_data_from_census,label_c1,row_c1,state=state)
+  #do this with HvL, to divide later, since don't have whole population by both
+  tr_hhSARE_data <- relabel(tr_hhSARE_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(tr_hhSARE_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  tr_hhSARE_data <- tr_hhSARE_data_from_census
+}
+tr_hhSARE_data[,("re_code") := substr(name,6,6)][
+  ,("race") := str_replace(concept,"SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS \\(","")][
+    ,("race") := str_replace(race,"\\)","")]
+
+#reshape a bit and make list of individuals
+Geoids <- colnames(tr_hhSARE_data[,.SD,.SDcols = startsWith(names(tr_hhSARE_data),state)])
+tr_hhSARE_melted <- melt(tr_hhSARE_data, id.vars = c("re_code","race","sex","age_range_23"), measure.vars = Geoids,
+                         value.name = "codom_tr_hhAge", variable.name = "GEOID")
+tr_hhSARE <- as.data.table(lapply(tr_hhSARE_melted[,.SD],rep,tr_hhSARE_melted[,codom_tr_hhAge]))
+nrow(tr_hhSARE)==nrow(tr_hhRelRE[household=="In households"]) #FALSE!!!
+#problem is missing Females 60 and 61 with re_code of H (99921 in Texas 2020)
+
+#match with GQ for later
+tr_hhSARE[,("age_range_3"):=fcase(age_range_23=="Under 5 years" |
+                                       age_range_23=="5 to 9 years" |
+                                       age_range_23=="10 to 14 years" |
+                                       age_range_23=="15 to 17 years","Under 18 years",
+                                     age_range_23=="18 and 19 years" |
+                                    age_range_23=="20 years" |
+                                    age_range_23=="21 years" |
+                                    age_range_23=="22 to 24 years" |
+                                    age_range_23=="25 to 29 years" |
+                                    age_range_23=="30 to 34 years" |
+                                    age_range_23=="35 to 39 years" |
+                                    age_range_23=="40 to 44 years" |
+                                    age_range_23=="45 to 49 years" |
+                                    age_range_23=="50 to 54 years" |
+                                    age_range_23=="55 to 59 years" |
+                                    age_range_23=="60 and 61 years" |
+                                    age_range_23=="62 to 64 years","18 to 64 years",
+                                     default="65 years and over")]
+#table(tr_hhSARE[,age_range_3],useNA = "ifany")-table(tr_hhRelRE[,age_range_3],useNA = "ifany")
+#off b/c Rel is getting very approximate ages on some of the roles and also still has GQ
+#tr_hhSAR <- tr_hhSARE[!re_code %in% c("H","I")]
+#tr_hhSAE <- tr_hhSARE[re_code %in% c("H","I")]
+rm(tr_hhSARE_data_from_census)
+rm(tr_hhSARE_data)
+rm(tr_hhSARE_melted)
 #
 ##sex only for householders in tr_hhRelRE and doesn't match how it would work for bg_hhTypeRE (or general claim that head is male, if present, no matter what else)
 ##sex, age, race for hh living alone don't match up correctly - it's like they just threw sex at the sample... just ignore?
@@ -204,6 +203,51 @@ file_path <- valid_file_path(censusdir,vintage,state,county = "*",api_type="dec"
                              groupname="bgSARE",path_suff="wrk")
 #"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bgSARE_wrk.RDS"
 bg_SARE <- readRDS(file_path)
+#need to ensure bg_SARE has tract, age_range_23, who it has sex for, and how to do race and ethnicity at the same time...
+bg_SARE[,("re_code_7"):-fcase(re_code=="I" | re_code=="P","A",
+                              re_code=="J" | re_code=="Q","B",
+                              re_code=="K" | re_code=="R","C",
+                              re_code=="L" | re_code=="S","D",
+                              re_code=="M" | re_code=="T","E",
+                              re_code=="N" | re_code=="U","F",
+                              re_code=="O" | re_code=="V","G",
+                              default = re_code)]
+bg_SARE[,("HvL"):-fcase(re_code=="P" |
+                          re_code=="Q" | 
+                          re_code=="R" | 
+                          re_code=="S" | 
+                          re_code=="T" | 
+                          re_code=="U" | 
+                          re_code=="V","Hispanic or Latino",
+                          default = "Not Hispanic or Latino")]
+
+#joing bg_SARE and tr_hhSARE, hoping to match, with Group Quarters and the missing 61 and 62 year old women showing up
+#start with Hispanic; then match on re_code_7 - except it hasn't precluded over-matching... check on how to exclude already placed...
+bg_SARE[HvL=="Not Hispanic or Latino",("bg_SAR_match_id"):=
+            paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
+tr_hhSARE[!re_code%in%c("H","I"),("bg_SAR_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
+bg_SARE[HvL=="Not Hispanic or Latino",c("re_code_HvL","codom_hhRelRE"):=
+          tr_hhSARE[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(bg_SAR_match_id)]]
+tr_hhSARE[!re_code%in%c("H","I"),("matched_SARE"):=
+            bg_SARE[.SD,list(re_code),on=.(bg_SAR_match_id)]]
+#for rest without sex?
+nrow(tr_hhSARE[!is.na(matched_SARE)])
+#for not HvL
+bg_SARE[HvL=="Hispanic or Latino" & is.na(household),("bg_SAE_match_id"):=
+          paste0(GEOID,sex,age_range_23,re_code_14,as.character(100000+sample(1:.N))),
+        by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
+tr_hhSARE[re_code=="H" & is.na(matched_SARE),("bg_SAE_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
+bg_SARE[HvL=="Hispanic or Latino" & is.na(household),c("re_code_HvL","codom_hhRelRE"):=
+          tr_hhSARE[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(bg_SAe_match_id)]]
+tr_hhSARE[re_code=="H" & is.na(matched_SARE),("matched_SARE"):=
+            bg_SARE[.SD,list(re_code),on=.(bg_SAE_match_id)]]
+#for rest without sex?
+#missing 61 and 62 year old Hispanic women need to be designated; group_quarter needs to be designated
 
 groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS; really only own-child and group quarter information
 geo_type <- "tract"
