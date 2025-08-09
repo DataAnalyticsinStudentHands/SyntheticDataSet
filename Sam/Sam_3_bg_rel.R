@@ -222,16 +222,30 @@ bg_SARE[,("HvL"):-fcase(re_code=="P" |
                           default = "Not Hispanic or Latino")]
 
 #joing bg_SARE and tr_hhSARE, hoping to match, with Group Quarters and the missing 61 and 62 year old women showing up
+#because we need to move individuals only once, need to match tr_hhSAR with tr_hhSAE
+tr_hhSAR <- tr_hhSARE[!re_code%in%c("H","I")]
+tr_hhSAE <- tr_hhSARE[re_code=="H"]
+tr_hhSAR[,("tr_SARE_match_id"):=
+          paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
+        by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
+tr_hhSAE[,("tr_SARE_match_id"):=
+            paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
+tr_hhSAR[,c("re_code_HvL","codom_hhRelRE"):=
+          tr_hhSAE[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(tr_SARE_match_id)]]
+tr_hhSAE[,("matched_trSARE"):=
+            tr_hhSAR[.SD,list(re_code),on=.(tr_SARE_match_id)]]
+
 #start with Hispanic; then match on re_code_7 - except it hasn't precluded over-matching... check on how to exclude already placed...
 bg_SARE[HvL=="Not Hispanic or Latino",("bg_SAR_match_id"):=
             paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
           by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
-tr_hhSARE[!re_code%in%c("H","I"),("bg_SAR_match_id"):=
+tr_hhSAE[,("bg_SAR_match_id"):=
             paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
           by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
 bg_SARE[HvL=="Not Hispanic or Latino",c("re_code_HvL","codom_hhRelRE"):=
-          tr_hhSARE[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(bg_SAR_match_id)]]
-tr_hhSARE[!re_code%in%c("H","I"),("matched_SARE"):=
+          tr_hhSAE[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(bg_SAR_match_id)]]
+tr_hhSAE[,("matched_SARE"):=
             bg_SARE[.SD,list(re_code),on=.(bg_SAR_match_id)]]
 #for rest without sex?
 nrow(tr_hhSARE[!is.na(matched_SARE)])
