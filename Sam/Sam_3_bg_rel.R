@@ -123,14 +123,9 @@ tr_hhRelRE[,c("over_64","codom_tr_hh65RelRE"):=
 #nrow(tr_hhRelRE[!is.na(over_64)])==nrow(tr_hh65RelRE)
 tr_hhRelRE[,("over_64"):=fcase(!is.na(over_64),"over_64",default = "under_65")]
 #age in sex is better than in age_range_2 (roles like householders may have under 18 that are not listed)
-tr_hhRelRE[,("age_range_4"):=fcase(is.na(sex) & age_range_2!="under_18","Over 17 years, but role is child",
-                                sex=="Under 18 years","Under 18 years",
-                                over_64=="over_64","Over 64 years",
-                                #over_64=="under_65","Under 65 years and over 17",
-                                default = "Under 65 years and over 17")]
-tr_hhRelRE[,("age_range_3"):=fcase(age_range_4=="Under 18 years","Under 18 years",
-                                   age_range_4=="Over 64 years","65 years and over",
-                                   default = "18 to 64 years")]
+tr_hhRelRE[,("age_range_3"):=fcase(age_range_2=="under_18","Under 18 years",
+                                over_64=="over_64","65 years and over",
+                                default = "18 to 64 years")]
 rm(tr_hh65RelRE)
 
 #add in specific age information for RelRE, then move to P17 with age - PCT13 had a missing row in original table - Hispanic Women who are 61 or 62.
@@ -164,8 +159,7 @@ Geoids <- colnames(tr_hhSARE_data[,.SD,.SDcols = startsWith(names(tr_hhSARE_data
 tr_hhSARE_melted <- melt(tr_hhSARE_data, id.vars = c("re_code","race","sex","age_range_23"), measure.vars = Geoids,
                          value.name = "codom_tr_hhAge", variable.name = "GEOID")
 tr_hhSARE <- as.data.table(lapply(tr_hhSARE_melted[,.SD],rep,tr_hhSARE_melted[,codom_tr_hhAge]))
-nrow(tr_hhSARE)==nrow(tr_hhRelRE[household=="In households"]) #FALSE!!!
-#problem is missing Females 60 and 61 with re_code of H (99921 in Texas 2020)
+
 
 #match with GQ for later
 tr_hhSARE[,("age_range_3"):=fcase(age_range_23=="Under 5 years" |
@@ -193,26 +187,87 @@ tr_hhSARE[,("age_range_3"):=fcase(age_range_23=="Under 5 years" |
 rm(tr_hhSARE_data_from_census)
 rm(tr_hhSARE_data)
 rm(tr_hhSARE_melted)
-#
-##sex only for householders in tr_hhRelRE and doesn't match how it would work for bg_hhTypeRE (or general claim that head is male, if present, no matter what else)
-##sex, age, race for hh living alone don't match up correctly - it's like they just threw sex at the sample... just ignore?
-##age_range is way off, too!!!
+#nrow(tr_hhSARE)==nrow(tr_hhRelRE[household=="In households"]) #FALSE!!!
+#problem is missing Hispanic Females 60 and 61 with re_code of H (99921 in Texas 2020)
+#table(tr_hhRelRE[household=="In households",re_code])-table(tr_hhSARE[,re_code])
+#table(tr_hhSARE[re_code=="H",age_range_23],tr_hhSARE[re_code=="H",sex])
+#since it's only one group missing and known, except for GEOID, we can just match missing and add rows
 
-#pull in bg_SARE for matching by age / created by Sam_1_bg_sare.R
+rep_row_fix <- as.data.table(table(tr_hhRelRE[household=="In households"&re_code=="H",GEOID])-table(tr_hhSARE[re_code=="H",GEOID]))
+tr_hhRelRErowfix <- tr_hhRelRE[,.(cntR = .N), by=.(GEOID,household,re_code)]
+tr_hhRelRErowfix <- tr_hhRelRErowfix[re_code=="H"&household=="In households"]
+tr_hhSARErowfix <- tr_hhSARE[,.(cntS = .N), by=.(GEOID,re_code)]
+tr_hhSARErowfix <- tr_hhSARErowfix[re_code=="H"]
+rep_row_fix <- tr_hhRelRErowfix[tr_hhSARErowfix, on=.(re_code,GEOID), .(repcnt = cntR-cntS,GEOID=GEOID,re_code=re_code)]
+row_fix <- as.data.table(c(list(GEOID=rep_row_fix[,GEOID]),list(codom_tr_hhAge=rep_row_fix[,repcnt]),list(re_code="H"),
+                           list(race="HISPANIC OR LATINO"),list(sex="Female"),list(age_range_23="60 and 61 years"),
+                           list(age_range_3="18 to 64 years")))
+#row_fix <-row_fix[rep_rf>0]
+tr_hhSARErf <- as.data.table(lapply(row_fix[,.SD],rep,row_fix[,codom_tr_hhAge]))
+tr_hhSARE <- rbindlist(list(tr_hhSARE,tr_hhSARErf),use.names = TRUE)
+
+#for tr_hhRel, don't know sex for under_18, so will have to do a second time
+tr_hhSARE[,("tr_SARERel_match_id"):=
+           paste0(GEOID,re_code,sex,age_range_3,as.character(100000+sample(1:.N))),
+         by=.(GEOID,re_code,sex,age_range_3)]
+tr_hhRelRE[household=="In households",("tr_SARERel_match_id"):=
+           paste0(GEOID,re_code,sex,age_range_3,as.character(100000+sample(1:.N))),
+         by=.(GEOID,re_code,sex,age_range_3)]
+tr_hhSARE[,("match_relre"):= 
+            tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERel_match_id)]]
+tr_hhRelRE[household=="In households",("age_range_23"):=
+           tr_hhSARE[.SD,list(age_range_23),on=.(tr_SARERel_match_id)]]
+
+#without sex
+tr_hhSARE[is.na(match_relre),("tr_SARERela_match_id"):=
+            paste0(GEOID,re_code,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,re_code,age_range_3)]
+tr_hhRelRE[household=="In households"&is.na(age_range_23),("tr_SARERela_match_id"):=
+             paste0(GEOID,re_code,age_range_3,as.character(100000+sample(1:.N))),
+           by=.(GEOID,re_code,age_range_3)]
+tr_hhSARE[is.na(match_relre),("match_relre"):= 
+            tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERela_match_id)]]
+tr_hhRelRE[household=="In households"&is.na(age_range_23),("age_range_23"):=
+             tr_hhSARE[.SD,list(age_range_23),on=.(tr_SARERela_match_id)]]
+nrow(tr_hhRelRE[is.na(age_range_23)]) #just over 1% still not matching
+table(tr_hhRelRE[is.na(age_range_23)&household=="In households",age_range_3],useNA = "ifany")
+table(tr_hhSARE[is.na(match_relre),age_range_23],useNA = "ifany")
+nrow(tr_hhSARE[is.na(match_relre)])==nrow(tr_hhRelRE[is.na(age_range_23)&household=="In households"])
+
+tr_hhRelRE <- tr_hhRelRE[order(match(role,c("Biological child","Grandchild","Adopted child","Stepchild","Foster child",
+                                                "Householder","Opposite-sex spouse","Opposite-sex unmarried partner",
+                                                "Same-sex spouse","Same-sex unmarried partner","Son-in-law or daughter-in-law",
+                                                "Other nonrelatives","Other relatives","Brother or sister","Parent",
+                                                "Parent-in-law")))]
+tr_hhSARE <- tr_hhSARE[order(match(age_range_3,c("Under 18 years","18 to 64 years","65 years and over")))]
+#pick up last 1%
+tr_hhSARE[is.na(match_relre),("tr_SARERelb_match_id"):=
+            paste0(GEOID,re_code,as.character(100000+(1:.N))), #re_code per GEOID should still match, then just keep order when assigning count
+          by=.(GEOID,re_code)]
+tr_hhRelRE[household=="In households"&is.na(age_range_23),("tr_SARERelb_match_id"):=
+             paste0(GEOID,re_code,as.character(100000+(1:.N))),
+           by=.(GEOID,re_code)]
+tr_hhSARE[is.na(match_relre),("match_relre"):= 
+            tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERelb_match_id)]]
+tr_hhRelRE[household=="In households"&is.na(age_range_23),("age_range_23"):=
+             tr_hhSARE[.SD,list(age_range_23),on=.(tr_SARERelb_match_id)]]
+nrow(tr_hhRelRE[is.na(age_range_23)&household=="In households"])==0
+
+#pull in bg_SARE for matching by age and re_code_14 / created by Sam_1_bg_sare.R
 file_path <- valid_file_path(censusdir,vintage,state,county = "*",api_type="dec",geo_type = "block_group",
                              groupname="bgSARE",path_suff="wrk")
 #"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bgSARE_wrk.RDS"
 bg_SARE <- readRDS(file_path)
 #need to ensure bg_SARE has tract, age_range_23, who it has sex for, and how to do race and ethnicity at the same time...
-bg_SARE[,("re_code_7"):-fcase(re_code=="I" | re_code=="P","A",
+bg_SARE[,("re_code_7"):=fcase(re_code=="I" | re_code=="P","A",
                               re_code=="J" | re_code=="Q","B",
                               re_code=="K" | re_code=="R","C",
                               re_code=="L" | re_code=="S","D",
                               re_code=="M" | re_code=="T","E",
                               re_code=="N" | re_code=="U","F",
                               re_code=="O" | re_code=="V","G",
-                              default = re_code)]
-bg_SARE[,("HvL"):-fcase(re_code=="P" |
+                              default = "unknown")]
+bg_SARE[,("HvL"):=fcase(re_code=="P" |
                           re_code=="Q" | 
                           re_code=="R" | 
                           re_code=="S" | 
@@ -220,23 +275,72 @@ bg_SARE[,("HvL"):-fcase(re_code=="P" |
                           re_code=="U" | 
                           re_code=="V","Hispanic or Latino",
                           default = "Not Hispanic or Latino")]
+bg_SARE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 
 #joing bg_SARE and tr_hhSARE, hoping to match, with Group Quarters and the missing 61 and 62 year old women showing up
 #because we need to move individuals only once, need to match tr_hhSAR with tr_hhSAE
 tr_hhSAR <- tr_hhSARE[!re_code%in%c("H","I")]
-tr_hhSAE <- tr_hhSARE[re_code=="H"]
-tr_hhSAR[,("tr_SARE_match_id"):=
+tr_hhSAH <- tr_hhSARE[re_code=="H"]
+tr_hhSAI <- tr_hhSARE[re_code=="I"]
+tr_hhSAR[re_code=="A",("tr_SARI_match_id"):=
           paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
-        by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
-tr_hhSAE[,("tr_SARE_match_id"):=
-            paste0(GEOID,household,role,sex,alone,age_range_2,over_64,as.character(100000+sample(1:.N))),
-          by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
-tr_hhSAR[,c("re_code_HvL","codom_hhRelRE"):=
-          tr_hhSAE[.SD,c(list(re_code),list(codom_hhRelRE)),on=.(tr_SARE_match_id)]]
-tr_hhSAE[,("matched_trSARE"):=
-            tr_hhSAR[.SD,list(re_code),on=.(tr_SARE_match_id)]]
+        by=.(GEOID,sex,age_range_23)]
+tr_hhSAI[,("tr_SARI_match_id"):=
+            paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,sex,age_range_23)]
+tr_hhSAR[re_code=="A",("re_code_14"):= #all should equal "I"
+          tr_hhSAI[.SD,list(re_code),on=.(tr_SARI_match_id)]]
+tr_hhSAI[,("matched_trSAI"):=
+            tr_hhSAR[.SD,list(re_code),on=.(tr_SARI_match_id)]]
+nrow(tr_hhSAI[is.na(matched_trSAI)])==0
+#need to match from bg_SARE to tr_hhSAH, then tr_hhSAH back to tr_hhSAR
+tr_hhSAH[,("tr_bg_SAE_match_id"):=
+           paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
+         by=.(GEOID,sex,age_range_23)]
+bg_SARE[HvL=="Hispanic or Latino",("tr_bg_SAE_match_id"):=
+           paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
+         by=.(tract,sex,age_range)]
+tr_hhSAH[,("re_code_7"):=
+           bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAE_match_id)]]
+bg_SARE[HvL=="Hispanic or Latino",("matched_trSAE"):=
+           tr_hhSAH[.SD,list(re_code),on=.(tr_bg_SAE_match_id)]]
+nrow(tr_hhSAH[is.na(re_code_7)])==0
+nrow(bg_SARE[!is.na(matched_trSAE)])==nrow(tr_hhSAH)
+#remember missing Group Quarters so not full match on bg_SARE
+#back to tr_hhSAR to track re_code_14, then over to bg_SARE, matching on re_code_14
+tr_hhSAR[is.na(re_code_14),("tr_SARE7_match_id"):=
+           paste0(GEOID,re_code,sex,age_range_23,as.character(100000+sample(1:.N))),
+         by=.(GEOID,re_code,sex,age_range_23)]
+tr_hhSAH[,("tr_SARE7_match_id"):=
+           paste0(GEOID,re_code_7,sex,age_range_23,as.character(100000+sample(1:.N))),
+         by=.(GEOID,re_code_7,sex,age_range_23)]
+tr_hhSAR[is.na(re_code_14),("HvL"):=
+           tr_hhSAH[.SD,list(re_code),on=.(tr_SARE7_match_id)]]
+tr_hhSAH[,("matched_trSAE"):=
+           tr_hhSAR[.SD,list(re_code),on=.(tr_SARE7_match_id)]]
+nrow(tr_hhSAH[is.na(matched_trSAE)]) #(.3%)
+table(tr_hhSAH[is.na(matched_trSAE),age_range_3])
+table(tr_hhSAH[is.na(matched_trSAE),re_code_7])
+table(tr_hhSAR[,re_code_14])
 
-#start with Hispanic; then match on re_code_7 - except it hasn't precluded over-matching... check on how to exclude already placed...
+#pick up last .3%
+#back to tr_hhSAR to track re_code_14, then over to bg_SARE, matching on re_code_14
+tr_hhSAR[is.na(re_code_14)&is.na(HvL),("tr_SARE7a_match_id"):=
+           paste0(GEOID,re_code,age_range_3,as.character(100000+sample(1:.N))),
+         by=.(GEOID,re_code,age_range_3)]
+tr_hhSAH[is.na(matched_trSAE),("tr_SARE7a_match_id"):=
+           paste0(GEOID,re_code_7,age_range_3,as.character(100000+sample(1:.N))),
+         by=.(GEOID,re_code_7,age_range_3)]
+tr_hhSAR[is.na(re_code_14)&is.na(HvL),("re_code_14"):=
+           tr_hhSAH[.SD,list(re_code),on=.(tr_SARE7a_match_id)]]
+tr_hhSAH[is.na(matched_trSAE),("matched_trSAE"):=
+           tr_hhSAR[.SD,list(re_code),on=.(tr_SARE7a_match_id)]]
+nrow(tr_hhSAH[is.na(matched_trSAE)]) #.2% - let ground from bgSARE be final match
+
+
+
+
+#match on re_code_7 and HvL 
 bg_SARE[HvL=="Not Hispanic or Latino",("bg_SAR_match_id"):=
             paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
           by=.(GEOID,household,role,sex,alone,age_range_2,over_64)]
