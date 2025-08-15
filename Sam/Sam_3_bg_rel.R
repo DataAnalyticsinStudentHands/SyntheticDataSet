@@ -275,27 +275,32 @@ bg_SARE[,("HvL"):=fcase(re_code=="P" |
                           re_code=="U" | 
                           re_code=="V","Hispanic or Latino",
                           default = "Not Hispanic or Latino")]
+bg_SARE[,("age_range_3"):=fcase(age_num<18,"Under 18 years",
+                                age_num>64,"65 years and over",
+                                default = "18 to 64 years")]
 bg_SARE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 
-nrow(tr_hhRelRE[is.na(sex)&household=="In households"])
+nrow(tr_hhRelRE[is.na(sex)&household=="In households"])==0
 
 #joining bg_SARE and tr_hhRelRE, with Group Quarters 
 #because we need to move individuals only once, need to match tr_hhRelR with tr_hhSAE
-tr_hhRelR <- tr_hhRelRE[!re_code%in%c("H","I")]
-tr_hhRelH <- tr_hhRelRE[re_code=="H"]
-tr_hhRelI <- tr_hhRelRE[re_code=="I"]
+tr_hhRelR <- tr_hhRelRE[!re_code%in%c("H","I")&household=="In households"] #have to get group quarters later
+tr_hhRelH <- tr_hhRelRE[re_code=="H"&household=="In households"]
+tr_hhRelI <- tr_hhRelRE[re_code=="I"&household=="In households"]
 tr_hhRelR[re_code=="A",("tr_SARI_match_id"):=
-          paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
-        by=.(GEOID,sex,age_range_23)]
+          paste0(GEOID,household,sex,age_range_23,as.character(100000+sample(1:.N))),
+        by=.(GEOID,household,sex,age_range_23)]
 tr_hhRelI[,("tr_SARI_match_id"):=
-            paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
-          by=.(GEOID,sex,age_range_23)]
+            paste0(GEOID,household,sex,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,sex,age_range_23)]
 tr_hhRelR[re_code=="A",("re_code_I"):= #all should equal "I"
             tr_hhRelI[.SD,list(re_code),on=.(tr_SARI_match_id)]]
+tr_hhRelR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_I),"P",
+                                 default = re_code_I)]
 tr_hhRelI[,("matched_trSAI"):=
            tr_hhRelR[.SD,list(re_code),on=.(tr_SARI_match_id)]]
 nrow(tr_hhRelI[is.na(matched_trSAI)])==0
-#do I, then H, then rest of re_code_7
+#do I, then H, then rest of re_code_7; remember is.na(sex) & is.na(age_range) for group quarters
 tr_hhRelI[,("tr_bg_SAI_match_id"):=
             paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
           by=.(GEOID,sex,age_range_23)]
@@ -304,39 +309,66 @@ bg_SARE[re_code=="I",("tr_bg_SAI_match_id"):=
         by=.(tract,sex,age_range)]
 tr_hhRelI[,("re_code_7"):= #should all be "A"
             bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAI_match_id)]]
-bg_SARE[re_code=="I",c("alone","role","role_7"):=
-          tr_hhRelI[.SD,c(list(alone),list(role),list(role_7)),on=.(tr_bg_SAI_match_id)]]
-nrow(tr_hhRelI[is.na(re_code_7)]) #172849 (1.5%) ; missing all Group Quarters; everything else matched
-nrow(bg_SARE[!is.na(role)])==nrow(tr_hhRelI[household=="In households"])
+bg_SARE[re_code=="I",c("alone_tr","role_tr","role_7_tr","household_tr"):=
+          tr_hhRelI[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SAI_match_id)]]
+nrow(tr_hhRelI[is.na(re_code_7)]) #264216 ; missing Group Quarters; everything else matched
+nrow(bg_SARE[!is.na(role_tr)])==nrow(tr_hhRelI[household=="In households"])
+table(bg_SARE[re_code_7=="A",re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
+
 #need to match from bg_SARE to tr_hhRelH, then tr_hhRelH back to tr_hhRelR
 tr_hhRelH[,("tr_bg_SAE_match_id"):=
            paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
          by=.(GEOID,sex,age_range_23)]
-bg_SARE[HvL=="Hispanic or Latino",("tr_bg_SAE_match_id"):=
+bg_SARE[HvL=="Hispanic or Latino",("tr_bg_SAE_match_id"):= 
            paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
          by=.(tract,sex,age_range)]
 tr_hhRelH[,("re_code_7"):=
            bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAE_match_id)]]
-bg_SARE[HvL=="Hispanic or Latino",c("alone","role","role_7"):=
-          tr_hhRelH[.SD,c(list(alone),list(role),list(role_7)),on=.(tr_bg_SAE_match_id)]]
+bg_SARE[HvL=="Hispanic or Latino",c("alone_tr","role_tr","role_7_tr","household_tr"):=
+          tr_hhRelH[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SAE_match_id)]]
 nrow(tr_hhRelH[is.na(re_code_7)]) #missing all Group Quarters; everything else matched
-nrow(bg_SARE[!is.na(role)])==(nrow(tr_hhRelH[household=="In households"])+nrow(tr_hhRelI[household=="In households"]))
-#do rest of re_code_7
-tr_hhRelR[is.na(re_code_I),("tr_bg_SAR_match_id"):=
+nrow(bg_SARE[!is.na(role_tr)])==(nrow(tr_hhRelH)+nrow(tr_hhRelI))
+table(bg_SARE[,re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
+#pick up P
+tr_hhRelR[re_code_14=="P",("tr_bg_SARp_match_id"):=
             paste0(GEOID,re_code,sex,age_range_23,as.character(100000+sample(1:.N))),
           by=.(GEOID,re_code,sex,age_range_23)]
-bg_SARE[is.na(role),("tr_bg_SAR_match_id"):=
+bg_SARE[is.na(role_tr)&re_code=="P",("tr_bg_SARp_match_id"):=
           paste0(tract,re_code_7,sex,age_range,as.character(100000+sample(1:.N))),
-        by=.(tract,sex,re_code_7,age_range)]
-tr_hhRelR[,("re_code_H"):=
-            bg_SARE[.SD,list(re_code),on=.(tr_bg_SAR_match_id)]]
-bg_SARE[is.na(role),c("alone","role","role_7"):=
-          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7)),on=.(tr_bg_SAR_match_id)]]
-nrow(tr_hhRelH[is.na(re_code_H)]) # missing all Group Quarters; everything else matched
-nrow(bg_SARE[!is.na(role)])==nrow(tr_hhRelR[household=="In households"])
+        by=.(tract,re_code_7,sex,age_range)]
+tr_hhRelR[re_code_14=="P",("re_code_H"):=
+            bg_SARE[.SD,list(re_code),on=.(tr_bg_SARp_match_id)]]
+bg_SARE[is.na(role_tr)&re_code=="P",c("alone_tr","role_tr","role_7_tr","household_tr"):=
+          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SARp_match_id)]]
+table(tr_hhRelR[is.na(re_code_H),household]) #22521403
+nrow(bg_SARE[!is.na(role_tr)])-nrow(tr_hhRelR)
+table(bg_SARE[,re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
+
+#do rest of re_code_7
+tr_hhRelR[re_code!="A",("tr_bg_SARh_match_id"):=
+            paste0(GEOID,re_code,sex,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,re_code,sex,age_range_23)]
+bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino",("tr_bg_SARh_match_id"):=
+          paste0(tract,re_code_7,sex,age_range,as.character(100000+sample(1:.N))),
+        by=.(tract,re_code_7,sex,age_range)]
+tr_hhRelR[re_code!="A",("re_code_14"):=
+            bg_SARE[.SD,list(re_code),on=.(tr_bg_SARh_match_id)]]
+bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino",c("alone_tr","role_tr","role_7_tr","household_tr"):=
+          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SARh_match_id)]]
+table(tr_hhRelR[is.na(re_code_H),household]) #28514816
+nrow(bg_SARE[!is.na(role_tr)])-nrow(tr_hhRelR) #32260 - .01% over b/c it doesn't know how many to stop at; use bg to drop some
+table(bg_SARE[!is.na(role_tr),re_code_7])-table(tr_hhRelR[,re_code]) #sums to 32260, with max at A of 32427
+table(bg_SARE[,re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
+
+#maybe go back up to original tr_hhSARE to reduce the numbers - but have to think about age_range_23 staying stable...
+#corrections for bg for roles, and for total numbers by matching with bg_hhRel, which doesn't have RE, but does have totals for roles at bg
+#what if we put RE from tr_hhSARE onto bg_hhRel by age_range_3, and then did the matching from bg_SARE to bg_hhRel??
 
 
+#get bg_hhRel (P17); move alone_tr, etc., up from bg_SARE to bg_hhRel, but match at tract level and test - if they all match, then move bg from bg_hhRel to bg_SARE
 
+
+#get under 18 and group quarters data
 
 
 #delete #s below, if above == TRUE
@@ -482,6 +514,7 @@ bgGQ[,("beg_age_gq"):=fcase(age_range=="Under 18 years", as.numeric(0),
 
 #once we have ages and GQ added to bg_hhRel, will want to order by age on Rel and Type
 
+#this doesn't have RE data - could compare how this works for adding to tr_hhSARE early vs. at end...
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
 geo_type <- "block_group"
 api_type <- "dec/dhc"
