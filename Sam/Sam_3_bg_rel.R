@@ -295,8 +295,8 @@ tr_hhRelI[,("tr_SARI_match_id"):=
           by=.(GEOID,household,sex,age_range_23)]
 tr_hhRelR[re_code=="A",("re_code_I"):= #all should equal "I"
             tr_hhRelI[.SD,list(re_code),on=.(tr_SARI_match_id)]]
-tr_hhRelR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_I),"P",
-                                 default = re_code_I)]
+#tr_hhRelR[,("re_code_14"):=fcase(re_code=="A"&is.na(re_code_I),"P",
+#                                 default = re_code_I)]
 tr_hhRelI[,("matched_trSAI"):=
            tr_hhRelR[.SD,list(re_code),on=.(tr_SARI_match_id)]]
 nrow(tr_hhRelI[is.na(matched_trSAI)])==0
@@ -311,9 +311,10 @@ tr_hhRelI[,("re_code_7"):= #should all be "A"
             bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAI_match_id)]]
 bg_SARE[re_code=="I",c("alone_tr","role_tr","role_7_tr","household_tr"):=
           tr_hhRelI[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SAI_match_id)]]
-nrow(tr_hhRelI[is.na(re_code_7)]) #264216 ; missing Group Quarters; everything else matched
-nrow(bg_SARE[!is.na(role_tr)])==nrow(tr_hhRelI[household=="In households"])
-table(bg_SARE[re_code_7=="A",re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
+#nrow(tr_hhRelI[is.na(re_code_7)]) ==0
+#nrow(bg_SARE[!is.na(role_tr)])==nrow(tr_hhRelI[household=="In households"])
+#table(bg_SARE[re_code_7=="A",re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
+#target is 11320381 for total number of "I" in households
 
 #need to match from bg_SARE to tr_hhRelH, then tr_hhRelH back to tr_hhRelR
 tr_hhRelH[,("tr_bg_SAE_match_id"):=
@@ -326,39 +327,134 @@ tr_hhRelH[,("re_code_7"):=
            bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAE_match_id)]]
 bg_SARE[HvL=="Hispanic or Latino",c("alone_tr","role_tr","role_7_tr","household_tr"):=
           tr_hhRelH[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SAE_match_id)]]
-nrow(tr_hhRelH[is.na(re_code_7)]) #missing all Group Quarters; everything else matched
+nrow(tr_hhRelH[is.na(re_code_7)]) ==0
 nrow(bg_SARE[!is.na(role_tr)])==(nrow(tr_hhRelH)+nrow(tr_hhRelI))
 table(bg_SARE[,re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
-#pick up P
-tr_hhRelR[re_code_14=="P",("tr_bg_SARp_match_id"):=
-            paste0(GEOID,re_code,sex,age_range_23,as.character(100000+sample(1:.N))),
-          by=.(GEOID,re_code,sex,age_range_23)]
-bg_SARE[is.na(role_tr)&re_code=="P",("tr_bg_SARp_match_id"):=
-          paste0(tract,re_code_7,sex,age_range,as.character(100000+sample(1:.N))),
-        by=.(tract,re_code_7,sex,age_range)]
-tr_hhRelR[re_code_14=="P",("re_code_H"):=
-            bg_SARE[.SD,list(re_code),on=.(tr_bg_SARp_match_id)]]
-bg_SARE[is.na(role_tr)&re_code=="P",c("alone_tr","role_tr","role_7_tr","household_tr"):=
-          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SARp_match_id)]]
-table(tr_hhRelR[is.na(re_code_H),household]) #22521403
-nrow(bg_SARE[!is.na(role_tr)])-nrow(tr_hhRelR)
-table(bg_SARE[,re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
+#put onto tr_hhRelR
+tr_hhRelR[is.na(re_code_I),("tr_SARH_match_id"):=
+            paste0(GEOID,household,re_code,sex,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,re_code,sex,age_range_23)]
+tr_hhRelH[,("tr_SARH_match_id"):=
+            paste0(GEOID,household,re_code_7,sex,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,re_code_7,sex,age_range_23)]
+tr_hhRelR[is.na(re_code_I),("re_code_H"):= 
+            tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARH_match_id)]]
+tr_hhRelH[,("matched_trSAH"):=
+            tr_hhRelR[.SD,list(re_code),on=.(tr_SARH_match_id)]]
+nrow(tr_hhRelH[is.na(matched_trSAH)]) #34177 (.3%)
+#pick up last little bit by relaxing age_range
+tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHa_match_id"):=
+            paste0(GEOID,household,re_code,sex,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,re_code,sex,age_range_3)]
+tr_hhRelH[is.na(matched_trSAH),("tr_SARHa_match_id"):=
+            paste0(GEOID,household,re_code_7,sex,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,re_code_7,sex,age_range_3)]
+tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):= 
+            tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHa_match_id)]]
+tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
+            tr_hhRelR[.SD,list(re_code),on=.(tr_SARHa_match_id)]]
+nrow(tr_hhRelH[is.na(matched_trSAH)]) #27790 (.25%)
+#without sex only gets you another 1500 matches, we want to have it be right totals, though...
+tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHb_match_id"):=
+            paste0(GEOID,household,re_code,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,re_code,age_range_3)]
+tr_hhRelH[is.na(matched_trSAH),("tr_SARHb_match_id"):=
+            paste0(GEOID,household,re_code_7,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,re_code_7,age_range_3)]
+tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):= 
+            tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHb_match_id)]]
+tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
+            tr_hhRelR[.SD,list(re_code),on=.(tr_SARHb_match_id)]]
+nrow(tr_hhRelH[is.na(matched_trSAH)]) #26398
+#get total number per tract right, even if matching is a bit off
+tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHc_match_id"):=
+            paste0(GEOID,household,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,age_range_3)]
+tr_hhRelH[is.na(matched_trSAH),("tr_SARHc_match_id"):=
+            paste0(GEOID,household,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,age_range_3)]
+tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):= 
+            tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHc_match_id)]]
+tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
+            tr_hhRelR[.SD,list(re_code),on=.(tr_SARHc_match_id)]]
+nrow(tr_hhRelH[is.na(matched_trSAH)]) # 1 or 2 - it's just screwy
+#create re_code_14 on tr_hhRelR
+tr_hhRelR[,("re_code_14"):=fcase(re_code=="A" & is.na(re_code_H),"I",
+                                 re_code=="B" & is.na(re_code_H),"J",
+                                 re_code=="C" & is.na(re_code_H),"K",
+                                 re_code=="D" & is.na(re_code_H),"L",
+                                 re_code=="E" & is.na(re_code_H),"M",
+                                 re_code=="F" & is.na(re_code_H),"N",
+                                 re_code=="G" & is.na(re_code_H),"O",
+                                 re_code=="A" & re_code_H=="A","P",
+                                 re_code=="B" & re_code_H=="B","Q",
+                                 re_code=="C" & re_code_H=="C","R",
+                                 re_code=="D" & re_code_H=="D","S",
+                                 re_code=="E" & re_code_H=="E","T",
+                                 re_code=="F" & re_code_H=="F","U",
+                                 re_code=="G" & re_code_H=="G","V",
+                                 default = "unknown")]
+tr_hhRelR[,("re_code_14"):=fcase(re_code_14=="unknown"&re_code=="A","P",
+                                 re_code_14=="unknown"&re_code=="B","Q",
+                                 re_code_14=="unknown"&re_code=="C","R",
+                                 re_code_14=="unknown"&re_code=="D","S",
+                                 re_code_14=="unknown"&re_code=="E","T",
+                                 re_code_14=="unknown"&re_code=="F","U",
+                                 re_code_14=="unknown"&re_code=="G","V",
+                                 default = re_code_14)]
+tr_hhRelR[,("HvL"):=fcase(re_code_14%in%c("P","Q","R","S","T","U","V"),"Hispanic or Latino",
+                          default = "Not Hispanic or Latino")]
+table(bg_SARE[,re_code_7],bg_SARE[,re_code])
+table(tr_hhRelR[,re_code],tr_hhRelR[,re_code_14]) #Q,S,T all less than zero
+
+#do P by itself; having trouble preventing double-dipping for some reason
+#tr_hhRelR[re_code_14=="P",("tr_bg_SARp_match_id"):=
+#            paste0(GEOID,re_code,sex,age_range_23,as.character(100000+sample(1:.N))),
+#          by=.(GEOID,re_code,sex,age_range_23)]
+#bg_SARE[is.na(role_tr)&re_code=="P",("tr_bg_SARp_match_id"):=
+#          paste0(tract,re_code_7,sex,age_range,as.character(100000+sample(1:.N))),
+#        by=.(tract,re_code_7,sex,age_range)]
+#tr_hhRelR[re_code_14=="P",("re_code_H"):=
+#            bg_SARE[.SD,list(re_code),on=.(tr_bg_SARp_match_id)]]
+#bg_SARE[is.na(role_tr)&re_code=="P",c("alone_tr","role_tr","role_7_tr","household_tr"):=
+#          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SARp_match_id)]]
+#table(tr_hhRelR[is.na(re_code_H),household]) #22521403
+#nrow(bg_SARE[!is.na(role_tr)])-nrow(tr_hhRelR)
+#table(bg_SARE[,re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
 
 #do rest of re_code_7
-tr_hhRelR[re_code!="A",("tr_bg_SARh_match_id"):=
-            paste0(GEOID,re_code,sex,age_range_23,as.character(100000+sample(1:.N))),
-          by=.(GEOID,re_code,sex,age_range_23)]
-bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino",("tr_bg_SARh_match_id"):=
-          paste0(tract,re_code_7,sex,age_range,as.character(100000+sample(1:.N))),
-        by=.(tract,re_code_7,sex,age_range)]
-tr_hhRelR[re_code!="A",("re_code_14"):=
+nrow(bg_SARE[is.na(role_tr)])
+tr_hhRelR[HvL=="Not Hispanic or Latino"&re_code_14!="I",("tr_bg_SARh_match_id"):=
+            paste0(GEOID,re_code_14,sex,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,re_code_14,sex,age_range_23)]
+bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I",("tr_bg_SARh_match_id"):=
+          paste0(tract,re_code,sex,age_range,as.character(100000+sample(1:.N))),
+        by=.(tract,re_code,sex,age_range)]
+tr_hhRelR[HvL=="Not Hispanic or Latino"&re_code_14!="I",("match_7"):=
             bg_SARE[.SD,list(re_code),on=.(tr_bg_SARh_match_id)]]
-bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino",c("alone_tr","role_tr","role_7_tr","household_tr"):=
+bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I",c("alone_tr","role_tr","role_7_tr","household_tr"):=
           tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SARh_match_id)]]
-table(tr_hhRelR[is.na(re_code_H),household]) #28514816
-nrow(bg_SARE[!is.na(role_tr)])-nrow(tr_hhRelR) #32260 - .01% over b/c it doesn't know how many to stop at; use bg to drop some
-table(bg_SARE[!is.na(role_tr),re_code_7])-table(tr_hhRelR[,re_code]) #sums to 32260, with max at A of 32427
+nrow(tr_hhRelR[is.na(match_7)]) 
+nrow(bg_SARE[is.na(role_tr)])
+nrow(bg_SARE[!is.na(role_tr)])-nrow(tr_hhRelR) #1573
+table(bg_SARE[!is.na(role_tr),re_code_7])-table(tr_hhRelR[,re_code]) #sums to -21907 (.077%)
+#match on age_range_3
+tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code!="A",("tr_bg_SARha3_match_id"):=
+            paste0(GEOID,re_code_14,sex,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,re_code_14,sex,age_range_3)]
+bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code_7!="A",("tr_bg_SARha3_match_id"):=
+          paste0(tract,re_code,sex,age_range_3,as.character(100000+sample(1:.N))),
+        by=.(tract,re_code,sex,age_range_3)]
+tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code!="A",("match_7"):=
+            bg_SARE[.SD,list(re_code),on=.(tr_bg_SARha3_match_id)]]
+bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code_7!="A",c("alone_tr","role_tr","role_7_tr","household_tr"):=
+          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SARha3_match_id)]]
+nrow(tr_hhRelR[is.na(match_7)])
+nrow(bg_SARE[!is.na(role_tr)])-nrow(tr_hhRelR) #18679
+table(bg_SARE[!is.na(role_tr),re_code_7])-table(tr_hhRelR[,re_code]) #sums to 18679 (.065%)
 table(bg_SARE[,re_code_7])-table(bg_SARE[!is.na(household_tr),re_code_7])
+
+
 
 #maybe go back up to original tr_hhSARE to reduce the numbers - but have to think about age_range_23 staying stable...
 #corrections for bg for roles, and for total numbers by matching with bg_hhRel, which doesn't have RE, but does have totals for roles at bg
