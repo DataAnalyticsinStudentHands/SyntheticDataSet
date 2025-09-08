@@ -599,11 +599,11 @@ nrow(tr_hhRelR[is.na(match_bgSARE)])
 
 
 bg_hhRel[is.na(re_code_14),("bg_Rela_match_id"):=
-           paste0(tract,household,sex,role,alone,age_range_6,re_code_tr,as.character(100000+sample(1:.N))),
-         by=.(tract,household,sex,role,alone,re_code_tr,age_range_6)]
+           paste0(tract,household,sex,role,alone,age_range_6,re_code_14_tr,as.character(100000+sample(1:.N))),
+         by=.(tract,household,sex,role,alone,re_code_14_tr,age_range_6)]
 bg_SARE[is.na(household),("bg_Rela_match_id"):=
-          paste0(tract,household_tr,sex,role_tr,alone_tr,age_range_6,re_code_7,as.character(100000+sample(1:.N))),
-        by=.(tract,household_tr,sex,role_tr,alone_tr,age_range_6,re_code_7)]
+          paste0(tract,household_tr,sex,role_tr,alone_tr,age_range_6,re_code,as.character(100000+sample(1:.N))),
+        by=.(tract,household_tr,sex,role_tr,alone_tr,age_range_6,re_code)]
 bg_hhRel[is.na(re_code_14),("re_code_14"):=
            bg_SARE[.SD,list(re_code),on=.(bg_Rela_match_id)]]
 bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
@@ -613,21 +613,56 @@ bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
 #table(bg_SARE[is.na(household),age_range_6])
 #table(bg_SARE[,age_range_6],bg_SARE[,role])
 nrow(bg_hhRel[is.na(re_code_14)]) #5108591 (about 18% not matched, when doing without re_code and without second match to tr_hhRelR)
+#got an extra 225k (.7%) by doing the rematch with tr_hhRel - maybe not worth it..
+
+table(bg_SARE[,role],bg_SARE[,age_range])
+
+#didn't work as well as I would have hoped; although gets right totals, they don't match on age and role correctly
+#order by age_range_6 and age_range_23
+
+bg_hhRel <- bg_hhRel[order(match(age_range_6,c("Under 18 years","18 to 34 years","18 to 64 years","35 to 64 years","65 years and over")))]
+bg_SARE <- bg_SARE[order(age_num)]
 
 
-
-#try for better without sex, household, alone
+#moving over without sample, so order on age_range is maintained within re_code_14; b/c of group_quarters, could undermatch seniors...
 bg_hhRel[is.na(re_code_14),("bg_Relc_match_id"):=
-           paste0(tract,role,age_range_6,as.character(100000+sample(1:.N))),
-         by=.(tract,role,age_range_6)]
+           paste0(tract,role,re_code_14_tr,as.character(100000+(1:.N))),
+         by=.(tract,role,re_code_14_tr)]
 bg_SARE[is.na(household),("bg_Relc_match_id"):=
-          paste0(tract,role_tr,age_range_6,as.character(100000+sample(1:.N))),
-        by=.(tract,role_tr,age_range_6)]
+          paste0(tract,role_tr,re_code,as.character(100000+(1:.N))),
+        by=.(tract,role_tr,re_code)]
 bg_hhRel[is.na(re_code_14),("re_code_14"):=
            bg_SARE[.SD,list(re_code),on=.(bg_Relc_match_id)]]
 bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
           bg_hhRel[.SD,c(list(alone),list(role),list(role_7),list(household),list(GEOID)),on=.(bg_Relc_match_id)]]
-nrow(bg_hhRel[is.na(re_code_14)]) #5678308 (about 20% not matched)
+nrow(bg_hhRel[is.na(re_code_14)]) #1407921 (about 5% not matched; less than 3%, accounting for group_quarters)
+
+#without role
+bg_hhRel[is.na(re_code_14),("bg_Reld_match_id"):=
+           paste0(tract,re_code_14_tr,as.character(100000+(1:.N))),
+         by=.(tract,re_code_14_tr)]
+bg_SARE[is.na(household),("bg_Reld_match_id"):=
+          paste0(tract,re_code,as.character(100000+(1:.N))),
+        by=.(tract,re_code)]
+bg_hhRel[is.na(re_code_14),("re_code_14"):=
+           bg_SARE[.SD,list(re_code),on=.(bg_Reld_match_id)]]
+bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
+          bg_hhRel[.SD,c(list(alone),list(role),list(role_7),list(household),list(GEOID)),on=.(bg_Reld_match_id)]]
+nrow(bg_hhRel[is.na(re_code_14)]) #866573-606045 (group_q)=260528 (less than 1% not matched)
+
+#on tract only, but back to sampling
+bg_hhRel[is.na(re_code_14),("bg_Rele_match_id"):=
+           paste0(tract,as.character(100000+sample(1:.N))),
+         by=.(tract)]
+bg_SARE[is.na(household),("bg_Rele_match_id"):=
+          paste0(tract,as.character(100000+sample(1:.N))),
+        by=.(tract)]
+bg_hhRel[is.na(re_code_14),("re_code_14"):=
+           bg_SARE[.SD,list(re_code),on=.(bg_Rele_match_id)]]
+bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
+          bg_hhRel[.SD,c(list(alone),list(role),list(role_7),list(household),list(GEOID)),on=.(bg_Rele_match_id)]]
+nrow(bg_hhRel[is.na(re_code_14)])==0
+#lost some of the re_code_14, but much less than 1%; not sure how much shift on age means we lost kids in group_quarters
 
 #RESHUFFLE AGE_RANGE_6 so it's tighter?? 
 
