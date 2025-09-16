@@ -661,7 +661,21 @@ bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
           tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household),list(bg_GEOID)),on=.(trbg_RelRc_match_id)]]
 nrow(bg_SARE[is.na(household)])#826715
 nrow(tr_hhRelR[is.na(match_bgSARE)])#220670 (1.7%)
-#check on bg_GEOID; if not working, go back to bg_hhRel...
+
+#last bit on tract only, with age_range still ordered in background
+bg_SARE[is.na(household),("trbg_RelRd_match_id"):=
+          paste0(tract,as.character(100000+(1:.N))),
+        by=.(tract)]
+tr_hhRelR[is.na(match_bgSARE),("trbg_RelRd_match_id"):=
+            paste0(GEOID,as.character(100000+(1:.N))),
+          by=.(GEOID)]
+tr_hhRelR[is.na(match_bgSARE),("match_bgSARE"):=
+            bg_SARE[.SD,list(re_code),on=.(trbg_RelRd_match_id)]]
+bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
+          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household),list(bg_GEOID)),on=.(trbg_RelRd_match_id)]]
+nrow(bg_SARE[is.na(household)])==(nrow(bg_SARE)-nrow(tr_hhRelR))
+nrow(tr_hhRelR[is.na(match_bgSARE)])==0
+table(bg_SARE[bg_GEOID=="48_157_673104_3",role])-table(bg_hhRel[GEOID=="48_157_673104_3",role])
 
 
 bg_hhRel[is.na(re_code_14),("bg_Rela_match_id"):=
