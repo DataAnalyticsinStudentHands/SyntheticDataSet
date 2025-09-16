@@ -596,12 +596,73 @@ bg_hhRel[,("trbg_Rel_match_id"):=
 tr_hhRelR[,("trbg_Rel_match_id"):=
           paste0(GEOID,household,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
         by=.(GEOID,household,sex,role,alone,age_range_2)]
-tr_hhRelR[,c("match_trbgRel","match_bgSARE"):=
-    bg_hhRel[.SD,c(list(household),list(re_code_14)),on=.(trbg_Rel_match_id)]]
+tr_hhRelR[,c("match_trbgRel","match_bgSARE","bg_GEOID"):=
+    bg_hhRel[.SD,c(list(household),list(re_code_14),list(GEOID)),on=.(trbg_Rel_match_id)]]
 bg_hhRel[,c("re_code_tr","re_code_14_tr","age_range_6_tr"):=
             tr_hhRelR[.SD,c(list(re_code),list(re_code_14),list(age_range_6)),on=.(trbg_Rel_match_id)]]
 nrow(tr_hhRelR[is.na(match_trbgRel)])==0
 nrow(tr_hhRelR[is.na(match_bgSARE)]) #6106903
+
+#go back to tr_hhRelR to get different matches
+bg_SARE[is.na(household),("trbg_RelR_match_id"):=
+           paste0(tract,re_code,household_tr,sex,role_tr,alone_tr,age_range_6,as.character(100000+sample(1:.N))),
+         by=.(tract,re_code,household_tr,sex,role_tr,alone_tr,age_range_6)]
+tr_hhRelR[is.na(match_bgSARE),("trbg_RelR_match_id"):=
+            paste0(GEOID,re_code_14,household,sex,role,alone,age_range_6,as.character(100000+sample(1:.N))),
+          by=.(GEOID,re_code_14,household,sex,role,alone,age_range_6)]
+tr_hhRelR[is.na(match_bgSARE),("match_bgSARE"):=
+            bg_SARE[.SD,list(re_code),on=.(trbg_RelR_match_id)]]
+bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
+           tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household),list(bg_GEOID)),on=.(trbg_RelR_match_id)]]
+nrow(bg_SARE[is.na(household)])#6430040
+nrow(tr_hhRelR[is.na(match_bgSARE)]) #6112887
+
+#finish the matching to tr_hhRelR, so totals on re_code14 for households are right, at least at tract level
+bg_SARE[is.na(household),("trbg_RelRa_match_id"):=
+          paste0(tract,re_code,household_tr,age_range_6,as.character(100000+sample(1:.N))),
+        by=.(tract,re_code,household_tr,age_range_6)]
+tr_hhRelR[is.na(match_bgSARE),("trbg_RelRa_match_id"):=
+            paste0(GEOID,re_code_14,household,age_range_6,as.character(100000+sample(1:.N))),
+          by=.(GEOID,re_code_14,household,age_range_6)]
+tr_hhRelR[is.na(match_bgSARE),("match_bgSARE"):=
+            bg_SARE[.SD,list(re_code),on=.(trbg_RelRa_match_id)]]
+bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
+          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household),list(bg_GEOID)),on=.(trbg_RelRa_match_id)]]
+nrow(bg_SARE[is.na(household)])#2853794
+nrow(tr_hhRelR[is.na(match_bgSARE)]) #2536641 
+
+#order on age range and then do last bit without household_tr, since that might not have been the right fit...
+tr_hhRelR <- tr_hhRelR[order(match(age_range_6,c("Under 18 years","18 to 34 years","18 to 64 years","35 to 64 years","65 years and over")))]
+bg_SARE <- bg_SARE[order(age_num)]
+
+bg_SARE[is.na(household),("trbg_RelRb_match_id"):=
+          paste0(tract,re_code,as.character(100000+(1:.N))),
+        by=.(tract,re_code)]
+tr_hhRelR[is.na(match_bgSARE),("trbg_RelRb_match_id"):=
+            paste0(GEOID,re_code_14,as.character(100000+(1:.N))),
+          by=.(GEOID,re_code_14)]
+tr_hhRelR[is.na(match_bgSARE),("match_bgSARE"):=
+            bg_SARE[.SD,list(re_code),on=.(trbg_RelRb_match_id)]]
+bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
+          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household),list(bg_GEOID)),on=.(trbg_RelRb_match_id)]]
+nrow(bg_SARE[is.na(household)])#961313
+nrow(tr_hhRelR[is.na(match_bgSARE)])#355268 (1.2%)
+
+#for last 355k, just move over on re_code_7?
+bg_SARE[is.na(household),("trbg_RelRc_match_id"):=
+          paste0(tract,re_code_7,as.character(100000+(1:.N))),
+        by=.(tract,re_code_7)]
+tr_hhRelR[is.na(match_bgSARE),("trbg_RelRc_match_id"):=
+            paste0(GEOID,re_code,as.character(100000+(1:.N))),
+          by=.(GEOID,re_code)]
+tr_hhRelR[is.na(match_bgSARE),("match_bgSARE"):=
+            bg_SARE[.SD,list(re_code),on=.(trbg_RelRc_match_id)]]
+bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
+          tr_hhRelR[.SD,c(list(alone),list(role),list(role_7),list(household),list(bg_GEOID)),on=.(trbg_RelRc_match_id)]]
+nrow(bg_SARE[is.na(household)])#826715
+nrow(tr_hhRelR[is.na(match_bgSARE)])#220670 (1.7%)
+#check on bg_GEOID; if not working, go back to bg_hhRel...
+
 
 bg_hhRel[is.na(re_code_14),("bg_Rela_match_id"):=
            paste0(tract,household,sex,role,alone,age_range_6_tr,re_code_14_tr,as.character(100000+sample(1:.N))),
@@ -642,12 +703,19 @@ bg_hhRel[is.na(re_code_14),("re_code_14"):=
            bg_SARE[.SD,list(re_code),on=.(bg_Relb_match_id)]]
 bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
           bg_hhRel[.SD,c(list(alone),list(role),list(role_7),list(household),list(GEOID)),on=.(bg_Relb_match_id)]]
-nrow(bg_hhRel[is.na(re_code_14)]) # 4083241
+nrow(bg_hhRel[is.na(re_code_14)]) # 4080720
+
+#set the right number of totals for re_code_14 (although it's at tract level for this last 12%)
+
+
+
+
+#LOOK AT _tr vs. new and for totals in household, etc.
 
 bg_hhRel <- bg_hhRel[order(re_code_14_tr)]
 bg_SARE <- bg_SARE[order(re_code)]
 
-#moving over without sample, so order on re_code_14_tr is maintained.
+#moving over without sample, so order on re_code_14_tr is maintained, but it doesn't have to match.
 bg_hhRel[is.na(re_code_14),("bg_Relc_match_id"):=
            paste0(tract,role_7,age_range_6_tr,as.character(100000+(1:.N))),
          by=.(tract,role_7,age_range_6_tr)]
@@ -658,7 +726,7 @@ bg_hhRel[is.na(re_code_14),("re_code_14"):=
            bg_SARE[.SD,list(re_code),on=.(bg_Relc_match_id)]]
 bg_SARE[is.na(household),c("alone","role","role_7","household","bg_GEOID"):=
           bg_hhRel[.SD,c(list(alone),list(role),list(role_7),list(household),list(GEOID)),on=.(bg_Relc_match_id)]]
-nrow(bg_hhRel[is.na(re_code_14)]) #3149107 (about 10% not matched; less than 3%, accounting for group_quarters)
+nrow(bg_hhRel[is.na(re_code_14)]) #3149107 (about 10% not matched; less than 9%, accounting for group_quarters)
 
 #without role
 bg_hhRel[is.na(re_code_14),("bg_Reld_match_id"):=
