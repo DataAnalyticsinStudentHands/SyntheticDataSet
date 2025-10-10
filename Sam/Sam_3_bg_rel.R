@@ -42,8 +42,8 @@ Geoids <- colnames(tr_hh65RelRE_data[,.SD,.SDcols = startsWith(names(tr_hh65RelR
 tr_hh65RelRE_melted <- melt(tr_hh65RelRE_data, id.vars = c("household","role","alone","sex","re_code","race"), measure.vars = Geoids,
                             value.name = "codom_tr_hh65RelRE", variable.name = "GEOID")
 tr_hh65RelRE <- as.data.table(lapply(tr_hh65RelRE_melted[,.SD],rep,tr_hh65RelRE_melted[,codom_tr_hh65RelRE]))
-tr_hh65RelR <- tr_hh65RelRE[!re_code %in% c("H","I")]
-tr_hh65RelE <- tr_hh65RelRE[re_code %in% c("H","I")]
+#tr_hh65RelR <- tr_hh65RelRE[!re_code %in% c("H","I")]
+#tr_hh65RelE <- tr_hh65RelRE[re_code %in% c("H","I")]
 #seems to be 44k off on the totals (state-wide) from test_total_pop???? Not at all obvious what is missing...
 rm(tr_hh65RelRE_data_from_census)
 rm(tr_hh65RelRE_data)
@@ -111,22 +111,27 @@ rm(tr_hhRelRE_data)
 rm(tr_hhRelRE_data_from_census)
 rm(tr_hhRelRE_melted)
 
-#match for over64 (some potential info loss because of role_7 instead of role_18, but everything has a match and no other tables overlap on role and age)
+#match for over_64_IH (some potential info loss because of role_7 instead of role_18, but everything has a match and no other tables overlap on role and age)
+tr_hhRelRE[,("age_range_2"):=fcase(is.na(age_range_2),"over_17",default = age_range_2)]
+tr_hh65RelRE[,("age_range_2"):="over_17"]
 tr_hhRelRE[,("re65_match_id"):=
-      paste0(GEOID,re_code,household,role_7,sex,alone,as.character(100000+sample(1:.N))),
-    by=.(GEOID,re_code,household,role_7,sex,alone)]
+      paste0(GEOID,re_code,household,age_range_2,role_7,sex,alone,as.character(100000+sample(1:.N))),
+    by=.(GEOID,re_code,household,age_range_2,role_7,sex,alone)]
 tr_hh65RelRE[,("re65_match_id"):=
-      paste0(GEOID,re_code,household,role,sex,alone,as.character(100000+sample(1:.N))),
-    by=.(GEOID,re_code,household,role,sex,alone)]
+      paste0(GEOID,re_code,household,age_range_2,role,sex,alone,as.character(100000+sample(1:.N))),
+    by=.(GEOID,re_code,household,age_range_2,role,sex,alone)]
 tr_hhRelRE[,c("over_64","codom_tr_hh65RelRE"):=
             tr_hh65RelRE[.SD,c(list(re_code),list(codom_tr_hh65RelRE)),on=.(re65_match_id)]]
-#table(tr_hhRelRE[,over_64])==table(tr_hh65RelRE[,re_code]) #using re_code to test all moved over
+tr_hh65RelRE[,("over_64_match"):=
+    tr_hhRelRE[.SD,list(re_code),on=.(re65_match_id)]]
+#table(tr_hhRelRE[,over_64_IH])==table(tr_hh65RelRE[,re_code]) #using re_code to test all moved over
+table(tr_hhRelRE[,household],tr_hhRelRE[,over_64])
 #nrow(tr_hhRelRE[!is.na(over_64)])==nrow(tr_hh65RelRE)
 tr_hhRelRE[,("over_64"):=fcase(!is.na(over_64),"over_64",default = "under_65")]
 #age in sex is better than in age_range_2 (roles like householders may have under 18 that are not listed)
-#tr_hhRelRE[,("age_range_3"):=fcase(age_range_2=="under_18","Under 18 years",
-#                                over_64=="over_64","65 years and over",
-#                                default = "18 to 64 years")]
+tr_hhRelRE[,("age_range_3"):=fcase(age_range_2=="under_18","Under 18 years",
+                                over_64=="over_64","65 years and over",
+                                default = "18 to 64 years")]
 
 #a little artificial, but don't have much to go on
 tr_hhRelRE[,("age_range_6"):=fcase(age_range_2=="under_18","Under 18 years",
@@ -144,7 +149,7 @@ tr_hhRelRE[,("age_range_6"):=fcase(age_range_2=="under_18","Under 18 years",
 #table(tr_hhRelRE[,role],tr_hhRelRE[,age_range_6],useNA = "ifany")
 rm(tr_hh65RelRE)
 
-#add in specific age information for RelRE, then move to P17 with age - PCT13 had a missing row in original table - Hispanic Women who are 61 or 62.
+#add in specific age information for RelRE, then move to P17 with age - PCT13 for 2020 had a missing row in original table - Hispanic Women who are 61 or 62.
 groupname <- "PCT13" # SEX BY AGE FOR THE POPULATION IN HOUSEHOLDS (Race/eth x 2) #total pop - group quarters
 geo_type <- "tract"
 api_type <- "dec/dhc"
@@ -175,31 +180,6 @@ Geoids <- colnames(tr_hhSARE_data[,.SD,.SDcols = startsWith(names(tr_hhSARE_data
 tr_hhSARE_melted <- melt(tr_hhSARE_data, id.vars = c("re_code","race","sex","age_range_23"), measure.vars = Geoids,
                          value.name = "codom_tr_hhAge", variable.name = "GEOID")
 tr_hhSARE <- as.data.table(lapply(tr_hhSARE_melted[,.SD],rep,tr_hhSARE_melted[,codom_tr_hhAge]))
-
-
-#match with GQ for later
-#tr_hhSARE[,("age_range_3"):=fcase(age_range_23=="Under 5 years" |
-#                                       age_range_23=="5 to 9 years" |
-#                                       age_range_23=="10 to 14 years" |
-#                                       age_range_23=="15 to 17 years","Under 18 years",
-#                                     age_range_23=="18 and 19 years" |
-#                                    age_range_23=="20 years" |
-#                                    age_range_23=="21 years" |
-#                                    age_range_23=="22 to 24 years" |
-#                                    age_range_23=="25 to 29 years" |
-#                                    age_range_23=="30 to 34 years" |
-#                                    age_range_23=="35 to 39 years" |
-#                                    age_range_23=="40 to 44 years" |
-#                                    age_range_23=="45 to 49 years" |
-#                                    age_range_23=="50 to 54 years" |
-#                                    age_range_23=="55 to 59 years" |
-#                                    age_range_23=="60 and 61 years" |
-#                                    age_range_23=="62 to 64 years","18 to 64 years",
-#                                     default="65 years and over")]
-#table(tr_hhSARE[,age_range_3],useNA = "ifany")-table(tr_hhRelRE[,age_range_3],useNA = "ifany")
-#off b/c Rel is getting very approximate ages on some of the roles and also still has GQ
-#tr_hhSAR <- tr_hhSARE[!re_code %in% c("H","I")]
-#tr_hhSAE <- tr_hhSARE[re_code %in% c("H","I")]
 rm(tr_hhSARE_data_from_census)
 rm(tr_hhSARE_data)
 rm(tr_hhSARE_melted)
@@ -225,8 +205,8 @@ tr_hhSARE[,("age_num"):=fcase(age_range_23=="Under 5 years",as.integer(0),
 #introduces NAs by coercion warning, but only Un from Under 5 years causes it; doesn't seem to hurt anything...
 #age_range_6 also has: "Institutionalized under 65 years", but these are only households and have no data to match on
 tr_hhSARE[,("age_range_6"):=fcase(age_num<18,"Under 18 years",
-                                  age_num>17 & age_num<25,sample(c("18 to 24 years","18 to 64 years"),.N,c(.6,.4),replace=TRUE),
-                                  age_num>24 & age_num<35,sample(c("18 to 34 years","18 to 64 years"),.N,c(.3,.7),replace=TRUE),
+                                  age_num>17 & age_num<25,sample(c("18 to 24 years","18 to 64 years"),.N,c(.7,.3),replace=TRUE),
+                                  age_num>24 & age_num<35,sample(c("18 to 34 years","18 to 64 years"),.N,c(.2,.8),replace=TRUE),
                                   age_num>34 & age_num<55,sample(c("55 to 64 years","18 to 64 years"),.N,c(.1,.9),replace=TRUE),#start with more, .1,.9 gets you close to matching total numbers
                                   age_num>64,"65 years and over",default = "18 to 64 years"
                                   )]
@@ -243,7 +223,7 @@ tr_hhSARE[,("match_relre"):=
             tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERel_match_id)]]
 tr_hhRelRE[household=="In households",("age_range_23"):=
            tr_hhSARE[.SD,list(age_range_23),on=.(tr_SARERel_match_id)]]
-#table(tr_hhRelRE[household=="In households"&is.na(age_range_23),sex]) #surprisingly good match
+#table(tr_hhRelRE[household=="In households"&!is.na(age_range_23),sex])-table(tr_hhRelRE[,sex]) #surprisingly good match
 #without sex
 tr_hhSARE[is.na(match_relre),("tr_SARERela_match_id"):=
             paste0(GEOID,re_code,age_range_6,as.character(100000+sample(1:.N))),
@@ -255,7 +235,8 @@ tr_hhSARE[is.na(match_relre),("match_relre"):=
             tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERela_match_id)]]
 tr_hhRelRE[household=="In households"&is.na(age_range_23),c("age_range_23","sex"):=
              tr_hhSARE[.SD,c(list(age_range_23),list(sex)),on=.(tr_SARERela_match_id)]]
-nrow(tr_hhRelRE[is.na(age_range_23)]) #just over 5% still not matching
+nrow(tr_hhRelRE[household=="In households"&is.na(age_range_23)]) #4130482 just about 8% still not matching
+table(tr_hhSARE[,re_code],tr_hhSARE[,age_range_6],useNA = "ifany")-table(tr_hhRelRE[household=="In households",re_code],tr_hhRelRE[household=="In households",age_range_6],useNA = "ifany")
 #table(tr_hhRelRE[household=="In households"&is.na(age_range_23),age_range_6])
 #table(tr_hhRelRE[is.na(age_range_23)&household=="In households",age_range_6],useNA = "ifany")
 #table(tr_hhSARE[is.na(match_relre),age_range_23],useNA = "ifany")
@@ -608,16 +589,31 @@ nrow(bg_hhRel[is.na(re_code_14)]) #2932401 (about 10% not matched)
 table(bg_SARE[,age_range],bg_SARE[,role],useNA = "ifany")
 
 #go back to tr_hhRelR to get different additional matches
+#first exclude already matched
 bg_hhRel[,("trbg_Rel_match_id"):=
+           paste0(tract,household,re_code_14,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
+         by=.(tract,household,re_code_14,sex,role,alone,age_range_2)]
+tr_hhRelR[,("trbg_Rel_match_id"):=
+            paste0(GEOID,household,re_code_14,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,re_code_14,sex,role,alone,age_range_2)]
+tr_hhRelR[,c("match_trbgRel","match_bgSARE","bg_GEOID"):=
+            bg_hhRel[.SD,c(list(household),list(re_code_14),list(GEOID)),on=.(trbg_Rel_match_id)]]
+bg_hhRel[,("re_code_match"):= #just for testing; can't use to match to bg_SARE b/c it breaks totals
+           tr_hhRelR[.SD,list(re_code),on=.(trbg_Rel_match_id)]]
+nrow(tr_hhRelR[is.na(match_trbgRel)])==0
+nrow(tr_hhRelR[is.na(match_bgSARE)])
+
+#then remix
+bg_hhRel[is.na(re_code_14),("trbg_Rela_match_id"):= 
            paste0(tract,household,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
          by=.(tract,household,sex,role,alone,age_range_2)]
-tr_hhRelR[,("trbg_Rel_match_id"):=
+tr_hhRelR[is.na(match_bgSARE),("trbg_Rela_match_id"):=
           paste0(GEOID,household,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
         by=.(GEOID,household,sex,role,alone,age_range_2)]
-tr_hhRelR[,c("match_trbgRel","match_bgSARE","bg_GEOID"):=
-    bg_hhRel[.SD,c(list(household),list(re_code_14),list(GEOID)),on=.(trbg_Rel_match_id)]]
-bg_hhRel[,c("re_code_tr","re_code_14_tr","age_range_6_tr"):= #just for testing; can't use to match to bg_SARE b/c it breaks totals
-            tr_hhRelR[.SD,c(list(re_code),list(re_code_14),list(age_range_6)),on=.(trbg_Rel_match_id)]]
+tr_hhRelR[is.na(match_bgSARE),c("match_trbgRel","match_bgSARE","bg_GEOID"):=
+    bg_hhRel[.SD,c(list(household),list(re_code_14),list(GEOID)),on=.(trbg_Rela_match_id)]]
+bg_hhRel[is.na(re_code_14),c("re_code_tr","re_code_14_tr","age_range_6_tr"):= 
+            tr_hhRelR[.SD,c(list(re_code),list(re_code_14),list(age_range_6)),on=.(trbg_Rela_match_id)]]
 nrow(tr_hhRelR[is.na(match_trbgRel)])==0
 nrow(tr_hhRelR[is.na(match_bgSARE)]) #2326356 (2932401-2326356==606045, which is right for group quarters)
 
@@ -713,7 +709,7 @@ table(bg_SARE[,role])-table(tr_hhRelR[household=="In households",role])
 #fix roles and roles_7 by age 
 #redo with Rel65, and Rel18?
 #
-#add under18 info; this includes some group quarter info
+#add under18 info; this includes some group quarter info; not doing above, because doesn't have re_code
 groupname <- "PCT8" # RELATIONSHIP BY AGE FOR THE POPULATION UNDER 18 YEARS; really only own-child and group quarter information
 geo_type <- "tract"
 api_type <- "dec/dhc"
