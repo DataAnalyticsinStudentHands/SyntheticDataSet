@@ -200,6 +200,10 @@ row_fix <- as.data.table(c(list(GEOID=rep_row_fix[,GEOID]),list(codom_tr_hhAge=r
 #row_fix <-row_fix[rep_rf>0]
 tr_hhSARErf <- as.data.table(lapply(row_fix[,.SD],rep,row_fix[,codom_tr_hhAge]))
 tr_hhSARE <- rbindlist(list(tr_hhSARE,tr_hhSARErf),use.names = TRUE)
+rm(rep_row_fix)
+rm(row_fix)
+rm(tr_hhSARErowfix)
+rm(tr_hhSARErf)
 tr_hhSARE[,("age_num"):=fcase(age_range_23=="Under 5 years",as.integer(0),
                            age_range_23=="5 to 9 years",as.integer(5),default = as.integer(str_sub(age_range_23,start=1,end=2)))]
 #introduces NAs by coercion warning, but only Un from Under 5 years causes it; doesn't seem to hurt anything...
@@ -210,15 +214,18 @@ tr_hhSARE[,("age_range_6"):=fcase(age_num<18,"Under 18 years",
                                   age_num>34 & age_num<55,sample(c("55 to 64 years","18 to 64 years"),.N,c(.05,.95),replace=TRUE),#start with more, .1,.9 gets you close to matching total numbers
                                   age_num>64,"65 years and over",default = "18 to 64 years"
                                   )]
+tr_hhSARE[,("age_range_3"):=fcase(age_num<18,"Under 18 years",
+                                  age_num>64,"65 years and over",default = "18 to 64 years"
+                                  )]
 
 #age_range_6 don't match perfectly, but get it started
 #for tr_hhRel, don't know sex for under_18, so will have to do a second time
 tr_hhSARE[,("tr_SARERel_match_id"):=
-           paste0(GEOID,re_code,sex,age_range_6,as.character(100000+sample(1:.N))),
-         by=.(GEOID,re_code,sex,age_range_6)]
+           paste0(GEOID,re_code,sex,age_range_3,age_range_6,as.character(100000+sample(1:.N))),
+         by=.(GEOID,re_code,sex,age_range_3,age_range_6)]
 tr_hhRelRE[household=="In households",("tr_SARERel_match_id"):=
-           paste0(GEOID,re_code,sex,age_range_6,as.character(100000+sample(1:.N))),
-         by=.(GEOID,re_code,sex,age_range_6)]
+           paste0(GEOID,re_code,sex,age_range_3,age_range_6,as.character(100000+sample(1:.N))),
+         by=.(GEOID,re_code,sex,age_range_3,age_range_6)]
 tr_hhSARE[,("match_relre"):= 
             tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERel_match_id)]]
 tr_hhRelRE[household=="In households",("age_range_23"):=
@@ -226,16 +233,30 @@ tr_hhRelRE[household=="In households",("age_range_23"):=
 #table(tr_hhRelRE[household=="In households"&!is.na(age_range_23),sex])-table(tr_hhRelRE[,sex]) #surprisingly good match
 #without sex
 tr_hhSARE[is.na(match_relre),("tr_SARERela_match_id"):=
-            paste0(GEOID,re_code,age_range_6,as.character(100000+sample(1:.N))),
-          by=.(GEOID,re_code,age_range_6)]
+            paste0(GEOID,re_code,age_range_3,age_range_6,as.character(100000+sample(1:.N))),
+          by=.(GEOID,re_code,age_range_3,age_range_6)]
 tr_hhRelRE[household=="In households"&is.na(age_range_23),("tr_SARERela_match_id"):=
-             paste0(GEOID,re_code,age_range_6,as.character(100000+sample(1:.N))),
-           by=.(GEOID,re_code,age_range_6)]
+             paste0(GEOID,re_code,age_range_3,age_range_6,as.character(100000+sample(1:.N))),
+           by=.(GEOID,re_code,age_range_3,age_range_6)]
 tr_hhSARE[is.na(match_relre),("match_relre"):= 
             tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERela_match_id)]]
 tr_hhRelRE[household=="In households"&is.na(age_range_23),c("age_range_23","sex"):=
              tr_hhSARE[.SD,c(list(age_range_23),list(sex)),on=.(tr_SARERela_match_id)]]
 nrow(tr_hhRelRE[household=="In households"&is.na(age_range_23)]) #3474224 just about 6.7% still not matching
+
+#make sure it still respects age_range_3
+tr_hhSARE[is.na(match_relre),("tr_SARERelb_match_id"):=
+            paste0(GEOID,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,age_range_3)]
+tr_hhRelRE[household=="In households"&is.na(age_range_23),("tr_SARERelb_match_id"):=
+             paste0(GEOID,age_range_3,as.character(100000+sample(1:.N))),
+           by=.(GEOID,age_range_3)]
+tr_hhSARE[is.na(match_relre),("match_relre"):= 
+            tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERelb_match_id)]]
+tr_hhRelRE[household=="In households"&is.na(age_range_23),c("age_range_23","sex"):=
+             tr_hhSARE[.SD,c(list(age_range_23),list(sex)),on=.(tr_SARERelb_match_id)]]
+nrow(tr_hhRelRE[household=="In households"&is.na(age_range_23)]) #614788
+
 table(tr_hhSARE[,re_code],tr_hhSARE[,age_range_6],useNA = "ifany")-table(tr_hhRelRE[household=="In households",re_code],tr_hhRelRE[household=="In households",age_range_6],useNA = "ifany")
 #table(tr_hhRelRE[household=="In households"&is.na(age_range_23),age_range_6])
 #table(tr_hhRelRE[is.na(age_range_23)&household=="In households",age_range_6],useNA = "ifany")
@@ -252,16 +273,16 @@ tr_hhRelRE <- tr_hhRelRE[order(match(role,c("Biological child","Grandchild","Ado
 tr_hhSARE <- tr_hhSARE[order(match(age_range_6,c("Under 18 years","18 to 24 years","18 to 34 years","18 to 64 years",
                                                  "55 to 64 years","65 years and over")))]
 #pick up last 1%
-tr_hhSARE[is.na(match_relre),("tr_SARERelb_match_id"):=
+tr_hhSARE[is.na(match_relre),("tr_SARERelc_match_id"):=
             paste0(GEOID,re_code,as.character(100000+(1:.N))), #re_code per GEOID should still match, then just keep order when assigning count
           by=.(GEOID,re_code)]
-tr_hhRelRE[household=="In households"&is.na(age_range_23),("tr_SARERelb_match_id"):=
+tr_hhRelRE[household=="In households"&is.na(age_range_23),("tr_SARERelc_match_id"):=
              paste0(GEOID,re_code,as.character(100000+(1:.N))),
            by=.(GEOID,re_code)]
 tr_hhSARE[is.na(match_relre),("match_relre"):= 
-            tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERelb_match_id)]]
+            tr_hhRelRE[.SD,list(re_code),on=.(tr_SARERelc_match_id)]]
 tr_hhRelRE[household=="In households"&is.na(age_range_23),c("age_range_23","sex"):=
-             tr_hhSARE[.SD,c(list(age_range_23),list(sex)),on=.(tr_SARERelb_match_id)]]
+             tr_hhSARE[.SD,c(list(age_range_23),list(sex)),on=.(tr_SARERelc_match_id)]]
 #nrow(tr_hhRelRE[is.na(age_range_23)&household=="In households"])==0
 
 #pull in bg_SARE for matching by age and re_code_14 / created by Sam_1_bg_sare.R
@@ -301,8 +322,9 @@ bg_SARE[,("tract"):=str_remove_all(substr(GEOID,1,13),"_")]
 #nrow(tr_hhRelRE[is.na(sex)&household=="In households"])==0
 
 #joining bg_SARE and tr_hhRelRE, with Group Quarters put back in
-tr_hhRelRE[,("tr_SARERelb_match_id"):=NULL]
+tr_hhRelRE[,("tr_SARERelc_match_id"):=NULL]
 tr_hhRelRE <- rbind(tr_hhRelRE,tr_hhRelRE_inst)
+rm(tr_hhRelRE_inst)
 #because we need to move individuals only once, need to match tr_hhRelR with tr_hhSAE
 tr_hhRelR <- tr_hhRelRE[!re_code%in%c("H","I")] #have to get group quarters later
 tr_hhRelH <- tr_hhRelRE[re_code=="H"]
@@ -612,20 +634,21 @@ nrow(bg_hhRel[is.na(re_code_14)]) #2787664 (about 10% not matched)
 #table(bg_SARE[,age_range],bg_SARE[,role],useNA = "ifany")
 
 #go back to tr_hhRelR to get different additional matches
-#first exclude already matched - don't need?
-#bg_hhRel[,("trbg2_Rel_match_id"):=
-#           paste0(tract,household,re_code_14,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
-#         by=.(tract,household,re_code_14,sex,role,alone,age_range_2)]
-#tr_hhRelR[,("trbg2_Rel_match_id"):=
-#            paste0(GEOID,household,re_code_14,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
-#          by=.(GEOID,household,re_code_14,sex,role,alone,age_range_2)]
-#tr_hhRelR[,c("match_trbgRel","match_bgSARE","bg_GEOID"):=
-#            bg_hhRel[.SD,c(list(household),list(re_code_14),list(GEOID)),on=.(trbg2_Rel_match_id)]]
-#bg_hhRel[,("re_code_match"):= #just for testing; can't use to match to bg_SARE b/c it breaks totals
-#           tr_hhRelR[.SD,list(re_code),on=.(trbg2_Rel_match_id)]]
-#nrow(tr_hhRelR[is.na(match_trbgRel)])==nrow(tr_hhRelR[is.na(match_bgSARE)])
+#first exclude already matched 
+bg_hhRel[,("trbg2_Rel_match_id"):=
+           paste0(tract,household,re_code_14,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
+         by=.(tract,household,re_code_14,sex,role,alone,age_range_2)]
+tr_hhRelR[,("trbg2_Rel_match_id"):=
+            paste0(GEOID,household,re_code_14,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
+          by=.(GEOID,household,re_code_14,sex,role,alone,age_range_2)]
+tr_hhRelR[,c("match_trbgRel","match_bgSARE","bg_GEOID"):=
+            bg_hhRel[.SD,c(list(household),list(re_code_14),list(GEOID)),on=.(trbg2_Rel_match_id)]]
+bg_hhRel[,("re_code_match"):= #just for testing
+           tr_hhRelR[.SD,list(re_code),on=.(trbg2_Rel_match_id)]]
+nrow(tr_hhRelR[is.na(match_trbgRel)])
+nrow(tr_hhRelR[is.na(match_bgSARE)])
 
-#then remix
+#then remix 
 bg_hhRel[is.na(re_code_14),("trbg_Rela_match_id"):= 
            paste0(tract,household,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
          by=.(tract,household,sex,role,alone,age_range_2)]
@@ -636,8 +659,8 @@ tr_hhRelR[is.na(match_bgSARE),c("match_trbgRel","match_bgSARE","bg_GEOID"):=
     bg_hhRel[.SD,c(list(household),list(re_code_14),list(GEOID)),on=.(trbg_Rela_match_id)]]
 bg_hhRel[is.na(re_code_14),c("re_code_tr","re_code_14_tr","age_range_6_tr"):= 
             tr_hhRelR[.SD,c(list(re_code),list(re_code_14),list(age_range_6)),on=.(trbg_Rela_match_id)]]
-nrow(tr_hhRelR[is.na(match_trbgRel)])==0
-#nrow(tr_hhRelR[is.na(match_bgSARE)]) #2326356 (2932401-2326356==606045, which is right for group quarters) - no longer what we want to measure
+nrow(tr_hhRelR[is.na(match_trbgRel)])
+nrow(tr_hhRelR[is.na(match_bgSARE)]) #2326356 (2932401-2326356==606045, which is right for group quarters) - no longer what we want to measure
 
 #matching to tr_hhRelR with the bg_GEOID from bg_hhRel written over
 bg_SARE[is.na(household),("bg_RelSARE_match_id"):=
@@ -728,7 +751,9 @@ nrow(bg_hhRel[is.na(re_code_14)])#0
 table(bg_SARE[,age_range],bg_SARE[,role],useNA = "ifany") #this test does not depend on bg_GEOID
 table(bg_SARE[,role])-table(bg_hhRel[,role])
 table(bg_SARE[,role])-table(tr_hhRelR[,role])
+table(bg_SARE[,age_range_3])-table(tr_hhRelR[,age_range_3])
 
+#NEED TO ENFORCE AGE_RANGE_3 FROM TR_HHRELR
 
 #fix roles and roles_7 by age 
 #redo with Rel65, and Rel18?
