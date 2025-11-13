@@ -397,7 +397,30 @@ tr_hhRelH[,("re_code_7"):=
            bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAE_match_id)]]
 bg_SARE[HvL=="Hispanic or Latino",c("alone_tr","role_tr","household_tr"):=
           tr_hhRelH[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SAE_match_id)]]
-nrow(tr_hhRelH[is.na(re_code_7)])==nrow(tr_hhRelH[household=="In group quarters"])
+#nrow(tr_hhRelH[is.na(re_code_7)])#305537
+#get last 300k
+tr_hhRelH[is.na(re_code_7),("tr_bg_SAE1_match_id"):=
+            paste0(GEOID,sex,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,sex,age_range_3)]
+bg_SARE[HvL=="Hispanic or Latino",("tr_bg_SAE1_match_id"):= 
+          paste0(tract,sex,age_range_3,as.character(100000+sample(1:.N))),
+        by=.(tract,sex,age_range_3)]
+tr_hhRelH[is.na(re_code_7),("re_code_7"):=
+            bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAE1_match_id)]]
+bg_SARE[HvL=="Hispanic or Latino",c("alone_tr","role_tr","household_tr"):=
+          tr_hhRelH[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SAE1_match_id)]]
+#nrow(tr_hhRelH[is.na(re_code_7)]) #178802
+tr_hhRelH[is.na(re_code_7),("tr_bg_SAE2_match_id"):=
+            paste0(GEOID,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,age_range_3)]
+bg_SARE[HvL=="Hispanic or Latino",("tr_bg_SAE2_match_id"):= 
+          paste0(tract,age_range_3,as.character(100000+sample(1:.N))),
+        by=.(tract,age_range_3)]
+tr_hhRelH[is.na(re_code_7),("re_code_7"):=
+            bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAE2_match_id)]]
+bg_SARE[HvL=="Hispanic or Latino",c("alone_tr","role_tr","household_tr"):=
+          tr_hhRelH[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SAE2_match_id)]]
+#nrow(tr_hhRelH[is.na(re_code_7)])#26
 #put onto tr_hhRelR
 tr_hhRelR[is.na(re_code_I),("tr_SARH_match_id"):=
             paste0(GEOID,household,role,re_code,sex,age_range_23,as.character(100000+sample(1:.N))),
@@ -409,7 +432,7 @@ tr_hhRelR[is.na(re_code_I),("re_code_H"):=
             tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARH_match_id)]]
 tr_hhRelH[,("matched_trSAH"):=
             tr_hhRelR[.SD,list(re_code),on=.(tr_SARH_match_id)]]
-#nrow(tr_hhRelH[is.na(matched_trSAH)]) #2680220 (23%)
+#nrow(tr_hhRelH[is.na(matched_trSAH)]) #2557110 
 #pick up more by relaxing age_range and role
 tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHa_match_id"):=
             paste0(GEOID,household,role_7,re_code,sex,age_range_6,as.character(100000+sample(1:.N))),
@@ -421,7 +444,7 @@ tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):=
             tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHa_match_id)]]
 tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
             tr_hhRelR[.SD,list(re_code),on=.(tr_SARHa_match_id)]]
-#nrow(tr_hhRelH[is.na(matched_trSAH)]) #1052883 (9%)
+#nrow(tr_hhRelH[is.na(matched_trSAH)]) #902833 
 #without role, with idea that age_range_6 carries some of that
 tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHb_match_id"):=
             paste0(GEOID,household,re_code,age_range_6,as.character(100000+sample(1:.N))),
@@ -433,7 +456,7 @@ tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):=
             tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHb_match_id)]]
 tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
             tr_hhRelR[.SD,list(re_code),on=.(tr_SARHb_match_id)]]
-#nrow(tr_hhRelH[is.na(matched_trSAH)]) #343773 (3%)
+#nrow(tr_hhRelH[is.na(matched_trSAH)]) #212352 (3%)
 #get total number per tract right, even if matching on re_code and role is a bit off
 tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHc_match_id"):=
             paste0(GEOID,household,age_range_6,as.character(100000+sample(1:.N))),
@@ -445,7 +468,7 @@ tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):=
             tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHc_match_id)]]
 tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
             tr_hhRelR[.SD,list(re_code),on=.(tr_SARHc_match_id)]]
-#nrow(tr_hhRelH[is.na(matched_trSAH)]) # 1238 
+#nrow(tr_hhRelH[is.na(matched_trSAH)]) # 1291 
 #create re_code_14 on tr_hhRelR
 tr_hhRelR[,("re_code_14"):=fcase(re_code=="A" & is.na(re_code_H),"I",
                                  re_code=="B" & is.na(re_code_H),"J",
@@ -514,9 +537,8 @@ tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code!="A",("match_7"):
             bg_SARE[.SD,list(re_code),on=.(tr_bg_SARha3_match_id)]]
 bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code_7!="A",c("alone_tr","role_tr","household_tr"):=
           tr_hhRelR[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SARha3_match_id)]]
-#nrow(tr_hhRelR[is.na(match_7)]) #23262546
-#nrow(bg_SARE[!is.na(role_tr)])-nrow(tr_hhRelR) #-673569 (subtract 606045 for group quarters and have 67k not matched)
-
+nrow(tr_hhRelR[is.na(match_7)]) #23262546
+nrow(tr_hhRelR)-nrow(bg_SARE[!is.na(role_tr)])#11931070
 
 #this doesn't have RE data, so joining afterwards to help with block_group distribution
 groupname <- "P17" #HOUSEHOLD TYPE (INCLUDING LIVING ALONE) BY RELATIONSHIP
