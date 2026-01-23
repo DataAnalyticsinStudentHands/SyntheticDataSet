@@ -451,6 +451,7 @@ tr_hhRelI <- tr_hhRelRE[re_code=="I"]
 #I doesn't completely match inside of "A" on sex, role, age_range_23, on original file! which breaks the definitions!; leaving last .7 % unmatched
 #can't figure out if the problem is relative at re_code or way totals were generated; try doing best possible on households and then gq????
 #don't need household=="In households" because sex is NA and age_range_6 as unknown_GQ for both I and R
+#Should be 3024768 P and 11584597 I to make 14609365 A
 tr_hhRelR[re_code=="A",("tr_SARI_match_id"):=
           paste0(GEOID,sex,role_7,age_range_23,as.character(100000+sample(1:.N))),
         by=.(GEOID,sex,role_7,age_range_23)]
@@ -461,9 +462,25 @@ tr_hhRelR[re_code=="A",("re_code_I"):= #all should equal "I" and
             tr_hhRelI[.SD,list(re_code),on=.(tr_SARI_match_id)]]
 tr_hhRelI[,("matched_trSAI"):=
            tr_hhRelR[.SD,list(re_code),on=.(tr_SARI_match_id)]]
-#nrow(tr_hhRelI[is.na(matched_trSAI)]) #85996/nrow(tr_hhRelI)# .7%; just allow to not match for I
+nrow(tr_hhRelI[is.na(matched_trSAI)]) #179867/nrow(tr_hhRelI)# 1.5%; 
+#quick try to get more without sex
+tr_hhRelR[re_code=="A"&is.na(re_code_I),("tr_SARIa_match_id"):=
+            paste0(GEOID,role_7,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,role_7,age_range_23)]
+tr_hhRelI[is.na(matched_trSAI),("tr_SARIa_match_id"):=
+            paste0(GEOID,role_7,age_range_23,as.character(100000+sample(1:.N))),
+          by=.(GEOID,role_7,age_range_23)]
+tr_hhRelR[re_code=="A"&is.na(re_code_I),("re_code_I"):= #all should equal "I" and 
+            tr_hhRelI[.SD,list(re_code),on=.(tr_SARIa_match_id)]]
+tr_hhRelI[is.na(matched_trSAI),("matched_trSAI"):=
+            tr_hhRelR[.SD,list(re_code),on=.(tr_SARIa_match_id)]]
+nrow(tr_hhRelI[is.na(matched_trSAI)]) #106477/nrow(tr_hhRelI)# .9%
+#just allow the 106477 to not match for I, picking up with matches on A, later
 
 #move I to bg_SARE, then H, then rest of re_code_7; remember is.na(sex) & is.na(age_range) for group quarters
+
+#HOUSEHOLDERS ARE NOT BEING MATCHED CORRECTLY - CHECK ON WHETHER TO FIX CHILD_ROLE?
+#Unknown_GQ will not have been matching from age_range_3, but need it to get right total
 tr_hhRelI[,("tr_bg_SAI_match_id"):=
             paste0(GEOID,sex,child_role,age_range_23,as.character(100000+sample(1:.N))),
           by=.(GEOID,sex,child_role,age_range_23)]
@@ -474,22 +491,27 @@ tr_hhRelI[,("re_code_7"):= #should all be "A"
             bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAI_match_id)]]
 bg_SARE[re_code=="I",c("alone_tr","role_tr","role_7_tr","household_tr"):=
           tr_hhRelI[.SD,c(list(alone),list(role),list(role_7),list(household)),on=.(tr_bg_SAI_match_id)]]
-#nrow(tr_hhRelI[is.na(re_code_7)]) 
-#nrow(bg_SARE[!is.na(role_tr)])
-#finish without child_role; group quarters do not have sex or age_range
+nrow(tr_hhRelI[is.na(re_code_7)]) 
+nrow(bg_SARE[!is.na(role_tr)])
+
+
+#MAYBE CHANGE BELOW TO HAVE ANOTHER RUN WITH CHILD_ROLE??? FOR I, H, And rest?
+#finish without child_role; group quarters do not have sex or age_range, and only Householders have sex and full age_range_23
+#age_range_3 on tr_hhRelI has: 17 years, 18 to 64 years, 65 years and over, Under 18 years, unknown_GQ
+#age_range_3 on bg_SARE has 18 to 64 years, 65 years and over,    Under 18 years
 tr_hhRelI[is.na(re_code_7),("tr_bg_SAIa_match_id"):=
-            paste0(GEOID,sex,age_range_23,as.character(100000+sample(1:.N))),
-          by=.(GEOID,sex,age_range_23)]
+            paste0(GEOID,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,age_range_3)]
 bg_SARE[re_code=="I"&is.na(household_tr),("tr_bg_SAIa_match_id"):=
-          paste0(tract,sex,age_range,as.character(100000+sample(1:.N))),
-        by=.(tract,sex,age_range)]
+          paste0(tract,age_range_3,as.character(100000+sample(1:.N))),
+        by=.(tract,age_range_3)]
 tr_hhRelI[is.na(re_code_7),("re_code_7"):= #should all be "A"
             bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAIa_match_id)]]
 bg_SARE[re_code=="I"&is.na(household_tr),c("alone_tr","role_tr","household_tr","child_role"):=
           tr_hhRelI[.SD,c(list(alone),list(role),list(household),list(child_role)),on=.(tr_bg_SAIa_match_id)]]
 #table(bg_SARE[,household_tr],bg_SARE[,child_role])
 #table(tr_hhRel18[,household],tr_hhRel18[,child_role])
-#nrow(tr_hhRelI[is.na(re_code_7)]) 
+#nrow(tr_hhRelI[is.na(re_code_7)&household=="In households"]) #60547
 #nrow(tr_hhRelI[household=="In group quarters"])
 #nrow(bg_SARE[!is.na(role_tr)])
 
@@ -504,34 +526,21 @@ tr_hhRelH[,("re_code_7"):=
            bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAE_match_id)]]
 bg_SARE[HvL=="Hispanic or Latino",c("alone_tr","role_tr","household_tr"):=
           tr_hhRelH[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SAE_match_id)]]
-nrow(tr_hhRelH[is.na(re_code_7)])#8079375. #WTF???
+#nrow(tr_hhRelH[is.na(re_code_7)])#8079375. Matching almost all (-326) householders; didn't have any 17 yo householders
+#nrow(tr_hhRelH[role=="Householder"])
+
 #nrow(tr_hhRelH[is.na(re_code_7)])#1789318 (15% missing)
 tr_hhRelH[is.na(re_code_7),("tr_bg_SAEa_match_id"):=
-            paste0(GEOID,age_range_23,as.character(100000+sample(1:.N))),
-          by=.(GEOID,age_range_23)]
+            paste0(GEOID,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,age_range_3)]
 bg_SARE[HvL=="Hispanic or Latino"&is.na(household_tr),("tr_bg_SAEa_match_id"):= 
-          paste0(tract,age_range,as.character(100000+sample(1:.N))),
-        by=.(tract,age_range)]
+          paste0(tract,age_range_3,as.character(100000+sample(1:.N))),
+        by=.(tract,age_range_3)]
 tr_hhRelH[is.na(re_code_7),("re_code_7"):=
             bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAEa_match_id)]]
 bg_SARE[HvL=="Hispanic or Latino"&is.na(household_tr),c("alone_tr","role_tr","household_tr","child_role"):=
           tr_hhRelH[.SD,c(list(alone),list(role),list(household),list(child_role)),on=.(tr_bg_SAEa_match_id)]]
-#nrow(tr_hhRelH[is.na(re_code_7)])#172849 #about 1%; don't try to pick up
-#tr_hhRelH[is.na(re_code_7),("tr_bg_SAEb_match_id"):=
-#            paste0(GEOID,age_range_3,as.character(100000+sample(1:.N))),
-#          by=.(GEOID,age_range_3)]
-#bg_SARE[HvL=="Hispanic or Latino"&is.na(household_tr),("tr_bg_SAEb_match_id"):= 
-#          paste0(tract,age_range_3,as.character(100000+sample(1:.N))),
-#        by=.(tract,age_range_3)]
-#tr_hhRelH[is.na(re_code_7),("re_code_7"):=
-#            bg_SARE[.SD,list(re_code_7),on=.(tr_bg_SAEb_match_id)]]
-#bg_SARE[HvL=="Hispanic or Latino"&is.na(household_tr),c("alone_tr","role_tr","household_tr"):=
-#          tr_hhRelH[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SAEb_match_id)]]
-##nrow(tr_hhRelH[is.na(re_code_7)])#58606 - remember to pick up rest, later ?? check for gq just missing
-#table(bg_SARE[,household_tr],bg_SARE[,child_role])
-#table(tr_hhRel18[,household],tr_hhRel18[,child_role])
-
-#should have all but 60k of H and I, need only J-O
+nrow(tr_hhRelH[is.na(re_code_7)&household=="In households"])#173126 #about 1.5%; don't try to pick up
  
 #put onto tr_hhRelR, so that we're not drawing from I or P-V inappropriately
 tr_hhRelR[is.na(re_code_I),("tr_SARH_match_id"):=
@@ -544,7 +553,7 @@ tr_hhRelR[is.na(re_code_I),("re_code_H"):=
             tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARH_match_id)]]
 tr_hhRelH[,("matched_trSAH"):=
             tr_hhRelR[.SD,list(re_code),on=.(tr_SARH_match_id)]]
-#nrow(tr_hhRelH[is.na(matched_trSAH)]) #2716877 
+#nrow(tr_hhRelH[is.na(matched_trSAH)]) #1368020 
 #pick up more by relaxing age_range and role
 tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHa_match_id"):=
             paste0(GEOID,household,role_7,re_code,sex,age_range_3,as.character(100000+sample(1:.N))),
@@ -556,7 +565,7 @@ tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):=
             tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHa_match_id)]]
 tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
             tr_hhRelR[.SD,list(re_code),on=.(tr_SARHa_match_id)]]
-#nrow(tr_hhRelH[is.na(matched_trSAH)]) #1015162 
+#nrow(tr_hhRelH[is.na(matched_trSAH)]) #885153 
 #without role, with idea that age_range_6 carries some of that
 tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHb_match_id"):=
             paste0(GEOID,household,re_code,age_range_6,as.character(100000+sample(1:.N))),
@@ -568,23 +577,7 @@ tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):=
             tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHb_match_id)]]
 tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
             tr_hhRelR[.SD,list(re_code),on=.(tr_SARHb_match_id)]]
-#nrow(tr_hhRelH[is.na(matched_trSAH)]) #246157 
-#get total number per tract right, even if matching on re_code and role is a bit off?
-#better to just let bg_SARE take care of the re_code_14 as ground truth and not over-assign from this side
-#tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("tr_SARHc_match_id"):=
-#            paste0(GEOID,household,age_range_6,as.character(100000+sample(1:.N))),
-#          by=.(GEOID,household,age_range_6)]
-#tr_hhRelH[is.na(matched_trSAH),("tr_SARHc_match_id"):=
-#            paste0(GEOID,household,age_range_6,as.character(100000+sample(1:.N))),
-#          by=.(GEOID,household,age_range_6)]
-#tr_hhRelR[is.na(re_code_I)&is.na(re_code_H),("re_code_H"):= 
-#            tr_hhRelH[.SD,list(re_code_7),on=.(tr_SARHc_match_id)]]
-#tr_hhRelH[is.na(matched_trSAH),("matched_trSAH"):=
-#            tr_hhRelR[.SD,list(re_code),on=.(tr_SARHc_match_id)]]
-#table(bg_SARE[,household_tr],bg_SARE[,child_role])
-#table(tr_hhRel18[,household],tr_hhRel18[,child_role])
-#nrow(tr_hhRelH[is.na(matched_trSAH)]) # 972 
-#SHOULD IT HAVE BEEN child_role_tr??
+nrow(tr_hhRelH[is.na(matched_trSAH)&household=="In households"]) #319896 
 
 #create re_code_14 on tr_hhRelR
 tr_hhRelR[,("re_code_14"):=fcase(re_code=="A" & is.na(re_code_H),"I",
@@ -626,7 +619,7 @@ tr_hhRelR[HvL=="Not Hispanic or Latino"&re_code_14!="I",("match_7"):=
             bg_SARE[.SD,list(re_code),on=.(tr_bg_SARh_match_id)]]
 bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I",c("alone_tr","role_tr","household_tr"):=
           tr_hhRelR[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SARh_match_id)]]
-#nrow(bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I"]) #1244085 
+#nrow(bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I"]) #4034265 
 #table(bg_SARE[HvL=="Not Hispanic or Latino"&re_code!="I",re_code],useNA = "ifany")
 #table(tr_hhRelR[HvL=="Not Hispanic or Latino"&re_code_14!="I"&is.na(match_7),re_code_14],useNA = "ifany")
 #match on age_range_6 & child_role 
@@ -640,28 +633,29 @@ tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code_14!="I",("match_7
             bg_SARE[.SD,list(re_code),on=.(tr_bg_SARha3_match_id)]]
 bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code_7!="A",c("alone_tr","role_tr","household_tr"):=
           tr_hhRelR[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SARha3_match_id)]]
-#nrow(tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code_14!="I"]) #1047430
-#nrow(bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I"]) #838473
+#nrow(tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code_14!="I"]) #1183179
+#nrow(bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I"]) #852283
 tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code!="A",("tr_bg_SARha4_match_id"):=
-            paste0(GEOID,age_range_6,as.character(100000+sample(1:.N))),
-          by=.(GEOID,age_range_6)]
+            paste0(GEOID,age_range_3,as.character(100000+sample(1:.N))),
+          by=.(GEOID,age_range_3)]
 bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code_7!="A",("tr_bg_SARha4_match_id"):=
-          paste0(tract,age_range_6,as.character(100000+sample(1:.N))),
-        by=.(tract,age_range_6)]
+          paste0(tract,age_range_3,as.character(100000+sample(1:.N))),
+        by=.(tract,age_range_3)]
 tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code!="A",("match_7"):=
             bg_SARE[.SD,list(re_code),on=.(tr_bg_SARha4_match_id)]]
 bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code_7!="A",c("alone_tr","role_tr","household_tr"):=
           tr_hhRelR[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SARha4_match_id)]]
-#nrow(tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code_14!="I"]) #758263
-#nrow(bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I"]) #549306
-#and on age_range_3
-tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code!="A",("tr_bg_SARha5_match_id"):=
+#nrow(tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code_14!="I"]) #544692
+#nrow(bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code!="I"]) #213796
+
+#to get just group quarters
+tr_hhRelR[is.na(match_7),("tr_bg_SARha5_match_id"):=
             paste0(GEOID,age_range_3,as.character(100000+sample(1:.N))),
           by=.(GEOID,age_range_3)]
-bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code_7!="A",("tr_bg_SARha5_match_id"):=
+bg_SARE[is.na(role_tr),("tr_bg_SARha5_match_id"):=
           paste0(tract,age_range_3,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_3)]
-tr_hhRelR[is.na(match_7)&HvL=="Not Hispanic or Latino"&re_code!="A",("match_7"):=
+tr_hhRelR[is.na(match_7),("match_7"):=
             bg_SARE[.SD,list(re_code),on=.(tr_bg_SARha5_match_id)]]
 bg_SARE[is.na(role_tr)&HvL=="Not Hispanic or Latino"&re_code_7!="A",c("alone_tr","role_tr","household_tr"):=
           tr_hhRelR[.SD,c(list(alone),list(role),list(household)),on=.(tr_bg_SARha5_match_id)]]
@@ -717,69 +711,6 @@ rm(bg_hhRel_data)
 rm(bg_hhRel_data_from_census)
 rm(bg_hhRel_melted)
 #no group_quarter information except institutionalized vs. non-institutionalized; 
-#add group quarters info
-groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
-geo_type <- "block_group"
-api_type <- "dec/dhc"
-path_suff <- "est"
-bg_gq_age_data_from_census <- 
-  census_block_get(censusdir, vintage, state, censuskey, 
-                   groupname,county_num = "*",
-                   api_type,path_suff)
-if(names(bg_gq_age_data_from_census)[11]=="label_1"){ #not sure what they changed to make it at 11, not 6
-  #labels determined by hand
-  label_c1 <- c("sex","age_range","gq_institution","gq_type")
-  #row_c1 determined by hand
-  row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
-  test_total_pop <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,state=state)
-  bgGQ_data <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
-  write_relabel(bgGQ_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
-}else{
-  print("Using already given labels; no rewrite.")
-  bgGQ_data <- bg_gq_age_data_from_census
-}
-#if(!test_total_pop){test_total_pop<-sum(bgGQ_data[,total],na.rm = TRUE)}
-rm(bg_gq_age_data_from_census)
-bgGQ_data[,("gq_type_6"):=fcase(str_detect(gq_type,"College"), #catching some idiosyncratic capitalization
-                                "College/University student housing",
-                                str_detect(gq_type,"Nursing"),
-                                "Nursing facilities",
-                                gq_type=="Correctional facilities for adults (101-106)",
-                                "Correctional facilities for adults",
-                                gq_type=="Juvenile facilities (201-203)",
-                                "Juvenile facilities",
-                                gq_type=="Other institutional facilities (401-405)",
-                                "Other institutional facilities",
-                                gq_type=="Other noninstitutional facilities (701-702, 704, 706, 801-802, 900-901, 903-904)",
-                                "Other noninstitutional facilities")]
-#reshape a bit and make list of individuals 
-Geoids <- colnames(bgGQ_data[,15:(ncol(bgGQ_data)-2)]) #check if it may be -2
-bgGQ_melted <- melt(bgGQ_data, id.vars = c("sex","age_range","gq_institution","gq_type","gq_type_6"), measure.vars = Geoids,
-                    value.name = "codom_GQSAT", variable.name = "GEOID")
-bgGQ <- as.data.table(lapply(bgGQ_melted[,.SD],rep,bgGQ_melted[,codom_GQSAT]))
-rm(bgGQ_data)
-rm(bgGQ_melted)
-#bgGQ[,("beg_age_gq"):=fcase(age_range=="Under 18 years", as.numeric(0),
-#                            age_range=="18 to 64 years", as.numeric(18),
-#                            age_range=="65 years and over", as.numeric(65))]
-#WHAT MATCHES??? NEED TO GET AGE_RANGE_3 for GQ earlier?
-#check here
-table(bg_SARE[,household_tr],bg_SARE[,age_range_3],useNA = "ifany") #if all 14k under_18, not a bad match...
-bg_hhRel[household=="In group quarters",("bg_GQ_match_id"):=
-           paste0(GEOID,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
-         by=.(GEOID,sex,role,alone,age_range_2)]
-bgGQ[,("bg_GQ_match_id"):=
-            paste0(GEOID,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
-          by=.(GEOID,sex,role,alone,age_range_2)]
-bg_hhRel[household=="In group quarters",c("sex","race",
-                                      "age_range_6","age_range_23","HvL"):=
-           bgGQ[.SD,c(list(sex),list(race),
-                           list(age_range_6),list(age_range_23),list(HvL)),
-                     on=.(bg_GQ_match_id)]]
-bgGQ[,("match_bgRel"):=
-            bg_hhRel[.SD,list(gq_institution),on=.(bg_GQ_match_id)]]
-
-
 
 bg_SARE[,("household_tr"):=fcase(is.na(household_tr),"In group quarters",
                                  default = household_tr)] #still 83k off...
@@ -792,8 +723,7 @@ bg_hhRel[,("tr_bg_Rel_match_id"):=
 tr_hhRelR[,("tr_bg_Rel_match_id"):=
             paste0(GEOID,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
           by=.(GEOID,sex,role,alone,age_range_2)]
-bg_hhRel[,c("re_code","race",
-                                      "age_range_6","age_range_23","HvL"):=
+bg_hhRel[,c("re_code","race","age_range_6","age_range_23","HvL"):=
            tr_hhRelR[.SD,c(list(re_code),list(race),
                            list(age_range_6),list(age_range_23),list(HvL)),
                      on=.(tr_bg_Rel_match_id)]]
@@ -962,7 +892,71 @@ bg_SARE[is.na(household),c("alone","role","household","bg_GEOID"):=
 #table(bg_SARE[,role])-table(bg_hhRel[,role],useNA = "ifany") #all zeros
 #table(bg_SARE[,role])-table(tr_hhRelR[,role],useNA = "ifany") #all zeros
 #table(bg_SARE[,age_range_3])-table(tr_hhRelR[,age_range_3],useNA = "ifany") #not sure what's going on
-##HOUSEHOLD AND CHILD_ROLE GOT CONFUSED, ABOVE, SOMEWHERE!!!
+
+
+#add group quarters info
+groupname <- "P18" #GROUP QUARTERS POPULATION BY SEX BY AGE BY MAJOR GROUP QUARTERS TYPE
+geo_type <- "block_group"
+api_type <- "dec/dhc"
+path_suff <- "est"
+bg_gq_age_data_from_census <- 
+  census_block_get(censusdir, vintage, state, censuskey, 
+                   groupname,county_num = "*",
+                   api_type,path_suff)
+if(names(bg_gq_age_data_from_census)[11]=="label_1"){ #not sure what they changed to make it at 11, not 6
+  #labels determined by hand
+  label_c1 <- c("sex","age_range","gq_institution","gq_type")
+  #row_c1 determined by hand
+  row_c1 <- c(unique(bg_gq_age_data_from_census[!is.na(label_4),name]))
+  test_total_pop <- tests_download_data(bg_gq_age_data_from_census,label_c1,row_c1,state=state)
+  bgGQ_data <- relabel(bg_gq_age_data_from_census[!is.na(label)],label_c1,row_c1,groupname)
+  write_relabel(bgGQ_data,censusdir,vintage,state,censuskey,geo_type,groupname,county_num=county,api_type,path_suff)
+}else{
+  print("Using already given labels; no rewrite.")
+  bgGQ_data <- bg_gq_age_data_from_census
+}
+#if(!test_total_pop){test_total_pop<-sum(bgGQ_data[,total],na.rm = TRUE)}
+rm(bg_gq_age_data_from_census)
+bgGQ_data[,("gq_type_6"):=fcase(str_detect(gq_type,"College"), #catching some idiosyncratic capitalization
+                                "College/University student housing",
+                                str_detect(gq_type,"Nursing"),
+                                "Nursing facilities",
+                                gq_type=="Correctional facilities for adults (101-106)",
+                                "Correctional facilities for adults",
+                                gq_type=="Juvenile facilities (201-203)",
+                                "Juvenile facilities",
+                                gq_type=="Other institutional facilities (401-405)",
+                                "Other institutional facilities",
+                                gq_type=="Other noninstitutional facilities (701-702, 704, 706, 801-802, 900-901, 903-904)",
+                                "Other noninstitutional facilities")]
+#reshape a bit and make list of individuals 
+Geoids <- colnames(bgGQ_data[,15:(ncol(bgGQ_data)-2)]) #check if it may be -2
+bgGQ_melted <- melt(bgGQ_data, id.vars = c("sex","age_range","gq_institution","gq_type","gq_type_6"), measure.vars = Geoids,
+                    value.name = "codom_GQSAT", variable.name = "GEOID")
+bgGQ <- as.data.table(lapply(bgGQ_melted[,.SD],rep,bgGQ_melted[,codom_GQSAT]))
+rm(bgGQ_data)
+rm(bgGQ_melted)
+#bgGQ[,("beg_age_gq"):=fcase(age_range=="Under 18 years", as.numeric(0),
+#                            age_range=="18 to 64 years", as.numeric(18),
+#                            age_range=="65 years and over", as.numeric(65))]
+#WHAT MATCHES??? NEED TO GET AGE_RANGE_3 for GQ earlier?
+#check here
+#table(bg_SARE[,household_tr],bg_SARE[,age_range_3],useNA = "ifany") #if all 14k under_18, not a bad match...
+
+bg_SARE[household=="In group quarters",("bg_GQ_match_id"):=
+           paste0(GEOID,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
+         by=.(GEOID,sex,role,alone,age_range_2)]
+bgGQ[,("bg_GQ_match_id"):=
+       paste0(GEOID,sex,role,alone,age_range_2,as.character(100000+sample(1:.N))),
+     by=.(GEOID,sex,role,alone,age_range_2)]
+bg_SARE[household=="In group quarters",c("sex","race",
+                                          "age_range_6","age_range_23","HvL"):=
+           bgGQ[.SD,c(list(sex),list(race),
+                      list(age_range_6),list(age_range_23),list(HvL)),
+                on=.(bg_GQ_match_id)]]
+bgGQ[,("match_bgRel"):=
+       bg_hhRel[.SD,list(gq_institution),on=.(bg_GQ_match_id)]]
+
 
 
 
