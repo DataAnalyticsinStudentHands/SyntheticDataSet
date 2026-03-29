@@ -2438,5 +2438,5 @@ file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",g
                              groupname="bg_hhSARETT",path_suff="wrk")
 #"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
 if(file.exists(file_path)){file.remove(file_path)}
-saveRDS(bg_hhTypeRE,file_path)
+saveRDS(bg_hhTTSA,file_path)
 
