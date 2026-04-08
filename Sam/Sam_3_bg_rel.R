@@ -370,6 +370,7 @@ file_path <- valid_file_path(censusdir,vintage,state,county = "*",api_type="dec"
                              groupname="bgSARE",path_suff="wrk")
 #"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bgSARE_wrk.RDS"
 bg_SARE <- readRDS(file_path)
+names(bg_SARE)
 #need to ensure bg_SARE has tract, age_range_23, who it has sex for, and how to do race and ethnicity at the same time...
 bg_SARE[,("re_code_7"):=fcase(re_code=="I" | re_code=="P","A",
                               re_code=="J" | re_code=="Q","B",
@@ -1146,6 +1147,14 @@ file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",g
 #"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
 if(file.exists(file_path)){file.remove(file_path)}
 saveRDS(bg_SARE_reduced,file_path)
+
+###WHAT IS IT THAT IS LOST???
+bg_GQ_reduced <- bgGQ[,c("GEOID","tract","household","sex","age_range","gq_institution","gq_type","gq_type_7","age_range_3a","household_SARE","match_bgRel")]
+file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",
+                             groupname="bg_GQ",path_suff="wrk")
+#"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
+if(file.exists(file_path)){file.remove(file_path)}
+saveRDS(bg_GQ_reduced,file_path)
 
 #these all work as expected - the problem is not the bgGQ
 #table(tr_hhRelR[GEOID=="48001950401",household],useNA = "ifany")# gq- 5583; households - 199
