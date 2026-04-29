@@ -12,6 +12,9 @@ library(tigris)
 library(stringr)
 library(dplyr)
 
+#MAYBE GET SOME TRACT LEVEL THINGS TO ATTACH TO EACH
+#SELECT PLACES AND STATE AND DO THE WITHIN FOR BLOCKS WITHIN HARRIS COUNTY? HAVE SOME CALLS?
+
 #' getHCADParcels function
 #'
 #' This function reads parcels from HCAD (Harris County Aprraisal District), adds tracts information (county, tract) and remove unnecessary columns.
@@ -19,11 +22,14 @@ library(dplyr)
 #' @param hcadDataDir the folder with the HCAD raw parcels
 #' @param HCAD_parcelsRDS determines wheter to read preprocessed HCAD data from RDS file
 # 
-
+vintage = "2020"
+maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Studio
+#maindir = "~/Documents/Sam_data/" #if need local
+hcadDataDir = paste0(maindir,"HCAD/",vintage,"/")
 getHCADParcels <- function(hcadDataDir){
   
   # the Parcels.shp file can be downloaded from http://pdata.hcad.org/GIS/index.html
-  parcels <- st_read(paste0(hcadDataDir, "Parcels/Parcels.shp"))
+  parcels <- st_read(paste0(hcadDataDir, "Tax\ Parcels\ (Shapefiles)/Parcels.shp"))
   
   # remove invalid parcels
   parcels$valid <- st_is_valid(parcels)

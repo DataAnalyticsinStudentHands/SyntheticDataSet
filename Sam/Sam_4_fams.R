@@ -18,12 +18,6 @@ file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",g
 #"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
 bg_SARE <- readRDS(file_path)
 
-#and get GQ, b/c never satisfied with how it broke out
-file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",
-                             groupname="bg_GQ",path_suff="wrk")
-#"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
-bg_GQ <- readRDS(file_path)
- 
 #and get bg_hhSARETT
 file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",
                              groupname="bg_hhSARETT",path_suff="wrk")
@@ -140,10 +134,10 @@ bg_SARE[is.na(hh_ID),("hh_match4_id"):=
 bg_hhSARETT[is.na(ind_ID),c("ind_ID","age_range","HvL","race_1","race_2","race_3","race_4","race_5","race_6"):=
               bg_SARE[.SD,c(list(ind_ID),list(age_range),list(HvL),list(race_1),list(race_2),
                             list(race_3),list(race_4),list(race_5),list(race_6)),on=.(hh_match4_id)]]
-bg_SARE[is.na(hh_ID),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
+bg_SARE[is.na(hh_ID),c("role_new","hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
                                            "couple_gender","match_type_5","hh_size_7","multi_gen_hh","rel_in_house","anyone_60","anyone_65","anyone_75",
                                            "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
+          bg_hhSARETT[.SD,c("Householder",list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
                             list(no_spouse_sex),list(same_sex),list(couple_gender),list(match_type_5),list(hh_size_7),
                             list(multi_gen_hh),list(rel_in_house),list(anyone_60),list(anyone_65),list(anyone_75),
                             list(household_60),list(household_65),list(household_75),list(rent_own),
@@ -160,17 +154,36 @@ bg_SARE[is.na(hh_ID),("hh_match5_id"):=
 bg_hhSARETT[is.na(ind_ID),c("ind_ID","age_range","HvL","race_1","race_2","race_3","race_4","race_5","race_6"):=
               bg_SARE[.SD,c(list(ind_ID),list(age_range),list(HvL),list(race_1),list(race_2),
                             list(race_3),list(race_4),list(race_5),list(race_6)),on=.(hh_match5_id)]]
-bg_SARE[is.na(hh_ID),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
+bg_SARE[is.na(hh_ID),c("role_new","hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
                        "couple_gender","match_type_5","hh_size_7","multi_gen_hh","rel_in_house","anyone_60","anyone_65","anyone_75",
                        "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
+          bg_hhSARETT[.SD,c("Householder",list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
                             list(no_spouse_sex),list(same_sex),list(couple_gender),list(match_type_5),list(hh_size_7),
                             list(multi_gen_hh),list(rel_in_house),list(anyone_60),list(anyone_65),list(anyone_75),
                             list(household_60),list(household_65),list(household_75),list(rent_own),
                             list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3)),on=.(hh_match5_id)]]
 nrow(bg_hhSARETT[is.na(ind_ID)]) #463 - remarkably evenly distributed. Don't try to capture
+#because we're using bg_hhSARETT as having better household info, projecting to it
+#looks like you're only counted as an unmarried partner if there's a child! hh_size_7 clearly works that way, but not sure how it relates to underlying count
+#with own children under 18 also seems to require at least three people total. No single parent with single kids??- have to rethink!!
 
-#assign spouses
+
+#assign significant others 
+
+
+#assign children
+
+#assign other relatives
+
+#assign others
+
+#assign GQ?
+
+#and get GQ, b/c never satisfied with how it broke out
+file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",
+                             groupname="bg_GQ",path_suff="wrk")
+#"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
+bg_GQ <- readRDS(file_path)
 
 
 
