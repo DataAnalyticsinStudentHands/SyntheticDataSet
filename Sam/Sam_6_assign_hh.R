@@ -9,7 +9,12 @@ maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Stud
 censusmapdir = paste0(maindir,"Census/Cartographic\ Boundary\ Files/") 
 state = "48"
 vintage = "2020"
+county = "*"
+groupname = "pes"
+path_suff = "est"
 
+#post_enumeration survey as a way of thinking about a span that works like a pullback, by identifying part of the span with the character of the neighborhood?
+pes_data <- census_pes_get(censusdir,vintage,state,censuskey,groupname,county,path_suff)
 
 #act as if a master join?
 #bg_RDS <- valid_file_path(censusmapdir,vintage,state,county = "*","official","500k","block_group","combined")

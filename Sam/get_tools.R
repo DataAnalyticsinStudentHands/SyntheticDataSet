@@ -49,12 +49,13 @@ valid_file_path <- function(censusdir,vintage,state,county,api_type,geo_type,gro
   return(file_path)
 }
 
-valid_census_vars <- function(censusdir, vintage, api_type, groupname){ 
+valid_census_vars <- function(censusdir, censuskey, vintage, api_type, groupname){ 
   api <- str_replace_all(api_type,"/","_")
   variables_dt <- paste0(censusdir, vintage, "/Variables_",api,".RDS")
   if (!file.exists(variables_dt)){
     census_variables <- listCensusMetadata(
       name = paste0(vintage,"/",api_type), 
+      key = censuskey,
       type = "variables") 
     census_variables <- as.data.table(census_variables)
     census_variables[is.na(predicateOnly)][
@@ -67,6 +68,9 @@ valid_census_vars <- function(censusdir, vintage, api_type, groupname){
     print(paste0("Read variable options from existing file at: ", variables_dt))
   }
   selected_vars <- census_variables[str_detect(name,groupname)] #had been str_detect in group - need to test
+  if (nrow(selected_vars)==0){
+    selected_vars <- census_variables[str_detect(name,group)]
+  }
   return(selected_vars)
 }
 
@@ -179,7 +183,7 @@ census_block_get <- function(censusdir,vintage,state,censuskey,groupname,county_
       print(paste0("Reading file from ", file_path))
     }
   }else{
-    census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
+    census_variables <- valid_census_vars(censusdir, censuskey, vintage, api_type, groupname)
     if(path_suff=="err"){
       census_variables[,("name"):=str_replace(name,".{1}$","M")][
         ,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
@@ -228,7 +232,7 @@ census_tract_get <- function(censusdir,vintage,state,censuskey,groupname,county,
       print(paste0("Reading file from ", file_path))
     }
   }else{
-    census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
+    census_variables <- valid_census_vars(censusdir, censuskey, vintage, api_type, groupname)
     if(path_suff=="err"){
       census_variables[,("name"):=str_replace(name,".{1}$","M")][
         ,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
@@ -278,7 +282,7 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
       print(paste0("Reading file from ", file_path))
     }
   }else{
-    census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
+    census_variables <- valid_census_vars(censusdir, censuskey, vintage, api_type, groupname)
     if(path_suff=="err"){
       census_variables[,("name"):=str_replace(name,".{1}$","M")][
         ,("label"):=str_replace(name,"Estimate!!Total","Margin of Error")]
@@ -313,8 +317,11 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
   return(result)
 }
 #NEED TO TEST AND TO DO PES - which is also for the whole country! Perhaps set valid_file_path to do something for state=US?
-census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,api_type,path_suff){
-  geo_type <- "pes" 
+#api_type = "dec/pes"
+census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,path_suff){
+  geo_type = "pes" 
+  api_type="dec/pes" 
+  geo_type = "tract"
   file_path <- valid_file_path(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff)
   if (file.exists(file_path)){
     if (file.exists(str_replace(file_path,".RDS","_relabeled.RDS"))){
@@ -325,15 +332,16 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,ap
       print(paste0("Reading file from ", file_path))
     }
   }else{
-    census_variables <- valid_census_vars(censusdir, vintage, api_type, groupname)
+    census_variables <- valid_census_vars(censusdir, censuskey, vintage, api_type, groupname)
     if(path_suff=="err"){
       census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
       census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
     }
+    census_variables <- census_variables[str_detect(name,"H_STATES")]
     data_for_vars <- getCensus(name = api_type,
                                vintage = vintage,
                                vars = c("NAME", census_variables$name),
-                               region = "zip code tabulation area:*", 
+                               region = "state", 
                                key = censuskey)
     data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
     #data_for_vars_dt[,names(.SD):=lapply(.SD,numeric),.SDcols = str_detect(state,names(data_for_vars_dt))]
