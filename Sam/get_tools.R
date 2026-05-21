@@ -316,7 +316,7 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
   }
   return(result)
 }
-#NEED TO TEST AND TO DO PES - which is also for the whole country! Perhaps set valid_file_path to do something for state=US?
+#NEED TO TEST AND TO DO PES - only state level available, and tables are organized differently than others, above
 #api_type = "dec/pes"
 census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,path_suff){
   geo_type = "pes" 
@@ -343,18 +343,16 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,pa
                                vars = c("NAME", census_variables$name),
                                region = "state", 
                                key = censuskey)
-    data_for_vars_dt <- as.data.table(data_for_vars) #as.data.table(data_for_vars_state)
-    #data_for_vars_dt[,names(.SD):=lapply(.SD,numeric),.SDcols = str_detect(state,names(data_for_vars_dt))]
-    #columns are table names; rows are geographic area (block groups)
+    data_for_vars_dt <- as.data.table(data_for_vars) 
     data_for_vars_tr <- data.table(table_name = names(data_for_vars_dt),t(data_for_vars_dt))
-    colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,zip_code_tabulation_area])
+    colnames(data_for_vars_tr) <- c("name",data_for_vars_dt[,state])
     result <- census_variables[data_for_vars_tr,on="name"]
     write_rds(result,file_path)
     percent_na <- data_for_vars_tr[,sum(is.na(.SD))] / (data_for_vars_tr[,sum(!is.na(.SD))]+data_for_vars_tr[,sum(is.na(.SD))])
     print(paste("Percentage of NAs in file:",as.integer(100*percent_na)))
     print(paste0("Newly retrieved data was written to disk as .RDS at: ",file_path))
-    theme <- "Decennial Census"
-    geo_type <- "zcta"
+    theme <- "State Post Enumeration Survey"
+    geo_type <- "pes"
     tool <- "censusapi"
     citation <- "Decennial U.S. Census"
     rel_file_path <- str_remove(file_path,censusdir)

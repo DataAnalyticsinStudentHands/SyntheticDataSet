@@ -1,6 +1,7 @@
 setwd("~/Documents/SyntheticDataSet")
 source('Sam/get_tools.R') #for valid_file_paths
-source('Sam/GIS_tools.R')
+source('Sam/GIS_tools.R') #for census_GIS_state_2020
+source('Sam/HCAD_tools.R') #for making HCAD
 library(stringr)
 library(data.table)
 library(sf)
@@ -14,7 +15,7 @@ vintage = "2025"
 hcadDataDir = paste0(maindir,"HCAD/",vintage,"/")
 HoustonDataDir <- paste0(maindir,"HoustonCityData/")
 
-
+#get census geography file
 bg_RDS_path <- valid_file_path(censusmapdir,vintage,state,county = "*","official","500k","block_group","combined")
 
 if(file.exists(bg_RDS_path)){
@@ -25,304 +26,29 @@ if(file.exists(bg_RDS_path)){
   saveRDS(bg_census_map,bg_RDS_path)
 }
 
-FIPS_vector <- c("201","157","167","039","071","291","339","473","061","215","427","489") # 12 counties around Houston
+#FIPS_vector <- c("201","157","167","039","071","291","339","473","061","215","427","489") # 12 counties around Houston
 
-census_12 <- subsetting_census_by_county(bg_census_map,FIPS_vector)
+#census_12 <- subsetting_census_by_county(bg_census_map,FIPS_vector)
 #add more Houston HGAC and surrounding area data
 #this can add to each block, like above
 
+HCAD_RDS_path <- paste0(hcadDataDir,"HCAD.RDS")
+if(file.exists(HCAD_RDS_path)){
+  HCAD <- readRDS(HCAD_RDS_path)
+}else{
+  HCAD <- make_HCAD_geom(hcadDataDir,bg_census_map) #return parcels; have to rejoin with bg_census_map, if showing those boundaries
+  HCAD <- HCAD_join_res_build_geom(hcadDataDir,HCAD) #add residential building information
+  HCAD <- HCAD_join_real_build_geom(hcadDataDir,HCAD) #add businesses, including apartments
+  HCAD <- HCAD_join_real_acct_geom(hcadDataDir,HCAD) #add some of the acct data on real property; have to decide what we need
+  HCAD <- HCAD_join_owner_date_geom(hcadDataDir,HCAD)
+  HCAD <- HCAD_join_exemptions_geom(hcadDataDir,HCAD)
+  HCAD <- HCAD_join_fixtures_geom(hcadDataDir,HCAD)
+  saveRDS(HCAD,HCAD_RDS_path)
+}
 #need to decide whether/how to attach it to the rest, with this call allowing any grouping
 
 
 
-make_HCAD_geom <- function(hcadDataDir,censusDT){
-  # the Parcels.shp file can be downloaded from http://pdata.hcad.org/GIS/index.html
-  parcels <- st_read(paste0(hcadDataDir, "Tax\ Parcels\ (Shapefiles)/Parcels.shp"))
-  print(paste0("Number of parcels from raw file: ",nrow(parcels)))
-  # remove invalid parcels
-  parcels$valid <- st_is_valid(parcels)
-  HCAD_parcels <- subset(parcels,parcels$valid)
-  HCAD_parcels$valid <- NULL
-  print(paste0("Number of valid parcels files: ",nrow(HCAD_parcels),", which is ",nrow(parcels)-nrow(HCAD_parcels)," invalid parcel geometries"))
-  rm(parcels)
-  #add to blocks
-  censusDT <- st_as_sf(censusDT)
-  HCAD_parcels <- st_transform(HCAD_parcels,crs = st_crs(censusDT))
-  CensusBGforHCADParcels <- st_within(HCAD_parcels, censusDT)
-  CensusBGforHCADParcelsunlisted <- rapply(CensusBGforHCADParcels,function(x) ifelse(length(x)==0,9999999999999999999,x), how = "replace")
-  CensusBGforHCADParcelsunlisted <- unlist(CensusBGforHCADParcelsunlisted)
-  
-  # add census tract information to each parcel
-  HCAD_parcels$COUNTY=censusDT$COUNTY[CensusBGforHCADParcelsunlisted] #a handful have their centroid in one of 7 neighboring counties
-  HCAD_parcels$GEOID=censusDT$GEOID[CensusBGforHCADParcelsunlisted]
-  
-  #cleanup
-  rm(CensusBGforHCADParcels)
-  rm(CensusBGforHCADParcelsunlisted)
-  
-  #check crs!!
-  #HCAD_parcels <- st_as_sf(HCAD_parcels) #, crs = 3857
-  #HCAD_geom <- st_transform(HCAD_geom, crs = 3857)
-  #LOOK at bottom of HCAD_geo if there are others, or if we should add any others for the geometry 
-  return(as.data.table(HCAD_parcels))
-}
-
-HCAD_join_res_build_geom <- function(hcadDataDir,HCAD_parcels){
-  HCAD_res_build <- read.csv2(paste0(hcadDataDir, "Real\ Property\ -\ Building\ Information/building_res.txt"),
-                              stringsAsFactors = FALSE,
-                              sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-  HCAD_res_build$acct <- str_remove_all(HCAD_res_build$acct, " ")
-  #length(unique(HCAD_res_build$acct)) #1182396 of 1210552 - looked individually and seems like first row matters
-  HCAD_res_build <- as.data.table(HCAD_res_build)
-  HCAD_res_build <- unique(HCAD_res_build, by=("acct"))
-  HCAD_res_build <- HCAD_res_build[,c("acct","impr_tp","structure_dscr","dpr_val","qa_cd","dscr","date_erected","yr_remodel","im_sq_ft","bld_adj")]
-  
-  HCAD_geom[HCAD_res_build,on='acct']
-  return(HCAD_geom)
-}
-
-HCAD_join_real_build_geom <- function(hcadDataDir,HCAD){
-  #there are no account numbers in common between res_build and real_build, but some codes are in both
-  HCAD_real_build <- read.csv2(paste0(hcadDataDir, "Real\ Property\ -\ Building\ Information/building_other.txt"),
-                               stringsAsFactors = FALSE, 
-                               sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-  #using actual_area for total_bldg_sf - get units from fixtures
-  #total_income may include non-rental income?
-  HCAD_real_build$acct <- str_remove_all(HCAD_real_build$acct, " ")
-  HCAD_real_build <- as.data.table(HCAD_real_build)
-  HCAD_real_build <- unique(HCAD_real_build, by=("acct"))
-  HCAD_real_build <- HCAD_real_build[,c("acct","impr_tp","structure_dscr","Depr_val","qa_cd","dscr","date_erected","yr_remodel","im_sq_ft","prop_nm","units",
-                                        "lease_rt","occ_rt","tot_inc")]
-  HCAD[HCAD_real_build,on='acct']
-  return(HCAD)
-}
-
-HCAD_join_real_acct_geom <- function(hcadDataDir,HCAD){
-  HCAD_real_acct <- read.csv2(paste0(hcadDataDir, "Real\ Property\ Data/real_acct.txt"),
-                              stringsAsFactors = FALSE,
-                              sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-  HCAD_real_acct$acct <- str_remove_all(HCAD_real_acct$acct, " ")
-  HCAD_real_acct <- as.data.table(HCAD_real_acct)
-  HCAD_real_acct <- unique(HCAD_real_acct, by=("acct"))
-  #need to look at what we'd want to use
-  #HCAD_real_acct <- HCAD_real_acct[,c("acct","impr_tp","structure_dscr","Depr_val","qa_cd","dscr","date_erected","yr_remodel","im_sq_ft","prop_nm","units",
-  #                                      "lease_rt","occ_rt","tot_inc")]
-  HCAD[HCAD_real_build,on='acct']
-  return(HCAD)
-}
-
-HCAD_join_owner_date_geom <- function(hcadDataDir,HCAD){
-  HCAD_owner_date <- read.csv2(paste0(hcadDataDir, "Real\ Property\ Data/deeds.txt"),
-                               stringsAsFactors = FALSE,
-                               sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-  
-  HCAD_owner_date$acct <- str_remove_all(HCAD_owner_date$acct, " ")
-  HCAD_owner_date <- as.data.table(HCAD_owner_date)
-  HCAD_owner_date <- unique(HCAD_owner_date, by=("acct"))
-  
-  #need to look at what we want to do
-#  #remember to replace vintage with date, below
-#  HCAD_owner_date <- HCAD_owner_date %>%
-#    rename(account=V1,purchase_date=V2) %>%
-#    distinct(account,.keep_all = TRUE) %>%
-#    filter(!row_number()==1) %>%
-#    select(account,purchase_date) #%>%
-#  #  mutate(
-#  #    yrs_in_house = 2022 - as.integer(substr(as.character.Date(HCAD_owner_date$V2),7,10))
-#  #  )
-#  HCAD <- full_join(HCAD,HCAD_owner_date,by="account")
-  HCAD[HCAD_owner_date,on='acct']
-  return(HCAD)
-}
-
-HCAD_join_exemptions_geom <- function(hcadDataDir,HCAD){
-  HCAD_exempt <- read.csv2(paste0(hcadDataDir, "Real\ Property\ -\ Jurisdiction\ Information/jur_exempt_cd.txt"),
-                           stringsAsFactors = FALSE,
-                           sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-  
-  #exemptions give us some clues about owners, etc. that match up with ACS info
-  #cf. jur_exemption_dscr.txt 
-  #exempt_cat	exemption_dscr. #exemption_dscr is not given in same file; they seem to be using more as time goes on
-  #ABT	Abatement
-  #APD	Apportioned Partial Disability
-  #APO	Apportioned Partial Over-65
-  #APR	Apportioned Partial Residential
-  #DIS	Disability
-  #HIS	Historical
-  #LIH	Low Income Housing
-  #MCL	Methane Capture at Landfill
-  #OVR	Over-65
-  #PAR	Partial Residential Homestead
-  #PDS	Partial Disability
-  #PEX	Partial Total
-  #POL	Pollution Control
-  #POV	Partial Over-65
-  #PRO	Prorated
-  #RES	Residential Homestead
-  #SOL	Solar
-  #SPE	Self Provided Emergency Services (TOTAL exemption)
-  #SPX	Spaceport Exemption (TOTAL exemption)
-  #SSA	Surviving Spouse Active Duty
-  #SSD	Surviving Spouse Disability
-  #STT	Surviving Spouse Total Transfer
-  #STX	Surviving Spouse Vet Disability Total Exemption
-  #SUR	Surviving Spouse Over-65
-  #TOT	Total
-  #V11	Vet Disability #1 10-29 pct
-  #V12	Vet Disability #1 30-49 pct
-  #V13	Vet Disability #1 50-69 pct
-  #V14	Vet Disability #1 70-100 pct
-  #V21	Vet Disability #2 10-29 pct
-  #V22	Vet Disability #2 30-49 pct
-  #V23	Vet Disability #2 50-69 pct
-  #V24	Vet Disability #2 70-100 pct
-  #VCH	Vet Charitable Disability
-  #VS1	Vet Survivor 10-29 pct
-  #VS2	Vet Survivor 30-49 pct
-  #VS3	Vet Survivor 50-69 pct
-  #VS4	Vet Survivor 70-100 pct
-  #VTX	Vet Disability Total Exemption
-  
-  HCAD_exempt$acct <- str_remove_all(HCAD_exempt$acct, " ")
-  HCAD_exempt <- as.data.table(HCAD_exempt)
-  #HCAD_exempt <- unique(HCAD_exempt, by=("acct")) #no duplicates in jur_exempt_cd.txt, but others do
-  HCAD_exempt[,("exempt_type_homestead"):=fcase(str_detect(exempt_cat,'RES') | str_detect(exempt_cat,'PAR'),"homestead", default = "not homestead")]
-  HCAD_exempt[,("exempt_type_Veteran"):=fcase(str_detect(exempt_cat,"V1") | str_detect(exempt_cat,"V2"),"Veteran",default = "not veteran")]
-  HCAD_exempt[,("exempt_type_over_65"):=fcase(str_detect(exempt_cat,"APO") | str_detect(exempt_cat,"OVR") |
-                                                str_detect(exempt_cat,"POV") | str_detect(exempt_cat,"SUR"),"Over 65",default = "not over 65")] #starts using more over time
-  HCAD_exempt[,("exempt_type_surviving_spouse"):=fcase(str_detect(exempt_cat,"SSD") | str_detect(exempt_cat,"STT") |
-                                                str_detect(exempt_cat,"STX") | str_detect(exempt_cat,"SUR") |
-                                                  str_detect(exempt_cat,"VS") | str_detect(exempt_cat,"VTX"),"Surviving Spouse",default = "Not surviving spouse")] #starts using more over time
-  HCAD_exempt[,("exempt_type_disabled"):=fcase(str_detect(exempt_cat,"PDS") | str_detect(exempt_cat,"DIS") |
-                                                         str_detect(exempt_cat,"STX") | str_detect(exempt_cat,"APD") |
-                                                         str_detect(exempt_cat,"VCH") | str_detect(exempt_cat,"VTX"),"Disabled",default = "Not disabled")] #starts using more over time
-  HCAD_exempt[,("exempt_type_low_income_housing"):=fcase(str_detect(exempt_cat,"LIH"),"Low income housing", default = "not low income")]
-  HCAD_exempt[,("exempt_type_abatement"):=fcase(str_detect(exempt_cat,"ABT"),"Abatement", default = "Not abatement")]
-  HCAD_exempt[,("exempt_type_historical"):=fcase(str_detect(exempt_cat,"HIS"),"Historical", default = "Not historical")]
-  HCAD_exempt[,("exempt_type_solar"):=fcase(str_detect(exempt_cat,"SOL"),"Solar", default = "Not solar")]
-  HCAD_exempt[,("exempt_type_total"):=fcase(str_detect(exempt_cat,"TOT"),"Total", default = "Not total")] 
-  
-  
- # HCAD_exempt <- HCAD_exempt %>% 
- #   rename(account=V1,exempt_cat=V2) %>% 
- #   distinct(account,.keep_all = TRUE) %>%
- #   filter(!row_number()==1) %>%
- #   select(account,exempt_cat) %>% 
- #   mutate(
- #     homestead = case_when(  #trying to get at who owns...
- #       exempt_cat %in% c('RES','PAR') ~ TRUE
- #     ),
- #     vet = case_when(
- #       exempt_cat %in% c('V11','V12','V13','V14','V21','V22','V23','V24') ~ TRUE
- #     ),
- #     low_income_housing = case_when(
- #       exempt_cat == "LIH" ~ TRUE
- #     ),
- #     over_65 = case_when(
- #       exempt_cat %in% c('APO','OVR','POV','SUR') ~ TRUE
- #     ),
- #     surv_spouse = case_when(
- #       exempt_cat %in% c('SSD','STT','STX','SUR','VS1','VS2','VS3','VS4','VTX') ~ TRUE
- #     ),
- #     disabled = case_when(
- #       exempt_cat %in% c('PDS','DIS','APD','STX','V11','V12','V13','V14','V21','V22','V23','V24','VCH','VTX') ~ TRUE
- #     )
- #   )
-  HCAD <- full_join(HCAD,HCAD_exempt,by="account")
-  return(HCAD)
-}
-
-HCAD_join_fixtures_geom <- function(hcadDataDir,HCAD){
-  HCAD_fixtures <- read.csv2(paste0(hcadDataDir, "Real\ Property\ -\ Building\ Information/fixtures.txt"),
-                             stringsAsFactors = FALSE,
-                             sep = "\t", header = TRUE, quote="",colClasses = c("acct"="character"))
-  #for bldg_data codes: http://pdata.hcad.org/Desc/2015/code_desc_real.txt #updated: https://pdata.hcad.org/data/cama/2015/code_desc_real.txt
-  HCAD_fixtures$acct <- str_remove_all(HCAD_fixtures$acct, " ")
-  HCAD_fixtures <- as.data.table(HCAD_fixtures)
-
-  #HCAD only puts bedrooms on first bld_num for apts for some reason; random ones are separated...  
-  #need to do some testing! - ugh!!!
-  HCAD_fixtures[,("bedrooms"):=fcase(str_detect(type,"RMB"),as.integer(units),default = as.integer(0))] #bedrooms in residence, although can be multiple buildings on plat
-  HCAD_fixtures[,"efficiency_apts":=fcase(str_detect(type,"AP0"),as.integer(units)+as.integer(bedrooms),default = as.integer(0))]
-  HCAD_fixtures[,"1_bedroom_apts":=fcase(str_detect(type,"AP1"),as.integer(units),default = as.integer(0))]
-  HCAD_fixtures[,"bedrooms":=fcase(str_detect(type,"AP1"),as.integer(units)+as.integer(bedrooms),default = bedrooms)]
-  HCAD_fixtures[,"2_bedroom_apts":=fcase(str_detect(type,"AP2"),as.integer(units),default = as.integer(0))]
-  HCAD_fixtures[,"bedrooms":=fcase(str_detect(type,"AP2"),(as.integer(units)+as.integer(bedrooms))*as.integer(2),default = bedrooms)]
-  HCAD_fixtures[,"3_bedroom_apts":=fcase(str_detect(type,"AP3"),as.integer(units),default = as.integer(0))]
-  HCAD_fixtures[,"bedrooms":=fcase(str_detect(type,"AP3"),(as.integer(units)+as.integer(bedrooms))*as.integer(3),default = bedrooms)]
-  HCAD_fixtures[,"4_bedroom_apts":=fcase(str_detect(type,"AP4"),as.integer(units),default = as.integer(0))]
-  HCAD_fixtures[,"bedrooms":=fcase(str_detect(type,"AP4"),(as.integer(units)+as.integer(bedrooms))*as.integer(4),default = bedrooms)]
-  HCAD_fixtures[,total_bedrooms_bldg := sum(bedrooms),by = c("acct","bld_num")] #keeping bld_num for geo, and then summing for other calculations; they just use whatever bld_num the apt uses, not a count
-  HCAD_fixtures[,test_total_beds := sum(bedrooms),by=(acct)]
-  
-  
-  HCAD_fixtures <- unique(HCAD_fixtures,by = c("acct","bld_num"))
-  HCAD_fixtures[,total_bedrooms := sum(bedrooms),by = (acct)]
-  
-  
-  
-  #need to total on bedrooms for each acct
-  
-  
-  #add counts for rooms and apartments
-  HCAD_fixtures <- HCAD_fixtures %>%
-    rename(account=V1,bldg_num=V2,bldg_data (type)=V3,
-           type_descr=V4,units=V5) %>%
-    distinct(account,.keep_all = TRUE) %>%
-    filter(!row_number()==1) %>%
-    select(account,bldg_num,bldg_data,bldg_data_descr,num_units) %>%
-    mutate(
-      bedrooms = case_when(
-        bldg_data == 'RMB ' ~ as.integer(num_units),
-        bldg_data == 'AP0 ' ~ as.integer(0),
-        bldg_data == 'AP1 ' ~ as.integer(1),
-        bldg_data == 'AP2 ' ~ as.integer(2),
-        bldg_data == 'AP3 ' ~ as.integer(3),
-        bldg_data == 'AP4 ' ~ as.integer(4)
-      ),
-      total_rooms = case_when(
-        bldg_data == 'RMT ' ~ as.integer(num_units)
-      ),
-      effcncy_apts = case_when(
-        bldg_data == 'AP0 ' ~ as.integer(num_units)
-      ),
-      oneBR_apts = case_when(
-        bldg_data == 'AP1 ' ~ as.integer(num_units)
-      ),
-      twoBR_apts = case_when(
-        bldg_data == 'AP2 ' ~ as.integer(num_units)
-      ),
-      threeBR_apts = case_when(
-        bldg_data == 'AP3 ' ~ as.integer(num_units)
-      ),
-      fourBR_apts = case_when(
-        bldg_data == 'AP4 ' ~ as.integer(num_units),
-        TRUE ~ as.integer(0)
-      ),
-      num_apts = case_when(  #maybe not use - seems to have a lot of missing!
-        grepl('AP', bldg_data) ~ as.integer(num_units),
-        #bldg_data == 'UNT ' ~ as.integer(num_units), #need to confirm it adds correctly
-        TRUE ~ as.integer(0)
-      )
-    ) %>%
-    filter(bedrooms>=0 | total_rooms>0 | effcncy_apts>0 | oneBR_apts>0 | 
-             twoBR_apts>0 | threeBR_apts>0 | fourBR_apts>0 | num_apts>0 ) 
-  
-  #expand so each apt has its own record
-  HCAD_fixtures <- data.frame(HCAD_fixtures[rep(seq_len(dim(HCAD_fixtures)[1]), 
-                                                as.integer(HCAD_fixtures$num_apts)), 
-                                            #as.integer(HCAD_fixtures$num_apts*.89)), #in case want to do occupancy this way
-                                            1:dim(HCAD_fixtures)[2], drop = FALSE], row.names = NULL)
-  #.89 is the overall Harris County occupancy - I have it in another place, too
-  #add apt_ids
-  HCAD_fixtures <- HCAD_fixtures %>%
-    group_by(account) %>%
-    mutate(
-      apt_id = paste0(account,rep(1:n()))
-    )
-  HCAD <- full_join(HCAD,HCAD_fixtures,by="account")
-  return(HCAD)
-}
 #have to clean up better if making into a function - parcels is ok...
 
 
