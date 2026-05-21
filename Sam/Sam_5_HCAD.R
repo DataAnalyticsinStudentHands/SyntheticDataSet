@@ -15,26 +15,23 @@ vintage = "2025"
 hcadDataDir = paste0(maindir,"HCAD/",vintage,"/")
 HoustonDataDir <- paste0(maindir,"HoustonCityData/")
 
-#get census geography file
+#get census geography file - may rejoin with HCAD and at different levels, depending on use case.
 bg_RDS_path <- valid_file_path(censusmapdir,vintage,state,county = "*","official","500k","block_group","combined")
 
 if(file.exists(bg_RDS_path)){
   bg_census_map <- readRDS(bg_RDS_path)
+  print(paste("Previous file read from: ",bg_RDS_path))
 }else{
   bg_census_map <- census_GIS_state_2020(censusmapdir,state)
   bg_census_map <- add_2019_opportunity_zones(oz_dir,bg_census_map,"Texas")
   saveRDS(bg_census_map,bg_RDS_path)
+  print(paste("New file saved to: ",bg_RDS_path))
 }
-
-#FIPS_vector <- c("201","157","167","039","071","291","339","473","061","215","427","489") # 12 counties around Houston
-
-#census_12 <- subsetting_census_by_county(bg_census_map,FIPS_vector)
-#add more Houston HGAC and surrounding area data
-#this can add to each block, like above
 
 HCAD_RDS_path <- paste0(hcadDataDir,"HCAD.RDS")
 if(file.exists(HCAD_RDS_path)){
   HCAD <- readRDS(HCAD_RDS_path)
+  print(paste("Previous file read from: ",HCAD_RDS_path))
 }else{
   HCAD <- make_HCAD_geom(hcadDataDir,bg_census_map) #return parcels; have to rejoin with bg_census_map, if showing those boundaries
   HCAD <- HCAD_join_res_build_geom(hcadDataDir,HCAD) #add residential building information
@@ -44,9 +41,15 @@ if(file.exists(HCAD_RDS_path)){
   HCAD <- HCAD_join_exemptions_geom(hcadDataDir,HCAD)
   HCAD <- HCAD_join_fixtures_geom(hcadDataDir,HCAD)
   saveRDS(HCAD,HCAD_RDS_path)
+  print(paste("New file saved to: ",HCAD_RDS_path))
 }
 #need to decide whether/how to attach it to the rest, with this call allowing any grouping
 
+#FIPS_vector <- c("201","157","167","039","071","291","339","473","061","215","427","489") # 12 counties around Houston
+
+#census_12 <- subsetting_census_by_county(bg_census_map,FIPS_vector)
+#add more Houston HGAC and surrounding area data
+#this can add to each block, like above
 
 
 #have to clean up better if making into a function - parcels is ok...
