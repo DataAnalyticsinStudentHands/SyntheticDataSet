@@ -27,7 +27,7 @@ if(file.exists(bg_RDS_path)){
   saveRDS(bg_census_map,bg_RDS_path)
   print(paste("New file saved to: ",bg_RDS_path))
 }
-
+#do for 2015, 2020, 2025
 HCAD_RDS_path <- paste0(hcadDataDir,"HCAD.RDS")
 if(file.exists(HCAD_RDS_path)){
   HCAD <- readRDS(HCAD_RDS_path)
@@ -50,6 +50,11 @@ if(file.exists(HCAD_RDS_path)){
 #census_12 <- subsetting_census_by_county(bg_census_map,FIPS_vector)
 #add more Houston HGAC and surrounding area data
 #this can add to each block, like above
+
+#add a PES correction? only state level from Census, and doesn't have totals for download that are reported on other pages.
+
+#add individuals / households
+
 
 
 #have to clean up better if making into a function - parcels is ok...

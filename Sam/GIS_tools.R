@@ -186,3 +186,12 @@ census_Houston_area <- function(HoustonDataDir,censusDT){
   
   return(censusDT)
 }
+
+distribute_points_geom <- function(poly,num_pts,reg_random){
+  #https://www.jla-data.net/eng/creating-and-pruning-random-points-and-polygons/
+  #  st_sample(multipoly, size= , type=, exact=TRUE
+  #            st_cast might help for embedded, but probably want to do a process that casts people separately, in any case
+              
+  #            https://r-spatial.github.io/sf/reference/st_sample.html
+  return(coords)
+}

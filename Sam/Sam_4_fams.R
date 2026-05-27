@@ -2,6 +2,7 @@ setwd("~/Documents/SyntheticDataSet")
 source('Sam/get_tools.R')
 library(stringr)
 library(data.table)
+library(xlsx) 
 maindir = "~/University\ Of\ Houston/Engaged\ Data\ Science\ -\ Data/" #Dan Studio
 #maindir = "~/Documents/Sam_data/" #if need local
 censusdir = paste0(maindir,"Census/") 
@@ -23,6 +24,10 @@ file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",g
                              groupname="bg_hhSARETT",path_suff="wrk")
 
 bg_hhSARETT <- readRDS(file_path)
+
+file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",
+                             groupname="bg_GQ",path_suff="wrk")
+bg_GQ <- readRDS(file_path)
 
 #remember anyone_60, etc., has more, presumably when householder is younger
 #create unique identifiers
@@ -137,7 +142,7 @@ bg_hhSARETT[is.na(ind_ID),c("ind_ID","age_range","HvL","race_1","race_2","race_3
 bg_SARE[is.na(hh_ID),c("role_new","hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
                                            "couple_gender","match_type_5","hh_size_7","multi_gen_hh","rel_in_house","anyone_60","anyone_65","anyone_75",
                                            "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3"):=
-          bg_hhSARETT[.SD,c("Householder",list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
+          bg_hhSARETT[.SD,c(list("Householder"),list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
                             list(no_spouse_sex),list(same_sex),list(couple_gender),list(match_type_5),list(hh_size_7),
                             list(multi_gen_hh),list(rel_in_house),list(anyone_60),list(anyone_65),list(anyone_75),
                             list(household_60),list(household_65),list(household_75),list(rent_own),
@@ -157,7 +162,7 @@ bg_hhSARETT[is.na(ind_ID),c("ind_ID","age_range","HvL","race_1","race_2","race_3
 bg_SARE[is.na(hh_ID),c("role_new","hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
                        "couple_gender","match_type_5","hh_size_7","multi_gen_hh","rel_in_house","anyone_60","anyone_65","anyone_75",
                        "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3"):=
-          bg_hhSARETT[.SD,c("Householder",list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
+          bg_hhSARETT[.SD,c(list("Householder"),list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
                             list(no_spouse_sex),list(same_sex),list(couple_gender),list(match_type_5),list(hh_size_7),
                             list(multi_gen_hh),list(rel_in_house),list(anyone_60),list(anyone_65),list(anyone_75),
                             list(household_60),list(household_65),list(household_75),list(rent_own),
@@ -165,7 +170,8 @@ bg_SARE[is.na(hh_ID),c("role_new","hh_ID","family","family_type","family_type_4"
 nrow(bg_hhSARETT[is.na(ind_ID)]) #463 - remarkably evenly distributed. Don't try to capture
 #because we're using bg_hhSARETT as having better household info, projecting to it
 #looks like you're only counted as an unmarried partner if there's a child! hh_size_7 clearly works that way, but not sure how it relates to underlying count
-#with own children under 18 also seems to require at least three people total. No single parent with single kids??- have to rethink!!
+#with own children under 18 also seems to require at least three people total. No single parent with kids?? all I did was match on family and rent_own, but somehow that fell out?? single parent with kids is not family? own_kids?
+
 
 
 #assign significant others 
@@ -178,6 +184,49 @@ nrow(bg_hhSARETT[is.na(ind_ID)]) #463 - remarkably evenly distributed. Don't try
 #assign others
 
 #assign GQ?
+#expand for post-enumeration survey [after matching for families to get the rent/own]
+#want column n from the xslx file - for 2020, just copied tables from https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/net-coverage-error-and-components-of-coverage-by-race-hispanic-origin.pdf
+#using percentage for net coverage error (column N) in /Users/dan/Library/CloudStorage/OneDrive-SharedLibraries-UniversityOfHouston/Engaged Data Science - Data/Census/2020/post_enumeration_errors.xlsx
+net_cov_err_file <- paste0(censusdir,"2020/post_enumeration_errors.xlsx")
+net_coverage_err <- read_xlsx(net_cov_err_file,col_names = TRUE)
+net_coverage_err <- as.data.table(net_coverage_err)
+net_coverage_err[,("age_num_err"):=as.integer(substr(Label,1,2))]
+net_coverage_err <- net_coverage_err[!is.na(age_num_err)&!is.na(race_err)]
+
+bg_SARE[,("age_num_err"):=fcase(age_num<5,0,
+                                age_num>4&age_num<10,5,
+                                age_num>9&age_num<18,10,
+                                age_num>17&age_num<30,18,
+                                age_num>29&age_num<50,30,
+                                age_num>49,50,
+                                default = "not known")]
+bg_SARE[,("race_err"):=fcase(race=="WHITE ALONE, NOT HISPANIC OR LATINO","Non-Hispanic White",
+                             race=="BLACK OR AFRICAN AMERICAN ALONE, NOT HISPANIC OR LATINO","Black",
+                             race=="ASIAN ALONE, NOT HISPANIC OR LATINO","Asian",
+                             race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE, NOT HISPANIC OR LATINO","American Indian or Alaska Native",
+                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE, NOT HISPANIC OR LATINO","Native Hawaiian or Other Pacific Islander",
+                             race=="SOME OTHER RACE ALONE, NOT HISPANIC OR LATINO" | race=="TWO OR MORE RACES, NOT HISPANIC OR LATINO","Some Other Race",
+                             default = "Hispanic or Latino")]
+#bg_SARE[,("rent_own"):=,by=("hh_ID")] #or make rent_own one of the things moved down when doing the matches
+bg_SARE[,("rent_own_err"):=fcase(rent_own=="Owner occupied","Owner",
+                                 rent_own=="Renter occupied","Renter",
+                                default = "not known")]
+net_coverage_err[,("sex_err"):=fcase(str_detect(Label," males"),"male",
+                                     str_detect(Label," females"),"female",
+                                     default = "not given")]
+#duplicate all the ones with not_given, first not_given is male, second is female, same missing_pct
+net_coverage_err <- as.data.table(rbind(lapply(net_coverage_err[,.SD[sex_err=="not given"]],rep,2),lapply(net_coverage_err[,.SD[sex_err!="not given"]],rep,1)))
+net_coverage_err[,("cnt"):=.N,by=c("sex_err","race_err","age_num_err","rent_own_err")]
+net_coverage_err[,("sex_err"):=fcase(sex_err=="not given"&cnt==1,"male",
+                                     sex_err=="not given"&cnt==2,"female",
+                                     default = sex_err)]
+test <- net_coverage_err[bg_SARE,on=c("age_num_err","race_err","rent_own_err","sex_err")]
+bg_SARE[pct_missing<0,("to_remove"):=sample(c(TRUE,FALSE),1,replace = TRUE,c(-pct_missing,1+pct_missing))] #if it's negative, we add; if positive, we subtract 
+bg_SARE <- bg_SARE[!to_remove]
+bg_SARE[pct_missing>0,("to_duplicate"):=sample(c(TRUE,FALSE),1,replace = TRUE,c(pct_missing,1-pct_missing))] #if it's negative, we add; if positive, we subtract 
+#When duplicating some rows, have to deal with householders differently - two steps? or don't have any householders or spouses in the dups???
+bg_SARE
+
 
 #and get GQ, b/c never satisfied with how it broke out
 file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",

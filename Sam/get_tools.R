@@ -316,12 +316,16 @@ census_zcta_get <- function(censusdir,vintage,state,censuskey,groupname,county,a
   }
   return(result)
 }
-#NEED TO TEST AND TO DO PES - only state level available, and tables are organized differently than others, above
+
+#check Sam_4_fams
+#NEED TO TEST AND TO DO PES - only state level available, and tables are organized differently than others, above, as well as not having right info - abandoned
+#see, instead, https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/census-coverage-estimates-for-housing-units-in-the-united-states.pdf
 #api_type = "dec/pes"
+#groupname = "H_STATES" #other geographies not reported and only H_STATES reported at this one
+#path_suff="est"
 census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,path_suff){
   geo_type = "pes" 
   api_type="dec/pes" 
-  geo_type = "tract"
   file_path <- valid_file_path(censusdir,vintage,state,county,api_type,geo_type,groupname,path_suff)
   if (file.exists(file_path)){
     if (file.exists(str_replace(file_path,".RDS","_relabeled.RDS"))){
@@ -337,7 +341,6 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,pa
       census_variables$name <- paste0(substr(census_variables$name,1,nchar(as.character(census_variables$name))-1),"M") #MA - margin annotation; none for sex_age_race
       census_variables$label <- paste0(str_replace(census_variables$label,"Estimate!!Total","Margin of Error"))
     }
-    census_variables <- census_variables[str_detect(name,"H_STATES")]
     data_for_vars <- getCensus(name = api_type,
                                vintage = vintage,
                                vars = c("NAME", census_variables$name),
@@ -361,18 +364,30 @@ census_pes_get <- function(censusdir,vintage,state,censuskey,groupname,county,pa
   }
   return(result)
 }
-
+#install.packages("lehdr")
+#library(lehdr)
 
 #https://github.com/jamgreen/lehdr
-#or_od <- grab_lodes(state = "tx", 
-#                    year = 2020, 
+#https://lehd.ces.census.gov/data/lodes/LODES8/LODESTechDoc8.0.pdf
+#rac gives you jobs by sector and jobs by amount and jobs by age, race, ethnicity, sex, and education, for each block group; lots of zeros and ones in columns per block; have to figure out how to assign...
+#could make a ranked order list of blocks by industry (w_geocode) 
+
+#tx_rac <- grab_lodes(state = "tx", 
+#                    year = 2023, #2024 not available as of May 2026.
 #                    version = "LODES8", 
-#                    lodes_type = "od", 
-#                    job_type = "JT01",
+#                    lodes_type = "rac", #lodes_type = "od", 
+#                    job_type = "JT01", #Job Type, can have a value of “JT00” for All Jobs, “JT01” for Primary Jobs, “JT02” for All Private Jobs, “JT03” for Private Primary Jobs, “JT04” for All Federal Jobs, or “JT05” for Federal Primary Jobs. 
 #                    segment = "S000", 
 #                    state_part = "main", 
 #                    agg_geo = "block")
-# 10m rows - by origin and destination in block by job type... could be very interesting, but not simple
+# 10m rows - by origin and destination in block by job type - have the block_group for employer and the block_group for residence
+
 #think about BFRSS, and Kid version, etc.
+
+
+#may also want to look at commodity flows - available for 2017 and 2022 - 
+#https://www2.census.gov/data/experimental-data-products/commodity-flow-survey-subarea-estimates/2022/2022-commodity-flow-survey-subarea-estimates-methodology.pdf
+#https://www.census.gov/data/experimental-data-products/commodity-flow-survey-subarea-estimates.html
+#https://www.census.gov/data/experimental-data-products/commodity-flow-survey-subarea-estimates.2017_Estimates.html#list-tab-1816239564
 
 
