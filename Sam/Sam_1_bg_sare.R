@@ -93,6 +93,15 @@ rm(bgSARE_melted)
 rm(bgSARE2_data)
 rm(bgSARE2_melted)
 
+#table(bgSARE[,sex])
+
+#Female     Male 
+#14750823 14394682 
+#by published online, have right total, but: 14,561,650 males (49.96%) and 14,583,855 females (50.04%)
+#https://data.census.gov/ only lets you get at demographics by sex for ACS, which has different totals?
+#https://data.census.gov/table?g=040XX00US48&d=DEC+Demographic+Profile matches the ones from 2020, and is nowhere close to published online.
+#2020 ACS gives a total of 28,635,442, with males 14,221,720 and females at 14,413,722 (i.e., 510k less, and decennial was supposed to be 500k undercount for TX)
+
 groupname <- "P8" #RACE (but with up to 6 combinations instead of "two or more races"; same total number of individuals as bgSARE)
 geo_type <- "block_group"
 api_type <- "dec/dhc"
