@@ -1,3 +1,6 @@
+#something is screwed up with hh_size by family - need to step through it
+
+setwd("~/Documents/SyntheticDataSet")
 source('Sam/get_tools.R')
 library(stringr)
 library(data.table)
@@ -1293,6 +1296,10 @@ bg_hhSizeTenureRE[,("family"):=
 tr_hhTypeSizeRE[,("rent_own"):=
                   bg_hhSizeTenureRE[.SD,list(rent_own),
                             on=.(bgtr_hhSZ_match_id)]]
+
+#FIGURE THIS OUT!!!
+
+
 #nrow(bg_hhSizeTenureRE[is.na(family)]) #10045 (all missing have re_code=="H" and seem to not have a family designation)
 #can't fix last 10k
 #table(bg_hhSizeTenureRE[is.na(family),re_code])
@@ -1379,7 +1386,8 @@ bg_hhSizeTenureR[re_code_HI!="H",("match_R"):=
 bg_hhTypeRE[Latino!="H",("hh_size_7"):=
                    bg_hhSizeTenureR[.SD,list(size),
                                     on=.(bg_hhSizeR_match_id)]]
-#nrow(bg_hhTypeRE[is.na(hh_size_7)]) #6383635
+nrow(bg_hhTypeRE[is.na(hh_size_7)]) #6383635
+table(bg_hhTypeRE[Latino!="H",hh_size_7],bg_hhTypeRE[Latino!="H",match_type_5],useNA = "ifany")
 
 #for H (and other not matches)
 bg_hhSizeTenureR[is.na(match_R),("bg_hhSizeTE_match_id"):=
