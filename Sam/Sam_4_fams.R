@@ -35,6 +35,7 @@ bg_SARE[,("ind_ID"):=paste0(GEOID,as.character(1000000+(1:.N)))]
 bg_GQ[,("gq_ID"):=paste0(GEOID,as.character(1000000+(1:.N)))]
 bg_hhSARETT[,("hh_ID"):=paste0(GEOID,as.character(1000000+(1:.N)))]
 bg_hhSARETT[,("role"):="Householder"]
+bg_hhSARETT[,("household"):="In households"]
 #fix age_range
 bg_SARE[,("age_range_9hh"):=fcase(age_num>14&age_num<25,"15 to 24 years",
                                   age_num>24&age_num<35,"25 to 34 years",
@@ -193,7 +194,7 @@ bg_SARE[sex=="Male"&role=="Same-sex spouse"&is.na(hh_ID),("role_match_id"):=
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households",c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match_id)]]
 bg_SARE[sex=="Male"&role=="Same-sex spouse"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #only matched about 4350 of 25k; lots of problems with bg_SARE age_range on couple_gender
 #nrow(bg_SARE[sex=="Male"&role=="Same-sex spouse"&is.na(hh_ID)]) #18794
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&is.na(spouse_partner_ID),("role_match1_id"):=
@@ -205,7 +206,7 @@ bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),("role_match1_id"):=
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match1_id)]]
 bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match1_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match1_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #20919
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"])-nrow(bg_hhSARETT[!is.na(spouse_partner_ID)]) #3790
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&is.na(spouse_partner_ID),("role_match2_id"):=
@@ -217,7 +218,7 @@ bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),("role_match2_id"):=
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match2_id)]]
 bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match2_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match2_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"]) #24709
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #22150
 
@@ -231,7 +232,7 @@ bg_SARE[sex=="Female"&role=="Same-sex spouse"&is.na(hh_ID),("role_match3_id"):=
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match3_id)]]
 bg_SARE[sex=="Female"&role=="Same-sex spouse"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match3_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match3_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #only matched about 5571 
 #nrow(bg_SARE[sex=="Female"&role=="Same-sex spouse"&!is.na(hh_ID)])
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),("role_match4_id"):=
@@ -243,7 +244,7 @@ bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match4_id"):=
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match4_id)]]
 bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match4_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match4_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"]) #29795
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #28149
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),("role_match5_id"):=
@@ -255,7 +256,7 @@ bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match5_id"):=
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match5_id)]]
 bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match5_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match5_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"]) #29795
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #26730
 
@@ -269,7 +270,7 @@ bg_SARE[sex=="Male"&role=="Same-sex unmarried partner"&is.na(hh_ID),("role_match
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household",c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match6_id)]]
 bg_SARE[sex=="Male"&role=="Same-sex unmarried partner"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match6_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match6_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"]) #19801
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #only matched 3498 
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&is.na(spouse_partner_ID),("role_match7_id"):=
@@ -281,7 +282,7 @@ bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),("role_match7_id"):=
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match7_id)]]
 bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match7_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match7_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #17387
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&is.na(spouse_partner_ID),("role_match8_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
@@ -292,7 +293,7 @@ bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),("role_match8_id"):=
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match8_id)]]
 bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match8_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match8_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"]) #19801
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #18507
 
@@ -306,7 +307,7 @@ bg_SARE[sex=="Female"&role=="Same-sex unmarried partner"&is.na(hh_ID),("role_mat
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match9_id)]]
 bg_SARE[sex=="Female"&role=="Same-sex unmarried partner"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match9_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match9_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&!is.na(spouse_partner_ID)]) #only matched about 3777
 #nrow(bg_SARE[sex=="Female"&role=="Same-sex unmarried partner"&is.na(hh_ID)])
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),("role_match10_id"):=
@@ -318,7 +319,7 @@ bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match10_id"):=
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match10_id)]]
 bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match10_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match10_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&!is.na(spouse_partner_ID)]) #19798
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),("role_match11_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
@@ -329,7 +330,7 @@ bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match11_id"):=
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match11_id)]]
 bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Same sex spouse or partner")),on=.(role_match11_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match11_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"]) #22276
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&!is.na(spouse_partner_ID)]) #20884
 #opposite-sex married couples - use same_sex
@@ -342,7 +343,7 @@ bg_SARE[sex=="Female"&role=="Opposite-sex spouse",("role_match12_id"):=
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match12_id)]]
 bg_SARE[sex=="Female"&role=="Opposite-sex spouse",c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match12_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match12_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"]) #5025134
 #nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2291670
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match13_id"):=
@@ -354,7 +355,7 @@ bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match13_id"):=
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match13_id)]]
 bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match13_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match13_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2515582
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match14_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
@@ -365,7 +366,7 @@ bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match14_id"):=
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14_id)]]
 bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match14_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2664952
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match14a_id"):=
               paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
@@ -376,7 +377,7 @@ bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match14a_id"):
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14a_id)]]
 bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match14a_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14a_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2923077
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match14c_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
@@ -387,7 +388,7 @@ bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),("role_match14c_id"):=
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14c_id)]]
 bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match14c_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14c_id)]]
 #nrow(bg_hhSARETT[same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #4311706
 #bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match14b_id"):=
 #              paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
@@ -412,7 +413,7 @@ bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,
             c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14c_id)]]
 bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match14c_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14c_id)]]
 #nrow(bg_hhSARETT[same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #4548566 #i.e., 475k short, all "Married couple family" in hh, 
 #pick up leftover householders from bg_SARE
 bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match14d_id"):=
@@ -425,7 +426,7 @@ bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,
             c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14d_id)]]
 bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match14d_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14d_id)]]
 #nrow(bg_hhSARETT[!is.na(same_sex)]) #5719560
 #nrow(bg_hhSARETT[!is.na(spouse_partner_ID)]) #5460677 (i.e., 258883 missing)
 
@@ -440,7 +441,7 @@ bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,
             c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match15_id)]]
 bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match15_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match15_id)]]
 #nrow(bg_hhSARETT[!is.na(same_sex)])#5719560
 #nrow(bg_hhSARETT[!is.na(same_sex)&!is.na(spouse_partner_ID)]) #5603661 (2% not matched)
 #without re_code
@@ -454,7 +455,7 @@ bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,
             c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match15a_id)]]
 bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match15a_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match15a_id)]]
 #nrow(bg_hhSARETT[!is.na(same_sex)])#5719560
 #nrow(bg_hhSARETT[!is.na(same_sex)&!is.na(spouse_partner_ID)]) #5648769 (1.2%)
 #with age_range_3hh
@@ -468,7 +469,7 @@ bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,
             c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match15b_id)]]
 bg_SARE[!str_detect(role,"stitutional")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match15b_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match15b_id)]]
 #nrow(bg_hhSARETT[!is.na(same_sex)])#5719560
 #nrow(bg_hhSARETT[!is.na(same_sex)&!is.na(spouse_partner_ID)]) #5702335 (0.3% not matched, or 17225 left; worth matching?)
 #table(bg_hhSARETT[is.na(spouse_partner_ID),same_sex])
@@ -507,7 +508,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14==spouse_partner_re_
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match_id)]] #have to change to household - match overshoots when I put text in
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14==spouse_partner_re_code]) #311400
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)]) #268286 
 ##under 6 different race - avoiding complexity of actually matching by race2, etc.
@@ -522,7 +523,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14!=spouse_partner_re_
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match1_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match1_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match1_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"]) #624318
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)]) #293019
 ##under 6, but no spouse_partner
@@ -537,7 +538,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&is.na(spouse_partner_re_code)&
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match2_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match2_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match2_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"]) #624318
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)]) #328159
 ##for under 6 and 6-17, match with all under 18
@@ -552,7 +553,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14==spous
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match3_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match3_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match3_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14==spouse_partner_re_code]) #361989
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)]) #634638
 ##under 6 different race - avoiding complexity of actually matching by race2, etc.
@@ -567,7 +568,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14!=spous
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match4_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match4_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match4_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"]) #721066 (have to have at least twice as many)
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)&kid_age_range_3=="Under 6 years and 6 to 17 years"]) #340956 of 670k total child_own_1
 ##under 6 or under 18, but no spouse_partner
@@ -582,7 +583,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&is.na(spouse_part
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match5_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18,c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match5_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match5_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"]) #721066
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)]) #872415
 #
@@ -598,7 +599,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14==spouse_partner_re_
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match6_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match6_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match6_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14==spouse_partner_re_code]) #910446
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)]) #1650432
 #6 to 17 different race parents, biracial child - avoiding complexity of actually matching by race2, but still on re_code for householder, etc.; will miss a lot, but no time to implement now
@@ -613,7 +614,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14!=spouse_partner_re_
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match7_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match7_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match7_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"]) #1915650
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)&kid_age_range_3=="6 to 17 years only"]) #859101 (of 1731322 total child_own_1)
 #6 to 17, but no spouse_partner
@@ -628,7 +629,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&is.na(spouse_partner_re_code)&
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match8_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match8_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match8_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"]) #1915650
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)]) #1841421
 #
@@ -643,11 +644,13 @@ bg_hhSARETT[is.na(child_own_1_ID)&str_detect(all_kid_18,"own"),
             c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code","child_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match8a_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18,c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match8a_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match8a_id)]]
 #nrow(bg_hhSARETT[!is.na(child_own_1_ID)]) #3625462 with re_code_14 
 #table(bg_hhSARETT[,child_own_1_role],bg_hhSARETT[,kid_age_range_3],useNA = "ifany") 
 #table(bg_hhSARETT[,all_kid_18],bg_hhSARETT[,kid_age_range_3],useNA = "ifany") #the 480k biological kids who are not own is why moved to all_kids
 #
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Own child",default = hh_role)]
+
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_own_1_ID),hh_size_cnt-as.integer(1),default = hh_size_cnt)] #want it to be >1, since 1 is the householder; getting some 0s, etc., but keep using as general guide
 #got 790k at 0, which should be ok for single family kids
 #stepchild under 18 and hh over 34
@@ -661,7 +664,7 @@ bg_hhSARETT[hh_size_cnt>1&family=="Family households"&as.integer(substr(age_rang
             c("child_step_ID","child_step_sex","child_step_age","child_step_re_code","child_step_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match8b_id)]]
 bg_SARE[role=="Stepchild"&is.na(hh_ID)&age_num<18,c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Stepchild")),on=.(kid_match8b_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match8b_id)]]
 #nrow(bg_hhSARETT[!is.na(child_step_ID)]) #261069
 
 #stepchild and hh over 64
@@ -676,8 +679,9 @@ bg_hhSARETT[is.na(child_step_ID)&hh_size_cnt>1&family=="Family households"&as.in
             c("child_step_ID","child_step_sex","child_step_age","child_step_re_code","child_step_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match8c_id)]]
 bg_SARE[role=="Stepchild"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Stepchild")),on=.(kid_match8c_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match8c_id)]]
 #nrow(bg_hhSARETT[!is.na(child_step_ID)]) #387004
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Stepchild",default = hh_role)]
 
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_step_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
@@ -694,8 +698,10 @@ bg_hhSARETT[hh_size_cnt>1&family=="Family households"&as.integer(substr(age_rang
             c("child_grand_ID","child_grand_sex","child_grand_age","child_grand_re_code","child_grand_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match8d_id)]]
 bg_SARE[role=="Grandchild"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Grandchild")),on=.(kid_match8d_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match8d_id)]]
 #nrow(bg_hhSARETT[!is.na(child_grand_ID)]) #839056 (879134 total grandkids)
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Grandchild",default = hh_role)]
 
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_grand_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -711,8 +717,10 @@ bg_hhSARETT[hh_size_cnt>1&family=="Family households"&as.integer(substr(age_rang
             c("child_adopted_ID","child_adopted_sex","child_adopted_age","child_adopted_re_code","child_adopted_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match8e_id)]]
 bg_SARE[role=="Adopted child"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Adopted child")),on=.(kid_match8e_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match8e_id)]]
 #nrow(bg_hhSARETT[!is.na(child_adopted_ID)]) #160600 (165881 total adopted kids)
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Adopted child",default = hh_role)]
 
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_adopted_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -728,8 +736,10 @@ bg_hhSARETT[hh_size_cnt>1&family=="Family households"&as.integer(substr(age_rang
             c("child_foster_ID","child_foster_sex","child_foster_age","child_foster_re_code","child_foster_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match8f_id)]]
 bg_SARE[role=="Foster child"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Foster child")),on=.(kid_match8f_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match8f_id)]]
 #nrow(bg_hhSARETT[!is.na(child_foster_ID)]) #23077 (23098 total foster kids)
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Adopted child",default = hh_role)]
 
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_foster_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -745,8 +755,10 @@ bg_hhSARETT[hh_size_cnt>1&family=="Family households"&as.integer(substr(age_rang
             c("parent_ID","parent_sex","parent_age","parent_re_code","parent_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match8g_id)]]
 bg_SARE[str_detect(role,"Parent")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Parent")),on=.(kid_match8g_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match8g_id)]]
 #nrow(bg_hhSARETT[!is.na(parent_ID)]) #465694 (410321 total parents and 104767 parents in law)
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Parent",default = hh_role)]
 
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(parent_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -763,7 +775,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14==spous
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match9_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match9_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match9_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14==spouse_partner_re_code]) #362286
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #168489
 #Under 6 years and 6 to 17 years different race - avoiding complexity of actually matching by race2, etc.
@@ -780,7 +792,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14!=spous
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match10_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match10_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match10_id)]]
 #Under 6 years and 6 to 17 years, but no spouse_partner
 bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&is.na(spouse_partner_re_code)&hh_size_cnt>1&
               !is.na(child_own_1_ID)&is.na(child_own_2_ID),
@@ -795,7 +807,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&is.na(spouse_part
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match11_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match11_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match11_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"]) #721066
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #141893
 #
@@ -812,7 +824,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14==spouse_partner_re_
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match12_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match12_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match12_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14==spouse_partner_re_code]) #311097
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #283507
 #under 6 different race - avoiding complexity of actually matching by race2, etc.
@@ -829,7 +841,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14!=spouse_partner_re_
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match13_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match13_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match13_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"]) #1915650
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #295155
 #under 6, but no spouse_partner
@@ -846,7 +858,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&is.na(spouse_partner_re_code)&
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match14_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match14_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match14_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"]) #624318
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #317163
 ##for only 6-17
@@ -862,7 +874,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14==spouse_partner_re_
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match15_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match15_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match15_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14==spouse_partner_re_code]) #910863
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #1037743
 #6 to 17 different race - avoiding complexity of actually matching by race2, etc.
@@ -879,7 +891,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14!=spouse_partner_re_
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match16_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match16_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match16_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"]) #1915650 (have to have at least twice as many)
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #1099803
 #6 to 17, but no spouse_partner
@@ -896,7 +908,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&is.na(spouse_partner_re_code)&
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match17_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match17_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match17_id)]]
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #598285
 #
 ##get by re_code_7 with all-kids added - this would include spouses' children who are not householders'
@@ -910,11 +922,12 @@ bg_hhSARETT[!is.na(child_own_1_ID)&is.na(child_own_2_ID)&str_detect(all_kid_18,"
             c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code","child_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match17a_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18,c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match17a_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match17a_id)]]
 nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #1977867
 #table(bg_SARE[!is.na(hh_ID)&age_num<18,role],useNA = "ifany")
 #nrow(bg_SARE[is.na(hh_ID)&age_num<18&role=="Biological child"])/ nrow(bg_SARE[age_num<18&role=="Biological child"]) #2% (127965 bio children matched)
 
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Own child",default = hh_role)]
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_own_2_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -931,8 +944,10 @@ bg_hhSARETT[hh_size_cnt>1&family=="Family households"&as.integer(substr(age_rang
             c("son_daughter_in_law_ID","son_daughter_in_law_sex","son_daughter_in_law_age","son_daughter_in_law_re_code","son_daughter_in_law_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match28a_id)]]
 bg_SARE[str_detect(role,"daughter")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Son or daughter-in-law")),on=.(kid_match28a_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match28a_id)]]
 #nrow(bg_hhSARETT[!is.na(son_daughter_in_law_ID)]) #142695 (170778 total parents and 104767 parents in law)
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Son or daughter-in-law",default = hh_role)]
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(son_daughter_in_law_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -948,8 +963,10 @@ bg_hhSARETT[hh_size_cnt>1&family=="Family households",
             c("sibling_ID","sibling_sex","sibling_age","sibling_re_code","sibling_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match28b_id)]]
 bg_SARE[str_detect(role,"sister")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Sibling")),on=.(kid_match28b_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match28b_id)]]
 #nrow(bg_hhSARETT[!is.na(sibling_ID)]) #373236 
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Sibling",default = hh_role)]
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(sibling_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -965,8 +982,10 @@ bg_hhSARETT[hh_size_cnt>1&family=="Family households",
             c("relatives_ID","relatives_sex","relatives_age","relatives_re_code","relatives_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match28c_id)]]
 bg_SARE[role=="Other relatives"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Other relatives")),on=.(kid_match28c_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match28c_id)]]
 #nrow(bg_hhSARETT[!is.na(relatives_ID)]) #433572 
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Other relatives",default = hh_role)]
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(relatives_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -981,8 +1000,10 @@ bg_hhSARETT[hh_size_cnt>1,
             c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code","nonrelatives_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match28d_id)]]
 bg_SARE[role=="Other nonrelatives"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Other nonrelatives")),on=.(kid_match28d_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match28d_id)]]
 #nrow(bg_hhSARETT[!is.na(nonrelatives_ID)]) #736109
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Other nonrelatives",default = hh_role)]
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(nonrelatives_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -999,7 +1020,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14==spous
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match18_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match18_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match18_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14==spouse_partner_re_code]) #361579
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #12079
 ##Under 6 years and 6 to 17 years different race - avoiding complexity of actually matching by race2, etc.
@@ -1016,7 +1037,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14!=spous
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match19_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match19_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match19_id)]]
 #Under 6 years and 6 to 17 years, but no spouse_partner #zero found!
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #7393
 
@@ -1033,7 +1054,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&is.na(spouse_part
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match20_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match20_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match20_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"]) #720345
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #24829
 #
@@ -1050,7 +1071,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14==spouse_partner_re_
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match21_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match21_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match21_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14==spouse_partner_re_code]) #311400
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #30347 
 #under 6 different race - avoiding complexity of actually matching by race2, etc.
@@ -1067,7 +1088,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14!=spouse_partner_re_
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match22_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match22_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match22_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"]) #1915993
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #33552
 #under 6, but no spouse_partner
@@ -1084,7 +1105,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&is.na(spouse_partner_re_code)&
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match23_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match23_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match23_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"]) #624695
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #38112
 ##for only 6-17
@@ -1100,7 +1121,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14==spouse_partner_re_
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match24_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match24_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match24_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14==spouse_partner_re_code]) #911344
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #56169
 #6 to 17 different race - avoiding complexity of actually matching by race2, etc.
@@ -1117,7 +1138,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14!=spouse_partner_re_
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match25_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match25_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match25_id)]]
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #67334
 ##6 to 17, but no spouse_partner
 bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&is.na(spouse_partner_re_code)&hh_size_cnt>1&
@@ -1133,7 +1154,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&is.na(spouse_partner_re_code)&
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match26_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match26_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match26_id)]]
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #52035
 #re_code_7 and tract only
 bg_hhSARETT[!is.na(child_own_2_ID)&all_kid_18!="No children under 18 years"&is.na(child_own_3_ID),("kid_match26a_id"):=
@@ -1146,8 +1167,10 @@ bg_hhSARETT[!is.na(child_own_2_ID)&all_kid_18!="No children under 18 years"&is.n
             c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code","child_own_3_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match26a_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18,c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match26a_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match26a_id)]]
 #nrow(bg_hhSARETT[!is.na(child_own_3_ID)]) #417092 - in line with online estimates for state of Texas 
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Own child",default = hh_role)]
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_own_3_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -1163,7 +1186,7 @@ bg_hhSARETT[all_kid_18!="No children under 18 years"&kid_age_range_3=="No own ch
             c("child_not_own_1_ID","child_not_own_1_sex","child_not_own_1_age","child_not_own_1_re_code","child_not_own_1_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match27a_id)]]
 bg_SARE[!str_detect(role,"stitutional")&is.na(hh_ID)&age_num<18,c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Not own child")),on=.(kid_match27a_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match27a_id)]]
 #nrow(bg_hhSARETT[!is.na(child_not_own_1_ID)]) #71575
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_not_own_1_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
@@ -1180,8 +1203,10 @@ bg_hhSARETT[!is.na(child_not_own_1_ID)&hh_size_cnt>1,
             c("child_not_own_2_ID","child_not_own_2_sex","child_not_own_2_age","child_not_own_2_re_code","child_not_own_2_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match28_id)]]
 bg_SARE[!str_detect(role,"stitutional")&is.na(hh_ID)&age_num<18,c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Not own child")),on=.(kid_match28_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match28_id)]]
 #nrow(bg_hhSARETT[!is.na(child_not_own_2_ID)]) #14710. #these numbers should be higher!
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Child not own",default = hh_role)]
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_not_own_2_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -1198,7 +1223,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14==spous
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match30_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match30_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match30_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14==spouse_partner_re_code]) #361292
 #nrow(bg_hhSARETT[!is.na(child_own_4_ID)]) #371
 #Under 6 years and 6 to 17 years different race - avoiding complexity of actually matching by race2, etc.
@@ -1215,7 +1240,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&re_code_14!=spous
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match31_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match31_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match31_id)]]
 #Under 6 years and 6 to 17 years, but no spouse_partner
 bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&is.na(spouse_partner_re_code)&hh_size_cnt>1&
               !is.na(child_own_3_ID)&is.na(child_own_4_ID),
@@ -1230,7 +1255,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"&is.na(spouse_part
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match32_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match32_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match32_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years and 6 to 17 years"]) #720345
 #nrow(bg_hhSARETT[!is.na(child_own_4_ID)]) #59051
 #
@@ -1247,7 +1272,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14==spouse_partner_re_
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match33_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match33_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match33_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14==spouse_partner_re_code]) #311400
 #nrow(bg_hhSARETT[!is.na(child_own_4_ID)]) #1539
 #under 6 different race - avoiding complexity of actually matching by race2, etc.
@@ -1264,7 +1289,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&re_code_14!=spouse_partner_re_
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match34_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match34_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match34_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"]) #1915993
 #nrow(bg_hhSARETT[!is.na(child_own_4_ID)]) #1763
 ##under 6, but no spouse_partner
@@ -1281,7 +1306,7 @@ bg_hhSARETT[kid_age_range_3=="Under 6 years only"&is.na(spouse_partner_re_code)&
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match35_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y==0&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match35_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match35_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="Under 6 years only"]) #624695
 #nrow(bg_hhSARETT[!is.na(child_own_4_ID)]) #89686
 ##for only 6-17
@@ -1297,7 +1322,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14==spouse_partner_re_
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match36_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match36_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match36_id)]]
 #nrow(bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14==spouse_partner_re_code]) #911344
 #nrow(bg_hhSARETT[!is.na(child_own_4_ID)]) #162048
 #6 to 17 different race - avoiding complexity of actually matching by race2, etc.
@@ -1314,7 +1339,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&re_code_14!=spouse_partner_re_
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match37_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match37_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match37_id)]]
 #nrow(bg_hhSARETT[!is.na(child_own_4_ID)]) #1088
 #6 to 17, but no spouse_partner
 bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&is.na(spouse_partner_re_code)&hh_size_cnt>1&
@@ -1330,7 +1355,7 @@ bg_hhSARETT[kid_age_range_3=="6 to 17 years only"&is.na(spouse_partner_re_code)&
             c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code","child_own_4_role"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code),list(role)),on=.(kid_match38_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID)&age_num_5y>0&age_num<18&!is.na(race_2),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Own child")),on=.(kid_match38_id)]]
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match38_id)]]
 #nrow(bg_hhSARETT[!is.na(child_own_4_ID)]) #1634
 
 #get new hh_size_cnt
@@ -1350,6 +1375,8 @@ bg_hhSARETT[hh_size_cnt>1&as.integer(substr(age_range_9hh,1,2))>54&family=="Fami
 bg_SARE[role=="Biological child"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(role)),on=.(kid_match39a_id)]]
 nrow(bg_hhSARETT[!is.na(child_own_add_ID)]) #599266
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Own child",default = hh_role)]
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_own_add_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
@@ -1357,7 +1384,7 @@ nrow(bg_SARE[is.na(hh_ID)&age_num<18]) #80000 or 1% - move over later
 nrow(bg_SARE[is.na(hh_ID)])/nrow(bg_SARE) #12%
 
 #add GQ to bg_hhSARETT
-bg_hhSARETT[,("household"):="In households"]
+
 bg_GQ[,("age_num"):=fcase(age_range_3a=="15 to 17 years",as.integer(15),
                           age_range_3a=="17 years and under",as.integer(16),
                           age_range_3a=="18 to 21 years",as.integer(18),
@@ -1369,6 +1396,8 @@ bg_GQ[,("age_range"):=NULL]
 bg_GQHH <- merge(bg_GQ,bg_hhSARETT,by=c("GEOID","tract","household","sex","age_range_3hh"),all = TRUE)
 
 #MOVE BG_SARE[,ROLE_ORIG] TOTALS OVER ONE AT A TIME AND THEN FORCE A MATCH UP TO THOSE NUMBERS? BY AGE??? basically allowing a reshuffle by age
+#or just do more matches like above, but with bg_GQHH and then use those already matched up with labels for roles?
+#or follow out on hh_role vs. orig totals, move to SARETT and just fcase it through
 
 #add older biological children, child_2
 #nrow(bg_hhSARETT[!is.na(child_own_2_ID)]) #1940948
