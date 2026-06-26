@@ -1405,55 +1405,57 @@ match_cols <- grep("_match",names(bg_hhSARETT),value = TRUE)
 bg_hhSARETT[,(match_cols):=NULL]
 bg_SARE[,(match_cols):=NULL]
 
-bg_hhSARETT[,("spouse_partner"):=asplit(.SD,1),.SDcols=c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code")]
+#ADD SOMETHING ABOUT !IS.NA(SPOUSE_PARTNER), ETC.
+
+bg_hhSARETT[!is.na(spouse_partner_ID),("spouse_partner"):=asplit(.SD,1),.SDcols=c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code")]
 bg_hhSARETT[,c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=NULL]
 
-bg_hhSARETT[,("child_own_1"):=asplit(.SD,1),.SDcols=c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code")]
+bg_hhSARETT[!is.na(child_own_1_ID),("child_own_1"):=asplit(.SD,1),.SDcols=c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code")]
 bg_hhSARETT[,c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code"):=NULL]
 
-bg_hhSARETT[,("child_own_2"):=asplit(.SD,1),.SDcols=c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code")]
+bg_hhSARETT[!is.na(child_own_2_ID),("child_own_2"):=asplit(.SD,1),.SDcols=c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code")]
 bg_hhSARETT[,c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code"):=NULL]
 
-bg_hhSARETT[,("child_own_3"):=asplit(.SD,1),.SDcols=c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code")]
+bg_hhSARETT[!is.na(child_own_3_ID),("child_own_3"):=asplit(.SD,1),.SDcols=c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code")]
 bg_hhSARETT[,c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code"):=NULL]
 
-bg_hhSARETT[,("child_own_4"):=asplit(.SD,1),.SDcols=c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code")]
+bg_hhSARETT[!is.na(child_own_4_ID),("child_own_4"):=asplit(.SD,1),.SDcols=c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code")]
 bg_hhSARETT[,c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code"):=NULL]
 
-bg_hhSARETT[,("child_own_add"):=asplit(.SD,1),.SDcols=c("child_own_add_ID","child_own_add_sex","child_own_add_age","child_own_add_re_code")]
+bg_hhSARETT[!is.na(child_own_add_ID),("child_own_add"):=asplit(.SD,1),.SDcols=c("child_own_add_ID","child_own_add_sex","child_own_add_age","child_own_add_re_code")]
 bg_hhSARETT[,c("child_own_add_ID","child_own_add_sex","child_own_add_age","child_own_add_re_code"):=NULL]
 
-bg_hhSARETT[,("child_not_own_1"):=asplit(.SD,1),.SDcols=c("child_not_own_1_ID","child_not_own_1_sex","child_not_own_1_age","child_not_own_1_re_code")]
+bg_hhSARETT[!is.na(child_not_own_1_ID),("child_not_own_1"):=asplit(.SD,1),.SDcols=c("child_not_own_1_ID","child_not_own_1_sex","child_not_own_1_age","child_not_own_1_re_code")]
 bg_hhSARETT[,c("child_not_own_1_ID","child_not_own_1_sex","child_not_own_1_age","child_not_own_1_re_code"):=NULL]
 
-bg_hhSARETT[,("child_not_own_2"):=asplit(.SD,1),.SDcols=c("child_not_own_2_ID","child_not_own_2_sex","child_not_own_2_age","child_not_own_2_re_code")]
+bg_hhSARETT[!is.na(child_not_own_2_ID),("child_not_own_2"):=asplit(.SD,1),.SDcols=c("child_not_own_2_ID","child_not_own_2_sex","child_not_own_2_age","child_not_own_2_re_code")]
 bg_hhSARETT[,c("child_not_own_2_ID","child_not_own_2_sex","child_not_own_2_age","child_not_own_2_re_code"):=NULL]
 
-bg_hhSARETT[,("child_step"):=asplit(.SD,1),.SDcols=c("child_step_ID","child_step_sex","child_step_age","child_step_re_code")]
+bg_hhSARETT[!is.na(child_step_ID),("child_step"):=asplit(.SD,1),.SDcols=c("child_step_ID","child_step_sex","child_step_age","child_step_re_code")]
 bg_hhSARETT[,c("child_step_ID","child_step_sex","child_step_age","child_step_re_code"):=NULL]
 
-bg_hhSARETT[,("child_grand"):=asplit(.SD,1),.SDcols=c("child_grand_ID","child_grand_sex","child_grand_age","child_grand_re_code")]
+bg_hhSARETT[!is.na(child_grand_ID),("child_grand"):=asplit(.SD,1),.SDcols=c("child_grand_ID","child_grand_sex","child_grand_age","child_grand_re_code")]
 bg_hhSARETT[,c("child_grand_ID","child_grand_sex","child_grand_age","child_grand_re_code"):=NULL]
 
-bg_hhSARETT[,("child_adopted"):=asplit(.SD,1),.SDcols=c("child_adopted_ID","child_adopted_sex","child_adopted_age","child_adopted_re_code")]
+bg_hhSARETT[!is.na(child_adopted_ID),("child_adopted"):=asplit(.SD,1),.SDcols=c("child_adopted_ID","child_adopted_sex","child_adopted_age","child_adopted_re_code")]
 bg_hhSARETT[,c("child_adopted_ID","child_adopted_sex","child_adopted_age","child_adopted_re_code"):=NULL]
 
-bg_hhSARETT[,("child_foster"):=asplit(.SD,1),.SDcols=c("child_foster_ID","child_foster_sex","child_foster_age","child_foster_re_code")]
+bg_hhSARETT[!is.na(child_foster_ID),("child_foster"):=asplit(.SD,1),.SDcols=c("child_foster_ID","child_foster_sex","child_foster_age","child_foster_re_code")]
 bg_hhSARETT[,c("child_foster_ID","child_foster_sex","child_foster_age","child_foster_re_code"):=NULL]
 
-bg_hhSARETT[,("son_daughter_in_law"):=asplit(.SD,1),.SDcols=c("son_daughter_in_law_ID","son_daughter_in_law_sex","son_daughter_in_law_age","son_daughter_in_law_re_code")]
+bg_hhSARETT[!is.na(son_daughter_in_law_ID),("son_daughter_in_law"):=asplit(.SD,1),.SDcols=c("son_daughter_in_law_ID","son_daughter_in_law_sex","son_daughter_in_law_age","son_daughter_in_law_re_code")]
 bg_hhSARETT[,c("son_daughter_in_law_ID","son_daughter_in_law_sex","son_daughter_in_law_age","son_daughter_in_law_re_code"):=NULL]
 
-bg_hhSARETT[,("parent"):=asplit(.SD,1),.SDcols=c("parent_ID","parent_sex","parent_age","parent_re_code")]
+bg_hhSARETT[!is.na(parent_ID),("parent"):=asplit(.SD,1),.SDcols=c("parent_ID","parent_sex","parent_age","parent_re_code")]
 bg_hhSARETT[,c("parent_ID","parent_sex","parent_age","parent_re_code"):=NULL]
 
-bg_hhSARETT[,("sibling"):=asplit(.SD,1),.SDcols=c("sibling_ID","sibling_sex","sibling_age","sibling_re_code")]
+bg_hhSARETT[!is.na(sibling_ID),("sibling"):=asplit(.SD,1),.SDcols=c("sibling_ID","sibling_sex","sibling_age","sibling_re_code")]
 bg_hhSARETT[,c("sibling_ID","sibling_sex","sibling_age","sibling_re_code"):=NULL]
 
-bg_hhSARETT[,("relatives"):=asplit(.SD,1),.SDcols=c("relatives_ID","relatives_sex","relatives_age","relatives_re_code")]
+bg_hhSARETT[!is.na(relatives),("relatives"):=asplit(.SD,1),.SDcols=c("relatives_ID","relatives_sex","relatives_age","relatives_re_code")]
 bg_hhSARETT[,c("relatives_ID","relatives_sex","relatives_age","relatives_re_code"):=NULL]
 
-bg_hhSARETT[,("nonrelatives"):=asplit(.SD,1),.SDcols=c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code")]
+bg_hhSARETT[!is.na(nonrelatives),("nonrelatives"):=asplit(.SD,1),.SDcols=c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code")]
 bg_hhSARETT[,c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code"):=NULL]
 
 bg_hhSARETT[,("members"):=asplit(.SD,1),.SDcols=c("spouse_partner","parent","sibling","relatives","nonrelatives","son_daughter_in_law","child_foster","child_adopted",
