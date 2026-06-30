@@ -1,6 +1,3 @@
-#DID I Have age, race, sex overwrite on bg_hhSARETT from bg_SARE for householders?
-#need to get last 12% before doing all the collapsing into new factors
-
 setwd("~/Documents/SyntheticDataSet")
 source('Sam/get_tools.R')
 library(stringr)
@@ -121,6 +118,8 @@ bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","family","family_type","famil
                             list(household_60),list(household_65),list(household_75),list(rent_own),
                             list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),list(role)),on=.(hh_match2a_id)]]
 #nrow(bg_hhSARETT[is.na(ind_ID)]) #356195 - 3.4% not matching
+#table(bg_hhSARETT[is.na(ind_ID),re_code_14]) #mostly well-distributed on re_code and age_range
+
 #with only age_range_3hh
 bg_hhSARETT[is.na(ind_ID),("hh_match3_id"):=
               paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
@@ -132,12 +131,14 @@ bg_hhSARETT[is.na(ind_ID),c("ind_ID","age_range","HvL","race_1","race_2"):=
               bg_SARE[.SD,c(list(ind_ID),list(age_range),list(HvL),list(race_1),list(race_2)),on=.(hh_match3_id)]]
 bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
                                            "couple_gender","match_type_5","hh_size_7","multi_gen_hh","rel_in_house","anyone_60","anyone_65","anyone_75",
-                                           "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3","hh_role"):=
+                                           "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3",
+                                           "hh_role","re_code_hh"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
                             list(no_spouse_sex),list(same_sex),list(couple_gender),list(match_type_5),list(hh_size_7),
                             list(multi_gen_hh),list(rel_in_house),list(anyone_60),list(anyone_65),list(anyone_75),
                             list(household_60),list(household_65),list(household_75),list(rent_own),
-                            list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),list(role)),on=.(hh_match3_id)]]
+                            list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),
+                            list(role),list(re_code)),on=.(hh_match3_id)]]
 #nrow(bg_hhSARETT[is.na(ind_ID)]) #94793 - 1%
 #get the 1% from folks not matching on role=="Householder"
 bg_hhSARETT[is.na(ind_ID),("hh_match4_id"):=
@@ -169,12 +170,14 @@ bg_hhSARETT[is.na(ind_ID),c("ind_ID","age_range","HvL","race_1","race_2"):=
               bg_SARE[.SD,c(list(ind_ID),list(age_range),list(HvL),list(race_1),list(race_2)),on=.(hh_match5_id)]]
 bg_SARE[is.na(hh_ID)&!str_detect(role,"stitutional"),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
                        "couple_gender","match_type_5","hh_size_7","multi_gen_hh","rel_in_house","anyone_60","anyone_65","anyone_75",
-                       "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3","hh_role"):=
+                       "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3",
+                       "hh_role","re_code_hh"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
                             list(no_spouse_sex),list(same_sex),list(couple_gender),list(match_type_5),list(hh_size_7),
                             list(multi_gen_hh),list(rel_in_house),list(anyone_60),list(anyone_65),list(anyone_75),
                             list(household_60),list(household_65),list(household_75),list(rent_own),
-                            list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),list(role)),on=.(hh_match5_id)]]
+                            list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),
+                            list(role),list(re_code)),on=.(hh_match5_id)]]
 #nrow(bg_hhSARETT[is.na(ind_ID)]) #5441 - remarkably evenly distributed. Don't try to capture
 #length(unique(bg_hhSARETT[is.na(ind_ID),GEOID]))#198 (which is 1% of total number of block groups - group quarters folks might be issue) 
 #max(table(bg_hhSARETT[is.na(ind_ID),GEOID])) #766 (3796 are in block groups with more than 50 not matched)
@@ -182,7 +185,8 @@ bg_hhSARETT[,("races"):=asplit(.SD,1),.SDcols=c("race_1","race_2")]
 bg_hhSARETT[,c("race_1","race_2"):=NULL]
 
 
-#because we're using bg_hhSARETT as having better household info, projecting to it
+#because we're using bg_hhSARETT as having better household info, projecting to it, with re_code_hh on bg_SARE to capture the 3% not matching on re_code_14
+bg_SARE[,("re_code"):=fcase(!is.na(re_code_hh),re_code_hh,default = re_code)]
 
 #match for spouses and partners, with folks close to same age
 #they were supposed to have made it so that Householder could be female in a married couple in 2020, but I couldn't see any evidence for how that was implemented; I let them distribute differently at end
@@ -1400,77 +1404,165 @@ bg_GQ[,("age_num"):=fcase(age_range_3a=="15 to 17 years",as.integer(15),
                           age_range_3a=="65 years and over",as.integer(65),default = as.integer(19))]
 bg_GQ[,("age_range_3hh"):=age_range]
 bg_GQ[,("age_range"):=NULL]
+bg_GQ[,("household"):="In group quarters"]
 
 match_cols <- grep("_match",names(bg_hhSARETT),value = TRUE)
 bg_hhSARETT[,(match_cols):=NULL]
 bg_SARE[,(match_cols):=NULL]
 
-#ADD SOMETHING ABOUT !IS.NA(SPOUSE_PARTNER), ETC.
+bg_GQHH <- merge(bg_GQ,bg_hhSARETT,by=c("GEOID","tract","household","sex","age_range_3hh","age_num"),all = TRUE) #keeps columns from having .x, etc
+bg_GQHH[,("hh_ID"):=fcase(is.na(hh_ID),gq_ID,default = hh_ID)]
 
-bg_hhSARETT[!is.na(spouse_partner_ID),("spouse_partner"):=asplit(.SD,1),.SDcols=c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code")]
-bg_hhSARETT[,c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=NULL]
+#look at role totals
+role_summary <- bg_SARE[,.(role_totals = .N), by = .(GEOID,role_orig)]
+bg_role_summary <- dcast(role_summary,GEOID~role_orig,value.var="role_totals",fun.aggregate = sum)
+bg_roles_hh <- bg_role_summary[bg_GQHH,on="GEOID"]
 
-bg_hhSARETT[!is.na(child_own_1_ID),("child_own_1"):=asplit(.SD,1),.SDcols=c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code")]
-bg_hhSARETT[,c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code"):=NULL]
+#match first on folks that should be same age
+#bg_GQHH[hh_size_cnt>1,
+#            ("all_match_id"):=
+#              paste0(tract,age_range_9hh,re_code_14,as.character(100000+sample(1:.N))),
+#            by=.(tract,age_range_9hh,re_code_14)]
+#bg_SARE[is.na(hh_ID),("all_match_id"):=
+#          paste0(tract,age_range_9hh,re_code,as.character(100000+sample(1:.N))),
+#        by=.(tract,age_range_9hh,re_code)]
+#bg_GQHH[hh_size_cnt>1,
+#            c("add_ID","add_sex","add_age","add_re_code"):=
+#              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match_id)]]
+#bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+#          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match_id)]]
+#nrow(bg_GQHH[!is.na(add_ID)]) #959728
 
-bg_hhSARETT[!is.na(child_own_2_ID),("child_own_2"):=asplit(.SD,1),.SDcols=c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code")]
-bg_hhSARETT[,c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code"):=NULL]
+#match on broad age_range to get gq population
+bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+        ("all_match1_id"):=
+          paste0(GEOID,age_range_3hh,as.character(100000+sample(1:.N))),
+        by=.(GEOID,age_range_3hh)]
+bg_SARE[is.na(hh_ID),("all_match1_id"):=
+          paste0(GEOID,age_range_3hh,as.character(100000+sample(1:.N))),
+        by=.(GEOID,age_range_3hh)]
+bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+        c("add_1_ID","add_1_sex","add_1_age","add_1_re_code"):=
+          bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match1_id)]]
+bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match1_id)]]
+nrow(bg_GQHH[!is.na(add_1_ID)]) # 1517663
 
-bg_hhSARETT[!is.na(child_own_3_ID),("child_own_3"):=asplit(.SD,1),.SDcols=c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code")]
-bg_hhSARETT[,c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code"):=NULL]
+nrow(bg_SARE[is.na(hh_ID)]) #1998850
+table(bg_SARE[is.na(hh_ID),role],useNA = "ifany")
+#finish getting group quarters matched...
 
-bg_hhSARETT[!is.na(child_own_4_ID),("child_own_4"):=asplit(.SD,1),.SDcols=c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code")]
-bg_hhSARETT[,c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code"):=NULL]
+#match without anything but GEOID
+#move over rest
+bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+        ("all_match2b_id"):=
+          paste0(GEOID,as.character(100000+sample(1:.N))),
+        by=.(GEOID)]
+bg_SARE[is.na(hh_ID),("all_match2b_id"):=
+          paste0(GEOID,as.character(100000+sample(1:.N))),
+        by=.(GEOID)]
+bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+        c("add_2_ID","add_2_sex","add_2_age","add_2_re_code"):=
+          bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match2b_id)]]
+bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match2b_id)]]
+nrow(bg_GQHH[!is.na(add_2_ID)]) #1984513
+nrow(bg_SARE[is.na(hh_ID)]) #504155
 
-bg_hhSARETT[!is.na(child_own_add_ID),("child_own_add"):=asplit(.SD,1),.SDcols=c("child_own_add_ID","child_own_add_sex","child_own_add_age","child_own_add_re_code")]
-bg_hhSARETT[,c("child_own_add_ID","child_own_add_sex","child_own_add_age","child_own_add_re_code"):=NULL]
+#and at tract
+bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+        ("all_match3a_id"):=
+          paste0(tract,as.character(100000+sample(1:.N))),
+        by=.(tract)]
+bg_SARE[is.na(hh_ID),("all_match3a_id"):=
+          paste0(tract,as.character(100000+sample(1:.N))),
+        by=.(tract)]
+bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+        c("add_3_ID","add_3_sex","add_3_age","add_3_re_code"):=
+          bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match3a_id)]]
+bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match3a_id)]]
+nrow(bg_GQHH[!is.na(add_3_ID)]) #501119
+nrow(bg_SARE[is.na(hh_ID)]) #376418
+#
+bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+        ("all_match4b_id"):=
+          paste0(tract,as.character(100000+sample(1:.N))),
+        by=.(tract)]
+bg_SARE[is.na(hh_ID),("all_match4b_id"):=
+          paste0(tract,as.character(100000+sample(1:.N))),
+        by=.(tract)]
+bg_GQHH[as.integer(substr(hh_size_7,1,1))>2  | is.na(hh_size_7),
+        c("add_4_ID","add_4_sex","add_4_age","add_4_re_code"):=
+          bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match4b_id)]]
+bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match4b_id)]]
+nrow(bg_GQHH[!is.na(add_4_ID)]) #292075
+nrow(bg_SARE[is.na(hh_ID)]) #269631
+length(unique(bg_SARE[is.na(hh_ID),tract])) #188 - i.e 2.7% of tracts; 1.4% of GEOIDs
+table(bg_SARE[is.na(hh_ID),role],useNA = "ifany") #all about non-matching GQ....
+#maybe not in family and hh_size > 1
 
-bg_hhSARETT[!is.na(child_not_own_1_ID),("child_not_own_1"):=asplit(.SD,1),.SDcols=c("child_not_own_1_ID","child_not_own_1_sex","child_not_own_1_age","child_not_own_1_re_code")]
-bg_hhSARETT[,c("child_not_own_1_ID","child_not_own_1_sex","child_not_own_1_age","child_not_own_1_re_code"):=NULL]
+#assign roles for additionals / remember to give gq_id 
 
-bg_hhSARETT[!is.na(child_not_own_2_ID),("child_not_own_2"):=asplit(.SD,1),.SDcols=c("child_not_own_2_ID","child_not_own_2_sex","child_not_own_2_age","child_not_own_2_re_code")]
-bg_hhSARETT[,c("child_not_own_2_ID","child_not_own_2_sex","child_not_own_2_age","child_not_own_2_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(child_step_ID),("child_step"):=asplit(.SD,1),.SDcols=c("child_step_ID","child_step_sex","child_step_age","child_step_re_code")]
-bg_hhSARETT[,c("child_step_ID","child_step_sex","child_step_age","child_step_re_code"):=NULL]
+bg_GQHH[!is.na(spouse_partner_ID),("spouse_partner"):=asplit(.SD,1),.SDcols=c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code")]
+bg_GQHH[,c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(child_grand_ID),("child_grand"):=asplit(.SD,1),.SDcols=c("child_grand_ID","child_grand_sex","child_grand_age","child_grand_re_code")]
-bg_hhSARETT[,c("child_grand_ID","child_grand_sex","child_grand_age","child_grand_re_code"):=NULL]
+bg_GQHH[!is.na(child_own_1_ID),("child_own_1"):=asplit(.SD,1),.SDcols=c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code")]
+bg_GQHH[,c("child_own_1_ID","child_own_1_sex","child_own_1_age","child_own_1_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(child_adopted_ID),("child_adopted"):=asplit(.SD,1),.SDcols=c("child_adopted_ID","child_adopted_sex","child_adopted_age","child_adopted_re_code")]
-bg_hhSARETT[,c("child_adopted_ID","child_adopted_sex","child_adopted_age","child_adopted_re_code"):=NULL]
+bg_GQHH[!is.na(child_own_2_ID),("child_own_2"):=asplit(.SD,1),.SDcols=c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code")]
+bg_GQHH[,c("child_own_2_ID","child_own_2_sex","child_own_2_age","child_own_2_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(child_foster_ID),("child_foster"):=asplit(.SD,1),.SDcols=c("child_foster_ID","child_foster_sex","child_foster_age","child_foster_re_code")]
-bg_hhSARETT[,c("child_foster_ID","child_foster_sex","child_foster_age","child_foster_re_code"):=NULL]
+bg_GQHH[!is.na(child_own_3_ID),("child_own_3"):=asplit(.SD,1),.SDcols=c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code")]
+bg_GQHH[,c("child_own_3_ID","child_own_3_sex","child_own_3_age","child_own_3_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(son_daughter_in_law_ID),("son_daughter_in_law"):=asplit(.SD,1),.SDcols=c("son_daughter_in_law_ID","son_daughter_in_law_sex","son_daughter_in_law_age","son_daughter_in_law_re_code")]
-bg_hhSARETT[,c("son_daughter_in_law_ID","son_daughter_in_law_sex","son_daughter_in_law_age","son_daughter_in_law_re_code"):=NULL]
+bg_GQHH[!is.na(child_own_4_ID),("child_own_4"):=asplit(.SD,1),.SDcols=c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code")]
+bg_GQHH[,c("child_own_4_ID","child_own_4_sex","child_own_4_age","child_own_4_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(parent_ID),("parent"):=asplit(.SD,1),.SDcols=c("parent_ID","parent_sex","parent_age","parent_re_code")]
-bg_hhSARETT[,c("parent_ID","parent_sex","parent_age","parent_re_code"):=NULL]
+bg_GQHH[!is.na(child_own_add_ID),("child_own_add"):=asplit(.SD,1),.SDcols=c("child_own_add_ID","child_own_add_sex","child_own_add_age","child_own_add_re_code")]
+bg_GQHH[,c("child_own_add_ID","child_own_add_sex","child_own_add_age","child_own_add_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(sibling_ID),("sibling"):=asplit(.SD,1),.SDcols=c("sibling_ID","sibling_sex","sibling_age","sibling_re_code")]
-bg_hhSARETT[,c("sibling_ID","sibling_sex","sibling_age","sibling_re_code"):=NULL]
+bg_GQHH[!is.na(child_not_own_1_ID),("child_not_own_1"):=asplit(.SD,1),.SDcols=c("child_not_own_1_ID","child_not_own_1_sex","child_not_own_1_age","child_not_own_1_re_code")]
+bg_GQHH[,c("child_not_own_1_ID","child_not_own_1_sex","child_not_own_1_age","child_not_own_1_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(relatives),("relatives"):=asplit(.SD,1),.SDcols=c("relatives_ID","relatives_sex","relatives_age","relatives_re_code")]
-bg_hhSARETT[,c("relatives_ID","relatives_sex","relatives_age","relatives_re_code"):=NULL]
+bg_GQHH[!is.na(child_not_own_2_ID),("child_not_own_2"):=asplit(.SD,1),.SDcols=c("child_not_own_2_ID","child_not_own_2_sex","child_not_own_2_age","child_not_own_2_re_code")]
+bg_GQHH[,c("child_not_own_2_ID","child_not_own_2_sex","child_not_own_2_age","child_not_own_2_re_code"):=NULL]
 
-bg_hhSARETT[!is.na(nonrelatives),("nonrelatives"):=asplit(.SD,1),.SDcols=c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code")]
-bg_hhSARETT[,c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code"):=NULL]
+bg_GQHH[!is.na(child_step_ID),("child_step"):=asplit(.SD,1),.SDcols=c("child_step_ID","child_step_sex","child_step_age","child_step_re_code")]
+bg_GQHH[,c("child_step_ID","child_step_sex","child_step_age","child_step_re_code"):=NULL]
 
-bg_hhSARETT[,("members"):=asplit(.SD,1),.SDcols=c("spouse_partner","parent","sibling","relatives","nonrelatives","son_daughter_in_law","child_foster","child_adopted",
+bg_GQHH[!is.na(child_grand_ID),("child_grand"):=asplit(.SD,1),.SDcols=c("child_grand_ID","child_grand_sex","child_grand_age","child_grand_re_code")]
+bg_GQHH[,c("child_grand_ID","child_grand_sex","child_grand_age","child_grand_re_code"):=NULL]
+
+bg_GQHH[!is.na(child_adopted_ID),("child_adopted"):=asplit(.SD,1),.SDcols=c("child_adopted_ID","child_adopted_sex","child_adopted_age","child_adopted_re_code")]
+bg_GQHH[,c("child_adopted_ID","child_adopted_sex","child_adopted_age","child_adopted_re_code"):=NULL]
+
+bg_GQHH[!is.na(child_foster_ID),("child_foster"):=asplit(.SD,1),.SDcols=c("child_foster_ID","child_foster_sex","child_foster_age","child_foster_re_code")]
+bg_GQHH[,c("child_foster_ID","child_foster_sex","child_foster_age","child_foster_re_code"):=NULL]
+
+bg_GQHH[!is.na(son_daughter_in_law_ID),("son_daughter_in_law"):=asplit(.SD,1),.SDcols=c("son_daughter_in_law_ID","son_daughter_in_law_sex","son_daughter_in_law_age","son_daughter_in_law_re_code")]
+bg_GQHH[,c("son_daughter_in_law_ID","son_daughter_in_law_sex","son_daughter_in_law_age","son_daughter_in_law_re_code"):=NULL]
+
+bg_GQHH[!is.na(parent_ID),("parent"):=asplit(.SD,1),.SDcols=c("parent_ID","parent_sex","parent_age","parent_re_code")]
+bg_GQHH[,c("parent_ID","parent_sex","parent_age","parent_re_code"):=NULL]
+
+bg_GQHH[!is.na(sibling_ID),("sibling"):=asplit(.SD,1),.SDcols=c("sibling_ID","sibling_sex","sibling_age","sibling_re_code")]
+bg_GQHH[,c("sibling_ID","sibling_sex","sibling_age","sibling_re_code"):=NULL]
+
+bg_GQHH[!is.na(relatives),("relatives"):=asplit(.SD,1),.SDcols=c("relatives_ID","relatives_sex","relatives_age","relatives_re_code")]
+bg_GQHH[,c("relatives_ID","relatives_sex","relatives_age","relatives_re_code"):=NULL]
+
+bg_GQHH[!is.na(nonrelatives),("nonrelatives"):=asplit(.SD,1),.SDcols=c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code")]
+bg_GQHH[,c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code"):=NULL]
+
+bg_GQHH[,("members"):=asplit(.SD,1),.SDcols=c("spouse_partner","parent","sibling","relatives","nonrelatives","son_daughter_in_law","child_foster","child_adopted",
                                                   "child_grand","child_step","child_own_add","child_own_1","child_own_2","child_own_3","child_own_4")]
 #can get length from members to know hh_size actually given.
 
 
-bg_GQHH <- merge(bg_GQ,bg_hhSARETT,by=c("GEOID","tract","household","sex","age_range_3hh","age_num"),all = TRUE) #keeps columns from having .x, etc
 
-#MOVE BG_SARE[,ROLE_ORIG] TOTALS OVER ONE AT A TIME AND THEN FORCE A MATCH UP TO THOSE NUMBERS? BY AGE??? basically allowing a reshuffle by age
-#or just do more matches like above, but with bg_GQHH and then use those already matched up with labels for roles?
-#or follow out on hh_role vs. orig totals, move to SARETT and just fcase it through
-role_summary <- bg_SARE[,.(role_totals = .N), by = .(GEOID,role_orig)]
-bg_role_summary <- dcast(role_summary,GEOID~role_orig,value.var="role_totals",fun.aggregate = sum)
-bg_roles_hh <- bg_role_summary[bg_GQHH,on="GEOID"]
 
 
 
