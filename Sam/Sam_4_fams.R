@@ -1383,15 +1383,15 @@ bg_hhSARETT[hh_size_cnt>1&as.integer(substr(age_range_9hh,1,2))>54&family=="Fami
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(kid_match39a_id)]]
 bg_SARE[role=="Biological child"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(kid_match39a_id)]]
-nrow(bg_hhSARETT[!is.na(child_own_add_ID)]) #581593
+#nrow(bg_hhSARETT[!is.na(child_own_add_ID)]) #582246
 
 bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Own child",default = hh_role)]
 #table(bg_SARE[,hh_role],useNA = "ifany")
 #get new hh_size_cnt
 bg_hhSARETT[,("hh_size_cnt"):=fcase(!is.na(child_own_add_ID),as.integer(hh_size_cnt)-as.integer(1),default = as.integer(hh_size_cnt))]
 
-nrow(bg_SARE[is.na(hh_ID)&age_num<18]) #80000 or 1% - move over later
-nrow(bg_SARE[is.na(hh_ID)])/nrow(bg_SARE) #12%
+#nrow(bg_SARE[is.na(hh_ID)&age_num<18]) #80000 or 1% 
+#nrow(bg_SARE[is.na(hh_ID)])/nrow(bg_SARE) #12%
 
 #add GQ to bg_hhSARETT
 bg_hhSARETT[,("age_num"):=fcase(is.na(age_range),as.integer(str_sub(age_range_9hh,start=1,end=2)),
@@ -1411,7 +1411,7 @@ bg_hhSARETT[,(match_cols):=NULL]
 bg_SARE[,(match_cols):=NULL]
 
 bg_GQHH <- merge(bg_GQ,bg_hhSARETT,by=c("GEOID","tract","household","sex","age_range_3hh","age_num"),all = TRUE) #keeps columns from having .x, etc
-bg_GQHH[,("hh_ID"):=fcase(is.na(hh_ID),gq_ID,default = hh_ID)]
+bg_GQHH[,("hh_ID"):=fcase(is.na(hh_ID),paste0("gq_",gq_ID),default = hh_ID)]
 
 #look at role totals
 role_summary <- bg_SARE[,.(role_totals = .N), by = .(GEOID,role_orig)]
@@ -1419,19 +1419,19 @@ bg_role_summary <- dcast(role_summary,GEOID~role_orig,value.var="role_totals",fu
 bg_roles_hh <- bg_role_summary[bg_GQHH,on="GEOID"]
 
 #match first on folks that should be same age
-#bg_GQHH[hh_size_cnt>1,
-#            ("all_match_id"):=
-#              paste0(tract,age_range_9hh,re_code_14,as.character(100000+sample(1:.N))),
-#            by=.(tract,age_range_9hh,re_code_14)]
-#bg_SARE[is.na(hh_ID),("all_match_id"):=
-#          paste0(tract,age_range_9hh,re_code,as.character(100000+sample(1:.N))),
-#        by=.(tract,age_range_9hh,re_code)]
-#bg_GQHH[hh_size_cnt>1,
-#            c("add_ID","add_sex","add_age","add_re_code"):=
-#              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match_id)]]
-#bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-#          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match_id)]]
-#nrow(bg_GQHH[!is.na(add_ID)]) #959728
+bg_GQHH[hh_size_cnt>1,
+            ("all_match_id"):=
+              paste0(GEOID,age_range_9hh,re_code_14,as.character(100000+sample(1:.N))),
+            by=.(GEOID,age_range_9hh,re_code_14)]
+bg_SARE[is.na(hh_ID),("all_match_id"):=
+          paste0(GEOID,age_range_9hh,re_code,as.character(100000+sample(1:.N))),
+        by=.(GEOID,age_range_9hh,re_code)]
+bg_GQHH[hh_size_cnt>1,
+            c("add_ID","add_sex","add_age","add_re_code"):=
+              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match_id)]]
+bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match_id)]]
+#nrow(bg_GQHH[!is.na(add_ID)]) #889451
 
 #match on broad age_range to get gq population
 bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
@@ -1446,10 +1446,9 @@ bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
           bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match1_id)]]
 bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match1_id)]]
-nrow(bg_GQHH[!is.na(add_1_ID)]) # 1517663
-
-nrow(bg_SARE[is.na(hh_ID)]) #1998850
-table(bg_SARE[is.na(hh_ID),role],useNA = "ifany")
+#nrow(bg_GQHH[!is.na(add_1_ID)]) # 797878
+#nrow(bg_SARE[is.na(hh_ID)]) #1745331
+#table(bg_SARE[is.na(hh_ID),role],useNA = "ifany")
 #finish getting group quarters matched...
 
 #match without anything but GEOID
@@ -1466,41 +1465,42 @@ bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
           bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match2b_id)]]
 bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match2b_id)]]
-nrow(bg_GQHH[!is.na(add_2_ID)]) #1984513
-nrow(bg_SARE[is.na(hh_ID)]) #504155
+nrow(bg_GQHH[!is.na(add_2_ID)]) #1741209
+nrow(bg_SARE[is.na(hh_ID)]) #4122
+#let the rest get picked up after PES expansion
 
-#and at tract
-bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
-        ("all_match3a_id"):=
-          paste0(tract,as.character(100000+sample(1:.N))),
-        by=.(tract)]
-bg_SARE[is.na(hh_ID),("all_match3a_id"):=
-          paste0(tract,as.character(100000+sample(1:.N))),
-        by=.(tract)]
-bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
-        c("add_3_ID","add_3_sex","add_3_age","add_3_re_code"):=
-          bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match3a_id)]]
-bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match3a_id)]]
-nrow(bg_GQHH[!is.na(add_3_ID)]) #501119
-nrow(bg_SARE[is.na(hh_ID)]) #376418
+##and at tract
+#bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+#        ("all_match3a_id"):=
+#          paste0(tract,as.character(100000+sample(1:.N))),
+#        by=.(tract)]
+#bg_SARE[is.na(hh_ID),("all_match3a_id"):=
+#          paste0(tract,as.character(100000+sample(1:.N))),
+#        by=.(tract)]
+#bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+#        c("add_3_ID","add_3_sex","add_3_age","add_3_re_code"):=
+#          bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match3a_id)]]
+#bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+#          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match3a_id)]]
+#nrow(bg_GQHH[!is.na(add_3_ID)]) #4025
+#nrow(bg_SARE[is.na(hh_ID)]) #97
 #
-bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
-        ("all_match4b_id"):=
-          paste0(tract,as.character(100000+sample(1:.N))),
-        by=.(tract)]
-bg_SARE[is.na(hh_ID),("all_match4b_id"):=
-          paste0(tract,as.character(100000+sample(1:.N))),
-        by=.(tract)]
-bg_GQHH[as.integer(substr(hh_size_7,1,1))>2  | is.na(hh_size_7),
-        c("add_4_ID","add_4_sex","add_4_age","add_4_re_code"):=
-          bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match4b_id)]]
-bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match4b_id)]]
-nrow(bg_GQHH[!is.na(add_4_ID)]) #292075
-nrow(bg_SARE[is.na(hh_ID)]) #269631
-length(unique(bg_SARE[is.na(hh_ID),tract])) #188 - i.e 2.7% of tracts; 1.4% of GEOIDs
-table(bg_SARE[is.na(hh_ID),role],useNA = "ifany") #all about non-matching GQ....
+#bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
+#        ("all_match4b_id"):=
+#          paste0(tract,as.character(100000+sample(1:.N))),
+#        by=.(tract)]
+#bg_SARE[is.na(hh_ID),("all_match4b_id"):=
+#          paste0(tract,as.character(100000+sample(1:.N))),
+#        by=.(tract)]
+#bg_GQHH[as.integer(substr(hh_size_7,1,1))>2  | is.na(hh_size_7),
+#        c("add_4_ID","add_4_sex","add_4_age","add_4_re_code"):=
+#          bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match4b_id)]]
+#bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+#          bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match4b_id)]]
+#nrow(bg_GQHH[!is.na(add_4_ID)]) #12
+#nrow(bg_SARE[is.na(hh_ID)]) #85
+#length(unique(bg_SARE[is.na(hh_ID),tract])) #11
+#table(bg_SARE[is.na(hh_ID),role],useNA = "ifany") #all about non-matching GQ....
 #maybe not in family and hh_size > 1
 
 #assign roles for additionals / remember to give gq_id 
