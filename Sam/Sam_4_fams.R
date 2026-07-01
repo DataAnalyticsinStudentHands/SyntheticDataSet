@@ -1503,6 +1503,67 @@ nrow(bg_SARE[is.na(hh_ID)]) #4122
 #table(bg_SARE[is.na(hh_ID),role],useNA = "ifany") #all about non-matching GQ....
 #maybe not in family and hh_size > 1
 
+
+#EXPAND BY PES THEN DISTRIBUTE AGAIN, THEN END WITH THIS COMPRESSION AND OTHER CLEAN UP ON ROLES, ETC.
+#post-enumeration surveys are done differently every decennial. 2010 was supposed to be particularly good; maybe don't redo?
+#expand for post-enumeration survey [after matching for families to get the rent/own]
+#want column n from the xslx file - for 2020, just copied tables from https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/net-coverage-error-and-components-of-coverage-by-race-hispanic-origin.pdf
+#using percentage for net coverage error (column N) in /Users/dan/Library/CloudStorage/OneDrive-SharedLibraries-UniversityOfHouston/Engaged Data Science - Data/Census/2020/post_enumeration_errors.xlsx
+net_cov_err_file <- paste0(censusdir,"2020/post_enumeration_errors.xlsx")
+net_coverage_err <- read_excel(net_cov_err_file,col_names = TRUE)
+net_coverage_err <- as.data.table(net_coverage_err)
+net_coverage_err[,("age_num_err"):=as.integer(substr(Label,1,2))]
+net_coverage_err <- net_coverage_err[!is.na(age_num_err)&!is.na(race_err)]
+
+#add to each individual on bg_SARE, then move to bg_GQHH
+bg_SARE[,("age_num_err"):=fcase(age_num<5,0,
+                                age_num>4&age_num<10,5,
+                                age_num>9&age_num<18,10,
+                                age_num>17&age_num<30,18,
+                                age_num>29&age_num<50,30,
+                                age_num>49,50,
+                                default = "not known")]
+#get a warning about NA, but no NAs created? table(net_coverage_err[,Label],net_coverage_err[,sex_err],useNA = "ifany")
+bg_SARE[,("race_err"):=fcase(race=="WHITE ALONE, NOT HISPANIC OR LATINO","Non-Hispanic White",
+                             race=="BLACK OR AFRICAN AMERICAN ALONE, NOT HISPANIC OR LATINO","Black",
+                             race=="ASIAN ALONE, NOT HISPANIC OR LATINO","Asian",
+                             race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE, NOT HISPANIC OR LATINO","American Indian or Alaska Native",
+                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE, NOT HISPANIC OR LATINO","Native Hawaiian or Other Pacific Islander",
+                             race=="SOME OTHER RACE ALONE, NOT HISPANIC OR LATINO" | race=="TWO OR MORE RACES, NOT HISPANIC OR LATINO","Some Other Race",
+                             default = "Hispanic or Latino")]
+bg_SARE[,("rent_own_err"):=fcase(rent_own=="Owner occupied","Owner",
+                                 rent_own=="Renter occupied","Renter",
+                                 default = "not known")]
+bg_SARE[,("sex_err"):=fcase(age_num<18,"not known",default = sex)]
+net_coverage_err[,("sex_err"):=fcase(str_detect(Label," males"),"Male",
+                                     str_detect(Label," females"),"Female",
+                                     default = "not given")]
+net_coverage_err[,("Pct_missing"):=as.numeric(str_trim(Pct_missing,side = "right"))/100] #non-breaking spaces from excel sheet 
+bg_SARE <- net_coverage_err[bg_SARE,on=c("age_num_err","race_err","rent_own_err","sex_err")]
+
+bg_SARE[,("remove_pct"):=(Pct_missing*100)+100]
+bg_SARE[!is.na(remove_pct),("to_remove") :=fcase(Pct_missing>0,as.numeric(sample(1:remove_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(remove_pct)] #remove all over 100
+remove_bg <- bg_SARE[remove_pct>100]
+#find ind_IDs on bg_GQHH and remove there, too; have to search through all the hh members...
+
+
+bg_SARE[,("add_pct"):=(-Pct_missing*100)+100]
+bg_SARE[!is.na(addpct),("to_add") :=fcase(Pct_missing>0,as.numeric(sample(1:add_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(add_pct)] #double all over 100
+add_bg <- bg_SARE[add_pct>100]
+add_bg[,("ind_ID"):=paste0("pes_",ind_ID)]
+bg_SARE <- rbindlist(list(bg_SARE,add_bg))
+#just add as more rows to bg_SARE, then distribute up to number of each role for everyone on bg_GQHH 
+
+
+#add individuals to hh_size_7 to each household
+bg_hhSARETT[,("pes_adjust"):=fcase()]
+#need to test
+bg_hhSARETT[,("hh_size_7"):=fcase(pes_adjust>0,hh_size_7+sample(c(0,1),1,replace = TRUE,
+                                                                prob = c(1-pes_adjust/100,pes_adjust/100)),
+                                  hh_size_7+sample(c(0,-1),1,replace = TRUE,
+                                                   prob = c(1+(pes_adjust/100),-pes_adjust/100)),
+                                  default = hh_size_7)]
+
 #assign roles for additionals / remember to give gq_id 
 
 
@@ -1561,87 +1622,8 @@ bg_GQHH[,("members"):=asplit(.SD,1),.SDcols=c("spouse_partner","parent","sibling
                                                   "child_grand","child_step","child_own_add","child_own_1","child_own_2","child_own_3","child_own_4")]
 #can get length from members to know hh_size actually given.
 
-
-
-
-
-
 #then do them for the others, then do an overall list of lists, with household included, and you can do the length of each list
 
 
-#assign GQ?
-#expand for post-enumeration survey [after matching for families to get the rent/own]
-#want column n from the xslx file - for 2020, just copied tables from https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/net-coverage-error-and-components-of-coverage-by-race-hispanic-origin.pdf
-#using percentage for net coverage error (column N) in /Users/dan/Library/CloudStorage/OneDrive-SharedLibraries-UniversityOfHouston/Engaged Data Science - Data/Census/2020/post_enumeration_errors.xlsx
-net_cov_err_file <- paste0(censusdir,"2020/post_enumeration_errors.xlsx")
-net_coverage_err <- read_excel(net_cov_err_file,col_names = TRUE)
-net_coverage_err <- as.data.table(net_coverage_err)
-net_coverage_err[,("age_num_err"):=as.integer(substr(Label,1,2))]
-net_coverage_err <- net_coverage_err[!is.na(age_num_err)&!is.na(race_err)]
-
-#add individuals to hh_size_7 to each household
-bg_hhSARETT[,("pes_adjust"):=fcase()]
-#need to test
-bg_hhSARETT[,("hh_size_7"):=fcase(pes_adjust>0,hh_size_7+sample(c(0,1),1,replace = TRUE,
-                                             prob = c(1-pes_adjust/100,pes_adjust/100)),
-                                  hh_size_7+sample(c(0,-1),1,replace = TRUE,
-                                                   prob = c(1+(pes_adjust/100),-pes_adjust/100)),
-                                  default = hh_size_7)]
-
-#add to each individual
-bg_SARE[,("age_num_err"):=fcase(age_num<5,0,
-                                age_num>4&age_num<10,5,
-                                age_num>9&age_num<18,10,
-                                age_num>17&age_num<30,18,
-                                age_num>29&age_num<50,30,
-                                age_num>49,50,
-                                default = "not known")]
-bg_SARE[,("race_err"):=fcase(race=="WHITE ALONE, NOT HISPANIC OR LATINO","Non-Hispanic White",
-                             race=="BLACK OR AFRICAN AMERICAN ALONE, NOT HISPANIC OR LATINO","Black",
-                             race=="ASIAN ALONE, NOT HISPANIC OR LATINO","Asian",
-                             race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE, NOT HISPANIC OR LATINO","American Indian or Alaska Native",
-                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE, NOT HISPANIC OR LATINO","Native Hawaiian or Other Pacific Islander",
-                             race=="SOME OTHER RACE ALONE, NOT HISPANIC OR LATINO" | race=="TWO OR MORE RACES, NOT HISPANIC OR LATINO","Some Other Race",
-                             default = "Hispanic or Latino")]
-#bg_SARE[,("rent_own"):=,by=("hh_ID")] #or make rent_own one of the things moved down when doing the matches
-bg_SARE[,("rent_own_err"):=fcase(rent_own=="Owner occupied","Owner",
-                                 rent_own=="Renter occupied","Renter",
-                                default = "not known")]
-net_coverage_err[,("sex_err"):=fcase(str_detect(Label," males"),"male",
-                                     str_detect(Label," females"),"female",
-                                     default = "not given")]
-#duplicate all the ones with not_given, first not_given is male, second is female, same missing_pct
-net_coverage_err <- as.data.table(rbind(lapply(net_coverage_err[,.SD[sex_err=="not given"]],rep,2),lapply(net_coverage_err[,.SD[sex_err!="not given"]],rep,1)))
-net_coverage_err[,("cnt"):=.N,by=c("sex_err","race_err","age_num_err","rent_own_err")]
-net_coverage_err[,("sex_err"):=fcase(sex_err=="not given"&cnt==1,"male",
-                                     sex_err=="not given"&cnt==2,"female",
-                                     default = sex_err)]
-test <- net_coverage_err[bg_SARE,on=c("age_num_err","race_err","rent_own_err","sex_err")]
-bg_SARE[pct_missing<0,("to_remove"):=sample(c(TRUE,FALSE),1,replace = TRUE,c(-pct_missing,1+pct_missing))] #if it's negative, we add; if positive, we subtract 
-bg_SARE <- bg_SARE[!to_remove]
-bg_SARE[pct_missing>0,("to_duplicate"):=sample(c(TRUE,FALSE),1,replace = TRUE,c(pct_missing,1-pct_missing))] #if it's negative, we add; if positive, we subtract 
-#When duplicating some rows, have to deal with householders differently - two steps? or don't have any householders or spouses in the dups???
-
-
-
-#and get GQ, b/c never satisfied with how it broke out
-file_path <- valid_file_path(censusdir,vintage,state,county="*",api_type="dec",geo_type="block_group",
-                             groupname="bg_GQ",path_suff="wrk")
-#"~/University Of Houston/Engaged Data Science - Data/Census/2020/state_48/2020_48_dec_block_group_bg_hhSARETT_wrk.RDS"
-bg_GQ <- readRDS(file_path)
-
-
-
-#use bg_hhSARETT as ground for householders, but write over to bg_SARE? Keep two files
-
-#nrow(bg_SARE[role=="Householder"])-nrow(bg_hhSARETT) #-81530 (0.7%) (a good bit is artifact of Sam_3, but quite different at tract level even back to orig; in Sam_3, off by single digits from beginning, off by 100s per tract now)
-#test_hh <- table(bg_SARE[role=="Householder",GEOID])-table(bg_hhSARETT[,GEOID]) #doesn't work at tract, either
-#max(test_hh)#272
-#mean(test_hh[test_hh>0]) #31.24
-#
-#length(unique(bg_SARE[,GEOID])) #18561
-#length(unique(bg_hhSARETT[,GEOID])) #18524
-#length(unique(bg_SARE[,tract])) #6868
-#length(unique(bg_hhSARETT[,tract])) #6855
 
 #classifying topos is the target / destination for the structures of a model for the functors; working backwards from the tract as classifying topos is what the adjoint gets us
