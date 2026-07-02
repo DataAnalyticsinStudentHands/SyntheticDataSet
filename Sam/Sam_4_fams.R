@@ -1498,85 +1498,116 @@ nrow(bg_SARE[is.na(hh_ID)]) #4122
 #table(bg_SARE[is.na(hh_ID),role],useNA = "ifany") #all about non-matching GQ....
 #maybe not in family and hh_size > 1
 
+###setting PES aside to do later, if time to work through - the current approach is getting far too few
+###EXPAND BY PES THEN DISTRIBUTE AGAIN, THEN END WITH THIS COMPRESSION AND OTHER CLEAN UP ON ROLES, ETC.
+###expand for post-enumeration survey [after matching for families to get the rent/own]
+###in general, 1999 Supreme Court ruling forbid (5-4) ever using statistical analysis to redo census for apportionment and official counts have never been changed b/c of statistical considerations
+###post-enumeration surveys are done differently every decennial. 2010 was supposed to be particularly good; maybe don't redo?
+###1990, Census recommended using PES to change official numbers, but Dept. of Commerce declined. https://items.ssrc.org/from-our-archives/who-counts-the-politics-of-census-taking-in-contemporary-america/ and https://pubmed.ncbi.nlm.nih.gov/12155394/
+###2000 was a mess and they tried to fix the coverage error estimates 3 times, never using them to adjust the official numbers: https://www.census.gov/programs-surveys/decennial-census/about/coverage-measurement/pes.2000.html#list-tab-400924250
+###2010 was better: https://www.census.gov/programs-surveys/decennial-census/about/coverage-measurement/pes.2010.html
+###2020 showed 1.92% undercount for Texas as a whole: https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/census-coverage-estimates-for-people-in-the-united-states-by-state-and-census-operations.pdf
+###want column n from the xslx file - for 2020, just copied tables from https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/net-coverage-error-and-components-of-coverage-by-race-hispanic-origin.pdf
+###using percentage for net coverage error (column N) in /Users/dan/Library/CloudStorage/OneDrive-SharedLibraries-UniversityOfHouston/Engaged Data Science - Data/Census/2020/post_enumeration_errors.xlsx
+##net_cov_err_file <- paste0(censusdir,"2020/post_enumeration_errors.xlsx")
+##net_coverage_err <- read_excel(net_cov_err_file,col_names = TRUE)
+##net_coverage_err <- as.data.table(net_coverage_err)
+##net_coverage_err[,("age_num_err"):=as.integer(substr(Label,1,2))]
+##net_coverage_err <- net_coverage_err[!is.na(age_num_err)&!is.na(race_err)]
+##
+###add to each individual on bg_SARE, then move to bg_GQHH
+##bg_SARE[,("age_num_err"):=fcase(age_num<5,0,
+##                                age_num>4&age_num<10,5,
+##                                age_num>9&age_num<18,10,
+##                                age_num>17&age_num<30,18,
+##                                age_num>29&age_num<50,30,
+##                                age_num>49,50,
+##                                default = "not known")]
+###get a warning about NA, but no NAs created? table(net_coverage_err[,Label],net_coverage_err[,sex_err],useNA = "ifany")
+##bg_SARE[,("race_err"):=fcase(race=="WHITE ALONE, NOT HISPANIC OR LATINO","Non-Hispanic White",
+##                             race=="BLACK OR AFRICAN AMERICAN ALONE, NOT HISPANIC OR LATINO","Black",
+##                             race=="ASIAN ALONE, NOT HISPANIC OR LATINO","Asian",
+##                             race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE, NOT HISPANIC OR LATINO","American Indian or Alaska Native",
+##                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE, NOT HISPANIC OR LATINO","Native Hawaiian or Other Pacific Islander",
+##                             race=="SOME OTHER RACE ALONE, NOT HISPANIC OR LATINO" | race=="TWO OR MORE RACES, NOT HISPANIC OR LATINO","Some Other Race",
+##                             default = "Hispanic or Latino")]
+##bg_SARE[,("rent_own_err"):=fcase(rent_own=="Owner occupied","Owner",
+##                                 rent_own=="Renter occupied","Renter",
+##                                 default = "not known")]
+##bg_SARE[,("sex_err"):=fcase(age_num<18,"not known",default = sex)]
+##net_coverage_err[,("sex_err"):=fcase(str_detect(Label," males"),"Male",
+##                                     str_detect(Label," females"),"Female",
+##                                     default = "not given")]
+##net_coverage_err[,("Pct_missing"):=as.numeric(str_trim(Pct_missing,side = "right"))/100] #non-breaking spaces from excel sheet 
+##bg_SARE <- net_coverage_err[bg_SARE,on=c("age_num_err","race_err","rent_own_err","sex_err")]
+##
+##bg_SARE[,("remove_pct"):=as.integer((Pct_missing*100)+100)]
+##bg_SARE[!is.na(remove_pct),("to_remove") :=fcase(Pct_missing>0,as.numeric(sample(1:remove_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(remove_pct)] #remove all over 100
+##remove_bg <- bg_SARE[to_remove>100]
+###find ind_IDs on bg_GQHH and remove there, too; have to search through all the hh members...
+##
+##
+##bg_SARE[,("add_pct"):=as.integer((-Pct_missing*100)+100)]
+##bg_SARE[!is.na(add_pct),("to_add") :=fcase(Pct_missing<0,as.numeric(sample(1:add_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(add_pct)] #double all over 100
+##add_bg <- bg_SARE[to_add>100]
+###how to deal with householders?
+##table(add_bg[,hh_role])
+##add_bg[,("ind_ID"):=paste0("pes_",ind_ID)]
+##
+###small 5 digit differences - not enough, but not sure what's wrong with how I set it up... re_codes J and L only for add and I, J and L for remove
+##
+##bg_SARE <- rbindlist(list(bg_SARE,add_bg))
+###just add as more rows to bg_SARE, then distribute up to number of each role for everyone on bg_GQHH 
+##
 
-#EXPAND BY PES THEN DISTRIBUTE AGAIN, THEN END WITH THIS COMPRESSION AND OTHER CLEAN UP ON ROLES, ETC.
-#expand for post-enumeration survey [after matching for families to get the rent/own]
-#in general, 1999 Supreme Court ruling forbid (5-4) ever using statistical analysis to redo census for apportionment and official counts have never been changed b/c of statistical considerations
-#post-enumeration surveys are done differently every decennial. 2010 was supposed to be particularly good; maybe don't redo?
-#1990, Census recommended using PES to change official numbers, but Dept. of Commerce declined. https://items.ssrc.org/from-our-archives/who-counts-the-politics-of-census-taking-in-contemporary-america/ and https://pubmed.ncbi.nlm.nih.gov/12155394/
-#2000 was a mess and they tried to fix the coverage error estimates 3 times, never using them to adjust the official numbers: https://www.census.gov/programs-surveys/decennial-census/about/coverage-measurement/pes.2000.html#list-tab-400924250
-#2010 was better: https://www.census.gov/programs-surveys/decennial-census/about/coverage-measurement/pes.2010.html
-#2020 showed 1.92% undercount for Texas as a whole: https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/census-coverage-estimates-for-people-in-the-united-states-by-state-and-census-operations.pdf
-#want column n from the xslx file - for 2020, just copied tables from https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/net-coverage-error-and-components-of-coverage-by-race-hispanic-origin.pdf
-#using percentage for net coverage error (column N) in /Users/dan/Library/CloudStorage/OneDrive-SharedLibraries-UniversityOfHouston/Engaged Data Science - Data/Census/2020/post_enumeration_errors.xlsx
-net_cov_err_file <- paste0(censusdir,"2020/post_enumeration_errors.xlsx")
-net_coverage_err <- read_excel(net_cov_err_file,col_names = TRUE)
-net_coverage_err <- as.data.table(net_coverage_err)
-net_coverage_err[,("age_num_err"):=as.integer(substr(Label,1,2))]
-net_coverage_err <- net_coverage_err[!is.na(age_num_err)&!is.na(race_err)]
-
-#add to each individual on bg_SARE, then move to bg_GQHH
-bg_SARE[,("age_num_err"):=fcase(age_num<5,0,
-                                age_num>4&age_num<10,5,
-                                age_num>9&age_num<18,10,
-                                age_num>17&age_num<30,18,
-                                age_num>29&age_num<50,30,
-                                age_num>49,50,
-                                default = "not known")]
-#get a warning about NA, but no NAs created? table(net_coverage_err[,Label],net_coverage_err[,sex_err],useNA = "ifany")
-bg_SARE[,("race_err"):=fcase(race=="WHITE ALONE, NOT HISPANIC OR LATINO","Non-Hispanic White",
-                             race=="BLACK OR AFRICAN AMERICAN ALONE, NOT HISPANIC OR LATINO","Black",
-                             race=="ASIAN ALONE, NOT HISPANIC OR LATINO","Asian",
-                             race=="AMERICAN INDIAN AND ALASKA NATIVE ALONE, NOT HISPANIC OR LATINO","American Indian or Alaska Native",
-                             race=="NATIVE HAWAIIAN AND OTHER PACIFIC ISLANDER ALONE, NOT HISPANIC OR LATINO","Native Hawaiian or Other Pacific Islander",
-                             race=="SOME OTHER RACE ALONE, NOT HISPANIC OR LATINO" | race=="TWO OR MORE RACES, NOT HISPANIC OR LATINO","Some Other Race",
-                             default = "Hispanic or Latino")]
-bg_SARE[,("rent_own_err"):=fcase(rent_own=="Owner occupied","Owner",
-                                 rent_own=="Renter occupied","Renter",
-                                 default = "not known")]
-bg_SARE[,("sex_err"):=fcase(age_num<18,"not known",default = sex)]
-net_coverage_err[,("sex_err"):=fcase(str_detect(Label," males"),"Male",
-                                     str_detect(Label," females"),"Female",
-                                     default = "not given")]
-net_coverage_err[,("Pct_missing"):=as.numeric(str_trim(Pct_missing,side = "right"))/100] #non-breaking spaces from excel sheet 
-bg_SARE <- net_coverage_err[bg_SARE,on=c("age_num_err","race_err","rent_own_err","sex_err")]
-
-bg_SARE[,("remove_pct"):=as.integer((Pct_missing*100)+102)]
-bg_SARE[!is.na(remove_pct),("to_remove") :=fcase(Pct_missing>0,as.numeric(sample(1:remove_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(remove_pct)] #remove all over 100
-remove_bg <- bg_SARE[to_remove>100]
-#find ind_IDs on bg_GQHH and remove there, too; have to search through all the hh members...
-
-
-bg_SARE[,("add_pct"):=as.integer((-Pct_missing*100)+102)]
-bg_SARE[!is.na(add_pct),("to_add") :=fcase(Pct_missing<0,as.numeric(sample(1:add_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(add_pct)] #double all over 100
-add_bg <- bg_SARE[to_add>100]
-#how to deal with householders?
-table(add_bg[,hh_role])
-add_bg[,("ind_ID"):=paste0("pes_",ind_ID)]
-
-#small 5 digit differences - not enough, but not sure what's wrong with how I set it up... re_codes J and L only for add and I, J and L for remove
-
-bg_SARE <- rbindlist(list(bg_SARE,add_bg))
-#just add as more rows to bg_SARE, then distribute up to number of each role for everyone on bg_GQHH 
-
-
-##add individuals to hh_size_7 to each household
-#bg_hhSARETT[,("pes_adjust"):=fcase()]
-##need to test
-#bg_hhSARETT[,("hh_size_7"):=fcase(pes_adjust>0,hh_size_7+sample(c(0,1),1,replace = TRUE,
-#                                                                prob = c(1-pes_adjust/100,pes_adjust/100)),
-#                                  hh_size_7+sample(c(0,-1),1,replace = TRUE,
-#                                                   prob = c(1+(pes_adjust/100),-pes_adjust/100)),
-#                                  default = hh_size_7)]
 
 #assign roles for additionals / remember to give gq_id 
 
 #look at role totals from bg_SARE and move over to bg_GQHH for final assignments
 role_summary <- bg_SARE[,.(role_totals = .N), by = .(GEOID,role_orig)]
 bg_role_summary <- dcast(role_summary,GEOID~role_orig,value.var="role_totals",fun.aggregate = sum)
-bg_roles_hh <- bg_role_summary[bg_GQHH,on="GEOID"]
+bg_GQHH <- bg_role_summary[bg_GQHH,on="GEOID"]
+
+#get previous totals
+#bg_GQHH[!is.na(spouse_partner_ID),are they same sex, etc., as different totals, calculate total left and assign
+
+bg_GQHH[!is.na(child_own_1_ID),("child_own_1_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[!is.na(child_own_2_ID),("child_own_2_cnt"):=.N,by=.(GEOID)] #only if own_1
+bg_GQHH[!is.na(child_own_3_ID),("child_own_3_cnt"):=.N,by=.(GEOID)] #only if own_2
+bg_GQHH[!is.na(child_own_4_ID),("child_own_4_cnt"):=.N,by=.(GEOID)] #only if own_3
+bg_GQHH[!is.na(child_own_add_ID),("child_own_add_cnt"):=.N,by=.(GEOID)] #can be added without an own_4
+bg_GQHH[order(-child_own_4_cnt,-child_own_3_cnt,-child_own_2_cnt,-child_own_1_cnt),("child_own_cnt"):=.SD[1,
+                                sum(c(child_own_1_cnt,child_own_2_cnt,child_own_3_cnt,child_own_4_cnt),na.rm=TRUE)],
+        by=.(GEOID)]
+bg_GQHH[order(-child_own_add_cnt),("child_own_cnt"):=.SD[1,
+               sum(c(child_own_cnt,child_own_add_cnt),na.rm=TRUE)],
+        by=.(GEOID)]
+bg_GQHH[!is.na(child_not_own_1),("child_not_own_1_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[!is.na(child_not_own_2),("child_not_own_2_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-child_not_own_2_cnt,-child_not_own_1_cnt),("child_not_own_cnt"):=.SD[1,
+                              sum(c(child_not_own_1_cnt,child_not_own_2_cnt),na.rm=TRUE)],
+        by=.(GEOID)]
+bg_GQHH[!is.na(child_step_ID),("child_step_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-child_step_cnt),("child_step_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[!is.na(child_grand_ID),("child_grand_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-child_grand_cnt),("child_grand_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[!is.na(child_adopted_ID),("child_adopted_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-child_adopted_cnt),("child_adopted_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[!is.na(child_foster_ID),("child_foster_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-child_foster_cnt),("child_foster_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[!is.na(son_daughter_in_law_ID),("son_daughter_in_law_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-son_daughter_in_law_cnt),("son_daughter_in_law_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[!is.na(parent_ID),("parent_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-parent_cnt),("parent_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[!is.na(sibling_ID),("sibling_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-sibling_cnt),("sibling_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[!is.na(relatives_ID),("relatives_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-relatives_cnt),("relatives_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[!is.na(nonrelatives_ID),("nonrelatives_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[order(-nonrelatives_cnt),("nonrelatives_cnt"):=.SD[1],by=.(GEOID)]
 
 
+#group members 
 bg_GQHH[!is.na(spouse_partner_ID),("spouse_partner"):=asplit(.SD,1),.SDcols=c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code")]
 bg_GQHH[,c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=NULL]
 
@@ -1622,18 +1653,28 @@ bg_GQHH[,c("parent_ID","parent_sex","parent_age","parent_re_code"):=NULL]
 bg_GQHH[!is.na(sibling_ID),("sibling"):=asplit(.SD,1),.SDcols=c("sibling_ID","sibling_sex","sibling_age","sibling_re_code")]
 bg_GQHH[,c("sibling_ID","sibling_sex","sibling_age","sibling_re_code"):=NULL]
 
-bg_GQHH[!is.na(relatives),("relatives"):=asplit(.SD,1),.SDcols=c("relatives_ID","relatives_sex","relatives_age","relatives_re_code")]
+bg_GQHH[!is.na(relatives_ID),("relatives"):=asplit(.SD,1),.SDcols=c("relatives_ID","relatives_sex","relatives_age","relatives_re_code")]
 bg_GQHH[,c("relatives_ID","relatives_sex","relatives_age","relatives_re_code"):=NULL]
 
-bg_GQHH[!is.na(nonrelatives),("nonrelatives"):=asplit(.SD,1),.SDcols=c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code")]
+bg_GQHH[!is.na(nonrelatives_ID),("nonrelatives"):=asplit(.SD,1),.SDcols=c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code")]
 bg_GQHH[,c("nonrelatives_ID","nonrelatives_sex","nonrelatives_age","nonrelatives_re_code"):=NULL]
 
 bg_GQHH[,("members"):=asplit(.SD,1),.SDcols=c("spouse_partner","parent","sibling","relatives","nonrelatives","son_daughter_in_law","child_foster","child_adopted",
                                                   "child_grand","child_step","child_own_add","child_own_1","child_own_2","child_own_3","child_own_4")]
+#clean out the nulls
+bg_GQHH[, members := lapply(members, function(x) x[!sapply(x, is.null)])]
 #can get length from members to know hh_size actually given.
+bg_GQHH[,("hh_size"):=lengths(members)+1] #need more testing for fixes
+#table(bg_GQHH[,hh_size],bg_GQHH[,hh_size_7],useNA = "ifany")
+
 
 #then do them for the others, then do an overall list of lists, with household included, and you can do the length of each list
 
+#clean up excess columns
+match_cols <- grep("_match|_cnt",names(bg_GQHH),value = TRUE)
+bg_GQHH[,(match_cols):=NULL]
+match_cols <- grep("_match",names(bg_SARE),value = TRUE)
+bg_SARE[,(match_cols):=NULL]
 
 
 #classifying topos is the target / destination for the structures of a model for the functors; working backwards from the tract as classifying topos is what the adjoint gets us
