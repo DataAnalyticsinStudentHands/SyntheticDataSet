@@ -1413,11 +1413,6 @@ bg_SARE[,(match_cols):=NULL]
 bg_GQHH <- merge(bg_GQ,bg_hhSARETT,by=c("GEOID","tract","household","sex","age_range_3hh","age_num"),all = TRUE) #keeps columns from having .x, etc
 bg_GQHH[,("hh_ID"):=fcase(is.na(hh_ID),paste0("gq_",gq_ID),default = hh_ID)]
 
-#look at role totals
-role_summary <- bg_SARE[,.(role_totals = .N), by = .(GEOID,role_orig)]
-bg_role_summary <- dcast(role_summary,GEOID~role_orig,value.var="role_totals",fun.aggregate = sum)
-bg_roles_hh <- bg_role_summary[bg_GQHH,on="GEOID"]
-
 #match first on folks that should be same age
 bg_GQHH[hh_size_cnt>1,
             ("all_match_id"):=
@@ -1505,8 +1500,13 @@ nrow(bg_SARE[is.na(hh_ID)]) #4122
 
 
 #EXPAND BY PES THEN DISTRIBUTE AGAIN, THEN END WITH THIS COMPRESSION AND OTHER CLEAN UP ON ROLES, ETC.
-#post-enumeration surveys are done differently every decennial. 2010 was supposed to be particularly good; maybe don't redo?
 #expand for post-enumeration survey [after matching for families to get the rent/own]
+#in general, 1999 Supreme Court ruling forbid (5-4) ever using statistical analysis to redo census for apportionment and official counts have never been changed b/c of statistical considerations
+#post-enumeration surveys are done differently every decennial. 2010 was supposed to be particularly good; maybe don't redo?
+#1990, Census recommended using PES to change official numbers, but Dept. of Commerce declined. https://items.ssrc.org/from-our-archives/who-counts-the-politics-of-census-taking-in-contemporary-america/ and https://pubmed.ncbi.nlm.nih.gov/12155394/
+#2000 was a mess and they tried to fix the coverage error estimates 3 times, never using them to adjust the official numbers: https://www.census.gov/programs-surveys/decennial-census/about/coverage-measurement/pes.2000.html#list-tab-400924250
+#2010 was better: https://www.census.gov/programs-surveys/decennial-census/about/coverage-measurement/pes.2010.html
+#2020 showed 1.92% undercount for Texas as a whole: https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/census-coverage-estimates-for-people-in-the-united-states-by-state-and-census-operations.pdf
 #want column n from the xslx file - for 2020, just copied tables from https://www2.census.gov/programs-surveys/decennial/coverage-measurement/pes/net-coverage-error-and-components-of-coverage-by-race-hispanic-origin.pdf
 #using percentage for net coverage error (column N) in /Users/dan/Library/CloudStorage/OneDrive-SharedLibraries-UniversityOfHouston/Engaged Data Science - Data/Census/2020/post_enumeration_errors.xlsx
 net_cov_err_file <- paste0(censusdir,"2020/post_enumeration_errors.xlsx")
@@ -1541,30 +1541,40 @@ net_coverage_err[,("sex_err"):=fcase(str_detect(Label," males"),"Male",
 net_coverage_err[,("Pct_missing"):=as.numeric(str_trim(Pct_missing,side = "right"))/100] #non-breaking spaces from excel sheet 
 bg_SARE <- net_coverage_err[bg_SARE,on=c("age_num_err","race_err","rent_own_err","sex_err")]
 
-bg_SARE[,("remove_pct"):=(Pct_missing*100)+100]
+bg_SARE[,("remove_pct"):=as.integer((Pct_missing*100)+102)]
 bg_SARE[!is.na(remove_pct),("to_remove") :=fcase(Pct_missing>0,as.numeric(sample(1:remove_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(remove_pct)] #remove all over 100
-remove_bg <- bg_SARE[remove_pct>100]
+remove_bg <- bg_SARE[to_remove>100]
 #find ind_IDs on bg_GQHH and remove there, too; have to search through all the hh members...
 
 
-bg_SARE[,("add_pct"):=(-Pct_missing*100)+100]
-bg_SARE[!is.na(addpct),("to_add") :=fcase(Pct_missing>0,as.numeric(sample(1:add_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(add_pct)] #double all over 100
-add_bg <- bg_SARE[add_pct>100]
+bg_SARE[,("add_pct"):=as.integer((-Pct_missing*100)+102)]
+bg_SARE[!is.na(add_pct),("to_add") :=fcase(Pct_missing<0,as.numeric(sample(1:add_pct,size=.N,replace=TRUE)),default = as.numeric(0)),by=.(add_pct)] #double all over 100
+add_bg <- bg_SARE[to_add>100]
+#how to deal with householders?
+table(add_bg[,hh_role])
 add_bg[,("ind_ID"):=paste0("pes_",ind_ID)]
+
+#small 5 digit differences - not enough, but not sure what's wrong with how I set it up... re_codes J and L only for add and I, J and L for remove
+
 bg_SARE <- rbindlist(list(bg_SARE,add_bg))
 #just add as more rows to bg_SARE, then distribute up to number of each role for everyone on bg_GQHH 
 
 
-#add individuals to hh_size_7 to each household
-bg_hhSARETT[,("pes_adjust"):=fcase()]
-#need to test
-bg_hhSARETT[,("hh_size_7"):=fcase(pes_adjust>0,hh_size_7+sample(c(0,1),1,replace = TRUE,
-                                                                prob = c(1-pes_adjust/100,pes_adjust/100)),
-                                  hh_size_7+sample(c(0,-1),1,replace = TRUE,
-                                                   prob = c(1+(pes_adjust/100),-pes_adjust/100)),
-                                  default = hh_size_7)]
+##add individuals to hh_size_7 to each household
+#bg_hhSARETT[,("pes_adjust"):=fcase()]
+##need to test
+#bg_hhSARETT[,("hh_size_7"):=fcase(pes_adjust>0,hh_size_7+sample(c(0,1),1,replace = TRUE,
+#                                                                prob = c(1-pes_adjust/100,pes_adjust/100)),
+#                                  hh_size_7+sample(c(0,-1),1,replace = TRUE,
+#                                                   prob = c(1+(pes_adjust/100),-pes_adjust/100)),
+#                                  default = hh_size_7)]
 
 #assign roles for additionals / remember to give gq_id 
+
+#look at role totals from bg_SARE and move over to bg_GQHH for final assignments
+role_summary <- bg_SARE[,.(role_totals = .N), by = .(GEOID,role_orig)]
+bg_role_summary <- dcast(role_summary,GEOID~role_orig,value.var="role_totals",fun.aggregate = sum)
+bg_roles_hh <- bg_role_summary[bg_GQHH,on="GEOID"]
 
 
 bg_GQHH[!is.na(spouse_partner_ID),("spouse_partner"):=asplit(.SD,1),.SDcols=c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code")]
