@@ -48,9 +48,9 @@ bg_SARE[,("age_range_9hh"):=fcase(age_num>14&age_num<25,"15 to 24 years",
                                   age_num>84,"85 years and over",
                                   default = age_range)]
 bg_hhSARETT[,("age_range_9hh"):=str_remove_all(age_range_9,"Householder ")]
+#create extra householders for a slightly broader match; need to pull back down from role_orig for total numbers at tract level (distributions not perfect for age, etc.)
 bg_SARE[,("role_orig"):=role]
-bg_SARE[,("role"):=fcase(role=="Biological child"&age_num>29,"Householder",
-                         role%in%c("Grandchild","Adopted child","Foster child","Stepchild")&age_num>19,"Householder",
+bg_SARE[,("role"):=fcase(role%in%c("Grandchild","Adopted child","Foster child","Stepchild","Biological child")&age_num>29,"Householder",
                          str_detect(role,"sex")&age_num<20,"Biological child",
                          role=="Son-in-law or daughter-in-law"&age_num<20,"Biological child",
                          str_detect(role,"Parent")&age_num<64,"Householder",
@@ -140,53 +140,57 @@ bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","family","family_type","famil
                             list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),
                             list(role),list(re_code)),on=.(hh_match3_id)]]
 #nrow(bg_hhSARETT[is.na(ind_ID)]) #94793 - 1%
-#get the 1% from folks not matching on role=="Householder"
-bg_hhSARETT[is.na(ind_ID),("hh_match4_id"):=
+#get the 1% from folks not matching on role=="Householder"; remembering that bg_SARE was expanded on role
+bg_hhSARETT[is.na(ind_ID),("hh_match4a_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[is.na(hh_ID)&!str_detect(role,"stitutional"),("hh_match4_id"):=
+#bg_SARE[is.na(hh_ID)&!str_detect(role,"stitutional"),("hh_match4_id"):=
+bg_SARE[is.na(hh_ID),("hh_match4a_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[is.na(ind_ID),c("ind_ID","age_range","HvL","race_1","race_2"):=
-              bg_SARE[.SD,c(list(ind_ID),list(age_range),list(HvL),list(race_1),list(race_2)),on=.(hh_match4_id)]]
-bg_SARE[is.na(hh_ID)&!str_detect(role,"stitutional"),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
+              bg_SARE[.SD,c(list(ind_ID),list(age_range),list(HvL),list(race_1),list(race_2)),on=.(hh_match4a_id)]]
+#bg_SARE[is.na(hh_ID)&!str_detect(role,"stitutional"),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
+bg_SARE[is.na(hh_ID),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",                                                       
                                            "couple_gender","match_type_5","hh_size_7","multi_gen_hh","rel_in_house","anyone_60","anyone_65","anyone_75",
                                            "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
                             list(no_spouse_sex),list(same_sex),list(couple_gender),list(match_type_5),list(hh_size_7),
                             list(multi_gen_hh),list(rel_in_house),list(anyone_60),list(anyone_65),list(anyone_75),
                             list(household_60),list(household_65),list(household_75),list(rent_own),
-                            list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),list(role)),on=.(hh_match4_id)]]
-#nrow(bg_hhSARETT[is.na(ind_ID)]) #24164
+                            list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),list(role)),on=.(hh_match4a_id)]]
+#nrow(bg_hhSARETT[is.na(ind_ID)]) #13403 when opening to gq; #24164 when no gq matches allowed
 
-#one more try
+#one more try, with gq allowed
 bg_hhSARETT[is.na(ind_ID),("hh_match5_id"):=
-              paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
-            by=.(tract,age_range_3hh)]
-bg_SARE[is.na(hh_ID)&!str_detect(role,"stitutional"),("hh_match5_id"):=
-          paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
-        by=.(tract,age_range_3hh)]
+              paste0(tract,re_code_7,age_range_3hh,as.character(100000+sample(1:.N))),
+            by=.(tract,re_code_7,age_range_3hh)]
+bg_SARE[is.na(hh_ID),("hh_match5_id"):=
+          paste0(tract,re_code_7,age_range_3hh,as.character(100000+sample(1:.N))),
+        by=.(tract,re_code_7,age_range_3hh)]
 bg_hhSARETT[is.na(ind_ID),c("ind_ID","age_range","HvL","race_1","race_2"):=
               bg_SARE[.SD,c(list(ind_ID),list(age_range),list(HvL),list(race_1),list(race_2)),on=.(hh_match5_id)]]
-bg_SARE[is.na(hh_ID)&!str_detect(role,"stitutional"),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
+bg_SARE[is.na(hh_ID),c("hh_ID","family","family_type","family_type_4","family_type_7","no_spouse_sex","same_sex",
                        "couple_gender","match_type_5","hh_size_7","multi_gen_hh","rel_in_house","anyone_60","anyone_65","anyone_75",
                        "household_60","household_65","household_75","rent_own","tenure","all_kid_18","own_kids","kid_age_range_3",
-                       "hh_role","re_code_hh"):=
+                       "hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(family),list(family_type),list(family_type_4),list(family_type_7),
                             list(no_spouse_sex),list(same_sex),list(couple_gender),list(match_type_5),list(hh_size_7),
                             list(multi_gen_hh),list(rel_in_house),list(anyone_60),list(anyone_65),list(anyone_75),
                             list(household_60),list(household_65),list(household_75),list(rent_own),
                             list(tenure),list(all_kid_18),list(own_kids),list(kid_age_range_3),
-                            list(role),list(re_code)),on=.(hh_match5_id)]]
-#nrow(bg_hhSARETT[is.na(ind_ID)]) #5441 - remarkably evenly distributed. Don't try to capture
-#length(unique(bg_hhSARETT[is.na(ind_ID),GEOID]))#198 (which is 1% of total number of block groups - group quarters folks might be issue) 
-#max(table(bg_hhSARETT[is.na(ind_ID),GEOID])) #766 (3796 are in block groups with more than 50 not matched)
+                            list(role)),on=.(hh_match5_id)]]
+#nrow(bg_hhSARETT[is.na(ind_ID)])#236, if GQ allowed and no re_code; #3880 with re_code_7; without gq and no re_code, #5441 - remarkably evenly distributed. Don't try to capture last .05%? 
+#for 13k last matches, did not match on re_code
+
+#without gq, length(unique(bg_hhSARETT[is.na(ind_ID),GEOID]))#198 (which is 1% of total number of block groups - group quarters folks might be issue) 
+#without gq, max(table(bg_hhSARETT[is.na(ind_ID),GEOID])) #766 (3796 are in block groups with more than 50 not matched)
 bg_hhSARETT[,("races"):=asplit(.SD,1),.SDcols=c("race_1","race_2")]
 bg_hhSARETT[,c("race_1","race_2"):=NULL]
 
+#make the non-matched from expanded role=="Householder" on bg_SARE work for matches - will iterate for each spouse type
+bg_SARE[,("role_hh_spouse"):=fcase(role=="Householder"&is.na(hh_ID),"Same-sex spouse",default = role)]
 
-#because we're using bg_hhSARETT as having better household info, projecting to it, with re_code_hh on bg_SARE to capture the 3% not matching on re_code_14
-bg_SARE[,("re_code"):=fcase(!is.na(re_code_hh),re_code_hh,default = re_code)]
 
 #match for spouses and partners, with folks close to same age
 #they were supposed to have made it so that Householder could be female in a married couple in 2020, but I couldn't see any evidence for how that was implemented; I let them distribute differently at end
@@ -195,291 +199,245 @@ bg_hhSARETT[,("sex"):=fcase(couple_gender=="Female-female married couple househo
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households",("role_match_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Male"&role=="Same-sex spouse"&is.na(hh_ID),("role_match_id"):=
+bg_SARE[sex=="Male"&role_hh_spouse=="Same-sex spouse"&is.na(hh_ID),("role_match_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households",c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match_id)]]
-bg_SARE[sex=="Male"&role=="Same-sex spouse"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Male"&role_hh_spouse=="Same-sex spouse"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match_id)]]
-#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #only matched about 4350 of 25k; lots of problems with bg_SARE age_range on couple_gender
-#nrow(bg_SARE[sex=="Male"&role=="Same-sex spouse"&is.na(hh_ID)]) #18794
+#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #13138 of 24709
+#nrow(bg_SARE[sex=="Male"&role=="Same-sex spouse"&is.na(hh_ID)]) #20804
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&is.na(spouse_partner_ID),("role_match1_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),("role_match1_id"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match1_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match1_id)]]
-bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match1_id)]]
-#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #20919
-#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"])-nrow(bg_hhSARETT[!is.na(spouse_partner_ID)]) #3790
+#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #21128 of 24709
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&is.na(spouse_partner_ID),("role_match2_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,age_range_9hh)]
-bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),("role_match2_id"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match2_id"):=
           paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match2_id)]]
-bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match2_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"]) #24709
-#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #22150
+#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male married couple households"&!is.na(spouse_partner_ID)]) #22236
 
 #female-female married
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),("role_match3_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Female"&role=="Same-sex spouse"&is.na(hh_ID),("role_match3_id"):=
+bg_SARE[sex=="Female"&role_hh_spouse=="Same-sex spouse"&is.na(hh_ID),("role_match3_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match3_id)]]
-bg_SARE[sex=="Female"&role=="Same-sex spouse"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&role_hh_spouse=="Same-sex spouse"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match3_id)]]
-#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #only matched about 5571 
-#nrow(bg_SARE[sex=="Female"&role=="Same-sex spouse"&!is.na(hh_ID)])
+#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #15887 of 29795
+#nrow(bg_SARE[sex=="Female"&role=="Same-sex spouse"&!is.na(hh_ID)]) #3181
+#nrow(bg_SARE[sex=="Female"&role_hh_spouse=="Same-sex spouse"&!is.na(hh_ID)]) #16179
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),("role_match4_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match4_id"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match4_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match4_id)]]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match4_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"]) #29795
-#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #28149
+#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #25641 of 29795
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),("role_match5_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,age_range_9hh)]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match5_id"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match5_id"):=
           paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_9hh)]
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match5_id)]]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match5_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"]) #29795
-#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #26730
+#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female married couple households"&!is.na(spouse_partner_ID)]) #26789
 
+bg_SARE[,("role_hh_spouse"):=fcase(role=="Householder"&is.na(hh_ID),"Same-sex unmarried partner",default = role)]
 #for unmarried partner couples
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household",("role_match6_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Male"&role=="Same-sex unmarried partner"&is.na(hh_ID),("role_match6_id"):=
+bg_SARE[sex=="Male"&role_hh_spouse=="Same-sex unmarried partner"&is.na(hh_ID),("role_match6_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household",c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match6_id)]]
-bg_SARE[sex=="Male"&role=="Same-sex unmarried partner"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Male"&role_hh_spouse=="Same-sex unmarried partner"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match6_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"]) #19801
-#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #only matched 3498 
+#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #10133 
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&is.na(spouse_partner_ID),("role_match7_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),("role_match7_id"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match7_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match7_id)]]
-bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match7_id)]]
-#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #17387
+#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #17539
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&is.na(spouse_partner_ID),("role_match8_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,age_range_9hh)]
-bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),("role_match8_id"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match8_id"):=
           paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match8_id)]]
-bg_SARE[sex=="Male"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match8_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"]) #19801
-#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #18507
+#nrow(bg_hhSARETT[sex=="Male"&couple_gender=="Male-male unmarried partner household"&!is.na(spouse_partner_ID)]) #18565
 
 #female-female unmarried partner
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),("role_match9_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Female"&role=="Same-sex unmarried partner"&is.na(hh_ID),("role_match9_id"):=
+bg_SARE[sex=="Female"&role_hh_spouse=="Same-sex unmarried partner"&is.na(hh_ID),("role_match9_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match9_id)]]
-bg_SARE[sex=="Female"&role=="Same-sex unmarried partner"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&role_hh_spouse=="Same-sex unmarried partner"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match9_id)]]
-#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&!is.na(spouse_partner_ID)]) #only matched about 3777
-#nrow(bg_SARE[sex=="Female"&role=="Same-sex unmarried partner"&is.na(hh_ID)])
+#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&!is.na(spouse_partner_ID)]) #11734 of 19798
+#nrow(bg_SARE[sex=="Female"&role=="Same-sex unmarried partner"&is.na(hh_ID)]) #18298
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),("role_match10_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match10_id"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match10_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match10_id)]]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match10_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&!is.na(spouse_partner_ID)]) #19798
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),("role_match11_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,age_range_9hh)]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match11_id"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match11_id"):=
           paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_9hh)]
 bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match11_id)]]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match11_id)]]
 #nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"]) #22276
-#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&!is.na(spouse_partner_ID)]) #20884
+#nrow(bg_hhSARETT[sex=="Female"&couple_gender=="Female-female unmarried partner household"&!is.na(spouse_partner_ID)]) #20927
+
+bg_SARE[,("role_hh_spouse"):=fcase(role=="Householder"&is.na(hh_ID),"Opposite-sex spouse",default = role)]
 #opposite-sex married couples - use same_sex
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match12_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Female"&role=="Opposite-sex spouse",("role_match12_id"):=
+bg_SARE[sex=="Female"&role_hh_spouse=="Opposite-sex spouse",("role_match12_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match12_id)]]
-bg_SARE[sex=="Female"&role=="Opposite-sex spouse",c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&role_hh_spouse=="Opposite-sex spouse",c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match12_id)]]
 #nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"]) #5025134
-#nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2291670
+#nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2600953 with role_hh_spouse; 2291670 on just role
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match13_id"):=
               paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match13_id"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match13_id"):=
           paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,re_code,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match13_id)]]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match13_id)]]
-#nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2515582
+#nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2812395
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match14_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,age_range_9hh)]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match14_id"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match14_id"):=
           paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_9hh)]
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14_id)]]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14_id)]]
-#nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2664952
+#nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #3055124 with role_hh_spouse; 2664952 with role
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match14a_id"):=
               paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
             by=.(tract,age_range_3hh)]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),("role_match14a_id"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match14a_id"):=
           paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_3hh)]
 bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
               bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14a_id)]]
-bg_SARE[sex=="Female"&str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+bg_SARE[sex=="Female"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14a_id)]]
-#nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #2923077
-bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match14c_id"):=
+#nrow(bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #3537282 with role_hh_spouse (30% missing); 2923077 with role only (of 5025134)
+
+bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match14b_id"):=
               paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
             by=.(tract,age_range_9hh)]
-bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),("role_match14c_id"):=
-          paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
-        by=.(tract,age_range_9hh)]
-bg_hhSARETT[sex=="Male"&same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
-              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14c_id)]]
-bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14c_id)]]
-#nrow(bg_hhSARETT[same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #4311706
-#bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match14b_id"):=
-#              paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
-#            by=.(tract,age_range_9hh)]
-#bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),("role_match14b_id"):=
-#          paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
-#        by=.(tract,age_range_9hh)]
-#bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),
-#            c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
-#              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14b_id)]]
-#bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-#          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match14b_id)]]
-#nrow(bg_hhSARETT[same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #4258377 #same??? 
-
-bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match14c_id"):=
-              paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
-            by=.(tract,age_range_3hh)]
-bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),("role_match14c_id"):=
-          paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
-        by=.(tract,age_range_3hh)]
-bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),
-            c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
-              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14c_id)]]
-bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14c_id)]]
-#nrow(bg_hhSARETT[same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #4548566 #i.e., 475k short, all "Married couple family" in hh, 
-#pick up leftover householders from bg_SARE
-bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match14d_id"):=
-              paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
-            by=.(tract,age_range_3hh)]
-bg_SARE[role=="Householder"&is.na(hh_ID),("role_match14d_id"):=
-          paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
-        by=.(tract,age_range_3hh)]
-bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),
-            c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
-              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14d_id)]]
-bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14d_id)]]
-#nrow(bg_hhSARETT[!is.na(same_sex)]) #5719560
-#nrow(bg_hhSARETT[!is.na(spouse_partner_ID)]) #5460677 (i.e., 258883 missing)
-
-#get from others - but have to think about what that does for using bg_SARE role - !is.na(same_sex) keeps them pretty well matched
-bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match15_id"):=
-              paste0(tract,re_code_14,age_range_9hh,as.character(100000+sample(1:.N))),
-            by=.(tract,re_code_14,age_range_9hh)]
-bg_SARE[!str_detect(role,"stitutional")&is.na(hh_ID),("role_match15_id"):=
-          paste0(tract,re_code,age_range_9hh,as.character(100000+sample(1:.N))),
-        by=.(tract,re_code,age_range_9hh)]
-bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),
-            c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
-              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match15_id)]]
-bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match15_id)]]
-#nrow(bg_hhSARETT[!is.na(same_sex)])#5719560
-#nrow(bg_hhSARETT[!is.na(same_sex)&!is.na(spouse_partner_ID)]) #5603661 (2% not matched)
-#without re_code
-bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match15a_id"):=
-              paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
-            by=.(tract,age_range_9hh)]
-bg_SARE[!str_detect(role,"stitutional")&is.na(hh_ID),("role_match15a_id"):=
+bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),("role_match14b_id"):=
           paste0(tract,age_range_9hh,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_9hh)]
 bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),
             c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
-              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match15a_id)]]
-bg_SARE[role=="Householder"&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match15a_id)]]
-#nrow(bg_hhSARETT[!is.na(same_sex)])#5719560
-#nrow(bg_hhSARETT[!is.na(same_sex)&!is.na(spouse_partner_ID)]) #5648769 (1.2%)
-#with age_range_3hh
-bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match15b_id"):=
+              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14b_id)]]
+bg_SARE[str_detect(role,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list("Opposite sex spouse or partner")),on=.(role_match14b_id)]]
+nrow(bg_hhSARETT[same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #4446747
+
+#pick up female head of household in married couples (should be different for 2020 than for earlier decennials)
+bg_hhSARETT[same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),("role_match14a1_id"):=
               paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
             by=.(tract,age_range_3hh)]
-bg_SARE[!str_detect(role,"stitutional")&is.na(hh_ID),("role_match15b_id"):=
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),("role_match14a1_id"):=
+          paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
+        by=.(tract,age_range_3hh)]
+bg_hhSARETT[same_sex=="Opposite-sex married couple household"&is.na(spouse_partner_ID),c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
+              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14a1_id)]]
+bg_SARE[sex=="Male"&str_detect(role_hh_spouse,"-sex")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14a1_id)]]
+nrow(bg_hhSARETT[same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #4839249 (3.5% missing)
+
+#pull in last 3.5% from gq
+bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),("role_match14c1_id"):=
+              paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
+            by=.(tract,age_range_3hh)]
+bg_SARE[str_detect(role,"stitutional")&is.na(hh_ID),("role_match14c1_id"):=
           paste0(tract,age_range_3hh,as.character(100000+sample(1:.N))),
         by=.(tract,age_range_3hh)]
 bg_hhSARETT[!is.na(same_sex)&is.na(spouse_partner_ID)&!str_detect(family_type_7,"solitary"),
             c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=
-              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match15b_id)]]
-bg_SARE[!str_detect(role,"stitutional")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
-          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match15b_id)]]
-#nrow(bg_hhSARETT[!is.na(same_sex)])#5719560
-#nrow(bg_hhSARETT[!is.na(same_sex)&!is.na(spouse_partner_ID)]) #5702335 (0.3% not matched, or 17225 left; worth matching?)
-#table(bg_hhSARETT[is.na(spouse_partner_ID),same_sex])
+              bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(role_match14c1_id)]]
+bg_SARE[str_detect(role,"stitutional")&is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
+          bg_hhSARETT[.SD,c(list(hh_ID),list(rent_own),list(couple_gender)),on=.(role_match14c1_id)]]
+#nrow(bg_hhSARETT[same_sex=="Opposite-sex married couple household"&!is.na(spouse_partner_ID)]) #4892410 of 5025134 (201948 is 4%)
+#table(bg_hhSARETT[is.na(spouse_partner_ID),family_type]) #missing about 2.6% of married couples...
+#have to think through why still missing 2.6% of married couples...
+
+bg_hhSARRETT[,("sex"):=fcase(same_sex=="Opposite-sex married couple household"&spouse_partner_sex=="Male","Female",default = sex)]
+
 
 #fix on hh and bg
 bg_hhSARETT[,("sex"):=fcase(spouse_partner_sex=="Male"&same_sex=="Opposite-sex married couple household","Female",
@@ -1460,8 +1418,8 @@ bg_GQHH[as.integer(substr(hh_size_7,1,1))>2 | is.na(hh_size_7),
           bg_SARE[.SD,c(list(ind_ID),list(sex),list(age_num),list(re_code)),on=.(all_match2b_id)]]
 bg_SARE[is.na(hh_ID),c("hh_ID","rent_own","hh_role"):=
           bg_GQHH[.SD,c(list(hh_ID),list(rent_own),list(household)),on=.(all_match2b_id)]]
-nrow(bg_GQHH[!is.na(add_2_ID)]) #1741209
-nrow(bg_SARE[is.na(hh_ID)]) #4122
+nrow(bg_GQHH[!is.na(add_2_ID)]) #1589890
+nrow(bg_SARE[is.na(hh_ID)]) #1825
 #let the rest get picked up after PES expansion
 
 ##and at tract
@@ -1582,32 +1540,50 @@ bg_GQHH[order(-child_own_4_cnt,-child_own_3_cnt,-child_own_2_cnt,-child_own_1_cn
 bg_GQHH[order(-child_own_add_cnt),("child_own_cnt"):=.SD[1,
                sum(c(child_own_cnt,child_own_add_cnt),na.rm=TRUE)],
         by=.(GEOID)]
-bg_GQHH[!is.na(child_not_own_1),("child_not_own_1_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[!is.na(child_not_own_2),("child_not_own_2_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[!is.na(child_not_own_1_ID),("child_not_own_1_cnt"):=.N,by=.(GEOID)]
+bg_GQHH[!is.na(child_not_own_2_ID),("child_not_own_2_cnt"):=.N,by=.(GEOID)]
 bg_GQHH[order(-child_not_own_2_cnt,-child_not_own_1_cnt),("child_not_own_cnt"):=.SD[1,
                               sum(c(child_not_own_1_cnt,child_not_own_2_cnt),na.rm=TRUE)],
         by=.(GEOID)]
 bg_GQHH[!is.na(child_step_ID),("child_step_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-child_step_cnt),("child_step_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-child_step_cnt),("child_step_cnt"):=.SD[1,child_step_cnt],by=.(GEOID)]
 bg_GQHH[!is.na(child_grand_ID),("child_grand_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-child_grand_cnt),("child_grand_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-child_grand_cnt),("child_grand_cnt"):=.SD[1,child_grand_cnt],by=.(GEOID)]
 bg_GQHH[!is.na(child_adopted_ID),("child_adopted_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-child_adopted_cnt),("child_adopted_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-child_adopted_cnt),("child_adopted_cnt"):=.SD[1,child_adopted_cnt],by=.(GEOID)]
 bg_GQHH[!is.na(child_foster_ID),("child_foster_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-child_foster_cnt),("child_foster_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-child_foster_cnt),("child_foster_cnt"):=.SD[1,child_foster_cnt],by=.(GEOID)]
 bg_GQHH[!is.na(son_daughter_in_law_ID),("son_daughter_in_law_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-son_daughter_in_law_cnt),("son_daughter_in_law_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-son_daughter_in_law_cnt),("son_daughter_in_law_cnt"):=.SD[1,son_daughter_in_law_cnt],by=.(GEOID)]
 bg_GQHH[!is.na(parent_ID),("parent_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-parent_cnt),("parent_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-parent_cnt),("parent_cnt"):=.SD[1,parent_cnt],by=.(GEOID)]
 bg_GQHH[!is.na(sibling_ID),("sibling_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-sibling_cnt),("sibling_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-sibling_cnt),("sibling_cnt"):=.SD[1,sibling_cnt],by=.(GEOID)]
 bg_GQHH[!is.na(relatives_ID),("relatives_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-relatives_cnt),("relatives_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-relatives_cnt),("relatives_cnt"):=.SD[1,relatives_cnt],by=.(GEOID)]
 bg_GQHH[!is.na(nonrelatives_ID),("nonrelatives_cnt"):=.N,by=.(GEOID)]
-bg_GQHH[order(-nonrelatives_cnt),("nonrelatives_cnt"):=.SD[1],by=.(GEOID)]
+bg_GQHH[order(-nonrelatives_cnt),("nonrelatives_cnt"):=.SD[1,nonrelatives_cnt],by=.(GEOID)]
+
+nrow(bg_GQHH[!is.na(child_step_ID)]) #277054
+bg_GQHH[!is.na(add_1_ID),("child_step_ID"):=
+  fcase(child_step_cnt<`Stepchild`-(1:.N)&add_1_age<20,add_1_ID,
+        #default = paste0(`Stepchild`-(1:.N)," no match")),
+        default = child_step_ID),
+  by = .(GEOID)]
+nrow(bg_GQHH[!is.na(child_step_ID)]) #; target is 405405
+
+#do all the roles and then do all the matches back to bg_SARE, so it's also fully informed.
+nrow(bg_GQHH[!is.na(child_grand_ID)]) #target is 879134
+bg_GQHH[!is.na(add_1_ID),("child_grand_ID"):=
+          fcase(child_grand_cnt<`Grandchild`-(1:.N)&add_1_age<20,add_1_ID,
+        #        default = paste0(`Grandchild`-(1:.N)," no match")),
+        default = child_grand_ID),
+        by = .(GEOID)]
+nrow(bg_GQHH[!is.na(child_grand_ID)]) #target is 879134
+#redo the matches to bg_SARE, so you get it recorded both directions. bg_GQHH[,c("child_own_add_ID","child_own_add_sex","child_own_add_age","child_own_add_re_code"):=.SD[]]
 
 
-#group members 
+#group members for better access by javascript later
 bg_GQHH[!is.na(spouse_partner_ID),("spouse_partner"):=asplit(.SD,1),.SDcols=c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code")]
 bg_GQHH[,c("spouse_partner_ID","spouse_partner_sex","spouse_partner_age","spouse_partner_re_code"):=NULL]
 
