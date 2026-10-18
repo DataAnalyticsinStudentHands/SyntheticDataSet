@@ -1510,6 +1510,72 @@ bg_SARE[,(match_cols):=NULL]
 bg_GQHH <- merge(bg_GQ,bg_hhSARETT,by=c("GEOID","tract","household","sex","age_range_3hh","age_num"),all = TRUE) #keeps columns from having .x, etc
 bg_GQHH[,("hh_ID"):=fcase(is.na(hh_ID),paste0("gq_",gq_ID),default = hh_ID)]
 
+#13888 kids in bg_SARE with no hh
+#for GQ matches, without re_code for under 18
+bg_GQHH[!is.na(gq_ID)&age_num<18,
+            ("gq_match18_id"):=
+              paste0(tract,sex,as.character(100000+sample(1:.N))),
+            by=.(tract,sex)]
+bg_SARE[str_detect(role,"nstitution")&age_num<18&is.na(hh_ID),("gq_match18_id"):=
+          paste0(tract,sex,as.character(100000+sample(1:.N))),
+        by=.(tract,sex)]
+bg_GQHH[!is.na(gq_ID)&age_num<18,
+            c("ind_ID","bg_role"):=
+              bg_SARE[.SD,c(list(ind_ID),list(role)),on=.(gq_match18_id)]]
+bg_SARE[str_detect(role,"nstitution")&is.na(hh_ID)&age_num<18,c("hh_ID","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(role)),on=.(gq_match18_id)]]
+nrow(bg_GQHH[is.na(ind_ID)]) #608987 before;601250 after (which is just shy of the 7804 target)
+
+bg_GQHH[!is.na(gq_ID)&age_num<50&is.na(ind_ID),
+        ("gq_match50_id"):=
+          paste0(tract,sex,as.character(100000+sample(1:.N))),
+        by=.(tract,sex)]
+bg_SARE[str_detect(role,"nstitution")&age_num<50&is.na(hh_ID),("gq_match50_id"):=
+          paste0(tract,sex,as.character(100000+sample(1:.N))),
+        by=.(tract,sex)]
+bg_GQHH[!is.na(gq_ID)&age_num<50&is.na(ind_ID),
+        c("ind_ID","bg_role"):=
+          bg_SARE[.SD,c(list(ind_ID),list(role)),on=.(gq_match50_id)]]
+bg_SARE[str_detect(role,"nstitution")&is.na(hh_ID)&age_num<50,c("hh_ID","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(role)),on=.(gq_match50_id)]]
+nrow(bg_GQHH[is.na(ind_ID)]) #221904
+
+#and less than 65
+bg_GQHH[!is.na(gq_ID)&age_num<65&is.na(ind_ID),
+        ("gq_match65_id"):=
+          paste0(tract,sex,as.character(100000+sample(1:.N))),
+        by=.(tract,sex)]
+bg_SARE[str_detect(role,"nstitution")&age_num<65&is.na(hh_ID),("gq_match65_id"):=
+          paste0(tract,sex,as.character(100000+sample(1:.N))),
+        by=.(tract,sex)]
+bg_GQHH[!is.na(gq_ID)&age_num<65&is.na(ind_ID),
+        c("ind_ID","bg_role"):=
+          bg_SARE[.SD,c(list(ind_ID),list(role)),on=.(gq_match65_id)]]
+bg_SARE[str_detect(role,"nstitution")&is.na(hh_ID)&age_num<65,c("hh_ID","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(role)),on=.(gq_match65_id)]]
+nrow(bg_GQHH[is.na(ind_ID)]) #155193
+
+#more than 64
+bg_GQHH[!is.na(gq_ID)&age_num>64&is.na(ind_ID),
+        ("gq_match64_id"):=
+          paste0(tract,sex,as.character(100000+sample(1:.N))),
+        by=.(tract,sex)]
+bg_SARE[str_detect(role,"nstitution")&age_num>64&is.na(hh_ID),("gq_match64_id"):=
+          paste0(tract,sex,as.character(100000+sample(1:.N))),
+        by=.(tract,sex)]
+bg_GQHH[!is.na(gq_ID)&age_num>64&is.na(ind_ID),
+        c("ind_ID","bg_role"):=
+          bg_SARE[.SD,c(list(ind_ID),list(role)),on=.(gq_match64_id)]]
+bg_SARE[str_detect(role,"nstitution")&is.na(hh_ID)&age_num>64,c("hh_ID","hh_role"):=
+          bg_GQHH[.SD,c(list(hh_ID),list(role)),on=.(gq_match64_id)]]
+nrow(bg_GQHH[is.na(ind_ID)]) #104599
+
+
+
+bg_SARE[,("hh_role"):=fcase(hh_role=="In households","Sibling",default = hh_role)]
+
+
+
 #make sure we're somehow tracking gq and hh, below!
 
 
@@ -1521,6 +1587,12 @@ role_summary <- bg_SARE[,.(role_totals = .N), by = .(GEOID,role_orig)]
 bg_role_summary <- dcast(role_summary,GEOID~role_orig,value.var="role_totals",fun.aggregate = sum)
 bg_GQHH <- bg_role_summary[bg_GQHH,on="GEOID"] 
 
+
+
+
+
+
+#LOOKS LIKE YOU DON'T NEED _bg on the cnt - although need to figure out what is happening with NA
 bg_GQHH[!is.na(child_own_1_ID),("child_own_1_cnt"):=.N,by=.(GEOID)]
 bg_GQHH[!is.na(child_own_2_ID),("child_own_2_cnt"):=.N,by=.(GEOID)] #only if own_1
 bg_GQHH[!is.na(child_own_3_ID),("child_own_3_cnt"):=.N,by=.(GEOID)] #only if own_2
